@@ -1,0 +1,608 @@
+/*
+ * User Management & Student Details + Block Account — list/table + student
+ * details modal. Reuses the shared .ul-card / .ul-btn / .ul-status-badge /
+ * .ul-avatar-chip primitives from AdminDashboard.css so this screen matches
+ * the rest of the Admin Dashboard exactly. Table/toolbar/summary/modal
+ * layout below mirrors .ul-crs-* in CourseApproval.css (which itself
+ * mirrors .ul-edu-* in EducatorVerification.css), namespaced .ul-usr-*
+ * since this file owns it.
+ */
+
+.ul-usr-header {
+  margin-bottom: 18px;
+}
+.ul-usr-header__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
+}
+.ul-usr-header__subtitle {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  max-width: 720px;
+  line-height: 1.5;
+}
+
+/* ---------- summary cards ---------- */
+.ul-usr-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ul-usr-summary__card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  flex: 0 1 auto;
+  min-width: 128px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-card);
+}
+.ul-usr-summary__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 3px;
+}
+.ul-usr-summary__value {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* ---------- toolbar ---------- */
+.ul-usr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ul-usr-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+.ul-usr-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+  width: 100%;
+  font-family: inherit;
+}
+.ul-usr-search input::placeholder {
+  color: var(--color-text-muted);
+}
+.ul-usr-search__clear {
+  border: none;
+  background: var(--color-soft-pink);
+  color: var(--color-primary-dark);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ul-usr-select {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+.ul-usr-select:hover {
+  border-color: var(--color-soft-pink);
+}
+
+/* ---------- table card ---------- */
+.ul-usr-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+.ul-usr-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+.ul-usr-table-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+.ul-usr-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.ul-usr-table thead th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--color-bg-secondary);
+}
+.ul-usr-table thead th:first-child {
+  padding-left: 16px;
+}
+.ul-usr-table thead th:last-child {
+  padding: 10px 12px 10px 0;
+  text-align: right;
+}
+/* User Management's own table only: the actions column holds a single
+   left-packed Block/Unblock button (see .ul-usr-actions-cell's
+   justify-content: flex-start below), so its header label should sit
+   above the button instead of floating at the column's far right. */
+.ul-usr-mgmt-table thead th:last-child {
+  text-align: left;
+}
+.ul-usr-table tbody td {
+  padding: 9px 6px;
+  font-size: 11.5px;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  overflow: hidden;
+}
+.ul-usr-table tbody td:first-child {
+  padding-left: 16px;
+}
+.ul-usr-table tbody td:last-child {
+  padding: 9px 12px 9px 0;
+  overflow: visible;
+}
+.ul-usr-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.ul-usr-table tbody tr:hover {
+  background: var(--color-bg-secondary);
+}
+.ul-usr-table tbody tr.ul-usr-row--clickable {
+  cursor: pointer;
+}
+
+.ul-usr-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.ul-usr-name-cell__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+.ul-usr-name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.ul-usr-name-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+.ul-usr-name-cell__sub {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Student avatar — reuses .ul-avatar-chip (AdminDashboard.css) sizing hook,
+   same pattern as the educator table avatar in EducatorVerification.css. */
+.ul-usr-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  font-size: 10.5px;
+  border-radius: 8px;
+}
+.ul-usr-avatar--lg {
+  width: 56px;
+  height: 56px;
+  font-size: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.ul-usr-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.ul-usr-btn-sm {
+  padding: 5px 11px;
+  font-size: 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---------- pagination ---------- */
+.ul-usr-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ul-usr-pagination__info {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.ul-usr-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+.ul-usr-pagination__controls button {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-primary-dark);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ul-usr-pagination__controls button:hover:not(:disabled) {
+  background: var(--color-soft-pink);
+}
+.ul-usr-pagination__controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Student Details modal ---------- */
+/* Flex column so the header stays put, the middle section scrolls, and
+   the action bar sticks to the bottom without a second scrollbar. */
+.ul-usr-review-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(11, 11, 15, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ul-usr-review-modal {
+  width: 100%;
+  max-width: 620px;
+  height: 82vh;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px -12px rgba(11, 11, 15, 0.35);
+  overflow: hidden;
+}
+.ul-usr-review-modal__head {
+  flex-shrink: 0;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.ul-usr-review-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.ul-usr-review-modal__header-text {
+  flex: 1;
+  min-width: 0;
+}
+.ul-usr-review-modal__title {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
+}
+.ul-usr-review-modal__sub {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+.ul-usr-review-modal__close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ul-usr-review-modal__close:hover {
+  background: var(--color-bg-secondary);
+}
+
+.ul-usr-review-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 24px;
+}
+
+.ul-usr-review-modal__actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-card);
+}
+.ul-usr-review-modal__actions .ul-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Compact info grid — reused for Contact / Account Information so the
+   many small fields don't turn into a stack of large cards. */
+.ul-usr-review-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+.ul-usr-review-meta__item {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  min-width: 0;
+}
+.ul-usr-review-meta__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  margin: 0 0 3px;
+}
+.ul-usr-review-meta__value {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ul-usr-review-meta__value--muted {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.ul-usr-review-section {
+  margin-top: 18px;
+}
+.ul-usr-review-section__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+}
+
+/* ---------- enrolled courses list ---------- */
+.ul-usr-course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ul-usr-course-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+}
+.ul-usr-course-row__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+.ul-usr-course-row__progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.ul-usr-course-row__bar {
+  width: 84px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-soft-pink);
+  overflow: hidden;
+}
+.ul-usr-course-row__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.ul-usr-feedback-box {
+  border: 1px solid #f3d6cf;
+  background: #fdf3f1;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+}
+.ul-usr-feedback-box strong {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #b3261e;
+  margin-bottom: 4px;
+}
+
+.ul-usr-reason {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  resize: vertical;
+  min-height: 78px;
+}
+.ul-usr-reason:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.ul-usr-toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text-primary);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(11, 11, 15, 0.25);
+  z-index: 95;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .ul-usr-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ul-usr-select,
+  .ul-usr-search {
+    flex: 1 1 auto;
+  }
+}
+@media (max-width: 640px) {
+  .ul-usr-review-modal {
+    height: 90vh;
+    max-height: 90vh;
+  }
+  .ul-usr-review-modal__actions {
+    flex-wrap: wrap;
+  }
+  .ul-usr-review-modal__actions .ul-btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .ul-usr-header__title {
+    font-size: 18px;
+  }
+  .ul-usr-summary {
+    grid-template-columns: 1fr;
+  }
+  .ul-usr-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ul-usr-select,
+  .ul-usr-search {
+    width: 100%;
+    min-width: 0;
+  }
+  .ul-usr-review-backdrop {
+    padding: 10px;
+  }
+  .ul-usr-review-modal {
+    height: 94vh;
+    max-height: 94vh;
+    border-radius: var(--radius-md, 12px);
+  }
+  .ul-usr-review-modal__head {
+    padding: 16px 16px 12px;
+  }
+  .ul-usr-review-modal__body {
+    padding: 14px 16px;
+  }
+  .ul-usr-review-modal__actions {
+    padding: 12px 16px;
+  }
+  .ul-usr-review-meta {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .ul-usr-course-row {
+    flex-wrap: wrap;
+  }
+  .ul-usr-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ul-usr-pagination__controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

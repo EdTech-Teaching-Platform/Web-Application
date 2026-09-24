@@ -1,0 +1,245 @@
+/*
+ * Admin Security Center — own page-specific styling on top of the shared
+ * primitives from AdminDashboard.css (.ul-card, .ul-stats/.ul-stat-card,
+ * .ul-btn, .ul-status-badge, .ul-pill), SettingsPermissions.css (.ul-tabs/
+ * .ul-tab, .ul-set-switch*, .ul-set-field-row/__input, .ul-set-section-*,
+ * .ul-set-toast) and AuditLogs.css (.ul-audit-table*, .ul-audit-toolbar,
+ * .ul-audit-actions, .ul-audit-modal*, .ul-audit-empty, .ul-audit-detail-copy).
+ * None of those shared rules are edited here — only new, uniquely-named
+ * classes are added, so no other admin page is affected.
+ */
+
+.ul-sec-page {
+  min-width: 0;
+}
+
+/* ---------- overview: smaller stat cards, value picked out in brown ---------- */
+.ul-stats--sec {
+  gap: 12px;
+}
+.ul-stat-card--sec {
+  padding: 12px 14px;
+  gap: 4px;
+  border-radius: var(--radius-sm);
+}
+.ul-stat-card--sec .ul-stat-card__label {
+  font-size: 9.5px;
+}
+.ul-stat-card--sec .ul-stat-card__value {
+  font-size: 17px;
+  color: var(--color-primary);
+}
+.ul-stat-card--sec .ul-stat-card__trend {
+  font-size: 10.5px;
+}
+
+/* ---------- overview: compact account-security / alerts cards ---------- */
+.ul-sec-card--compact {
+  padding: 14px 16px;
+}
+.ul-sec-card--compact .ul-card__head {
+  margin-bottom: 10px;
+}
+.ul-sec-card--compact .ul-card__head h3 {
+  font-size: 13px;
+  color: var(--color-primary);
+}
+.ul-sec-card--compact .ul-card__body-text {
+  font-size: 11.5px;
+  margin-bottom: 10px;
+}
+
+/* ---------- two-up card grid (MFA/password/policy panels) ---------- */
+.ul-sec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.ul-sec-grid__wide {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 900px) {
+  .ul-sec-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ul-sec-value {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* ---------- overview: alert preview list ---------- */
+.ul-sec-alert-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+.ul-sec-alert-preview__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ul-sec-alert-preview__title {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- generic panel wrapper (Sessions / Activity / Alerts tabs) ---------- */
+.ul-sec-panel {
+  min-width: 0;
+  margin-bottom: 16px;
+}
+.ul-sec-panel:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- sessions & devices ---------- */
+.ul-sec-session-list {
+  display: flex;
+  flex-direction: column;
+}
+.ul-sec-session-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 1.4fr) 110px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px;
+  border-top: 1px solid var(--color-border);
+}
+.ul-sec-session-row:first-child {
+  border-top: none;
+}
+.ul-sec-session-row__main strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+}
+.ul-sec-session-row__main small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+.ul-sec-session-row__current {
+  font-size: 9px;
+  padding: 2px 8px;
+}
+.ul-sec-session-row__meta span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+}
+.ul-sec-session-row__meta small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+.ul-sec-session-row__note {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2f9e56;
+  background: #e4f5ea;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-align: center;
+}
+
+/* ---------- login activity / failed attempts tables ---------- */
+.ul-sec-login-table.ul-audit-table .ul-audit-table__head,
+.ul-sec-login-table.ul-audit-table .ul-audit-row {
+  grid-template-columns: minmax(150px, 1fr) minmax(140px, 1fr) minmax(160px, 1.2fr) minmax(120px, 1fr) 80px;
+}
+.ul-sec-failed-table.ul-audit-table .ul-audit-table__head,
+.ul-sec-failed-table.ul-audit-table .ul-audit-row {
+  grid-template-columns: minmax(150px, 1fr) minmax(190px, 1.3fr) minmax(160px, 1.2fr) minmax(160px, 1.2fr) 90px;
+}
+.ul-sec-login-table .ul-audit-row span,
+.ul-sec-failed-table .ul-audit-row span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+/* ---------- security alerts ---------- */
+.ul-sec-alert-list {
+  display: flex;
+  flex-direction: column;
+}
+.ul-sec-alert-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 100px auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px;
+  border-top: 1px solid var(--color-border);
+}
+.ul-sec-alert-row:first-child {
+  border-top: none;
+}
+.ul-sec-alert-row__body strong {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+}
+.ul-sec-alert-row__body p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.ul-sec-alert-row__body small {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+
+@media (max-width: 760px) {
+  .ul-sec-session-row,
+  .ul-sec-alert-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .ul-sec-session-row__note {
+    text-align: left;
+  }
+}
+
+@media (max-width: 480px) {
+  .ul-sec-session-row,
+  .ul-sec-alert-row {
+    padding: 12px 2px;
+  }
+  .ul-sec-card--compact {
+    padding: 12px 14px;
+  }
+  .ul-sec-login-table.ul-audit-table,
+  .ul-sec-failed-table.ul-audit-table {
+    overflow-x: auto;
+  }
+}
+
+/* ---------- session revoke button: icon + label inline, not stacked ---------- */
+.ul-sec-revoke-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- regenerate backup codes button: icon + label inline ---------- */
+.ul-sec-regen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- change-password button: a touch more breathing room above ---------- */
+.ul-sec-change-pw-btn {
+  margin-top: 10px;
+}

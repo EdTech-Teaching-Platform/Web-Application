@@ -1,0 +1,20 @@
+/* Test Series -> Tests (level 2). Reuses .ul-ts-* primitives from
+   TestSeries.css (imported alongside this file) plus the shared
+   .ul-set-* / .ul-stats / .ul-status-badge classes. */
+
+.ul-tsd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 14px;
+}
+.ul-tsd-back:hover {
+  color: var(--color-primary);
+}

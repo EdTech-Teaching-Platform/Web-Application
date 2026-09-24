@@ -1,0 +1,200 @@
+// Login (password / OTP / Google) — LMS doc Sec 5.1: "Password, one-time
+// code, or Google social login." Full-bleed two-panel split: a text-only
+// left panel and a form-focused right panel. All form content is
+// unchanged — same fields, copy, links and buttons as before.
+//
+// Per request, the left-panel illustration has been removed entirely (no
+// SVG scene, no image asset) — the left panel is now just the wordmark and
+// headline copy on the plain background.
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Chip from "../../components/ui/Chip";
+import Checkbox from "../../components/ui/Checkbox";
+import { GoogleIcon, AppleIcon } from "../../components/ui/icons";
+import { isEmailOrPhone } from "../utils/validators";
+import { login, requestLoginOtp } from "../services/authApi";
+
+export default function Login() {
+  const navigate = useNavigate();
+  const [method, setMethod] = useState("password"); // "password" | "otp"
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [touched, setTouched] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const errors = useMemo(() => {
+    const e = {};
+    if (!identifier.trim()) e.identifier = "Enter your email or phone number.";
+    else if (!isEmailOrPhone(identifier)) e.identifier = "Enter a valid email or phone number.";
+    if (method === "password" && !password) e.password = "Enter your password.";
+    return e;
+  }, [identifier, password, method]);
+
+  // Presence validation only — actual credential correctness is a server
+  // response, surfaced as formError on submit failure.
+  const isValid = Object.keys(errors).length === 0;
+
+  const shown = (field) => (touched[field] ? errors[field] : undefined);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setTouched({ identifier: true, password: true });
+    if (!isValid) return;
+
+    setSubmitting(true);
+    setFormError("");
+    try {
+      if (method === "password") {
+        await login({ identifier: identifier.trim(), password });
+        navigate("/student"); // TODO: route by role once the API returns one
+      } else {
+        await requestLoginOtp({ identifier: identifier.trim() });
+        navigate(`/verify-otp?mode=login-otp&destination=${encodeURIComponent(identifier.trim())}`);
+      }
+    } catch {
+      setFormError(
+        method === "password"
+          ? "Incorrect email/phone or password."
+          : "Couldn't send a code right now. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="grid min-h-screen bg-bg lg:grid-cols-[1.9fr_1fr]">
+      {/* Left panel — wordmark + headline only, no illustration. */}
+      <div className="relative hidden flex-col overflow-hidden border-r border-[#e5ded9] bg-bg p-10 lg:flex lg:p-14">
+        <span className="font-display text-sm font-semibold tracking-tight text-primary">
+          Universal Learning
+        </span>
+
+        <div className="flex flex-1 flex-col items-start justify-center">
+          <div className="max-w-xs">
+            <h2 className="font-display text-3xl leading-tight tracking-tight text-text">
+              Learn anything.
+              <br />
+              From anyone.
+            </h2>
+            <p className="mt-3 text-sm text-text/60">
+              Courses, live classes and mentors — all in one place, right where you left off.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel — form (content unchanged) */}
+      <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
+        <div className="mx-auto w-full max-w-sm">
+          <span className="mb-6 block text-center font-display text-lg tracking-tight text-primary lg:hidden">
+            Universal Learning
+          </span>
+
+          <div className="mx-auto mb-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary font-display text-sm font-bold text-white">
+            UL
+          </div>
+
+          <h1 className="text-center font-display text-2xl text-text">Hi, welcome back.</h1>
+          <p className="mt-2 text-center text-sm text-text/60">
+            New to Universal Learning?{" "}
+            <Link to="/student/onboarding" className="font-medium text-primary hover:underline">
+              Create a free account
+            </Link>
+          </p>
+
+          <div className="mt-6 flex justify-center gap-2">
+            <Chip active={method === "password"} onClick={() => setMethod("password")}>
+              Password
+            </Chip>
+            <Chip active={method === "otp"} onClick={() => setMethod("otp")}>
+              One-Time Code
+            </Chip>
+          </div>
+
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+            {formError && (
+              <p className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">{formError}</p>
+            )}
+
+            <Input
+              label="Email or Phone"
+              placeholder="you@example.com or +1 555 000 0000"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, identifier: true }))}
+              error={shown("identifier")}
+              autoComplete="username"
+            />
+
+            {method === "password" && (
+              <>
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+                  error={shown("password")}
+                  autoComplete="current-password"
+                />
+                <div className="flex items-center justify-between">
+                  <Checkbox
+                    label="Remember this device"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
+                  <Link to="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
+              </>
+            )}
+
+            <Button type="submit" disabled={!isValid || submitting}>
+              {submitting
+                ? method === "password"
+                  ? "Logging in…"
+                  : "Sending code…"
+                : method === "password"
+                  ? "Log In"
+                  : "Send Code"}
+            </Button>
+
+            <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-text/40">
+              <span className="h-px flex-1 bg-text/10" />
+              Or continue with
+              <span className="h-px flex-1 bg-text/10" />
+            </div>
+
+            <div className="flex gap-3">
+              <Button type="button" variant="social" onClick={() => {}}>
+                <GoogleIcon /> Google
+              </Button>
+              <Button type="button" variant="social" onClick={() => {}}>
+                <AppleIcon /> Apple
+              </Button>
+            </div>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-text/40">
+            By continuing, you agree to our{" "}
+            <Link to="/terms" className="underline hover:text-text/60">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="underline hover:text-text/60">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

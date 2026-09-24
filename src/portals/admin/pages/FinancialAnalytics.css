@@ -1,0 +1,33 @@
+.ul-fin-page { display: flex; flex-direction: column; gap: 18px; }
+.ul-fin-welcome { align-items: flex-start; display: flex; justify-content: space-between; gap: 18px; }
+.ul-fin-range { color: var(--color-text-secondary); display: flex; flex-direction: column; font-size: 11px; font-weight: 700; gap: 6px; }
+.ul-fin-range select { background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text-primary); font: inherit; min-width: 150px; padding: 9px 12px; }
+.ul-fin-stats { margin: 0; }
+.ul-fin-stats .ul-stat-card { padding: 12px 14px; gap: 4px; border-radius: var(--radius-sm); }
+.ul-fin-stats .ul-stat-card__label { font-size: 9.5px; }
+.ul-fin-stats .ul-stat-card__value { font-size: 17px; color: #b3261e; }
+.ul-fin-stats .ul-stat-card__trend { font-size: 10.5px; }
+.ul-fin-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(270px, 1fr); gap: 18px; }
+.ul-fin-grid--lower { grid-template-columns: 1.35fr 1fr; }
+.ul-fin-chart-card { min-width: 0; }
+.ul-fin-chart-wrap { margin-top: 16px; overflow: hidden; }
+.ul-fin-chart { display: block; height: 210px; overflow: visible; width: 100%; }
+.ul-fin-gridline { stroke: var(--color-border); stroke-dasharray: 3 5; stroke-width: 1; }
+.ul-fin-line { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.ul-fin-line--revenue { stroke: var(--color-primary); }
+.ul-fin-line--commission { stroke: var(--color-financial-cyan); stroke-dasharray: 7 5; stroke-width: 2.5; }
+.ul-fin-line--refunds { stroke: var(--color-analytics-orange); stroke-dasharray: 2 5; stroke-width: 2.5; }
+.ul-fin-chart-labels { color: var(--color-text-muted); display: flex; font-size: 10px; justify-content: space-between; margin-top: 6px; }
+.ul-fin-legend { display: flex; flex-wrap: wrap; gap: 14px; color: var(--color-text-muted); font-size: 11px; }
+.ul-fin-legend i { border-radius: 50%; display: inline-block; height: 7px; margin-right: 5px; width: 7px; }
+.ul-fin-legend .is-revenue { background: var(--color-primary); }.ul-fin-legend .is-commission { background: var(--color-financial-cyan); }.ul-fin-legend .is-refund { background: var(--color-analytics-orange); }
+.ul-fin-breakdown, .ul-fin-methods { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+.ul-fin-breakdown-row { align-items: center; display: grid; gap: 10px; grid-template-columns: 1fr auto 38px; }
+.ul-fin-breakdown-row strong { color: var(--color-text-primary); font-size: 14px; }.ul-fin-breakdown-row > span:last-child { color: var(--color-text-muted); font-size: 11px; text-align: right; }
+.ul-fin-method { align-items: center; display: grid; gap: 10px; grid-template-columns: 90px 1fr 70px; font-size: 11px; }.ul-fin-method > div { background: var(--color-bg-secondary); border-radius: 99px; height: 8px; overflow: hidden; }.ul-fin-method b { background: var(--color-primary); border-radius: inherit; display: block; height: 100%; }.ul-fin-method strong { text-align: right; }
+.ul-fin-refund-summary { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.ul-fin-refund-row { align-items: center; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); display: flex; justify-content: space-between; gap: 10px; min-height: 44px; padding: 9px 12px; }
+.ul-fin-refund-label { color: var(--color-text-muted); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.ul-fin-refund-row strong { color: var(--color-text-primary); font-size: 15px; }
+.ul-fin-table-card { margin-bottom: 12px; }.ul-fin-table-card .ul-card__eyebrow { align-items: center; display: flex; gap: 5px; }
+@media (max-width: 800px) { .ul-fin-grid, .ul-fin-grid--lower { grid-template-columns: 1fr; }.ul-fin-welcome { flex-direction: column; }.ul-fin-range select { width: 100%; } }

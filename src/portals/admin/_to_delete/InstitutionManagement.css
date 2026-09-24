@@ -1,0 +1,250 @@
+/*
+ * Institution Management + Institution Details View. Reuses the shared
+ * .ul-card / .ul-btn / .ul-status-badge / .ul-avatar-chip primitives from
+ * AdminDashboard.css and the .ul-usr-* toolbar/table/details-modal
+ * layout already defined in UserManagement.css (search box, select,
+ * table, pagination, review modal shell, reason textarea, toast) so this
+ * screen matches User Management and Educator Management exactly. Only
+ * the pieces genuinely specific to institutions — the header/onboard
+ * button, summary cards, the icon-only Edit button, the org-structure
+ * roster and the onboard/edit form grid — live here, namespaced
+ * .ul-inst-*.
+ */
+
+.ul-inst-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.ul-inst-header__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
+}
+.ul-inst-header__subtitle {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.5;
+}
+.ul-inst-onboard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-size: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---------- summary cards ---------- */
+.ul-inst-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ul-inst-summary__card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+.ul-inst-summary__value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 2px;
+}
+.ul-inst-summary__label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---------- table tweaks ---------- */
+.ul-inst-table {
+  min-width: 900px;
+}
+.ul-inst-table thead th:last-child,
+.ul-inst-table tbody td:last-child {
+  text-align: right;
+}
+.ul-inst-icon-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-primary-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ul-inst-icon-btn:hover {
+  background: var(--color-soft-pink);
+}
+
+/* ---------- Institution Details: org structure roster ---------- */
+.ul-inst-details-modal {
+  max-width: 660px;
+}
+.ul-inst-org-count {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ul-inst-org-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ul-inst-org-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.ul-inst-org-row__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--color-soft-pink);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ul-inst-org-row__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ul-inst-org-row__name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ul-inst-org-row__meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ul-inst-org-row__stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---------- Onboard / Edit Institution form ---------- */
+.ul-inst-form-modal {
+  max-width: 640px;
+  height: auto;
+  max-height: 88vh;
+}
+.ul-inst-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.ul-inst-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.ul-inst-field--full {
+  grid-column: 1 / -1;
+}
+.ul-inst-field__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+.ul-inst-field input,
+.ul-inst-field select {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  outline: none;
+}
+.ul-inst-field select {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.ul-inst-field input:focus,
+.ul-inst-field select:focus {
+  border-color: var(--color-primary);
+}
+.ul-inst-field__error {
+  font-size: 11px;
+  color: #b3261e;
+  font-weight: 600;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .ul-inst-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ul-inst-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ul-inst-onboard-btn {
+    align-self: flex-start;
+  }
+}
+@media (max-width: 640px) {
+  .ul-inst-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .ul-inst-header__title {
+    font-size: 18px;
+  }
+  .ul-inst-summary {
+    grid-template-columns: 1fr;
+  }
+  .ul-inst-org-row {
+    flex-wrap: wrap;
+  }
+  .ul-inst-org-row__stats {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 8px;
+  }
+}

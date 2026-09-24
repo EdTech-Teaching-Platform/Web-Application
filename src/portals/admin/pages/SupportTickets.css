@@ -1,0 +1,394 @@
+/*
+ * Help Desk / Support Tickets + Callback Requests (Day 15). Reuses
+ * shared .ul-card / .ul-stats / .ul-stat-card / .ul-status-badge
+ * primitives from AdminDashboard.css / EducatorVerification.css, the
+ * .ul-tabs / .ul-tab primitive and .ul-set-search / .ul-set-select /
+ * .ul-set-filters / .ul-set-table* / .ul-set-drawer* / .ul-set-toast
+ * classes from SettingsPermissions.css, and .ul-usr-pagination from
+ * UserManagement.css so this screen matches the rest of Admin exactly.
+ * Everything below is namespaced .ul-sup-* since this file owns it.
+ */
+
+.ul-sup-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.ul-sup-stats .ul-stat-card { padding: 12px 14px; gap: 4px; border-radius: var(--radius-sm); }
+.ul-sup-stats .ul-stat-card__label { font-size: 9.5px; }
+.ul-sup-stats .ul-stat-card__value { font-size: 17px; color: #b3261e; }
+.ul-sup-stats .ul-stat-card__trend { font-size: 10.5px; }
+
+.ul-sup-export-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -6px;
+}
+.ul-sup-export-row .ul-btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+.ul-sup-bulk-bar {
+  align-items: center;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 9px 12px;
+}
+.ul-sup-bulk-bar strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  margin-right: auto;
+}
+.ul-sup-check-col {
+  padding-left: 10px !important;
+  padding-right: 0 !important;
+  text-align: center !important;
+  width: 34px;
+}
+.ul-sup-check-col input {
+  accent-color: var(--color-primary);
+}
+
+/* ---------- priority indicator ---------- */
+.ul-sup-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.ul-sup-priority::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ul-sup-priority.is-urgent { color: #b3261e; }
+.ul-sup-priority.is-urgent::before { background: #b3261e; }
+.ul-sup-priority.is-high { color: var(--color-analytics-orange); }
+.ul-sup-priority.is-high::before { background: var(--color-analytics-orange); }
+.ul-sup-priority.is-medium { color: var(--color-warning-accent); }
+.ul-sup-priority.is-medium::before { background: var(--color-warning-accent); }
+.ul-sup-priority.is-low { color: var(--color-text-muted); }
+.ul-sup-priority.is-low::before { background: var(--color-text-muted); }
+
+/* ---------- ticket subject cell ---------- */
+.ul-sup-subject-cell {
+  min-width: 0;
+}
+.ul-sup-subject-cell__id {
+  display: block;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.ul-sup-requester-cell {
+  min-width: 0;
+}
+.ul-sup-requester-cell__role {
+  display: block;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+/* ---------- ticket detail drawer extras ---------- */
+.ul-sup-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ul-sup-meta-select {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  font-size: 11.5px;
+  font-family: inherit;
+  outline: none;
+  flex: 1 1 140px;
+}
+.ul-sup-meta-select:focus {
+  border-color: var(--color-primary);
+}
+
+.ul-sup-sla-grid {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 16px;
+  padding: 10px 12px;
+}
+.ul-sup-sla-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ul-sup-sla-grid span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.ul-sup-sla-grid strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+.ul-sup-sla-grid strong.is-good { color: #2f9e56; }
+.ul-sup-sla-grid strong.is-risk { color: #b3261e; }
+
+/* ---------- message thread ---------- */
+.ul-sup-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ul-sup-message {
+  border-radius: var(--radius-md);
+  padding: 10px 13px;
+  max-width: 92%;
+}
+.ul-sup-message.is-requester {
+  background: var(--color-bg-secondary);
+  align-self: flex-start;
+}
+.ul-sup-message.is-support {
+  background: var(--color-soft-pink);
+  align-self: flex-end;
+}
+.ul-sup-message__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.ul-sup-message__author {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-sup-message__time {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ul-sup-message__text {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.ul-sup-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ul-sup-reply textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  resize: vertical;
+  min-height: 68px;
+  outline: none;
+}
+.ul-sup-reply textarea:focus {
+  border-color: var(--color-primary);
+}
+.ul-sup-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ul-sup-resolution {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+.ul-sup-resolution__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.ul-sup-resolution textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  resize: vertical;
+  min-height: 88px;
+  outline: none;
+}
+.ul-sup-resolution textarea:focus {
+  border-color: var(--color-primary);
+}
+.ul-sup-resolution__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ul-sup-resolution--sent {
+  background: rgba(47, 158, 86, 0.08);
+  border-color: rgba(47, 158, 86, 0.35);
+}
+.ul-sup-resolution__confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2f9e56;
+}
+
+.ul-sup-activity {
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 16px;
+  padding-left: 12px;
+}
+.ul-sup-activity div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ul-sup-activity span {
+  color: var(--color-text-primary);
+  font-size: 11.5px;
+}
+.ul-sup-activity small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+/* ---------- callback request cards ---------- */
+.ul-sup-contact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+}
+.ul-sup-contact-line + .ul-sup-contact-line {
+  margin-top: 3px;
+}
+
+.ul-sup-message-preview {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+}
+
+.ul-sup-callback-table th:nth-child(5),
+.ul-sup-callback-table td:nth-child(5) {
+  padding-right: 14px;
+  text-align: right;
+}
+
+.ul-sup-quote-box {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  margin-bottom: 16px;
+}
+
+.ul-sup-followup {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  resize: vertical;
+  min-height: 68px;
+}
+.ul-sup-followup:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.ul-sup-status-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.ul-sup-schedule-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ul-sup-schedule-row input {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font: inherit;
+  min-height: 32px;
+  padding: 6px 8px;
+}
+
+@media (max-width: 640px) {
+  .ul-sup-export-row {
+    justify-content: stretch;
+  }
+  .ul-sup-export-row .ul-btn {
+    justify-content: center;
+    width: 100%;
+  }
+  .ul-sup-sla-grid {
+    grid-template-columns: 1fr;
+  }
+  .ul-sup-message {
+    max-width: 100%;
+  }
+}
+

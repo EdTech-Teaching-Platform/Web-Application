@@ -1,0 +1,19 @@
+/*
+ * Wrapper for the /admin/notifications page — the actual panel markup
+ * and styling (compact rows, capped/scrollable height) live in
+ * ../components/NotificationsPanel.css since the same panel also renders
+ * as AdminTopbar's dropdown. This file only centers that compact card
+ * in the page's content area instead of letting it stretch full-width.
+ */
+
+.ul-notif-page {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+}
+
+@media (max-width: 480px) {
+  .ul-notif-page {
+    padding-top: 4px;
+  }
+}

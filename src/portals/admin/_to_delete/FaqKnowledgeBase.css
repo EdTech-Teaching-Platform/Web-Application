@@ -1,0 +1,95 @@
+/*
+ * Admin FAQs / Internal Knowledge Base — its own section, separate from
+ * Support Request. Reuses shared .ul-card / .ul-card__head / .ul-card__eyebrow
+ * primitives from AdminDashboard.css, .ul-set-search / .ul-usr-search__clear /
+ * .ul-set-role-chip / .ul-set-empty classes from SettingsPermissions.css /
+ * UserManagement.css so this screen matches the rest of Admin exactly.
+ * Everything below is namespaced .ul-faq-* since this file owns it.
+ */
+
+.ul-faq-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ul-faq-hero {
+  text-align: left;
+}
+.ul-faq-hero__title {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 4px 0 6px;
+}
+.ul-faq-hero__subtitle {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-width: 640px;
+  margin: 0 0 18px;
+}
+.ul-faq-search {
+  max-width: 420px;
+  margin-bottom: 14px;
+}
+.ul-faq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ul-faq-group {
+  margin-top: 4px;
+}
+.ul-faq-list {
+  display: flex;
+  flex-direction: column;
+}
+.ul-faq-item {
+  border-bottom: 1px solid var(--color-border);
+}
+.ul-faq-item:last-child {
+  border-bottom: none;
+}
+.ul-faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 14px 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  cursor: pointer;
+}
+.ul-faq-item.is-open .ul-faq-question {
+  color: var(--color-primary);
+}
+.ul-faq-chevron {
+  display: inline-flex;
+  flex-shrink: 0;
+  transition: transform 200ms ease-out;
+}
+.ul-faq-item.is-open .ul-faq-chevron {
+  transform: rotate(180deg);
+}
+.ul-faq-answer {
+  margin: 0;
+  padding: 0 26px 16px 4px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 640px) {
+  .ul-faq-search {
+    max-width: 100%;
+  }
+}

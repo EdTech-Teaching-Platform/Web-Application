@@ -1,0 +1,400 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens from design.md — the single source of truth for color,
+ * type, and radius across all three portals. Extend design.md first if a
+ * new value is ever needed; don't add ad hoc hex values in components.
+ *
+ * Tailwind v4 turns each --color-* / --font-* var below into matching
+ * utilities automatically, e.g. --color-primary -> bg-primary, text-primary,
+ * border-primary, ring-primary, fill-primary, etc.
+ */
+@theme {
+  --color-primary: #4a0e0e;
+  --color-rotation-1: #f2c94c;
+  --color-rotation-2: #f2994a;
+  --color-rotation-3: #56ccf2;
+  --color-rotation-4: #bb6bd9; /* ⚠ briefed as sage/lime green — confirm before use */
+  --color-bg: #fcf9f8;
+  --color-text: #1a1a1a;
+  --color-success: #5c8a68; /* placeholder — confirm exact hex before build (design.md) */
+  --color-warning: #c99a4a; /* placeholder — confirm exact hex before build (design.md) */
+  --color-danger: #8a4a3a; /* placeholder — confirm exact hex before build (design.md) */
+  --color-blush: #f8e2df; /* new — design.md names "BlushCard" for testimonials only and gives no hex; the Student Onboarding mockup uses this same dusty-pink surface for form panels instead. Added as its own token rather than reusing BlushCard outside its documented scope — confirm with design owner whether these should actually be the same component/color. */
+  --color-accent-teal: #2f7f7a;
+  --color-accent-lilac: #8c78b8;
+  --color-accent-peach: #e7a16a;
+  --color-accent-sky: #83b8d8;
+
+  --font-display: "General Sans", "Clash Display", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "General Sans", "Switzer", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+/* One content system for every authenticated student page. */
+.student-main > div:not(.student-learning-shell) {
+  width: 100%;
+  max-width: 1320px !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 1024px) {
+  .student-main > div:not(.student-learning-shell) {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+}
+
+.student-main > .student-learning-shell {
+  width: 100%;
+  max-width: none !important;
+  margin: 0;
+}
+
+.student-main {
+  scrollbar-gutter: stable;
+}
+
+.student-main h1 {
+  letter-spacing: -0.02em;
+}
+
+.student-main input,
+.student-main select,
+.student-main textarea {
+  min-height: 40px;
+}
+
+/*
+ * `position: fixed` (not `absolute`) is deliberate: this backdrop sits
+ * behind full pages that scroll far taller than one screen (the Landing
+ * page, the Student dashboard shell). An absolutely-positioned box with
+ * `inset: 0` stretches to the full scrollable HEIGHT of its positioned
+ * ancestor, not just the viewport — combined with the SVG below being
+ * told to fill that box exactly, the fixed 1440x900 artwork got scaled
+ * non-uniformly (way more vertically than horizontally) to cover
+ * thousands of extra pixels, which is what stretched every shape in it
+ * into tall, thin ovals. Fixing it to the viewport means its box is
+ * always close to the artwork's own 1440:900 aspect ratio, and
+ * `preserveAspectRatio="xMidYMid slice"` on the SVG itself (see
+ * AmbientPortalBackdrop.jsx) now scales it uniformly and only crops the
+ * overflow instead of distorting it.
+ */
+.ambient-portal-backdrop {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient-portal-backdrop svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ambient-dash {
+  animation: ambient-dash 12s linear infinite;
+}
+
+.ambient-dash--delayed {
+  animation-delay: -5s;
+}
+
+.ambient-bob {
+  animation: ambient-bob 9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ambient-bob--delayed {
+  animation-delay: -3s;
+}
+
+.ambient-pulse {
+  animation: ambient-pulse 9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ambient-sway {
+  animation: ambient-sway 8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ambient-orbit {
+  animation: ambient-orbit 13s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.student-main > *,
+.public-page-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Small idle-motion primitives for illustrated scenes (e.g. the Login page's
+ * grounded academic characters). Kept deliberately subtle — opacity/transform
+ * only, ease-out/ease-in-out, no bounce — and always applied through
+ * Tailwind's `motion-safe:` variant so `prefers-reduced-motion` users get a
+ * fully still scene automatically.
+ */
+@keyframes breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes page-turn {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes write-wiggle {
+  0%,
+  100% {
+    transform: rotate(-8deg) translateY(0);
+  }
+  50% {
+    transform: rotate(4deg) translateY(-1px);
+  }
+}
+
+@keyframes gentle-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes nod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+}
+
+/*
+ * Hero scene idle motion (LandingHeroScene in illustrations.jsx). Every
+ * class here sets `transform-box: fill-box` — without it an SVG <g>'s
+ * transform-origin defaults to the *whole viewBox's* 0,0 corner, not the
+ * group's own bounding box, so a `rotate()`/`scale()` swings or balloons
+ * the group from way off to one side instead of moving gently in place.
+ * That was the bug in the previous version of this scene (the old
+ * `.landing-float`/`.landing-pulse` classes lacked this line), which is
+ * what read as "stretched" — fixed here by giving every animated group
+ * its own correct origin.
+ */
+@keyframes hero-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes hero-bob-delayed {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes hero-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes hero-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+}
+
+.hero-bob {
+  animation: hero-bob 5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.hero-bob-delayed {
+  animation: hero-bob-delayed 6s ease-in-out 1s infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.hero-sway {
+  animation: hero-sway 7s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: bottom center;
+}
+
+.hero-pulse {
+  animation: hero-pulse 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-bob,
+  .hero-bob-delayed,
+  .hero-sway,
+  .hero-pulse {
+    animation: none;
+  }
+}
+
+@keyframes ambient-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(10px, -12px, 0) rotate(2deg);
+  }
+}
+
+@keyframes ambient-dash {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -76;
+  }
+}
+
+@keyframes ambient-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(2deg);
+  }
+}
+
+@keyframes ambient-pulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes ambient-sway {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-4deg);
+  }
+  50% {
+    transform: translate3d(18px, -16px, 0) rotate(5deg);
+  }
+}
+
+@keyframes ambient-orbit {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(-14px, -20px, 0) rotate(8deg);
+  }
+  66% {
+    transform: translate3d(16px, 10px, 0) rotate(-6deg);
+  }
+}
+
+.ambient-drift {
+  animation: ambient-drift 14s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.ambient-drift-slow {
+  animation: ambient-drift 19s ease-in-out -5s infinite reverse;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-drift,
+  .ambient-drift-slow,
+  .ambient-dash,
+  .ambient-bob,
+  .ambient-pulse,
+  .ambient-sway,
+  .ambient-orbit {
+    animation: none;
+  }
+}
+
+/*
+ * Day 3 (Educator Profile / Course Details / Wishlist / Checkout) additions.
+ * Same rules as above: opacity/transform only, ease-out, no bounce — used
+ * for Modal's entrance (design.md: "fade + slight scale-in, 200ms
+ * ease-out") and the toast stack's lightweight slide-in.
+ */
+@keyframes fadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

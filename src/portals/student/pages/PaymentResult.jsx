@@ -1,0 +1,151 @@
+// Payment success / failure
+// Jira: Day 3 — Payment success / failure
+// Doc reference: Sec 5.10 ("Payment Success / Failure States — clear
+// feedback on the outcome of a payment attempt. Status is confirmed by
+// the provider, not assumed from a redirect.")
+//
+// Route: /student/paymentresult — normally reached via router state from
+// Checkout.jsx ({ status, orderId, amount, method, courseId, courseTitle,
+// educator, timestamp }); also readable via ?status=success|failed|pending
+// query params directly, so each of the four states can be opened/QA'd
+// without re-running the whole checkout flow.
+import { useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import Button from "../../../components/ui/Button";
+import BackButton from "../../../components/common/BackButton";
+import ConfirmationCard from "../../../components/ui/ConfirmationCard";
+import { getPaymentStatus } from "../services/checkoutApi";
+import { DownloadIcon, RefreshIcon, MailIcon } from "../../../components/ui/icons";
+
+function buildInvoiceText(data) {
+  return [
+    "UNIVERSAL LEARNING — PAYMENT RECEIPT",
+    "",
+    `Order ID: ${data.orderId}`,
+    `Course: ${data.courseTitle}`,
+    `Educator: ${data.educator}`,
+    `Amount Paid: ₹${data.amount}`,
+    `Payment Method: ${data.method}`,
+    `Date: ${new Date(data.timestamp ?? Date.now()).toLocaleString("en-IN")}`,
+    "",
+    "Thank you for learning with Universal Learning.",
+  ].join("\n");
+}
+
+export default function PaymentResult() {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const data = {
+    status: location.state?.status ?? searchParams.get("status") ?? "success",
+    orderId: location.state?.orderId ?? searchParams.get("orderId") ?? "ORD00000000",
+    amount: location.state?.amount ?? Number(searchParams.get("amount")) ?? 0,
+    method: location.state?.method ?? "card",
+    courseId: location.state?.courseId ?? searchParams.get("course") ?? "c1",
+    courseTitle: location.state?.courseTitle ?? "Your course",
+    educator: location.state?.educator ?? "",
+    timestamp: location.state?.timestamp ?? new Date().toISOString(),
+  };
+
+  const [status, setStatus] = useState(data.status);
+  const [checking, setChecking] = useState(false);
+
+  async function handleCheckStatus() {
+    setChecking(true);
+    const res = await getPaymentStatus(data.orderId);
+    setChecking(false);
+    setStatus(res.data.status);
+  }
+
+  function handleDownloadInvoice() {
+    const blob = new Blob([buildInvoiceText(data)], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data.orderId}-receipt.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-16">
+      <BackButton fallback="/student/dashboard" className="mb-6 self-start" />
+      {status === "processing" && (
+        <ConfirmationCard
+          state="pending"
+          heading="Confirming your payment…"
+          message="This usually takes just a few seconds. Please don't close this page."
+        />
+      )}
+
+      {status === "pending" && (
+        <ConfirmationCard
+          state="warning"
+          heading="We're confirming your payment"
+          message={`Order ${data.orderId} is still being processed by your bank/UPI app. You'll get access to "${data.courseTitle}" automatically the moment it's confirmed — no need to pay again.`}
+          primaryAction={
+            <Button onClick={handleCheckStatus} disabled={checking}>
+              <RefreshIcon className="h-4 w-4" /> {checking ? "Checking…" : "Check Status"}
+            </Button>
+          }
+          secondaryAction={
+            <Button variant="secondary" onClick={() => navigate("/student/dashboard")}>
+              Go to Dashboard
+            </Button>
+          }
+        />
+      )}
+
+      {status === "success" && (
+        <ConfirmationCard
+          state="success"
+          heading="Payment Successful"
+          message={`You're enrolled in "${data.courseTitle}". Order ${data.orderId} · ₹${data.amount} paid via ${data.method} on ${new Date(data.timestamp).toLocaleDateString("en-IN")}.`}
+          primaryAction={
+            <Button onClick={() => navigate(`/student/courseplayer?course=${data.courseId}`)}>Start Learning</Button>
+          }
+          secondaryAction={
+            <div className="flex gap-3">
+              <Button variant="secondary" fullWidth onClick={() => navigate("/student/dashboard")}>
+                Go to Dashboard
+              </Button>
+              <Button variant="secondary" fullWidth onClick={handleDownloadInvoice}>
+                <DownloadIcon className="h-4 w-4" /> Invoice
+              </Button>
+            </div>
+          }
+        />
+      )}
+
+      {status === "failed" && (
+        <ConfirmationCard
+          state="failure"
+          heading="Payment Failed"
+          message={`We couldn't process your payment for "${data.courseTitle}". You have not been charged. Order reference: ${data.orderId}.`}
+          primaryAction={
+            <Button onClick={() => navigate("/student/checkout", { state: { courseId: data.courseId } })}>
+              Retry Payment
+            </Button>
+          }
+          secondaryAction={
+            <div className="flex flex-col gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/student/checkout", { state: { courseId: data.courseId } })}
+              >
+                Change Payment Method
+              </Button>
+              <a
+                href="mailto:support@universallearning.example"
+                className="flex items-center justify-center gap-2 rounded-full border border-primary bg-bg px-6 py-3 text-sm font-semibold text-primary transition-colors duration-150 hover:bg-primary/5"
+              >
+                <MailIcon className="h-4 w-4" /> Contact Support
+              </a>
+            </div>
+          }
+        />
+      )}
+    </div>
+  );
+}
