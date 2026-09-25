@@ -14,7 +14,7 @@ export default function SkillAssessments() {
   const navigate = useNavigate();
   const attempts = getSavedAttempts();
   return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
-    <Link to="/student/assessments" className="text-xs font-semibold text-primary">← Assessments</Link>
+    <Link to="/student/assessments/course-quizzes" className="text-xs font-semibold text-primary">← Assignments</Link>
     <header className="mt-4 rounded-3xl bg-[#eeeaf6] p-6 sm:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#71549a]">Know your current level</p><h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Skill Assessments</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-text/60">Short diagnostics identify what you already know and which skills to strengthen next. They’re designed to guide your learning, not rank you.</p></div><TargetIcon className="h-10 w-10 text-[#71549a]" /></div></header>
     <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{SKILL_ASSESSMENTS.map((assessment) => {
       const previous = attempts.filter((item) => item.assessmentId === assessment.id && item.source === "skill");

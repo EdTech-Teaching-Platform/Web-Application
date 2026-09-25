@@ -28,7 +28,13 @@ export default function AssessmentRunner() {
   const [searchParams] = useSearchParams();
   const sourceQuery = searchParams.get("source");
   const retake = searchParams.get("retake") === "1";
-  const assessment = resolveAssessment(assessmentId, sourceQuery);
+  // `resolveAssessment` builds a fresh object every call (it spreads the
+  // catalog record), so without memoizing it here the timer effect below
+  // saw a new `assessment` reference on every render and kept tearing down
+  // and rebuilding the interval — this is the actual bug behind the
+  // "timer isn't working" report. Memoizing keeps the reference stable
+  // across re-renders that don't change which assessment is loaded.
+  const assessment = useMemo(() => resolveAssessment(assessmentId, sourceQuery), [assessmentId, sourceQuery]);
   const previousAttempts = getSavedAttempts().filter((attempt) => attempt.assessmentId === assessmentId);
   const storageId = assessmentId + (sourceQuery === "skill" ? "-skill" : "");
   const existingDraft = assessment && !retake ? getDraft(storageId) : null;
@@ -48,10 +54,19 @@ export default function AssessmentRunner() {
 
   useEffect(() => {
     if (!assessment || !draft || limitReached) return undefined;
+    const endsAt = draft.endsAt;
+    // Tick immediately so the displayed time is correct as soon as the
+    // interval (re)starts, then recompute from `endsAt` every second —
+    // deriving from the fixed end timestamp (not decrementing previous
+    // state) avoids drift and any stale-closure staleness.
+    setSecondsLeft(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
     const timerId = window.setInterval(() => {
-      const remaining = Math.max(0, Math.ceil((draft.endsAt - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
       setSecondsLeft(remaining);
-      if (remaining <= 0) submitRef.current?.(true);
+      if (remaining <= 0) {
+        window.clearInterval(timerId);
+        submitRef.current?.(true);
+      }
     }, 1000);
     return () => window.clearInterval(timerId);
   }, [assessment, draft?.endsAt, limitReached]);
@@ -99,7 +114,7 @@ export default function AssessmentRunner() {
   const sourcePath = assessment?.source === "quiz" ? "/student/assessments/course-quizzes" : assessment?.source === "skill" ? "/student/assessments/skill-assessments" : "/student/assessments/test-series/" + assessmentId;
   const questionLabel = useMemo(() => questions.map((item, index) => ({ ...item, number: index + 1 })), [assessmentId]);
 
-  if (!assessment) return <div className="mx-auto max-w-3xl px-4 py-16 text-center"><h1 className="font-display text-2xl font-bold text-text">Assessment not found</h1><Link className="mt-4 inline-block text-sm font-semibold text-primary" to="/student/assessments">Back to Assessments</Link></div>;
+  if (!assessment) return <div className="mx-auto max-w-3xl px-4 py-16 text-center"><h1 className="font-display text-2xl font-bold text-text">Assessment not found</h1><Link className="mt-4 inline-block text-sm font-semibold text-primary" to="/student/assessments/course-quizzes">Back to Assignments</Link></div>;
   if (limitReached) return <div className="mx-auto max-w-xl px-4 py-16 text-center"><p className="text-xs font-bold uppercase tracking-widest text-primary">Attempt limit reached</p><h1 className="mt-2 font-display text-2xl font-bold text-text">You’ve used all available attempts</h1><p className="mt-2 text-sm leading-6 text-text/55">Review your previous result and learning insights before continuing.</p><Button className="mt-5" onClick={() => navigate("/student/assessments/results/" + previousAttempts[0]?.id)}>View Latest Result</Button></div>;
 
   function chooseOption(optionIndex) {

@@ -7,7 +7,13 @@ import AmbientPortalBackdrop from "../components/common/AmbientPortalBackdrop";
 
 const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
-  { href: "/student/assessments/test-series", label: "Test Series" },
+  {
+    label: "Test Series",
+    items: [
+      { href: "/student/assessments/test-series", label: "Browse Test Series" },
+      { href: "/student/assessments/my-results", label: "My Results" },
+    ],
+  },
   { href: "/student/explore", label: "Explore" },
   { href: "/student/my-learning", label: "My Learning" },
   {
@@ -21,9 +27,7 @@ const navEntries = [
   {
     label: "Assessments",
     items: [
-      { href: "/student/assessments/test-series", label: "Test Series" },
       { href: "/student/assessments/course-quizzes", label: "Assignments" },
-      { href: "/student/assessments/my-results", label: "My Results" },
     ],
   },
   { label: "Engage", items: [
@@ -37,7 +41,6 @@ const navEntries = [
       { href: "/student/profile", label: "Profile" },
       { href: "/student/wishlist", label: "Wishlist" },
       { href: "/student/orders", label: "Payments" },
-      { href: "/student/profile#settings", label: "Settings" },
       { href: "/student/help-complaints", label: "Help & Complaints" },
     ],
   },

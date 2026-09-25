@@ -15,7 +15,7 @@ export default function CourseQuizzes() {
   const attempts = getSavedAttempts();
 
   return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
-    <Link to="/student/assessments" className="text-xs font-semibold text-primary">← Assessments</Link>
+    <Link to="/student/assessments/course-quizzes" className="text-xs font-semibold text-primary">← Assignments</Link>
     <header className="mt-4 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#28756f]">Learning checks inside your courses</p><h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Assignments</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text/55">Short, focused checks tied to your enrolled course modules. Your results help you decide when you’re ready to move on.</p></div><div className="rounded-2xl bg-[#e7f1ef] px-4 py-3 text-xs font-semibold text-[#28756f]">{enrolled.length} enrolled courses · {COURSE_QUIZZES.length} assignments</div></header>
     {enrolled.map((course) => {
       const quizzes = COURSE_QUIZZES.filter((quiz) => quiz.courseId === course.id);

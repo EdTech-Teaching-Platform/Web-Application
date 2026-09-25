@@ -31,7 +31,6 @@ import Reviews from "./pages/Reviews";
 import ExplorePage from "../../public/pages/ExplorePage";
 import LiveClassesDiscover from "./pages/LiveClassesDiscover";
 import RecordedClassesDiscover from "./pages/RecordedClassesDiscover";
-import Assessments from "./pages/Assessments";
 import Calendar from "./pages/Calendar";
 import MyLearning from "./pages/MyLearning";
 import Recommended from "./pages/Recommended";
@@ -89,7 +88,6 @@ const studentRoutes = (
       <Route path="explore" element={<ExplorePage />} />
       <Route path="live-classes" element={<LiveClassesDiscover />} />
       <Route path="recorded-classes" element={<RecordedClassesDiscover />} />
-      <Route path="assessments" element={<Assessments />} />
       <Route path="assessments/test-series" element={<TestSeries />} />
       <Route path="assessments/test-series/:assessmentId" element={<TestSeries />} />
       <Route path="assessments/course-quizzes" element={<CourseQuizzes />} />
