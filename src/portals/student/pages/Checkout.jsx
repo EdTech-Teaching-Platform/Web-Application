@@ -185,46 +185,6 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Coupon */}
-          <div className="rounded-3xl bg-white p-5">
-            <h2 className="mb-3 flex items-center gap-2 font-display text-base font-semibold text-text">
-              <TagIcon className="h-4 w-4" /> Coupon
-            </h2>
-            {summary?.coupon?.ok ? (
-              <div className="flex items-center justify-between rounded-2xl bg-success/10 px-4 py-3 text-sm">
-                <span className="flex items-center gap-2 font-medium text-success">
-                  <CheckIcon className="h-4 w-4" /> {summary.coupon.label} applied — you saved ₹{summary.coupon.amount}
-                </span>
-                <button type="button" onClick={handleRemoveCoupon} className="text-xs font-semibold text-text/50 hover:text-text">
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex gap-2">
-                  <input
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value)}
-                    placeholder="Enter coupon code"
-                    className="w-full min-w-0 rounded-full border border-text/15 bg-bg px-4 py-2.5 text-sm text-text outline-none focus:border-primary"
-                  />
-                  <Button fullWidth={false} variant="secondary" onClick={handleApplyCoupon} disabled={couponApplying}>
-                    {couponApplying ? "Checking…" : "Apply"}
-                  </Button>
-                </div>
-                {summary?.coupon && !summary.coupon.ok && (
-                  <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger">
-                    <XCircleIcon className="h-3.5 w-3.5" />
-                    {summary.coupon.reason === "invalid" && "That coupon code isn't valid."}
-                    {summary.coupon.reason === "expired" && "That coupon has expired."}
-                    {summary.coupon.reason === "not_applicable" &&
-                      `This coupon needs a minimum order of ₹${summary.coupon.minAmount}.`}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-
           {/* Wallet */}
           <div className="rounded-3xl bg-white p-5">
             <h2 className="mb-3 flex items-center gap-2 font-display text-base font-semibold text-text">
@@ -278,8 +238,8 @@ export default function Checkout() {
         </div>
 
         {/* Sticky order summary */}
-        <aside className="lg:col-span-1">
-          <div className="rounded-3xl bg-white p-6 lg:sticky lg:top-6">
+        <aside className="space-y-4 lg:col-span-1 lg:sticky lg:top-6 lg:self-start">
+          <div className="rounded-3xl bg-white p-6">
             <h2 className="mb-4 font-display text-base font-semibold text-text">Order Summary</h2>
             {summaryLoading || !summary ? (
               <SummarySkeleton />
@@ -304,6 +264,49 @@ export default function Checkout() {
             >
               {fullyCoveredByWallet ? "Complete Enrollment" : summary ? `Pay ₹${summary.payable}` : "Pay"}
             </Button>
+          </div>
+
+          <div className="rounded-3xl bg-white p-5">
+            <h2 className="mb-3 flex items-center gap-2 font-display text-base font-semibold text-text">
+              <TagIcon className="h-4 w-4" /> Coupon
+            </h2>
+            {summary?.coupon?.ok ? (
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-success/10 px-4 py-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2 font-medium text-success">
+                  <CheckIcon className="h-4 w-4 shrink-0" /> <span>{summary.coupon.label} applied — saved ₹{summary.coupon.amount}</span>
+                </span>
+                <button type="button" onClick={handleRemoveCoupon} className="shrink-0 text-xs font-semibold text-text/50 hover:text-text">Remove</button>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    placeholder="Enter coupon code"
+                    aria-label="Coupon code"
+                    className="w-full min-w-0 rounded-full border border-text/15 bg-bg px-4 py-2.5 text-sm text-text outline-none focus:border-primary"
+                  />
+                  <Button fullWidth={false} variant="secondary" onClick={handleApplyCoupon} disabled={couponApplying || !couponInput.trim()}>
+                    {couponApplying ? "Checking…" : "Apply"}
+                  </Button>
+                </div>
+                {summary?.coupon && !summary.coupon.ok && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger">
+                    <XCircleIcon className="h-3.5 w-3.5 shrink-0" />
+                    {summary.coupon.reason === "invalid" && "That coupon code isn't valid."}
+                    {summary.coupon.reason === "expired" && "That coupon has expired."}
+                    {summary.coupon.reason === "not_applicable" && `This coupon needs a minimum order of ₹${summary.coupon.minAmount}.`}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-4">
+            <p className="text-xs font-semibold text-[#28756f]">Need help checking out?</p>
+            <p className="mt-1 text-xs leading-5 text-text/55">Our support team can help with payment or enrollment questions.</p>
+            <button type="button" onClick={() => navigate("/student/help-complaints")} className="mt-2 text-xs font-semibold text-[#28756f] hover:underline">Contact support →</button>
           </div>
         </aside>
       </div>

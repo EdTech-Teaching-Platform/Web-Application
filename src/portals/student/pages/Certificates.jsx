@@ -1,10 +1,12 @@
 // Certificate view/download
 // Jira: Day 13 — Certificate view/download
 // Doc reference: Sec 5.9, 5.10
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import { AwardIcon, DownloadIcon, CheckCircleIcon, FlameIcon, TargetIcon } from "../../../components/ui/icons";
 import { useScrollToHash } from "../../../hooks/useScrollToHash";
+import { useAuth } from "../../../hooks/useAuth";
 
 const EARNED_CERTIFICATES = [
   {
@@ -20,6 +22,8 @@ const EARNED_CERTIFICATES = [
 
 export default function Certificates() {
   const navigate = useNavigate();
+  const [previewCertificate, setPreviewCertificate] = useState(null);
+  const { user } = useAuth();
   useScrollToHash();
 
   // Lightweight badges derived from data this page already has (earned
@@ -74,8 +78,8 @@ export default function Certificates() {
             </div>
 
             <div className="mt-6 flex items-center gap-2">
-              <Button fullWidth onClick={() => alert("Certificate downloaded successfully.")}>
-                <DownloadIcon className="mr-1.5 h-4 w-4" /> Download PDF
+              <Button fullWidth variant="secondary" onClick={() => setPreviewCertificate(cert)}>
+                <AwardIcon className="mr-1.5 h-4 w-4" /> Preview Certificate
               </Button>
             </div>
           </div>
@@ -102,6 +106,39 @@ export default function Certificates() {
           })}
         </div>
       </div>
+
+      {previewCertificate && (
+        <div className="certificate-preview-overlay fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[#17324d]/55 p-4 sm:p-8" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewCertificate(null); }} onKeyDown={(event) => { if (event.key === "Escape") setPreviewCertificate(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="certificate-preview-title" className="certificate-dialog w-full max-w-4xl rounded-3xl border border-white/50 bg-[#fffaf7] p-4 shadow-2xl sm:p-7">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Certificate preview</p><h2 id="certificate-preview-title" className="mt-1 font-display text-xl font-bold text-text">Review your certificate</h2></div>
+              <button type="button" autoFocus onClick={() => setPreviewCertificate(null)} aria-label="Close certificate preview" className="flex h-9 w-9 items-center justify-center rounded-full border border-text/10 bg-white text-lg text-text/60 hover:text-primary">×</button>
+            </div>
+            <article className="certificate-print-area relative overflow-hidden border-[8px] border-double border-[#bd8b5e] bg-white px-6 py-10 text-center shadow-sm sm:px-12 sm:py-14">
+              <div className="pointer-events-none absolute inset-3 border border-[#bd8b5e]/35" />
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Universal Learning</p>
+              <AwardIcon className="mx-auto mt-5 h-10 w-10 text-[#bd8b5e]" />
+              <h3 className="mt-4 font-display text-3xl font-bold text-[#17324d] sm:text-4xl">Certificate of Completion</h3>
+              <p className="mt-5 text-sm text-text/55">This certificate is proudly presented to</p>
+              <p className="mt-2 font-display text-2xl font-semibold text-primary">{user?.name || "Student"}</p>
+              <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-text/60">for successfully completing</p>
+              <p className="mt-1 font-display text-xl font-bold text-[#17324d]">{previewCertificate.title}</p>
+              <p className="mt-2 text-sm text-text/55">Instructor: {previewCertificate.instructor}</p>
+              <div className="mx-auto mt-8 grid max-w-lg grid-cols-2 gap-4 border-t border-text/10 pt-5 text-left text-xs text-text/60">
+                <p><strong className="block text-text">Issue date</strong>{previewCertificate.issueDate}</p>
+                <p><strong className="block text-text">Final score</strong>{previewCertificate.grade}</p>
+                <p className="col-span-2 text-center font-mono text-[11px]">Credential ID: {previewCertificate.credentialId}</p>
+              </div>
+              <span className="absolute bottom-4 right-5 text-[9px] font-semibold uppercase tracking-widest text-[#bd8b5e]/70">Verified achievement</span>
+            </article>
+            <div className="certificate-dialog-actions mt-5 flex flex-wrap justify-end gap-3">
+              <Button fullWidth={false} variant="secondary" onClick={() => setPreviewCertificate(null)}>Close preview</Button>
+              <Button fullWidth={false} onClick={() => window.print()}><DownloadIcon className="mr-1.5 h-4 w-4" /> Print / Save as PDF</Button>
+            </div>
+          </section>
+          <style>{`@media print { @page { size: landscape; margin: 12mm; } body * { visibility: hidden !important; } .certificate-preview-overlay, .certificate-preview-overlay * { visibility: visible !important; } .certificate-preview-overlay { position: fixed !important; inset: 0 !important; display: block !important; overflow: visible !important; padding: 0 !important; background: white !important; } .certificate-dialog { width: 100% !important; max-width: none !important; border: 0 !important; padding: 0 !important; box-shadow: none !important; background: white !important; } .certificate-dialog > :first-child, .certificate-dialog-actions { display: none !important; } .certificate-print-area { position: fixed !important; inset: 0 !important; display: flex !important; height: 100% !important; flex-direction: column !important; justify-content: center !important; border-width: 8px !important; box-shadow: none !important; } }`}</style>
+        </div>
+      )}
 
       <div className="mt-6 rounded-3xl border border-dashed border-text/15 bg-white p-8 text-center">
         <h3 className="font-display text-base font-bold text-text">Earn more credentials</h3>

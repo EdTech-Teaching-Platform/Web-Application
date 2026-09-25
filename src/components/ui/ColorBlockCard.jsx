@@ -37,6 +37,7 @@ export default function ColorBlockCard({
   reviewCount, // shown as "(128)" next to rating
   actionLabel, // e.g. "Enroll" / "View Profile" — bottom pill button, independent of the whole-card onClick
   onAction,
+  actionDisabled = false,
   onClick,
   onResume,
   // Wishlist heart toggle — icon button per design.md's icon-button spec
@@ -190,11 +191,12 @@ export default function ColorBlockCard({
             {actionLabel && (
               <button
                 type="button"
+                disabled={actionDisabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   onAction?.();
                 }}
-                className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-primary/90"
+                className={`w-full rounded-lg px-3 py-2 text-xs font-semibold transition-colors duration-150 ${actionDisabled ? "cursor-not-allowed bg-[#e7f1ef] text-[#28756f]" : "bg-primary text-white hover:bg-primary/90"}`}
               >
                 {actionLabel}
               </button>

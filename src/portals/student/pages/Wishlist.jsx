@@ -48,8 +48,9 @@ export default function Wishlist() {
     showToast(`Removed "${course.title}" from wishlist`);
   }
 
-  function handleEnroll(course) {
-    navigate(`/student/checkout?course=${course.id}`);
+  function handleCourseAction(course) {
+    if (course.enrolled) navigate(`/student/courseplayer?course=${course.id}`);
+    else navigate(`/student/course/${course.id}`);
   }
 
   return (
@@ -113,8 +114,8 @@ export default function Wishlist() {
                   </p>
                 )}
                 <div className="mt-3 grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <Button fullWidth className="min-w-0 px-3 text-xs" onClick={() => handleEnroll(course)}>
-                    Enroll Now
+                  <Button fullWidth className="min-w-0 px-3 text-xs" onClick={() => handleCourseAction(course)}>
+                    {course.enrolled ? "Go to Course" : "Enroll Now"}
                   </Button>
                   <Button
                     variant="secondary"

@@ -12,11 +12,14 @@ import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import ToastStack from "../../../components/ui/Toast";
 import { RECOMMENDED, RELATED_COURSES } from "../data/recommendedMock";
+import { getCourseById } from "../../../data/catalogMock";
 
 function CourseGrid({ courses, wishlist, showToast, navigate }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {courses.map((c, i) => (
+      {courses.map((c, i) => {
+        const enrolled = getCourseById(c.id)?.enrolled === true;
+        return (
         <ColorBlockCard
           key={c.id}
           rotationIndex={i}
@@ -28,6 +31,9 @@ function CourseGrid({ courses, wishlist, showToast, navigate }) {
           price={c.price}
           originalPrice={c.originalPrice}
           rating={c.rating}
+          actionLabel={enrolled ? "Enrolled" : "Enroll"}
+          actionDisabled={enrolled}
+          onAction={() => navigate(enrolled ? `/student/courseplayer?course=${c.id}` : `/student/course/${c.id}`)}
           compact
           fullWidth
           showWishlist
@@ -39,7 +45,8 @@ function CourseGrid({ courses, wishlist, showToast, navigate }) {
           }}
           onClick={() => navigate(`/student/course/${c.id}`)}
         />
-      ))}
+        );
+      })}
     </div>
   );
 }

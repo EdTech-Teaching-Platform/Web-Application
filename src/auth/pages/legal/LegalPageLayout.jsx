@@ -6,7 +6,7 @@
 // the body on desktop and collapses to a simple top-of-page list on mobile.
 // The footer never dead-ends: it goes back to wherever the user came from
 // (onboarding, the login footer, or — once it exists — Account Settings).
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 
 export default function LegalPageLayout({ title, lastUpdated, sections, backLabel = "Back" }) {
@@ -21,6 +21,9 @@ export default function LegalPageLayout({ title, lastUpdated, sections, backLabe
       </header>
 
       <div className="mx-auto max-w-5xl px-6 py-10 sm:px-10">
+        <Link to="/" className="mb-5 inline-flex items-center gap-2 rounded-full border border-text/10 bg-white px-3.5 py-2 text-xs font-semibold text-text/65 shadow-sm transition-colors hover:border-primary/30 hover:text-primary">
+          <span aria-hidden="true">←</span> Back to home
+        </Link>
         <h1 className="font-display text-3xl tracking-tight text-text">{title}</h1>
         <p className="mt-2 text-sm text-text/50">Last updated: {lastUpdated}</p>
 

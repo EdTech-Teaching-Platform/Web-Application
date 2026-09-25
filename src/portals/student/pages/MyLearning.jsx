@@ -83,7 +83,7 @@ export default function MyLearning() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Your learning plan</p>
-              <h2 className="mt-1 font-display text-lg font-bold text-[#17324d]">Make progress in small sessions</h2>
+              <h2 className="mt-1 font-display text-lg font-bold text-[#17324d]">Your weekly study plan</h2>
               <p className="mt-2 max-w-xl text-xs leading-5 text-text/55">You have two active courses waiting for you. Pick one lesson today and keep your weekly rhythm going.</p>
             </div>
             <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-primary">4 of 5 sessions</span>
@@ -100,6 +100,7 @@ export default function MyLearning() {
             <span className="rounded-full bg-white px-3 py-1.5 text-xs text-text/60">Next focus: Python · Loops & Functions</span>
             <span className="rounded-full bg-white px-3 py-1.5 text-xs text-text/60">Estimated time: 25 min</span>
           </div>
+          <Button fullWidth={false} className="mt-4" onClick={() => navigate("/student/courseplayer?course=c1")}>Continue Python course</Button>
         </div>
         <div className="rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#28756f]">Learning reminder</p>
