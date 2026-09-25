@@ -52,15 +52,25 @@ export const SKILL_ASSESSMENTS = ["python-final", "sql-practice", "ml-skill", "c
 export const ATTEMPT_STORAGE_KEY = "ul_assessment_attempts_v1";
 export const DRAFT_STORAGE_KEY = "ul_assessment_drafts_v1";
 
+function learnerKey(baseKey) {
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem("universal-learning-session") || "null"); } catch { /* use guest scope */ }
+  const raw = user?.identifier || user?.id || user?.name || "guest";
+  return `${baseKey}:${encodeURIComponent(String(raw).toLowerCase())}`;
+}
+
 export function getSavedAttempts() {
-  try { const value = JSON.parse(localStorage.getItem(ATTEMPT_STORAGE_KEY) || "[]"); return Array.isArray(value) ? value : []; } catch { return []; }
+  try { const value = JSON.parse(localStorage.getItem(learnerKey(ATTEMPT_STORAGE_KEY)) || "[]"); return Array.isArray(value) ? value : []; } catch { return []; }
 }
 export function saveAttempts(attempts) {
-  try { localStorage.setItem(ATTEMPT_STORAGE_KEY, JSON.stringify(attempts)); } catch { /* session state remains available */ }
+  try { localStorage.setItem(learnerKey(ATTEMPT_STORAGE_KEY), JSON.stringify(attempts)); } catch { /* session state remains available */ }
 }
 export function getDraft(id) {
-  try { return JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || "{}")[id] || null; } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(learnerKey(DRAFT_STORAGE_KEY)) || "{}")[id] || null; } catch { return null; }
 }
 export function saveDraft(id, draft) {
-  try { const drafts = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || "{}"); localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ ...drafts, [id]: draft })); } catch { /* autosave is best effort */ }
+  try { const key = learnerKey(DRAFT_STORAGE_KEY); const drafts = JSON.parse(localStorage.getItem(key) || "{}"); localStorage.setItem(key, JSON.stringify({ ...drafts, [id]: draft })); } catch { /* autosave is best effort */ }
+}
+export function removeDraft(id) {
+  try { const key = learnerKey(DRAFT_STORAGE_KEY); const drafts = JSON.parse(localStorage.getItem(key) || "{}"); delete drafts[id]; localStorage.setItem(key, JSON.stringify(drafts)); } catch { /* result remains available */ }
 }

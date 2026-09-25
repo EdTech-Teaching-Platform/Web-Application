@@ -2,13 +2,16 @@ import { Link, useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { BookOpenIcon, CheckCircleIcon, ClockIcon, FileTextIcon } from "../../../components/ui/icons";
-import { COURSES } from "../../../data/catalogMock";
+import { COURSES, getCourseById } from "../../../data/catalogMock";
 import { imageForCategory } from "../../../utils/stockImages";
 import { COURSE_QUIZZES, getSavedAttempts } from "../data/assessmentCatalog";
+import { useAuth } from "../../../hooks/useAuth";
+import { getStudentEnrolledCourseIds } from "../data/studentLocalState";
 
 export default function CourseQuizzes() {
   const navigate = useNavigate();
-  const enrolled = COURSES.filter((course) => course.enrolled);
+  const { user } = useAuth();
+  const enrolled = getStudentEnrolledCourseIds(user).map((id) => COURSES.find((course) => course.id === id) || getCourseById(id)).filter(Boolean);
   const attempts = getSavedAttempts();
 
   return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">

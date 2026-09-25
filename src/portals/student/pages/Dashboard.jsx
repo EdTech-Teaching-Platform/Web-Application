@@ -46,6 +46,7 @@ import { useToast } from "../../../hooks/useToast";
 import ToastStack from "../../../components/ui/Toast";
 import { RECOMMENDED } from "../data/recommendedMock";
 import { COURSES } from "../../../data/catalogMock";
+import { isStudentCourseEnrolled } from "../data/studentLocalState";
 
 // `category` drives the card's placeholder photo (imageForCategory) — see
 // src/utils/stockImages.js.
@@ -198,7 +199,7 @@ export default function Dashboard() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {RECOMMENDED.map((c, i) => {
-            const enrolled = COURSES.find((course) => course.id === c.id)?.enrolled === true;
+            const enrolled = COURSES.find((course) => course.id === c.id)?.enrolled === true || isStudentCourseEnrolled(c.id, user);
             return <ColorBlockCard key={c.id} rotationIndex={i} image={imageForCategory(c.category)} title={c.title} subtitle={c.subtitle} description={c.description} price={c.price} originalPrice={c.originalPrice} rating={c.rating} actionLabel={enrolled ? "Enrolled" : "Enroll"} actionDisabled={enrolled} onAction={() => navigate(enrolled ? `/student/courseplayer?course=${c.id}` : `/student/course/${c.id}`)} compact fullWidth showWishlist wishlisted={wishlist.isWishlisted(c.id)} onToggleWishlist={() => { const nowSaved = !wishlist.isWishlisted(c.id); wishlist.toggle(c); showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist"); }} onClick={() => navigate(`/student/course/${c.id}`)} />;
           })}
         </div>

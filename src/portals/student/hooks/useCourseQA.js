@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../../../hooks/useAuth";
+import { studentStorageKey } from "../data/studentLocalState";
 
 // Course Q&A store (spec Section 4) — localStorage-keyed per course, same
 // "real UI now, swap the data source later" approach as the rest of this
@@ -17,7 +19,7 @@ function seedFor(courseId) {
       text: "What's the difference between a list and a tuple here?",
       lessonId: null,
       askedAt: now - 26 * 60 * 60 * 1000,
-      askedBy: "You",
+      askedBy: "Aarav S.",
       answer: {
         text: "Lists are mutable — you can change, add, or remove items after creating one. Tuples are immutable, so once created their contents can't change. Use a tuple when the data shouldn't be modified later.",
         answeredAt: now - 20 * 60 * 60 * 1000,
@@ -29,16 +31,16 @@ function seedFor(courseId) {
       text: "Is there a recommended way to practice outside the lesson exercises?",
       lessonId: null,
       askedAt: now - 3 * 60 * 60 * 1000,
-      askedBy: "You",
+      askedBy: "Sneha K.",
       answer: null,
       following: true,
     },
   ];
 }
 
-function readAll() {
+function readAll(key) {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(key);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
@@ -46,9 +48,9 @@ function readAll() {
   }
 }
 
-function writeAll(all) {
+function writeAll(key, all) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(all));
+    localStorage.setItem(key, JSON.stringify(all));
   } catch {
     // best-effort
   }
@@ -56,37 +58,39 @@ function writeAll(all) {
 }
 
 export function useCourseQA(courseId) {
-  const [all, setAll] = useState(readAll);
+  const { user } = useAuth();
+  const storeKey = studentStorageKey(KEY, user);
+  const [all, setAll] = useState(() => readAll(storeKey));
 
   useEffect(() => {
-    const handler = () => setAll(readAll());
+    const handler = () => setAll(readAll(storeKey));
     window.addEventListener(EVENT, handler);
     window.addEventListener("storage", handler);
     return () => {
       window.removeEventListener(EVENT, handler);
       window.removeEventListener("storage", handler);
     };
-  }, []);
+  }, [storeKey]);
 
   const questions = Array.isArray(all[courseId]) ? all[courseId] : [];
 
   useEffect(() => {
     if (Array.isArray(all[courseId])) return;
     const seeded = seedFor(courseId);
-    const next = { ...readAll(), [courseId]: seeded };
-    writeAll(next);
+    const next = { ...readAll(storeKey), [courseId]: seeded };
+    writeAll(storeKey, next);
     setAll(next);
-  }, [all, courseId]);
+  }, [all, courseId, storeKey]);
 
   const mutate = useCallback(
     (fn) => {
-      const current = readAll();
+      const current = readAll(storeKey);
       const currentQuestions = Array.isArray(current[courseId]) ? current[courseId] : seedFor(courseId);
       const next = { ...current, [courseId]: fn(currentQuestions) };
-      writeAll(next);
+      writeAll(storeKey, next);
       setAll(next);
     },
-    [courseId]
+    [courseId, storeKey]
   );
 
   const askQuestion = useCallback(

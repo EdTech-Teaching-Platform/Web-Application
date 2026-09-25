@@ -13,12 +13,15 @@ import { useToast } from "../../../hooks/useToast";
 import ToastStack from "../../../components/ui/Toast";
 import { RECOMMENDED, RELATED_COURSES } from "../data/recommendedMock";
 import { getCourseById } from "../../../data/catalogMock";
+import { useAuth } from "../../../hooks/useAuth";
+import { isStudentCourseEnrolled } from "../data/studentLocalState";
 
 function CourseGrid({ courses, wishlist, showToast, navigate }) {
+  const { user } = useAuth();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {courses.map((c, i) => {
-        const enrolled = getCourseById(c.id)?.enrolled === true;
+        const enrolled = getCourseById(c.id)?.enrolled === true || isStudentCourseEnrolled(c.id, user);
         return (
         <ColorBlockCard
           key={c.id}

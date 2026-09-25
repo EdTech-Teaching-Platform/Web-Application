@@ -8,7 +8,7 @@
 // Full-bleed two-panel split: an illustrated left panel and a form-focused
 // right panel, unchanged from before.
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Checkbox from "../../components/ui/Checkbox";
@@ -19,6 +19,8 @@ import loginStudentsImg from "../../assets/illustrations/login-students.png";
 
 export default function Login({ role = "student" }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const isEducator = role === "teacher";
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -54,9 +56,9 @@ export default function Login({ role = "student" }) {
       // Password verified — now send the mandatory one-time code and hold
       // off on dashboard access until OtpVerification confirms it.
       await requestLoginOtp({ identifier: trimmed });
-      navigate(
-        `/verify-otp?mode=login&destination=${encodeURIComponent(trimmed)}&role=${data.role}`
-      );
+      const otpParams = new URLSearchParams({ mode: "login", destination: trimmed, role: data.role });
+      if (redirect?.startsWith("/") && !redirect.startsWith("//")) otpParams.set("redirect", redirect);
+      navigate(`/verify-otp?${otpParams.toString()}`);
     } catch {
       setFormError("Incorrect email/phone or password.");
     } finally {

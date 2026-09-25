@@ -4,11 +4,11 @@ import Button from "../../../components/ui/Button";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { CheckIcon, CheckCircleIcon, ClockIcon, DownloadIcon, FileTextIcon, PlayIcon, SearchIcon } from "../../../components/ui/icons";
 import { COURSES } from "../../../data/catalogMock";
+import { useAuth } from "../../../hooks/useAuth";
+import { getStudentEnrolledCourseIds } from "../data/studentLocalState";
 import { imageForCategory } from "../../../utils/stockImages";
 import { useActivityLog } from "../hooks/useActivityLog";
 import { getAllCourseProgress } from "../hooks/useCourseProgress";
-
-const ENROLLED_COURSES = COURSES.filter((course) => course.enrolled);
 
 const FILTERS = [
   { id: "all", label: "All activity" },
@@ -64,12 +64,17 @@ function ActivityRow({ activity, onContinue }) {
 
 export default function LearningHistory() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.identifier || user?.id || "guest";
   const [searchParams, setSearchParams] = useSearchParams();
   const { entries } = useActivityLog();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const selectedId = searchParams.get("course");
-  const enrolledCourses = ENROLLED_COURSES;
+  const enrolledCourses = useMemo(() => {
+    const enrolledIds = new Set(getStudentEnrolledCourseIds(userId));
+    return COURSES.filter((course) => course.enrolled || enrolledIds.has(course.id));
+  }, [userId]);
   const selectedCourse = enrolledCourses.find((course) => course.id === selectedId);
   const storedProgress = getAllCourseProgress();
 

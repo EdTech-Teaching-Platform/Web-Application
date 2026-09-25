@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Button from "../../../components/ui/Button";
+import { useAuth } from "../../../hooks/useAuth";
+import { studentStorageKey } from "../data/studentLocalState";
 
 const conversations = [
   {
@@ -30,11 +32,15 @@ const conversations = [
 ];
 
 export default function Messages() {
+  const { user } = useAuth();
+  const composerRef = useRef(null);
+  const storageKey = studentStorageKey("ul_course_discussions_v1", user);
   const [selected, setSelected] = useState(conversations[0]);
   const [draft, setDraft] = useState("");
-  const [postsByCourse, setPostsByCourse] = useState(() =>
-    Object.fromEntries(conversations.map((conversation) => [conversation.id, conversation.posts]))
-  );
+  const [postsByCourse, setPostsByCourse] = useState(() => {
+    const seed = Object.fromEntries(conversations.map((conversation) => [conversation.id, conversation.posts]));
+    try { return { ...seed, ...JSON.parse(localStorage.getItem(storageKey) || "{}") }; } catch { return seed; }
+  });
   const [query, setQuery] = useState("");
 
   const filteredConversations = useMemo(() => {
@@ -48,22 +54,29 @@ export default function Messages() {
   function sendMessage(event) {
     event.preventDefault();
     if (!draft.trim()) return;
-    setPostsByCourse((current) => ({
-      ...current,
+    const next = {
+      ...postsByCourse,
       [selected.id]: [
-        ...(current[selected.id] || []),
+        ...(postsByCourse[selected.id] || []),
         {
           id: `post-${Date.now()}`,
           author: "You",
           role: "Student",
           initials: "YO",
           text: draft.trim(),
-          time: "Just now",
+          time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
           replies: 0,
         },
       ],
-    }));
+    };
+    setPostsByCourse(next);
+    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* keep the current discussion usable */ }
     setDraft("");
+  }
+
+  function startReply(post) {
+    setDraft(`@${post.author} `);
+    requestAnimationFrame(() => composerRef.current?.focus());
   }
 
   return (
@@ -75,6 +88,7 @@ export default function Messages() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f7c8b8]">Connect & grow</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">Your learning community</h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">Ask better questions, share your progress, and learn alongside educators and fellow students.</p>
+          <p className="mt-2 text-xs text-white/55">Prototype discussion data · your new posts are saved in this browser.</p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
             {["Ask a question", "Share a win", "Find study partners"].map((prompt) => <span key={prompt} className="rounded-full border border-white/20 bg-white/10 px-3 py-2">{prompt}</span>)}
           </div>
@@ -124,7 +138,7 @@ export default function Messages() {
                 <div className={`min-w-0 rounded-2xl p-4 shadow-[0_5px_18px_rgba(23,50,77,0.05)] ${post.author === "You" ? "rounded-tr-sm bg-primary text-white" : "rounded-tl-sm border border-text/5 bg-white text-text/75"}`}>
                   <div className={`flex flex-wrap items-center gap-2 text-xs font-semibold ${post.author === "You" ? "text-white/80" : post.educator ? "text-[#28756f]" : "text-primary"}`}><span>{post.author}</span><span className="font-normal opacity-60">· {post.role}</span><span className="font-normal opacity-50">· {post.time}</span></div>
                   <p className="mt-2 text-sm leading-6">{post.text}</p>
-                  <div className={`mt-3 flex items-center gap-3 text-[11px] ${post.author === "You" ? "text-white/70" : "text-text/45"}`}><button type="button" className="font-semibold hover:text-primary">Reply</button><span>{post.replies} {post.replies === 1 ? "reply" : "replies"}</span></div>
+                  <div className={`mt-3 flex items-center gap-3 text-[11px] ${post.author === "You" ? "text-white/70" : "text-text/45"}`}><button type="button" onClick={() => startReply(post)} className="font-semibold hover:text-primary">Reply</button><span>{post.replies} {post.replies === 1 ? "reply" : "replies"}</span></div>
                 </div>
               </article>
             ))}
@@ -132,7 +146,7 @@ export default function Messages() {
           <div className="border-t border-text/10 bg-white p-4 sm:p-5">
             <div className="mb-3 flex flex-wrap gap-2">{["Can you explain this?", "I have a question", "Share a resource"].map((suggestion) => <button key={suggestion} type="button" onClick={() => setDraft(suggestion)} className="rounded-full border border-text/10 px-3 py-1.5 text-[11px] text-text/60 transition hover:border-primary hover:text-primary">{suggestion}</button>)}</div>
             <form onSubmit={sendMessage} className="flex gap-3">
-              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Ask ${selected.course} community...`} aria-label="Write a course discussion post" className="min-w-0 flex-1 rounded-2xl border border-text/15 bg-[#fffaf7] px-5 py-4 text-sm outline-none focus:border-primary" />
+              <input ref={composerRef} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Ask ${selected.course} community...`} aria-label="Write a course discussion post" className="min-w-0 flex-1 rounded-2xl border border-text/15 bg-[#fffaf7] px-5 py-4 text-sm outline-none focus:border-primary" />
               <Button fullWidth={false} type="submit" className="rounded-2xl px-6">Post question</Button>
             </form>
           </div>

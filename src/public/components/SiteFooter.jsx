@@ -21,10 +21,10 @@ import {
 } from "../../components/ui/icons";
 
 const SOCIAL_LINKS = [
-  { label: "LinkedIn", href: "#", icon: LinkedInIcon },
-  { label: "YouTube", href: "#", icon: YoutubeIcon },
-  { label: "Instagram", href: "#", icon: InstagramIcon },
-  { label: "X / Twitter", href: "#", icon: XSocialIcon },
+  { label: "LinkedIn", icon: LinkedInIcon },
+  { label: "YouTube", icon: YoutubeIcon },
+  { label: "Instagram", icon: InstagramIcon },
+  { label: "X / Twitter", icon: XSocialIcon },
 ];
 
 const FOOTER_COLUMNS = [
@@ -42,31 +42,31 @@ const FOOTER_COLUMNS = [
   {
     title: "Community",
     links: [
-      { label: "Discussions", href: "#" },
-      { label: "Study Groups", href: "#" },
-      { label: "Mentorship", href: "#" },
-      { label: "Events", href: "#" },
-      { label: "Q&A", href: "#" },
+      { label: "Discussions", href: "/student/messages" },
+      { label: "Study Groups", href: null },
+      { label: "Mentorship", href: null },
+      { label: "Events", href: "/student/calendar" },
+      { label: "Q&A", href: "/student/messages" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { label: "Career", href: "#" },
-      { label: "Internships & Jobs", href: "#" },
-      { label: "AI Study Assistant", href: "#" },
-      { label: "Learning Resources", href: "#" },
-      { label: "Help Center", href: "#faq" },
+      { label: "Career", href: null },
+      { label: "Internships & Jobs", href: null },
+      { label: "AI Study Assistant", href: null },
+      { label: "Learning Resources", href: "/student/explore" },
+      { label: "Help Center", href: "/student/help-complaints" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About Us", href: "#" },
+      { label: "About Us", href: null },
       { label: "Contact Support", href: "mailto:support@universallearning.app" },
       { label: "Terms of Service", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
-      { label: "Accessibility", href: "#" },
+      { label: "Accessibility", href: null },
     ],
   },
 ];
@@ -76,6 +76,9 @@ const FOOTER_COLUMNS = [
 // forcing everything through Link (which would mangle "#"/"mailto:").
 function FooterLink({ href, children }) {
   const className = "text-sm text-text/55 transition-colors duration-150 hover:text-primary";
+  if (!href) {
+    return <span title="Coming soon" aria-disabled="true" className="text-sm text-text/35">{children} <span className="text-[10px]">Coming soon</span></span>;
+  }
   if (href.startsWith("/")) {
     return (
       <Link to={href} className={className}>
@@ -127,15 +130,16 @@ export default function SiteFooter() {
               Learn from expert educators, build practical skills, and grow at your own pace.
             </p>
             <div className="mt-5 flex items-center gap-2">
-              {SOCIAL_LINKS.map(({ label, href, icon: Icon }) => (
-                <a
+              {SOCIAL_LINKS.map(({ label, icon: Icon }) => (
+                <span
                   key={label}
-                  href={href}
                   aria-label={label}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-text/10 text-text/50 transition-colors duration-150 hover:border-primary/30 hover:text-primary"
+                  aria-disabled="true"
+                  title={`${label} link coming soon`}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-text/10 text-text/30"
                 >
                   <Icon className="h-[14px] w-[14px]" />
-                </a>
+                </span>
               ))}
             </div>
           </div>
@@ -167,9 +171,7 @@ export default function SiteFooter() {
             <Link to="/terms" className="transition-colors duration-150 hover:text-primary">
               Terms
             </Link>
-            <a href="#" className="transition-colors duration-150 hover:text-primary">
-              Cookies
-            </a>
+            <span aria-disabled="true" title="Cookie settings coming soon">Cookies</span>
           </nav>
         </div>
       </div>

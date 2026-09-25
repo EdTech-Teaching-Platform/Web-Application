@@ -20,6 +20,8 @@ import BackButton from "../../../components/common/BackButton";
 import ConfirmationCard from "../../../components/ui/ConfirmationCard";
 import PaymentMethodSelector from "../components/PaymentMethodSelector";
 import { getCourseById } from "../../../data/catalogMock";
+import { useAuth } from "../../../hooks/useAuth";
+import { isStudentCourseEnrolled } from "../data/studentLocalState";
 import {
   getCheckoutSummary,
   initiatePayment,
@@ -55,6 +57,7 @@ export default function Checkout() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const courseId = location.state?.courseId ?? searchParams.get("course") ?? "c1";
   const course = getCourseById(courseId);
@@ -111,7 +114,7 @@ export default function Checkout() {
     );
   }
 
-  if (course.enrolled) {
+  if (course.enrolled || isStudentCourseEnrolled(courseId, user)) {
     return (
       <div className="mx-auto max-w-md px-6 py-16">
         <ConfirmationCard
@@ -139,7 +142,7 @@ export default function Checkout() {
 
   async function handlePay() {
     setProcessing(true);
-    const res = await initiatePayment(course.id, { couponCode, useWallet, method: summary?.payable === 0 ? "wallet" : method });
+    const res = await initiatePayment(course.id, { couponCode, useWallet, method: summary?.payable === 0 ? "wallet" : method, studentId: user?.identifier || user?.id });
     setProcessing(false);
     navigate("/student/paymentresult", {
       state: {
@@ -171,7 +174,7 @@ export default function Checkout() {
       <BackButton fallback={course ? `/course/${course.id}` : "/student/my-learning"} label="Back" className="mb-5" />
       <h1 className="font-display text-2xl font-bold text-text">Checkout</h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-text/60">
-        <ShieldCheckIcon className="h-4 w-4 text-success" /> Payments are securely processed by our payment partner.
+        <ShieldCheckIcon className="h-4 w-4 text-primary" /> Demo checkout · no real payment is processed in this prototype.
       </p>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-3">

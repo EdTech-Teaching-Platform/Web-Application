@@ -17,6 +17,8 @@ import Button from "../../../components/ui/Button";
 import { HeartIcon } from "../../../components/ui/icons";
 import { imageForCategory } from "../../../utils/stockImages";
 import { getCourseById } from "../../../data/catalogMock";
+import { useAuth } from "../../../hooks/useAuth";
+import { isStudentCourseEnrolled } from "../data/studentLocalState";
 
 const SORTS = [
   { id: "recent", label: "Recently Added" },
@@ -26,6 +28,7 @@ const SORTS = [
 
 export default function Wishlist() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
   const [sort, setSort] = useState("recent");
@@ -49,7 +52,7 @@ export default function Wishlist() {
   }
 
   function handleCourseAction(course) {
-    if (course.enrolled) navigate(`/student/courseplayer?course=${course.id}`);
+    if (course.enrolled || isStudentCourseEnrolled(course.id, user)) navigate(`/student/courseplayer?course=${course.id}`);
     else navigate(`/student/course/${course.id}`);
   }
 
@@ -115,7 +118,7 @@ export default function Wishlist() {
                 )}
                 <div className="mt-3 grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2">
                   <Button fullWidth className="min-w-0 px-3 text-xs" onClick={() => handleCourseAction(course)}>
-                    {course.enrolled ? "Go to Course" : "Enroll Now"}
+                    {course.enrolled || isStudentCourseEnrolled(course.id, user) ? "Go to Course" : "Enroll Now"}
                   </Button>
                   <Button
                     variant="secondary"

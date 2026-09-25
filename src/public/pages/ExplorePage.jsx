@@ -24,6 +24,7 @@ import { useScrollToHash } from "../../hooks/useScrollToHash";
 import ToastStack from "../../components/ui/Toast";
 import { COURSES as CATALOG_COURSES, EDUCATORS } from "../../data/catalogMock";
 import { imageForPerson } from "../../utils/stockImages";
+import { getStudentEnrolledCourseIds } from "../../portals/student/data/studentLocalState";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 const FILTER_GROUPS = [
@@ -40,11 +41,6 @@ const SORT_OPTIONS = [
   ["price-high", "Price: High to Low"],
 ];
 const ALL_COURSES = CATALOG_COURSES.filter((course) => course.status === "active");
-// Everything a signed-in student is already enrolled in — kept OUT of the
-// curated discovery rows below (Popular/Recommended/New & Trending) per
-// the content-separation rule: a course already in My Learning shouldn't
-// also be pitched back to the student as something to discover.
-const DISCOVERABLE_COURSES = ALL_COURSES.filter((course) => !course.enrolled);
 
 // Quick topic shortcuts above the search bar — broader than the formal
 // COURSE_CATEGORIES taxonomy used by the Categories section/filters below
@@ -119,9 +115,16 @@ export default function ExplorePage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const userId = user?.identifier || user?.id || "guest";
   const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
   useScrollToHash();
+  const enrolledIds = useMemo(() => new Set(getStudentEnrolledCourseIds(userId)), [userId]);
+  const studentCourses = useMemo(
+    () => ALL_COURSES.map((course) => ({ ...course, enrolled: course.enrolled || enrolledIds.has(course.id) })),
+    [enrolledIds]
+  );
+  const discoverableCourses = useMemo(() => studentCourses.filter((course) => !course.enrolled), [studentCourses]);
   const query = params.get("q") || "";
   const categories = params.getAll("category");
   const filters = params.getAll("filter");
@@ -165,7 +168,7 @@ export default function ExplorePage() {
   }
 
   const results = useMemo(() => {
-    const filtered = ALL_COURSES.filter((course) => {
+    const filtered = studentCourses.filter((course) => {
       const haystack = `${course.title} ${course.subtitle} ${course.category}`.toLowerCase();
       const hours = Number.parseFloat(course.duration) || 0;
       return (
@@ -191,28 +194,28 @@ export default function ExplorePage() {
       if (sort === "price-high") return b.price - a.price;
       return 0;
     });
-  }, [categories, educator, filters, level, query, sort]);
+  }, [categories, educator, filters, level, query, sort, studentCourses]);
 
   // Curated rows — each pulls a different, mostly non-overlapping slice of
   // the discoverable (not-yet-enrolled) catalog so Popular/Recommended/New
   // don't just repeat the same handful of courses on one page.
   const popularCourses = useMemo(
-    () => [...DISCOVERABLE_COURSES].sort((a, b) => b.enrolledCount - a.enrolledCount).slice(0, 6),
-    []
+    () => [...discoverableCourses].sort((a, b) => b.enrolledCount - a.enrolledCount).slice(0, 6),
+    [discoverableCourses]
   );
   const popularIds = useMemo(() => new Set(popularCourses.map((c) => c.id)), [popularCourses]);
   const recommendedCourses = useMemo(
-    () => DISCOVERABLE_COURSES.filter((c) => !popularIds.has(c.id) && c.rating >= 4.5).slice(0, 4),
-    [popularIds]
+    () => discoverableCourses.filter((c) => !popularIds.has(c.id) && c.rating >= 4.5).slice(0, 4),
+    [discoverableCourses, popularIds]
   );
   const recommendedIds = useMemo(() => new Set(recommendedCourses.map((c) => c.id)), [recommendedCourses]);
   const newAndTrending = useMemo(
     () =>
-      DISCOVERABLE_COURSES.filter((c) => !popularIds.has(c.id) && !recommendedIds.has(c.id))
+      discoverableCourses.filter((c) => !popularIds.has(c.id) && !recommendedIds.has(c.id))
         .slice(-8)
         .reverse()
         .slice(0, 6),
-    [popularIds, recommendedIds]
+    [discoverableCourses, popularIds, recommendedIds]
   );
 
   function openCourse(course) {

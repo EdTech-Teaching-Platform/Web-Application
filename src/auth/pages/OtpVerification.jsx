@@ -28,6 +28,7 @@ export default function OtpVerification() {
   const mode = params.get("mode") === "login" ? "login" : "register";
   const destination = params.get("destination") || "";
   const role = params.get("role") || "student";
+  const requestedRedirect = params.get("redirect") || "";
 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -61,7 +62,13 @@ export default function OtpVerification() {
         });
         // Only now — after password AND this code both check out — does
         // the person actually reach a dashboard.
-        navigate(role === "admin" || role === "super_admin" ? "/admin" : "/student/dashboard");
+        const safeStudentRedirect = role === "student"
+          && requestedRedirect.startsWith("/")
+          && !requestedRedirect.startsWith("//")
+          && !requestedRedirect.includes("\\")
+          ? requestedRedirect
+          : "";
+        navigate(role === "admin" || role === "super_admin" ? "/admin" : safeStudentRedirect || "/student/dashboard");
       } else {
         await verifyAccountOtp({ identifier: destination, code });
         setUser({

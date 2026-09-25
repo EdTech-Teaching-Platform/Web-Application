@@ -16,7 +16,6 @@ import ResourceViewer from "./pages/ResourceViewer";
 import Notes from "./pages/Notes";
 import LearningHistory from "./pages/LearningHistory";
 import ProgressTracking from "./pages/ProgressTracking";
-import BookSession from "./pages/BookSession";
 import ManageBooking from "./pages/ManageBooking";
 import LiveClassJoin from "./pages/LiveClassJoin";
 import LiveClassRating from "./pages/LiveClassRating";
@@ -113,7 +112,7 @@ const studentRoutes = (
       <Route path="notes" element={<Notes />} />
       <Route path="learninghistory" element={<LearningHistory />} />
       <Route path="progresstracking" element={<ProgressTracking />} />
-      <Route path="booksession" element={<BookSession />} />
+      <Route path="booksession" element={<Navigate to="live-classes" replace />} />
       <Route path="managebooking" element={<ManageBooking />} />
       <Route path="liveclassjoin" element={<LiveClassJoin />} />
       <Route path="liveclassrating" element={<LiveClassRating />} />

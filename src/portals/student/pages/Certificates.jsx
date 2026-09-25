@@ -4,19 +4,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
-import { AwardIcon, DownloadIcon, CheckCircleIcon, FlameIcon, TargetIcon } from "../../../components/ui/icons";
+import { AwardIcon, DownloadIcon, CheckCircleIcon, FlameIcon } from "../../../components/ui/icons";
 import { useScrollToHash } from "../../../hooks/useScrollToHash";
 import { useAuth } from "../../../hooks/useAuth";
 
 const EARNED_CERTIFICATES = [
   {
     id: "cert-1",
-    courseId: "c1",
-    title: "Complete Python Bootcamp",
-    instructor: "Priya Sharma",
-    issueDate: "September 12, 2026",
-    grade: "98% (Excellence)",
-    credentialId: "UL-2026-PY-9842",
+    courseId: "c4",
+    title: "Guitar for Beginners",
+    instructor: "Vikram Rao",
+    issueDate: "September 1, 2026",
+    grade: "Course requirements completed",
+    credentialId: "UL-2026-GT-0004",
   },
 ];
 
@@ -32,8 +32,7 @@ export default function Certificates() {
   // an honest preview, not a stand-in for one.
   const badges = [
     { icon: AwardIcon, label: "Course Completion", detail: `${EARNED_CERTIFICATES.length} course${EARNED_CERTIFICATES.length === 1 ? "" : "s"} completed` },
-    { icon: FlameIcon, label: "7-Day Streak", detail: "Learned 7 days in a row" },
-    { icon: TargetIcon, label: "Top Performer", detail: "98% score in Complete Python Bootcamp" },
+    { icon: FlameIcon, label: "Certificate Earned", detail: `${EARNED_CERTIFICATES[0].title} · ${EARNED_CERTIFICATES[0].issueDate}` },
   ];
 
   return (
@@ -59,7 +58,7 @@ export default function Certificates() {
                   <AwardIcon className="h-6 w-6" />
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
-                  <CheckCircleIcon className="h-3.5 w-3.5" /> Verified
+                  <CheckCircleIcon className="h-3.5 w-3.5" /> Issued
                 </span>
               </div>
 
@@ -71,7 +70,7 @@ export default function Certificates() {
                   <span className="font-semibold text-text">Issued:</span> {cert.issueDate}
                 </p>
                 <p>
-                  <span className="font-semibold text-text">Score:</span> {cert.grade}
+                    <span className="font-semibold text-text">Result:</span> {cert.grade}
                 </p>
                 <p className="font-mono text-[11px] text-text/45">{cert.credentialId}</p>
               </div>
@@ -89,7 +88,7 @@ export default function Certificates() {
       <div id="badges" className="mt-8 scroll-mt-24 rounded-3xl border border-text/10 bg-white p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">Badges</p>
         <h2 className="mt-1 font-display text-lg font-bold text-[#17324d]">Your achievements</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {badges.map((badge) => {
             const Icon = badge.icon;
             return (

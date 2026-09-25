@@ -14,8 +14,9 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import BackButton from "../../../components/common/BackButton";
 import ConfirmationCard from "../../../components/ui/ConfirmationCard";
-import { getPaymentStatus } from "../services/checkoutApi";
+import { getDemoOrder, getPaymentStatus } from "../services/checkoutApi";
 import { DownloadIcon, RefreshIcon, MailIcon } from "../../../components/ui/icons";
+import { useAuth } from "../../../hooks/useAuth";
 
 function buildInvoiceText(data) {
   return [
@@ -36,19 +37,12 @@ export default function PaymentResult() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const data = {
-    status: location.state?.status ?? searchParams.get("status") ?? "success",
-    orderId: location.state?.orderId ?? searchParams.get("orderId") ?? "ORD00000000",
-    amount: location.state?.amount ?? Number(searchParams.get("amount")) ?? 0,
-    method: location.state?.method ?? "card",
-    courseId: location.state?.courseId ?? searchParams.get("course") ?? "c1",
-    courseTitle: location.state?.courseTitle ?? "Your course",
-    educator: location.state?.educator ?? "",
-    timestamp: location.state?.timestamp ?? new Date().toISOString(),
-  };
+  const orderId = location.state?.orderId || searchParams.get("orderId");
+  const data = (location.state?.orderId ? location.state : null) || getDemoOrder(orderId, user?.identifier || user?.id);
 
-  const [status, setStatus] = useState(data.status);
+  const [status, setStatus] = useState(data?.status || "missing");
   const [checking, setChecking] = useState(false);
 
   async function handleCheckStatus() {
@@ -66,6 +60,21 @@ export default function PaymentResult() {
     a.download = `${data.orderId}-receipt.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  if (!data) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-16">
+        <BackButton fallback="/student/orders" className="mb-6 self-start" />
+        <ConfirmationCard
+          state="warning"
+          heading="No payment record found"
+          message="Open this page from checkout or your order history to view a payment result. A status in the page address alone doesn't confirm a payment."
+          primaryAction={<Button onClick={() => navigate("/student/orders")}>View Orders</Button>}
+          secondaryAction={<Button variant="secondary" onClick={() => navigate("/student/explore")}>Explore Courses</Button>}
+        />
+      </div>
+    );
   }
 
   return (
@@ -100,8 +109,8 @@ export default function PaymentResult() {
       {status === "success" && (
         <ConfirmationCard
           state="success"
-          heading="Payment Successful"
-          message={`You're enrolled in "${data.courseTitle}". Order ${data.orderId} · ₹${data.amount} paid via ${data.method} on ${new Date(data.timestamp).toLocaleDateString("en-IN")}.`}
+          heading="Demo Payment Complete"
+          message={`Your demo enrollment for "${data.courseTitle}" is ready in this browser. No real payment was processed. Order ${data.orderId} · ₹${data.amount} · ${new Date(data.timestamp).toLocaleDateString("en-IN")}.`}
           primaryAction={
             <Button onClick={() => navigate(`/student/courseplayer?course=${data.courseId}`)}>Start Learning</Button>
           }
@@ -137,7 +146,7 @@ export default function PaymentResult() {
                 Change Payment Method
               </Button>
               <a
-                href="mailto:support@universallearning.example"
+                href="mailto:support@universallearning.app"
                 className="flex items-center justify-center gap-2 rounded-full border border-primary bg-bg px-6 py-3 text-sm font-semibold text-primary transition-colors duration-150 hover:bg-primary/5"
               >
                 <MailIcon className="h-4 w-4" /> Contact Support

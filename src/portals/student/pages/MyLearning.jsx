@@ -5,6 +5,9 @@ import Chip from "../../../components/ui/Chip";
 import Button from "../../../components/ui/Button";
 import { SearchIcon } from "../../../components/ui/icons";
 import { imageForCategory } from "../../../utils/stockImages";
+import { getCourseById } from "../../../data/catalogMock";
+import { useAuth } from "../../../hooks/useAuth";
+import { getStudentEnrolledCourseIds } from "../data/studentLocalState";
 
 const COURSES = [
   { id: "c1", title: "Complete Python Bootcamp", educator: "Priya Sharma", description: "Build practical Python skills through projects, core concepts, and guided practice.", category: "Programming", progress: 62, status: "In Progress", accessed: "2 hours ago", enrolled: "Sep 12, 2026", lesson: "Loops & Functions", meta: "12 modules · 48 lessons" },
@@ -17,12 +20,38 @@ const TABS = ["All", "In Progress", "Not Started", "Completed"];
 
 export default function MyLearning() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("accessed");
+  const userId = user?.identifier || user?.id || "guest";
+
+  const enrolledCourses = useMemo(() => {
+    const ids = getStudentEnrolledCourseIds(userId);
+    const seedById = new Map(COURSES.map((course) => [course.id, course]));
+    return ids.map((id) => {
+      if (seedById.has(id)) return seedById.get(id);
+      const course = getCourseById(id);
+      if (!course) return null;
+      const lessons = course.curriculum.reduce((total, module) => total + module.lessons.length, 0);
+      return {
+        id: course.id,
+        title: course.title,
+        educator: course.subtitle,
+        description: course.description,
+        category: course.category,
+        progress: 0,
+        status: "Not Started",
+        accessed: "Not accessed",
+        enrolled: "Recently",
+        lesson: "Course introduction",
+        meta: `${course.curriculum.length} modules · ${lessons} lessons`,
+      };
+    }).filter(Boolean);
+  }, [userId]);
 
   const courses = useMemo(() => {
-    const filtered = COURSES.filter((course) => {
+    const filtered = enrolledCourses.filter((course) => {
       const matchesTab = tab === "All" || course.status === tab;
       const text = `${course.title} ${course.educator} ${course.category}`.toLowerCase();
       return matchesTab && text.includes(query.toLowerCase().trim());
@@ -33,11 +62,11 @@ export default function MyLearning() {
       if (sort === "enrolled") return a.enrolled < b.enrolled ? 1 : -1;
       return a.accessed.localeCompare(b.accessed);
     });
-  }, [query, sort, tab]);
+  }, [enrolledCourses, query, sort, tab]);
 
-  const inProgressCount = COURSES.filter((course) => course.status === "In Progress").length;
-  const completedCount = COURSES.filter((course) => course.status === "Completed").length;
-  const averageProgress = Math.round(COURSES.reduce((total, course) => total + course.progress, 0) / COURSES.length);
+  const inProgressCount = enrolledCourses.filter((course) => course.status === "In Progress").length;
+  const completedCount = enrolledCourses.filter((course) => course.status === "Completed").length;
+  const averageProgress = enrolledCourses.length ? Math.round(enrolledCourses.reduce((total, course) => total + course.progress, 0) / enrolledCourses.length) : 0;
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
@@ -66,7 +95,7 @@ export default function MyLearning() {
       </div>
       <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["4", "Enrolled courses", "Across your learning library"],
+          [String(enrolledCourses.length), "Enrolled courses", "Across your learning library"],
           [String(inProgressCount), "In progress", "Ready for your next session"],
           [`${averageProgress}%`, "Average progress", "Across all enrolled courses"],
           [String(completedCount), "Completed", "Certificates and milestones"],

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import { AlertTriangleIcon, CheckCircleIcon, ClockIcon } from "../../../components/ui/icons";
-import { COURSE_QUIZZES, DRAFT_STORAGE_KEY, TEST_SERIES, getDraft, getSavedAttempts, saveAttempts, saveDraft } from "../data/assessmentCatalog";
+import { COURSE_QUIZZES, TEST_SERIES, getDraft, getSavedAttempts, removeDraft, saveAttempts, saveDraft } from "../data/assessmentCatalog";
 
 function resolveAssessment(id, sourceQuery) {
   const quiz = COURSE_QUIZZES.find((item) => item.id === id);
@@ -89,7 +89,7 @@ export default function AssessmentRunner() {
     };
     const attempts = getSavedAttempts();
     saveAttempts([attempt, ...attempts]);
-    try { const drafts = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || "{}"); delete drafts[storageId]; localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts)); } catch { /* result remains stored */ }
+    removeDraft(storageId);
     navigate("/student/assessments/results/" + attempt.id);
   }
   submitRef.current = finalize;

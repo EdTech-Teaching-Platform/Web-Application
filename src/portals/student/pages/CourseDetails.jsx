@@ -15,6 +15,7 @@ import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
 import ToastStack from "../../../components/ui/Toast";
 import { useAuth } from "../../../hooks/useAuth";
+import { isStudentCourseEnrolled } from "../data/studentLocalState";
 import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import { getCourseById, getEducatorById, getRelatedCourses, imageForEducator } from "../../../data/catalogMock";
@@ -174,6 +175,7 @@ export default function CourseDetails() {
   }
 
   const educator = getEducatorById(course.educatorId);
+  const isEnrolled = course.enrolled || isStudentCourseEnrolled(course.id, user);
   const related = getRelatedCourses(course);
   const courseAttendance = ATTENDANCE_SESSIONS.filter((session) => session.courseId === course.id);
   const isArchived = course.status === "archived";
@@ -551,7 +553,7 @@ export default function CourseDetails() {
               </p>
             )}
 
-            {course.enrolled ? (
+            {isEnrolled ? (
               <Button className="mt-5" onClick={() => navigate(`/student/courseplayer?course=${course.id}`)}>
                 Go to Course
               </Button>

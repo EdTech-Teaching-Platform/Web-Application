@@ -9,10 +9,9 @@ import {
   HelpCircleIcon,
   VideoIcon,
 } from "../../../components/ui/icons";
-import { AVAILABLE_SLOTS, ATTENDANCE_SESSIONS, RECORDINGS, SESSION, getStoredBooking } from "../data/sessionMock";
+import { AVAILABLE_SLOTS, ATTENDANCE_SESSIONS, RECORDINGS, getStoredBooking } from "../data/sessionMock";
 import { imageForCategory } from "../../../utils/stockImages";
 
-const fallbackBooking = { ...SESSION, status: "Confirmed" };
 const weekDays = ["MON 15", "TUE 16", "WED 17", "THU 18", "FRI 19", "SAT 20", "SUN 21"];
 const todayItems = [
   { time: "10:00 AM", title: "Python Programming", topic: "Loops & Functions", educator: "Priya Sharma", status: "Completed", category: "Programming" },
@@ -66,13 +65,18 @@ function ScheduleRow({ item, onClick }) {
 
 export default function ManageBooking() {
   const navigate = useNavigate();
-  const [booking] = useState(() => getStoredBooking() || fallbackBooking);
+  const [booking] = useState(() => getStoredBooking());
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
-  const upcoming = AVAILABLE_SLOTS.slice(0, 3);
   const availableRecordings = RECORDINGS.filter((recording) => recording.status === "Available");
   const attended = ATTENDANCE_SESSIONS.filter((session) => session.attended).length;
   const missed = ATTENDANCE_SESSIONS.filter((session) => !session.attended).length;
+  const attendanceTotal = ATTENDANCE_SESSIONS.length;
+  const attendancePercent = attendanceTotal ? Math.round((attended / attendanceTotal) * 100) : 0;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const upcomingCount = AVAILABLE_SLOTS.filter((slot) => slot.status === "available" && new Date(slot.date) >= todayStart).length;
+  const todayCount = todayItems.filter((item) => item.status !== "Completed").length;
 
   return (
     <div className="mx-auto max-w-[1320px] px-4 py-7 sm:px-6 lg:px-8">
@@ -89,10 +93,10 @@ export default function ManageBooking() {
 
       <section className="mb-6 grid grid-cols-2 gap-3 rounded-2xl border border-text/10 bg-white p-4 shadow-sm sm:grid-cols-4">
         {[
-          ["3", "Upcoming classes", "Next 7 days"],
-          ["2", "Today", "Live sessions"],
-          ["12", "Completed sessions", "This semester"],
-          ["87%", "Attendance", "13 of 15 sessions"],
+          [String(upcomingCount), "Upcoming classes", "Available sample slots"],
+          [String(todayCount), "Today", "In the sample schedule"],
+          [String(attended), "Completed sessions", "Sample attendance records"],
+          [`${attendancePercent}%`, "Attendance", `${attended} of ${attendanceTotal} sample sessions`],
         ].map(([value, label, note]) => (
           <div key={label} className="border-text/10 px-3 py-2 first:border-0 sm:border-l">
             <p className="font-display text-2xl font-bold text-[#17324d]">{value}</p>
@@ -107,41 +111,24 @@ export default function ManageBooking() {
           <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary/65">Up next</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary/65">Class schedule</p>
                 <h2 className="mt-1 font-display text-xl font-bold text-[#17324d]">Your next live class</h2>
               </div>
-              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">LIVE CLASS</span>
+              <span className="rounded-full bg-[#f8e8df] px-2.5 py-1 text-[11px] font-bold text-primary">{booking ? "SAMPLE BOOKING" : "NO BOOKING"}</span>
             </div>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <img src={imageForCategory("Programming")} alt="" className="h-20 w-20 shrink-0 rounded-xl object-cover" />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-display text-lg font-bold text-[#17324d]">Python Programming</h3>
-                <p className="mt-1 text-sm text-text/55">Loops & Functions · Module 3 · Lesson 2</p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text/55">
-                  <span className="font-semibold text-text">{booking.educator}</span>
-                  <span>Today · {booking.time}</span>
-                  <span className="text-success">Live Class</span>
-                </div>
-                <button type="button" onClick={() => navigate("/student/calendar")} className="mt-2 text-xs font-semibold text-primary hover:underline">Prepare for class →</button>
+            {booking ? (
+              <div className="flex flex-col gap-4 rounded-2xl bg-bg p-4 sm:flex-row sm:items-center">
+                <img src={imageForCategory("Programming")} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                <div className="min-w-0 flex-1"><h3 className="font-display text-lg font-bold text-[#17324d]">{booking.classTitle || booking.topic}</h3><p className="mt-1 text-sm text-text/55">{booking.educator} · {booking.date} · {booking.time}</p><p className="mt-2 text-xs text-text/45">This is a locally saved prototype booking. Live video and attendance are not connected.</p></div>
+                <Button fullWidth={false} variant="secondary" onClick={() => navigate("/student/liveclassjoin?session=booked")}>Open room preview</Button>
               </div>
-              <div className="shrink-0 border-t border-text/10 pt-3 text-left sm:border-l sm:border-t-0 sm:pl-4 sm:text-right">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-text/45">Starting in</p>
-                <p className="font-display text-xl font-bold text-primary">43 min</p>
-                <div className="mt-2 flex gap-2 md:justify-end">
-                  <Button fullWidth={false} className="rounded-full px-3 py-1.5 text-[11px]" onClick={() => navigate("/student/liveclassjoin?session=booked")}>Join Class</Button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 border-t border-text/10 pt-3 text-[11px] text-text/55">
-              <span className="font-semibold text-text/75">Before you join</span>
-              <span className="text-success">✓ Check device & internet</span>
-              <span className="text-success">✓ Camera & microphone</span>
-              <span className="text-success">✓ Join 5 min early</span>
-            </div>
+            ) : (
+              <div className="rounded-2xl bg-bg p-5"><p className="font-semibold text-text">No class is booked yet.</p><p className="mt-1 text-sm text-text/55">Explore scheduled group classes and open a class overview to see its details.</p><Button fullWidth={false} className="mt-4" onClick={() => navigate("/student/live-classes")}>Explore live classes</Button></div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm sm:p-6">
-            <SectionHeading eyebrow="Today" title="Today's schedule" action={<button type="button" onClick={() => navigate("/student/calendar")} className="text-xs font-semibold text-primary hover:underline">View full schedule →</button>} />
+            <SectionHeading eyebrow="Sample schedule" title="Today's schedule" action={<button type="button" onClick={() => navigate("/student/calendar")} className="text-xs font-semibold text-primary hover:underline">View calendar →</button>} />
             <div>{todayItems.map((item) => <ScheduleRow key={`${item.time}-${item.topic}`} item={item} onClick={() => item.status === "Starting soon" && navigate("/student/liveclassjoin?session=booked")} />)}</div>
           </section>
         </div>
@@ -166,16 +153,16 @@ export default function ManageBooking() {
           </section>
 
           <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm">
-            <SectionHeading eyebrow="Your attendance" title="Attendance" action={<button type="button" onClick={() => navigate("/student/attendance")} className="text-xs font-semibold text-primary hover:underline">View details →</button>} />
+            <SectionHeading eyebrow="Sample records" title="Attendance preview" action={<button type="button" onClick={() => navigate("/student/attendance")} className="text-xs font-semibold text-primary hover:underline">View records →</button>} />
             <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full" style={{ background: "conic-gradient(#2f7f7a 87%, #e8eef2 0)" }}>
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white font-display text-lg font-bold text-[#17324d]">87%</span>
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#2f7f7a ${attendancePercent}%, #e8eef2 0)` }}>
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white font-display text-lg font-bold text-[#17324d]">{attendancePercent}%</span>
               </div>
               <div className="space-y-1.5 text-xs text-text/60">
-                <p><strong className="text-text">13</strong> attended</p>
-                <p><strong className="text-text">2</strong> missed</p>
-                <p><strong className="text-text">15</strong> total sessions</p>
-                <p className="pt-1 text-success">You're on track.</p>
+                <p><strong className="text-text">{attended}</strong> attended</p>
+                <p><strong className="text-text">{missed}</strong> missed</p>
+                <p><strong className="text-text">{attendanceTotal}</strong> total sample sessions</p>
+                <p className="pt-1 text-text/45">Preview data, not an official attendance record.</p>
               </div>
             </div>
           </section>
@@ -192,16 +179,9 @@ export default function ManageBooking() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm">
-          <SectionHeading eyebrow="Coming up" title="Upcoming classes" />
-          <div className="space-y-1">
-            {upcoming.map((slot, index) => (
-              <div key={slot.id} className="flex items-center justify-between gap-3 border-b border-text/10 py-3 last:border-0">
-                <div><p className="text-sm font-semibold text-text">{slot.date}</p><p className="text-xs text-text/50">{slot.time} · {index === 0 ? "Tomorrow" : index === 1 ? "In 2 days" : "Next week"}</p></div>
-                <span className="hidden text-xs text-text/55 sm:block">{SESSION.topic}<br /><span className="text-text/40">{SESSION.educator}</span></span>
-                <Button fullWidth={false} className="rounded-full px-3 py-1.5 text-[11px]" onClick={() => navigate("/student/booksession")}>{index === 0 ? "Join" : "View details"}</Button>
-              </div>
-            ))}
-          </div>
+          <SectionHeading eyebrow="Find a class" title="Explore live learning" />
+          <p className="text-sm leading-6 text-text/55">Browse group class listings to compare topics, educators, and schedules. Private one-to-one session booking is not offered here.</p>
+          <Button fullWidth={false} className="mt-4" onClick={() => navigate("/student/live-classes")}>Browse live classes</Button>
         </section>
 
         <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm">

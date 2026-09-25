@@ -1,5 +1,6 @@
 import apiClient from "../../../services/apiClient";
 import { getCourseById } from "../../../data/catalogMock";
+import { enrollStudentInCourse, studentStorageKey } from "../data/studentLocalState";
 
 // Checkout & Payment API layer — Doc ref: Sec 5.10 (Commerce & Payments).
 // No payment-gateway/backend endpoints are confirmed yet (the doc itself
@@ -26,7 +27,7 @@ const COUPONS = {
   BIGSPENDER: { discountType: "percent", value: 15, label: "BIGSPENDER — 15% off", minAmount: 1500 },
 };
 
-const WALLET_BALANCE = 350;
+const WALLET_BALANCE = 750;
 
 function computeSummary(course, { couponCode, useWallet } = {}) {
   const originalPrice = course.originalPrice ?? course.price;
@@ -94,28 +95,48 @@ export async function initiatePayment(courseId, opts = {}) {
   if (DEMO_MODE) {
     await demoDelay(1400);
     const course = getCourseById(courseId);
+    if (!course) return { data: { status: "failed", orderId: `ORD${Date.now().toString().slice(-8)}` } };
     const summary = computeSummary(course ?? {}, opts);
-    const codeUpper = (opts.couponCode || "").toUpperCase();
-    let status = "success";
-    if (codeUpper === "FAILTEST") status = "failed";
-    else if (codeUpper === "PENDINGTEST") status = "pending";
-    else {
-      const roll = Math.random();
-      status = roll < 0.72 ? "success" : roll < 0.9 ? "failed" : "pending";
-    }
-    return {
-      data: {
-        orderId: `ORD${Date.now().toString().slice(-8)}`,
-        status,
-        amount: summary.payable,
-        method: opts.method ?? "card",
-        courseTitle: course?.title,
-        educator: course?.subtitle,
-        timestamp: new Date().toISOString(),
-      },
+    const order = {
+      orderId: `ORD${Date.now().toString().slice(-8)}`,
+      status: "success",
+      amount: summary.payable,
+      method: opts.method ?? "card",
+      courseId,
+      courseTitle: course.title,
+      educator: course.subtitle,
+      timestamp: new Date().toISOString(),
     };
+    try {
+      const key = studentStorageKey("ul_demo_orders_v1", opts.studentId);
+      const orders = JSON.parse(localStorage.getItem(key) || "[]");
+      localStorage.setItem(key, JSON.stringify([order, ...(Array.isArray(orders) ? orders : [])]));
+    } catch {
+      // The route state still lets the current demo flow finish if storage is unavailable.
+    }
+    enrollStudentInCourse(courseId, opts.studentId);
+    return { data: order };
   }
   return apiClient.post("/checkout/pay", { courseId, ...opts });
+}
+
+export function getDemoOrder(orderId, studentId) {
+  if (!orderId) return null;
+  try {
+    const orders = JSON.parse(localStorage.getItem(studentStorageKey("ul_demo_orders_v1", studentId)) || "[]");
+    return Array.isArray(orders) ? orders.find((order) => order.orderId === orderId) || null : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getDemoOrders(studentId) {
+  try {
+    const orders = JSON.parse(localStorage.getItem(studentStorageKey("ul_demo_orders_v1", studentId)) || "[]");
+    return Array.isArray(orders) ? orders : [];
+  } catch {
+    return [];
+  }
 }
 
 // Used by the "Payment Pending" state's Check Status action — polls for a
@@ -123,8 +144,7 @@ export async function initiatePayment(courseId, opts = {}) {
 export async function getPaymentStatus(orderId) {
   if (DEMO_MODE) {
     await demoDelay(900);
-    const status = Math.random() < 0.6 ? "success" : "pending";
-    return { data: { orderId, status } };
+    return { data: { orderId, status: "success" } };
   }
   return apiClient.get(`/checkout/status/${orderId}`);
 }
