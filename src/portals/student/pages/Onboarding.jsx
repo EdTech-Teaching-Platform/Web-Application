@@ -19,7 +19,7 @@
 // unchanged from the original 4 mockups — only Basics gained the account
 // fields.
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Chip from "../../../components/ui/Chip";
@@ -118,7 +118,7 @@ export default function Onboarding() {
       <AuthBackdrop />
 
       <header className="relative flex items-center justify-between border-b border-text/10 px-6 py-4 sm:px-10">
-        <span className="font-display text-lg tracking-tight text-primary">Universal Learning</span>
+        <Link to="/" className="font-display text-lg tracking-tight text-primary">Universal Learning</Link>
         <span className="text-xs font-semibold uppercase tracking-wide text-text/40">Onboarding</span>
       </header>
 

@@ -175,7 +175,10 @@ export default function CourseDetails() {
   }
 
   const educator = getEducatorById(course.educatorId);
-  const isEnrolled = course.enrolled || isStudentCourseEnrolled(course.id, user);
+  // Item 5 fix: a logged-out visitor must never be treated as enrolled,
+  // regardless of the mock data's course.enrolled flag (some Popular
+  // Courses on the landing page hardcode enrolled: true in catalogMock.js).
+  const isEnrolled = !!user && (course.enrolled || isStudentCourseEnrolled(course.id, user));
   const related = getRelatedCourses(course);
   const courseAttendance = ATTENDANCE_SESSIONS.filter((session) => session.courseId === course.id);
   const isArchived = course.status === "archived";

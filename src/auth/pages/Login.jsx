@@ -72,9 +72,9 @@ export default function Login({ role = "student" }) {
           baseline near the bottom and sized to be the dominant visual element
           (roughly half the panel's height, spanning most of its width). */}
       <div className="relative hidden flex-col overflow-hidden border-r border-[#e5ded9] bg-bg p-10 lg:flex lg:p-14">
-        <span className="font-display text-sm font-semibold tracking-tight text-primary">
+        <Link to="/" className="font-display text-sm font-semibold tracking-tight text-primary">
           Universal Learning
-        </span>
+        </Link>
 
         <div className="flex flex-1 flex-col items-start justify-between">
           <div className="max-w-xs -translate-x-1 pt-2">
@@ -101,12 +101,9 @@ export default function Login({ role = "student" }) {
       {/* Right panel — form */}
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
         <div className="mx-auto w-full max-w-sm">
-          <Link to="/" className="mb-6 inline-flex items-center gap-2 rounded-full border border-text/10 bg-white px-3.5 py-2 text-xs font-semibold text-text/65 shadow-sm transition-colors hover:border-primary/30 hover:text-primary">
-            <span aria-hidden="true">←</span> Back to home
-          </Link>
-          <span className="mb-6 block text-center font-display text-lg tracking-tight text-primary lg:hidden">
+          <Link to="/" className="mb-6 block text-center font-display text-lg tracking-tight text-primary lg:hidden">
             Universal Learning
-          </span>
+          </Link>
 
           <div className="mx-auto mb-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary font-display text-sm font-bold text-white">
             UL
@@ -121,7 +118,7 @@ export default function Login({ role = "student" }) {
             ) : (
               <>
                 New to Universal Learning?{" "}
-                <Link to="/student/onboarding" className="font-medium text-primary hover:underline">
+                <Link to="/register" className="font-medium text-primary hover:underline">
                   Create a free account
                 </Link>
               </>

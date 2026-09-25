@@ -15,9 +15,9 @@ export default function LegalPageLayout({ title, lastUpdated, sections, backLabe
   return (
     <div className="min-h-screen bg-bg">
       <header className="border-b border-text/10 px-6 py-5 sm:px-10">
-        <span className="font-display text-sm font-semibold tracking-tight text-primary">
+        <Link to="/" className="font-display text-sm font-semibold tracking-tight text-primary">
           Universal Learning
-        </span>
+        </Link>
       </header>
 
       <div className="mx-auto max-w-5xl px-6 py-10 sm:px-10">

@@ -27,6 +27,15 @@ const SOCIAL_LINKS = [
   { label: "X / Twitter", icon: XSocialIcon },
 ];
 
+// Item 12: placeholder "coming soon" links/columns removed entirely
+// (not just delinked) — the Community column (Study Groups, Mentorship —
+// Future Scope per the LMS doc — plus its remaining items had no real
+// destination of their own), Career/Internships & Jobs/AI Study Assistant
+// under Resources, and About Us/Accessibility under Company. Every
+// remaining link below points at a real route; ones under /student/* are
+// auth-gated and already correctly bounce a logged-out visitor through
+// /login?redirect=... via ProtectedRoute rather than 404ing or silently
+// rendering someone else's data.
 const FOOTER_COLUMNS = [
   {
     title: "Learn",
@@ -43,8 +52,6 @@ const FOOTER_COLUMNS = [
     title: "Community",
     links: [
       { label: "Discussions", href: "/student/messages" },
-      { label: "Study Groups", href: null },
-      { label: "Mentorship", href: null },
       { label: "Events", href: "/student/calendar" },
       { label: "Q&A", href: "/student/messages" },
     ],
@@ -52,9 +59,6 @@ const FOOTER_COLUMNS = [
   {
     title: "Resources",
     links: [
-      { label: "Career", href: null },
-      { label: "Internships & Jobs", href: null },
-      { label: "AI Study Assistant", href: null },
       { label: "Learning Resources", href: "/student/explore" },
       { label: "Help Center", href: "/student/help-complaints" },
     ],
@@ -62,11 +66,9 @@ const FOOTER_COLUMNS = [
   {
     title: "Company",
     links: [
-      { label: "About Us", href: null },
       { label: "Contact Support", href: "mailto:support@universallearning.app" },
       { label: "Terms of Service", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
-      { label: "Accessibility", href: null },
     ],
   },
 ];
@@ -125,7 +127,7 @@ export default function SiteFooter() {
         <div className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr_1fr] lg:gap-x-6">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1 lg:max-w-xs">
-            <span className="font-display text-lg font-bold text-text">Universal Learning</span>
+            <Link to="/" className="font-display text-lg font-bold text-text">Universal Learning</Link>
             <p className="mt-3 text-sm leading-relaxed text-text/55">
               Learn from expert educators, build practical skills, and grow at your own pace.
             </p>

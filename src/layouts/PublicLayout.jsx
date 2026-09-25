@@ -1,4 +1,4 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import Button from "../components/ui/Button";
 import AmbientPortalBackdrop from "../components/common/AmbientPortalBackdrop";
 
@@ -30,6 +30,7 @@ const NAV_LINKS = [
 ];
 
 export default function PublicLayout() {
+  const location = useLocation();
   return (
     <div className="relative min-h-screen bg-bg font-body text-text">
       <header className="flex h-16 items-center justify-between gap-4 px-6 md:px-10">
@@ -38,25 +39,32 @@ export default function PublicLayout() {
         </Link>
 
         <nav className="hidden items-center gap-7 text-sm font-medium lg:flex">
-          {NAV_LINKS.map((link, i) => (
-            <a
-              key={link.label}
-              href={link.href}
-              className={
-                i === 0
-                  ? "border-b-2 border-primary pb-1 text-text"
-                  : "text-text/60 hover:text-text"
-              }
-            >
-              {link.label}
-            </a>
-          ))}
+          {NAV_LINKS.map((link) => {
+            // Item 9 fix: this nav only ever links to in-page scroll anchors
+            // on the current page (Landing/Explore), so "active" is real
+            // only when we're actually on that hash right now — no more
+            // hardcoded "first link is always active" hack, which used to
+            // keep "Courses" permanently highlighted on every page/section.
+            const isActive = location.pathname === "/" && location.hash === link.href;
+            return (
+              <a
+                key={link.label}
+                href={link.href}
+                className={
+                  isActive
+                    ? "border-b-2 border-primary pb-1 text-text"
+                    : "text-text/60 hover:text-text"
+                }
+              >
+                {link.label}
+              </a>
+            );
+          })}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link to="/login" className="hidden text-sm font-medium text-text/70 hover:text-text sm:inline">
-            Log In
-          </Link>
+        {/* Item 3: Log In removed from the public nav — Sign Up is the
+            only auth CTA here, right-aligned on its own. */}
+        <div className="flex items-center justify-end">
           <Button as={Link} to="/register" fullWidth={false} className="px-5 py-2.5">
             Sign Up
           </Button>

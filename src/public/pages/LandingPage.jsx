@@ -28,14 +28,6 @@ import SiteFooter from "../components/SiteFooter";
 // thumbnail + PlayIcon (see components/ui/icons) and start playback only
 // on click, never on mount/scroll/hover.
 
-// Trust logos: the mockup shows real third-party marks (Google, Microsoft,
-// Amazon, Spotify, Figma) — flagged in the build spec as needing confirmed
-// partnership/permission before shipping real brand marks. Rendered here
-// as generic placeholder wordmarks instead of the real logos, since no
-// confirmed relationship exists; swap for real marks (or remove the row)
-// once that's settled with legal/partnerships.
-const TRUST_PLACEHOLDERS = ["Partner A", "Partner B", "Partner C", "Partner D", "Partner E"];
-
 // "Become an Educator" section — Section 5.1 (educator registration &
 // verification) + Section 5.11 (Educator Earnings & Payouts). Grounded in
 // what those modules actually promise (verification, course + live-class
@@ -176,7 +168,7 @@ export default function LandingPage() {
                 <button
                   key={category}
                   type="button"
-                  onClick={() => navigate(`/explore?category=${encodeURIComponent(category)}`)}
+                  onClick={() => navigate(`/explore?category=${encodeURIComponent(category)}#browse`)}
                   className="font-semibold text-primary hover:underline"
                 >
                   {category}
@@ -188,7 +180,7 @@ export default function LandingPage() {
                 fullWidth={false}
                 variant="primary"
                 className="px-6"
-                onClick={() => navigate("/student/onboarding")}
+                onClick={() => navigate("/register")}
               >
                 I'm a Student
               </Button>
@@ -234,7 +226,7 @@ export default function LandingPage() {
               <button
                 key={category}
                 type="button"
-                onClick={() => navigate(`/explore?category=${encodeURIComponent(category)}`)}
+                onClick={() => navigate(`/explore?category=${encodeURIComponent(category)}#browse`)}
                 className="group flex min-h-24 flex-col items-start justify-between rounded-xl border border-text/10 bg-white p-3 text-left transition-transform duration-150 hover:-translate-y-0.5 hover:border-primary/30"
               >
                 <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${meta.tint}`}>
@@ -244,20 +236,6 @@ export default function LandingPage() {
               </button>
             );
           })}
-        </div>
-      </section>
-
-      {/* Trusted-by row */}
-      <section className="mx-auto max-w-6xl px-6 pb-16">
-        <p className="mb-5 text-center text-xs font-semibold uppercase tracking-widest text-text/40">
-          Trusted by learners globally
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3 opacity-50">
-          {TRUST_PLACEHOLDERS.map((name) => (
-            <span key={name} className="font-display text-lg font-bold text-text/60">
-              {name}
-            </span>
-          ))}
         </div>
       </section>
 
@@ -315,25 +293,33 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-6 py-14">
         <div className="grid gap-8 rounded-3xl border border-text/10 bg-white p-6 shadow-sm md:grid-cols-[1fr_0.9fr] md:p-10">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Learning that shows progress</p>
+            {/* Item 7: this box is now Test Series only — Course Quizzes
+                content removed, copy rewritten around Test Series and its
+                per-question reporting. */}
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Test Series</p>
             <h2 className="mt-2 max-w-xl font-display text-3xl font-bold leading-tight text-text sm:text-4xl">Don’t Just Learn. Prove What You Know.</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-text/60">Test your knowledge, identify your weak areas, and track your progress with assessments built into your learning journey.</p>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-text/60">Take structured test series and realistic mock exams, then see exactly where the time went — down to how long you spent on each question.</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {[
-                { n: "01", title: "Course Quizzes", text: "Check your understanding after every learning module.", icon: BookOpenIcon, tint: "bg-[#e7f1ef] text-[#28756f]" },
-                { n: "02", title: "Test Series", text: "Challenge yourself with structured tests and realistic mock exams.", icon: FileTextIcon, tint: "bg-[#f8e8df] text-primary" },
+                { n: "01", title: "Structured Test Series", text: "Full-length mock exams modeled on real assessments, timed just like the real thing.", icon: FileTextIcon, tint: "bg-[#f8e8df] text-primary" },
+                { n: "02", title: "Per-Question Reporting", text: "Detailed breakdowns like \u201cQ1 attempted for 2 mins\u201d so you know exactly where to improve.", icon: BookOpenIcon, tint: "bg-[#e7f1ef] text-[#28756f]" },
               ].map((item) => <article key={item.title} className="rounded-2xl border border-text/10 bg-[#fcfbfa] p-4"><div className="flex items-center justify-between"><span className="text-xs font-bold tracking-widest text-text/35">{item.n}</span><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.tint}`}><item.icon className="h-4 w-4"/></span></div><h3 className="mt-3 text-sm font-bold text-text">{item.title}</h3><p className="mt-1 text-xs leading-5 text-text/55">{item.text}</p></article>)}
             </div>
           </div>
           <div className="flex flex-col justify-center gap-5">
+            {/* Final Assessment 82% score box — content/styling unchanged per item 7. */}
             <div className="rounded-2xl border border-text/10 bg-[#fbf7f2] p-5 sm:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-primary/70">Python Programming</p><h3 className="mt-1 font-display text-lg font-bold text-text">Final Assessment</h3></div><span className="rounded-full bg-[#e7f1ef] px-3 py-1 text-[11px] font-bold text-[#28756f]">PASSED</span></div><div className="mt-5 flex items-center gap-5"><div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-[7px] border-primary bg-white"><strong className="font-display text-2xl text-primary">82%</strong><span className="text-[9px] font-bold uppercase tracking-wider text-text/40">Your score</span></div><div><p className="text-sm font-semibold text-text">33 / 40 Correct</p><p className="mt-1 text-xs text-text/50">Performance breakdown</p><div className="mt-3 space-y-1.5 text-xs"><p className="text-[#28756f]">✓ Fundamentals</p><p className="text-[#28756f]">✓ Functions</p><p className="text-[#a7792c]">△ Data Structures</p></div></div></div></div>
-            <Button fullWidth={false} className="self-start px-6" onClick={() => navigate("/student/assessments")}>Explore Assessments</Button>
+            {/* Item 7: routes into the Test Series destination; /student/assessments/test-series
+                is behind ProtectedRoute role="student", so a logged-out click already
+                bounces through /login?redirect=... rather than silently rendering
+                someone else's data — no separate public preview page exists to link to. */}
+            <Button fullWidth={false} className="self-start px-6" onClick={() => navigate("/student/assessments/test-series")}>Explore Assessments</Button>
           </div>
         </div>
         <div className="mt-10 rounded-3xl bg-[#f4f0f8] px-6 py-8 sm:px-9"><div className="text-center"><p className="text-xs font-bold uppercase tracking-widest text-[#71549a]">A complete learning cycle</p><h2 className="mt-2 font-display text-2xl font-bold text-text sm:text-3xl">Learn → Practice → Assess → Improve</h2></div><div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[
           { n: "01", title: "Learn", text: "Take courses from expert educators.", icon: BookOpenIcon },
           { n: "02", title: "Practice", text: "Apply what you learned through exercises and quizzes.", icon: CheckCircleIcon },
-          { n: "03", title: "Assess", text: "Take structured tests and course assessments.", icon: FileTextIcon },
+          { n: "03", title: "Test Series", text: "Take structured tests and course assessments.", icon: FileTextIcon },
           { n: "04", title: "Improve", text: "Understand weak areas and continue learning.", icon: TrendingUpIcon },
         ].map((step, index) => <div key={step.title} className="relative rounded-2xl border border-text/10 bg-white p-4"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary"><step.icon className="h-5 w-5"/></span><div><span className="text-[10px] font-bold tracking-widest text-text/35">STEP {step.n}</span><h3 className="text-sm font-bold text-text">{step.title}</h3></div></div><p className="mt-3 text-xs leading-5 text-text/55">{step.text}</p>{index < 3 && <span className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-[#f4f0f8] px-1 text-primary lg:block">→</span>}</div>)}
         </div></div>
@@ -439,12 +425,6 @@ export default function LandingPage() {
               Stories From our Learning Journey.
             </h2>
           </div>
-          <a
-            href="#testimonials"
-            className="text-sm font-semibold text-primary hover:underline"
-          >
-            See all Reviews
-          </a>
         </div>
         <Marquee rows={[TESTIMONIALS_ROW_1, TESTIMONIALS_ROW_2]} />
       </section>
@@ -460,12 +440,6 @@ export default function LandingPage() {
               Answers to your most common questions.
             </h2>
           </div>
-          <a
-            href="#faq"
-            className="text-sm font-semibold text-primary hover:underline"
-          >
-            View all FAQs
-          </a>
         </div>
         <Accordion items={FAQ_ITEMS} />
       </section>

@@ -46,14 +46,13 @@ export default function OnboardingLayout({
 
         {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
-        <div className="mt-8 flex items-center justify-between">
-          {onBack ? (
-            <Button variant="secondary" fullWidth={false} className="px-7" onClick={onBack}>
-              Back
-            </Button>
-          ) : (
-            <span />
-          )}
+        {/* The per-step "Back" (previous step) control has been removed
+            from the onboarding flow per request — steps only move
+            forward now. OnboardingStepper above is left untouched: it's
+            just a progress indicator, not a navigation control. `onBack`
+            is still accepted as a prop (harmless no-op) so step files
+            don't need to be touched individually. */}
+        <div className="mt-8 flex items-center justify-end">
           <Button
             fullWidth={false}
             className="px-8"

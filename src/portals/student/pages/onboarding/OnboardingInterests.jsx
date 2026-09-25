@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Chip from "../../../../components/ui/Chip";
 import { register } from "../../../../auth/services/authApi";
-import { useOnboarding } from "../../context/OnboardingContext";
+import { useOnboarding, PENDING_SIGNUP_STORAGE_KEY } from "../../context/OnboardingContext";
 import OnboardingLayout from "../../components/OnboardingLayout";
 
 const SUBJECTS = ["Programming", "Math", "Science", "Languages", "Music", "Design", "Business", "Other"];
@@ -30,16 +30,24 @@ export default function OnboardingInterests() {
     setSubmitting(true);
     setError("");
     try {
-      // This flow doesn't collect email/phone + password (see
-      // OnboardingContext) — using the contact phone number as a stand-in
-      // identifier for the demo-mode register() call. Needs reconciling
-      // with wherever real credentials actually get collected.
+      // form.email/form.password were carried over from the standalone
+      // Sign Up page (src/auth/pages/Register.jsx) via OnboardingContext's
+      // sessionStorage bridge — that's the real signup credential, so use
+      // it as the identifier/password here instead of the old phone-as-
+      // identifier / empty-password stand-in. Falls back to the contact
+      // phone number if onboarding was somehow reached without going
+      // through Sign Up first (defensive, shouldn't normally happen).
       await register({
         fullName: form.fullName.trim(),
         role: "student",
-        identifier: form.phone.trim(),
-        password: "",
+        identifier: form.email.trim() || form.phone.trim(),
+        password: form.password || "",
       });
+      try {
+        sessionStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY);
+      } catch {
+        // best-effort cleanup only
+      }
       // No OTP step after registration — OTP is only needed at login.
       navigate("/student/dashboard");
     } catch {

@@ -3,8 +3,10 @@
 // 1st–12th dropdown — a 12-option chip row doesn't fit well, and a Select
 // matches the doc's full range better than the 4-chip 9th–12th-only version
 // used earlier. Age is back too. Email/Phone/Password/Confirm Password are
-// still not collected here — the doc's field list for this step doesn't
-// include them.
+// still not collected here — those are now collected up front on the
+// standalone Sign Up page (src/auth/pages/Register.jsx) before the user
+// ever reaches this wizard, so this step's field list stays exactly as the
+// doc specifies.
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../../../../components/ui/Input";
