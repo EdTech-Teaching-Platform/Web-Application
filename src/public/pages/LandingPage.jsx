@@ -21,6 +21,7 @@ import { useState } from "react";
 import { COURSES, EDUCATORS } from "../../data/catalogMock";
 import { SearchIcon, ShieldCheckIcon, VideoIcon, WalletIcon, UsersIcon } from "../../components/ui/icons";
 import { LandingHeroScene } from "../../components/ui/illustrations";
+import SiteFooter from "../components/SiteFooter";
 
 // No course/educator preview video is speced for this page today. If one
 // is added later: design.md bans auto-play everywhere — render a static
@@ -459,27 +460,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-text/10 px-6 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 text-center">
-          <span className="font-display text-base font-bold text-text">Universal Learning</span>
-          {/* "About Us" has no dedicated page anywhere in the LMS doc's 13
-              modules — flagging rather than inventing one; left as "#" until
-              a real destination exists. "Contact Support" likewise has no
-              public-facing page (Support Tickets is Admin-portal-only per
-              the doc), so it points at a placeholder mailto for now — a
-              real action, unlike a dead anchor, but confirm the actual
-              support address/flow before shipping. */}
-          <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-text/60">
-            <a href="#" className="hover:text-text">About Us</a>
-            <a href="/terms" className="hover:text-text">Terms of Service</a>
-            <a href="/privacy" className="hover:text-text">Privacy Policy</a>
-            <a href="mailto:support@universallearning.app" className="hover:text-text">Contact Support</a>
-          </nav>
-          <p className="text-xs text-text/40">
-            © {new Date().getFullYear()} Universal Learning. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -608,3 +608,43 @@ export function PlayCircleIcon(props) {
     </svg>
   );
 }
+
+// Footer social icons — minimal monoline marks kept consistent with the
+// rest of this set (24x24 viewBox, stroke-based) rather than pulling in
+// an icon library for four glyphs.
+export function LinkedInIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...props}>
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6Z" />
+      <rect x="2" y="9" width="4" height="12" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
+  );
+}
+
+export function YoutubeIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...props}>
+      <rect x="2" y="6" width="20" height="12" rx="4" />
+      <path d="M10.4 9.6v4.8l4.6-2.4Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function InstagramIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...props}>
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" />
+      <circle cx="12" cy="12" r="4.2" />
+      <circle cx="17.4" cy="6.6" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function XSocialIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16" {...props}>
+      <path d="M18.24 3h3.02l-6.6 7.54L22.5 21h-6.08l-4.76-6.23L6.2 21H3.17l7.06-8.07L2 3h6.24l4.3 5.7L18.24 3Zm-1.06 16.17h1.67L7.9 4.73H6.1l11.08 14.44Z" />
+    </svg>
+  );
+}

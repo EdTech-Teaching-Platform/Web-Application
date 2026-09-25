@@ -74,7 +74,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, user, n
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-text/10 bg-bg/95 px-4 backdrop-blur sm:px-6">
-      <Link to="/student/dashboard" className="shrink-0 font-display text-lg font-bold tracking-tight text-primary">
+      <Link to="/" className="shrink-0 font-display text-lg font-bold tracking-tight text-primary">
         {title}
       </Link>
 

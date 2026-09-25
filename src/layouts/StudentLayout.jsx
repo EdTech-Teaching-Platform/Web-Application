@@ -52,11 +52,13 @@ const groups = [
 
 const sidebarItems = groups.flatMap((group) => group.items);
 
-// What actually sits directly in the top bar (Navbar's `navItems`) — kept
-// to the two most-used destinations beyond Dashboard (which the logo
-// already covers). Everything else lives in the grouped "Menu" dropdown
-// below instead of its own row of a dozen items.
+// What actually sits directly in the top bar (Navbar's `navItems`) —
+// Dashboard now gets its own explicit link (previously only reachable via
+// the logo) plus the two most-used destinations beyond it. Everything else
+// lives in the grouped "Menu" dropdown below instead of its own row of a
+// dozen items.
 const topNavItems = [
+  { href: "/student/dashboard", label: "Dashboard" },
   { href: "/student/explore", label: "Explore" },
   { href: "/student/my-learning", label: "My Learning" },
 ];
