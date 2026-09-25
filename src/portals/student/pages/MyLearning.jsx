@@ -50,6 +50,18 @@ export default function MyLearning() {
     }).filter(Boolean);
   }, [userId]);
 
+  // The milestone card ties to the same course the Study Plan card
+  // already highlights ("Continue Python course" / c1) — reuse that
+  // course's real enrolled data (progress, meta, thumbnail) instead of
+  // the card's previous hardcoded "Python" copy. Falls back to whichever
+  // course is actually in progress, or the first enrolled course, so the
+  // card still makes sense if c1 isn't enrolled.
+  const milestoneCourse =
+    enrolledCourses.find((course) => course.id === "c1") ||
+    enrolledCourses.find((course) => course.status === "In Progress") ||
+    enrolledCourses[0] ||
+    COURSES[0];
+
   const courses = useMemo(() => {
     const filtered = enrolledCourses.filter((course) => {
       const matchesTab = tab === "All" || course.status === tab;
@@ -108,7 +120,7 @@ export default function MyLearning() {
         ))}
       </section>
       <section className="mt-5 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[#eadbd3] bg-[#fffaf7] p-5">
+        <div className="flex h-full flex-col rounded-2xl border border-[#eadbd3] bg-[#fffaf7] p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Your learning plan</p>
@@ -125,17 +137,70 @@ export default function MyLearning() {
             </div>
             <span className="text-[11px] font-semibold text-text/50">1 session left this week</span>
           </div>
+          {/* Thin progress bar — visual counterpart to the dots above
+              (4 of 5 sessions = 80%), same treatment as the certificate
+              card's progress bar next to it. */}
+          <div className="mt-2 h-1.5 rounded-full bg-white" aria-hidden="true">
+            <div className="h-full rounded-full bg-primary" style={{ width: "80%" }} />
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full bg-white px-3 py-1.5 text-xs text-text/60">Next focus: Python · Loops & Functions</span>
             <span className="rounded-full bg-white px-3 py-1.5 text-xs text-text/60">Estimated time: 25 min</span>
           </div>
+          {/* Mini course chip — same pattern/data source as the
+              certificate card's chip (thumbnail, title, educator), so
+              this card carries comparable, real content instead of
+              relying on mt-auto to fill empty space. */}
+          <div className="mt-4 flex items-center gap-3 rounded-xl bg-white p-2.5">
+            <img src={imageForCategory(milestoneCourse.category)} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-[#17324d]">{milestoneCourse.title}</p>
+              <p className="truncate text-[11px] text-text/45">{milestoneCourse.educator} · {milestoneCourse.meta}</p>
+            </div>
+          </div>
           <Button fullWidth={false} className="mt-4" onClick={() => navigate("/student/courseplayer?course=c1")}>Continue Python course</Button>
         </div>
-        <div className="rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#28756f]">Learning reminder</p>
-          <h2 className="mt-1 font-display text-lg font-bold text-[#17324d]">Your next milestone</h2>
-          <p className="mt-2 text-xs leading-5 text-text/60">Complete 3 more lessons in Python to unlock the next module checkpoint.</p>
-          <button type="button" onClick={() => navigate("/student/courseplayer?course=c1")} className="mt-4 rounded-full bg-[#28756f] px-4 py-2.5 text-xs font-semibold text-white">Open course →</button>
+        <div className="flex h-full flex-col rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5">
+          {/* Deliberately a different KIND of card than the Study Plan
+              one next to it: that card is short-term/session-cadence
+              ("do a lesson today"). This one is a bigger-picture
+              ACHIEVEMENT milestone — certificate eligibility, which per
+              Certificates.jsx unlocks at course completion ("Complete
+              courses and pass final assessments to unlock professional
+              certificates"). There's no separate per-course "certificate
+              progress" field in the mock data, so this reuses the same
+              course.progress % as-is toward that 100%-completion
+              threshold — a real, existing number, just framed around a
+              different goal than the plan card's session count. */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#28756f]">Achievement milestone</p>
+              <h2 className="mt-1 font-display text-lg font-bold text-[#17324d]">Your next certificate</h2>
+              <p className="mt-2 max-w-xl text-xs leading-5 text-text/60">You're {milestoneCourse.progress}% through {milestoneCourse.title} — finish the course and pass its final assessment to earn your certificate.</p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-[#28756f]">{milestoneCourse.progress}% toward certificate</span>
+          </div>
+          {/* Mini course chip — real course data (thumbnail, title,
+              educator), same source as the plan card's "Next focus" tag
+              and the ColorBlockCard grid below, not invented content. */}
+          <div className="mt-4 flex items-center gap-3 rounded-xl bg-white p-2.5">
+            <img src={imageForCategory(milestoneCourse.category)} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-[#17324d]">{milestoneCourse.title}</p>
+              <p className="truncate text-[11px] text-text/45">{milestoneCourse.educator} · {milestoneCourse.meta}</p>
+            </div>
+          </div>
+          <div className="mt-4 h-2 rounded-full bg-white" aria-label={`${milestoneCourse.progress}% of the way to course completion`}>
+            <div className="h-full rounded-full bg-[#28756f]" style={{ width: `${milestoneCourse.progress}%` }} />
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[11px] font-semibold text-text/45">
+            <span>Course completion</span>
+            <span>Certificate at 100%</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-white px-3 py-1.5 text-xs text-text/60">Status: {milestoneCourse.status}</span>
+          </div>
+          <button type="button" onClick={() => navigate("/student/certificates")} className="mt-auto self-start rounded-full bg-[#28756f] px-4 py-2.5 text-xs font-semibold text-white">View certificate path →</button>
         </div>
       </section>
       {courses.length ? (

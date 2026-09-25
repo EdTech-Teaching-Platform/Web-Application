@@ -7,6 +7,7 @@ import AmbientPortalBackdrop from "../components/common/AmbientPortalBackdrop";
 
 const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
+  { href: "/student/assessments/test-series", label: "Test Series" },
   { href: "/student/explore", label: "Explore" },
   { href: "/student/my-learning", label: "My Learning" },
   {

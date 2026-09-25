@@ -1,21 +1,46 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import FileDropzone from "../../../components/ui/FileDropzone";
 import { CheckIcon, ClockIcon } from "../../../components/ui/icons";
 import { ASSIGNMENT, getAssignmentState, saveAssignmentDraft, submitAssignment } from "../data/assessmentMock";
+
+// ASSIGNMENT.maxFileSize is a display string like "25 MB" — parse the
+// number out of it for client-side validation. No backend exists to
+// enforce this (there's no real upload endpoint here at all — see the
+// FileDropzone usage below), so this is a presentational-only guard.
+function parseMaxFileSizeBytes(label) {
+  const match = /([\d.]+)\s*MB/i.exec(label || "");
+  const mb = match ? Number.parseFloat(match[1]) : 25;
+  return mb * 1024 * 1024;
+}
 
 const STATUS_STYLE = { Pending: "warning", Graded: "success", Returned: "danger" };
 
 export default function AssignmentSubmit() {
   const navigate = useNavigate();
   const [state, setState] = useState(getAssignmentState);
-  const [fileName, setFileName] = useState("");
+  // The File object itself — component state only. There's no real
+  // upload endpoint to send it to; submit() below just reads its .name,
+  // the same mock behavior as before, now driven by an actual chosen
+  // file instead of typed placeholder text.
+  const [file, setFile] = useState(null);
   const [draftText, setDraftText] = useState("");
   const [notice, setNotice] = useState("");
   const latest = state.submissions[state.submissions.length - 1];
   const canSubmit = ASSIGNMENT.permissions.canSubmit && ASSIGNMENT.permissions.canResubmit;
   const total = ASSIGNMENT.rubric.reduce((sum, criterion) => sum + criterion.earned, 0);
+  const maxFileSizeBytes = useMemo(() => parseMaxFileSizeBytes(ASSIGNMENT.maxFileSize), []);
+
+  function handleFileSelect(nextFile) {
+    if (nextFile && nextFile.size > maxFileSizeBytes) {
+      setNotice(`"${nextFile.name}" is larger than the ${ASSIGNMENT.maxFileSize} limit. Choose a smaller file.`);
+      return;
+    }
+    setNotice("");
+    setFile(nextFile);
+  }
 
   function saveDraft() {
     if (!draftText.trim()) return;
@@ -24,15 +49,15 @@ export default function AssignmentSubmit() {
   }
 
   function submit() {
-    if (!fileName.trim()) {
-      setNotice("Add a file name before submitting.");
+    if (!file) {
+      setNotice("Choose a file before submitting.");
       return;
     }
-    const result = submitAssignment(fileName.trim());
+    const result = submitAssignment(file.name);
     if (!result.ok) setNotice("Your current permissions do not allow another submission.");
     else {
       setState(result.state);
-      setFileName("");
+      setFile(null);
       setNotice("Submission received. Status: Pending.");
     }
   }
@@ -43,7 +68,7 @@ export default function AssignmentSubmit() {
       {notice && <div className="mt-5 rounded-2xl bg-primary/5 px-4 py-3 text-sm text-primary">{notice}</div>}
       <div className="mt-7 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <main className="space-y-6">
-          <section className="rounded-2xl bg-white p-6 sm:p-8"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-text/45">Current status</p><h2 className="mt-2 font-display text-2xl font-bold text-text">{state.late ? "Late submission" : latest?.status || state.status}</h2></div><StatusBadge status={STATUS_STYLE[latest?.status || state.status] || "neutral"}>{state.late ? "Late" : latest?.status || state.status}</StatusBadge></div><p className="mt-4 text-sm text-text/60">Submission permission is determined by the assessment service. This screen does not bypass educator or backend permissions.</p><div className="mt-6 flex items-center gap-3 rounded-2xl bg-text/5 p-4 text-sm"><ClockIcon className="text-text/50" /><span>Allowed file size: {ASSIGNMENT.maxFileSize}</span></div>{canSubmit && <div className="mt-6"><label className="block text-sm font-semibold text-text">Submission file<input value={fileName} onChange={(event) => setFileName(event.target.value)} className="mt-2 w-full rounded-2xl bg-text/5 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. python-loops-project.zip" /></label><Button className="mt-4" onClick={submit}>Submit version {state.submissions.length + 1}</Button></div>} {!canSubmit && <div className="mt-6 rounded-2xl bg-danger/10 p-4 text-sm text-danger">Resubmission is currently closed by the assessment permissions.</div>}</section>
+          <section className="rounded-2xl bg-white p-6 sm:p-8"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-text/45">Current status</p><h2 className="mt-2 font-display text-2xl font-bold text-text">{state.late ? "Late submission" : latest?.status || state.status}</h2></div><StatusBadge status={STATUS_STYLE[latest?.status || state.status] || "neutral"}>{state.late ? "Late" : latest?.status || state.status}</StatusBadge></div><p className="mt-4 text-sm text-text/60">Submission permission is determined by the assessment service. This screen does not bypass educator or backend permissions.</p><div className="mt-6 flex items-center gap-3 rounded-2xl bg-text/5 p-4 text-sm"><ClockIcon className="text-text/50" /><span>Allowed file size: {ASSIGNMENT.maxFileSize}</span></div>{canSubmit && <div className="mt-6"><span className="block text-sm font-semibold text-text">Submission file</span><div className="mt-2"><FileDropzone label="Upload your submission" hint="or click to browse — .zip, .pdf, .py and most common file types" file={file} onFileSelect={handleFileSelect} /></div><Button className="mt-4" disabled={!file} onClick={submit}>Submit version {state.submissions.length + 1}</Button></div>} {!canSubmit && <div className="mt-6 rounded-2xl bg-danger/10 p-4 text-sm text-danger">Resubmission is currently closed by the assessment permissions.</div>}</section>
           <section className="rounded-2xl bg-white p-6 sm:p-8"><h2 className="font-display text-xl font-semibold text-text">Save a draft</h2><p className="mt-1 text-sm text-text/55">Drafts are private and do not change your submission status.</p><textarea value={draftText} onChange={(event) => setDraftText(event.target.value)} className="mt-4 min-h-28 w-full rounded-2xl bg-text/5 p-4 text-sm outline-none focus:ring-2 focus:ring-primary" placeholder="Add planning notes or a draft response..." /><Button fullWidth={false} variant="secondary" className="mt-3" onClick={saveDraft}>Save draft</Button></section>
           <section className="rounded-2xl bg-white p-6 sm:p-8"><h2 className="font-display text-xl font-semibold text-text">Submission history</h2><div className="mt-4 space-y-3">{[...state.submissions].reverse().map((submission) => <div key={submission.id} className="rounded-2xl bg-text/5 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-text">Version {submission.version} · {submission.fileName}</p><p className="mt-1 text-xs text-text/50">{submission.submittedAt}</p></div><StatusBadge status={STATUS_STYLE[submission.status] || "neutral"}>{submission.status}</StatusBadge></div>{submission.feedback && <p className="mt-3 text-sm text-text/65">{submission.feedback}</p>}{submission.score != null && <p className="mt-2 text-sm font-semibold text-success">Score: {submission.score}/100</p>}</div>)}</div></section>
         </main>

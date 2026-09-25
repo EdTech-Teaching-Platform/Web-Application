@@ -8,7 +8,7 @@
 // src/data/catalogMock.js (c7 is deliberately archived, to exercise the
 // "course unavailable/archived" state without a real backend flag).
 import { useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import Accordion from "../../../components/ui/Accordion";
 import Button from "../../../components/ui/Button";
@@ -141,6 +141,7 @@ export default function CourseDetails() {
   const [searchParams] = useSearchParams();
   const { courseId: routeCourseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
@@ -186,6 +187,21 @@ export default function CourseDetails() {
   const totalReviews = Object.values(course.ratingBreakdown).reduce((a, b) => a + b, 0);
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/student/course/${course.id}`;
 
+  // Bug fix: this page mounts at BOTH the public "/course/:id" route and
+  // the protected "/student/course/:id" route (see src/public/routes.jsx
+  // and src/portals/student/routes.jsx) — hardcoding "/student/course/"
+  // here sent a logged-out visitor's "back to course" destination
+  // (threaded through /login -> /register) to the WRONG (protected) path
+  // when they'd actually arrived via the public one, e.g. /course/c5.
+  // Use the actual current path instead so it always matches where the
+  // person really is.
+  const currentCoursePath = `${location.pathname}${location.search}`;
+  // Related-course cards (below) link to a DIFFERENT course's own details
+  // page — mirror whichever route family (public vs student-portal) the
+  // visitor is currently in, same reasoning as currentCoursePath above.
+  const isStudentContext = location.pathname.startsWith("/student/");
+  const relatedCoursePath = (id) => (isStudentContext ? `/student/course/${id}` : `/course/${id}`);
+
   function requireAuth(redirectPath, action) {
     if (!user) {
       navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
@@ -195,7 +211,7 @@ export default function CourseDetails() {
   }
 
   function handleToggleWishlist() {
-    requireAuth(`/student/course/${course.id}`, () => {
+    requireAuth(currentCoursePath, () => {
       const nowSaved = !isWishlisted;
       wishlist.toggle(course);
       showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
@@ -203,7 +219,7 @@ export default function CourseDetails() {
   }
 
   function handleEnroll() {
-    requireAuth(`/student/course/${course.id}`, () => {
+    requireAuth(currentCoursePath, () => {
       navigate("/student/checkout", {
         state: { courseId: course.id, couponCode: couponInput || undefined },
       });
@@ -509,29 +525,43 @@ export default function CourseDetails() {
             <div className="mt-8">
               <h2 className="mb-4 font-display text-lg font-semibold text-text">Keep the Momentum Going</h2>
               <div className="flex gap-5 overflow-x-auto pb-2">
-                {related.map((c, i) => (
-                  <ColorBlockCard
-                    key={c.id}
-                    rotationIndex={i}
-                    image={c.image}
-                    title={c.title}
-                    subtitle={c.subtitle}
-                    description={c.description}
-                    price={c.price}
-                    originalPrice={c.originalPrice}
-                    rating={c.rating}
-                    showWishlist
-                    wishlisted={wishlist.isWishlisted(c.id)}
-                    onToggleWishlist={() =>
-                      requireAuth(`/student/course/${c.id}`, () => {
-                        const nowSaved = !wishlist.isWishlisted(c.id);
-                        wishlist.toggle(c);
-                        showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
-                      })
-                    }
-                    onClick={() => navigate(`/student/course/${c.id}`)}
-                  />
-                ))}
+                {related.map((c, i) => {
+                  // Same login-gated enrolled check as isEnrolled above —
+                  // a logged-out visitor is never treated as enrolled here
+                  // either, regardless of catalogMock.js's course.enrolled.
+                  const relatedEnrolled = !!user && (c.enrolled || isStudentCourseEnrolled(c.id, user));
+                  return (
+                    <ColorBlockCard
+                      key={c.id}
+                      rotationIndex={i}
+                      image={c.image}
+                      title={c.title}
+                      subtitle={c.subtitle}
+                      description={c.description}
+                      price={c.price}
+                      originalPrice={c.originalPrice}
+                      rating={c.rating}
+                      showWishlist
+                      wishlisted={wishlist.isWishlisted(c.id)}
+                      onToggleWishlist={() =>
+                        requireAuth(relatedCoursePath(c.id), () => {
+                          const nowSaved = !wishlist.isWishlisted(c.id);
+                          wishlist.toggle(c);
+                          showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
+                        })
+                      }
+                      actionLabel={relatedEnrolled ? "Go to Course" : "Enroll"}
+                      onAction={() =>
+                        relatedEnrolled
+                          ? navigate(`/student/courseplayer?course=${c.id}`)
+                          : requireAuth(relatedCoursePath(c.id), () =>
+                              navigate("/student/checkout", { state: { courseId: c.id } })
+                            )
+                      }
+                      onClick={() => navigate(relatedCoursePath(c.id))}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
