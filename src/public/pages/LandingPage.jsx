@@ -19,7 +19,7 @@ import { imageForCategory, imageForPerson, avatarFor } from "../../utils/stockIm
 import { COURSE_CATEGORIES, CATEGORY_META } from "../../utils/constants";
 import { useState } from "react";
 import { COURSES, EDUCATORS } from "../../data/catalogMock";
-import { SearchIcon, ShieldCheckIcon, VideoIcon, WalletIcon, UsersIcon } from "../../components/ui/icons";
+import { SearchIcon, ShieldCheckIcon, VideoIcon, WalletIcon, UsersIcon, FileTextIcon, BookOpenIcon, TrendingUpIcon, CheckCircleIcon } from "../../components/ui/icons";
 import { LandingHeroScene } from "../../components/ui/illustrations";
 import SiteFooter from "../components/SiteFooter";
 
@@ -309,6 +309,34 @@ export default function LandingPage() {
             />
           ))}
         </div>
+      </section>
+
+      {/* Assessment system feature */}
+      <section className="mx-auto max-w-6xl px-6 py-14">
+        <div className="grid gap-8 rounded-3xl border border-text/10 bg-white p-6 shadow-sm md:grid-cols-[1fr_0.9fr] md:p-10">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Learning that shows progress</p>
+            <h2 className="mt-2 max-w-xl font-display text-3xl font-bold leading-tight text-text sm:text-4xl">Don’t Just Learn. Prove What You Know.</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-text/60">Test your knowledge, identify your weak areas, and track your progress with assessments built into your learning journey.</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                { n: "01", title: "Course Quizzes", text: "Check your understanding after every learning module.", icon: BookOpenIcon, tint: "bg-[#e7f1ef] text-[#28756f]" },
+                { n: "02", title: "Test Series", text: "Challenge yourself with structured tests and realistic mock exams.", icon: FileTextIcon, tint: "bg-[#f8e8df] text-primary" },
+              ].map((item) => <article key={item.title} className="rounded-2xl border border-text/10 bg-[#fcfbfa] p-4"><div className="flex items-center justify-between"><span className="text-xs font-bold tracking-widest text-text/35">{item.n}</span><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.tint}`}><item.icon className="h-4 w-4"/></span></div><h3 className="mt-3 text-sm font-bold text-text">{item.title}</h3><p className="mt-1 text-xs leading-5 text-text/55">{item.text}</p></article>)}
+            </div>
+          </div>
+          <div className="flex flex-col justify-center gap-5">
+            <div className="rounded-2xl border border-text/10 bg-[#fbf7f2] p-5 sm:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-primary/70">Python Programming</p><h3 className="mt-1 font-display text-lg font-bold text-text">Final Assessment</h3></div><span className="rounded-full bg-[#e7f1ef] px-3 py-1 text-[11px] font-bold text-[#28756f]">PASSED</span></div><div className="mt-5 flex items-center gap-5"><div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-[7px] border-primary bg-white"><strong className="font-display text-2xl text-primary">82%</strong><span className="text-[9px] font-bold uppercase tracking-wider text-text/40">Your score</span></div><div><p className="text-sm font-semibold text-text">33 / 40 Correct</p><p className="mt-1 text-xs text-text/50">Performance breakdown</p><div className="mt-3 space-y-1.5 text-xs"><p className="text-[#28756f]">✓ Fundamentals</p><p className="text-[#28756f]">✓ Functions</p><p className="text-[#a7792c]">△ Data Structures</p></div></div></div></div>
+            <Button fullWidth={false} className="self-start px-6" onClick={() => navigate("/student/assessments")}>Explore Assessments</Button>
+          </div>
+        </div>
+        <div className="mt-10 rounded-3xl bg-[#f4f0f8] px-6 py-8 sm:px-9"><div className="text-center"><p className="text-xs font-bold uppercase tracking-widest text-[#71549a]">A complete learning cycle</p><h2 className="mt-2 font-display text-2xl font-bold text-text sm:text-3xl">Learn → Practice → Assess → Improve</h2></div><div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[
+          { n: "01", title: "Learn", text: "Take courses from expert educators.", icon: BookOpenIcon },
+          { n: "02", title: "Practice", text: "Apply what you learned through exercises and quizzes.", icon: CheckCircleIcon },
+          { n: "03", title: "Assess", text: "Take structured tests and course assessments.", icon: FileTextIcon },
+          { n: "04", title: "Improve", text: "Understand weak areas and continue learning.", icon: TrendingUpIcon },
+        ].map((step, index) => <div key={step.title} className="relative rounded-2xl border border-text/10 bg-white p-4"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary"><step.icon className="h-5 w-5"/></span><div><span className="text-[10px] font-bold tracking-widest text-text/35">STEP {step.n}</span><h3 className="text-sm font-bold text-text">{step.title}</h3></div></div><p className="mt-3 text-xs leading-5 text-text/55">{step.text}</p>{index < 3 && <span className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-[#f4f0f8] px-1 text-primary lg:block">→</span>}</div>)}
+        </div></div>
       </section>
 
       {/* Learn from the best — Instructor Grid (same ColorBlockCard,

@@ -1,432 +1,123 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useActivityLog } from "../hooks/useActivityLog";
-import { useLearningStats, formatHoursMinutes } from "../hooks/useLearningStats";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import {
-  ClockIcon,
-  FlameIcon,
-  CheckIcon,
-  PlayIcon,
-  FileTextIcon,
-  DownloadIcon,
-  SearchIcon,
-  ChevronRightIcon,
-  CheckCircleIcon,
-  RefreshIcon,
-  AlertTriangleIcon,
-} from "../../../components/ui/icons";
+import { CheckIcon, CheckCircleIcon, ClockIcon, DownloadIcon, FileTextIcon, PlayIcon, SearchIcon } from "../../../components/ui/icons";
+import { COURSES } from "../../../data/catalogMock";
+import { imageForCategory } from "../../../utils/stockImages";
+import { useActivityLog } from "../hooks/useActivityLog";
+import { getAllCourseProgress } from "../hooks/useCourseProgress";
+
+const ENROLLED_COURSES = COURSES.filter((course) => course.enrolled);
 
 const FILTERS = [
-  { id: "all", label: "All" },
+  { id: "all", label: "All activity" },
   { id: "video", label: "Videos" },
-  { id: "pdf", label: "PDFs" },
-  { id: "text", label: "Text" },
+  { id: "pdf", label: "PDFs & resources" },
+  { id: "text", label: "Reading" },
   { id: "completed", label: "Completed" },
 ];
 
-function groupActivitiesByDate(activities) {
-  const groups = {
-    today: [],
-    yesterday: [],
-    earlier: [],
-  };
-
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
-
-  activities.forEach((act) => {
-    const actTime = act.createdAt || Date.now();
-    if (actTime >= todayStart) {
-      groups.today.push(act);
-    } else if (actTime >= yesterdayStart) {
-      groups.yesterday.push(act);
-    } else {
-      groups.earlier.push(act);
-    }
-  });
-
-  return groups;
+function lessonTotal(course) {
+  return (course.curriculum || []).reduce((total, module) => total + (module.lessons || []).length, 0);
 }
 
-function formatTime(ts) {
-  try {
-    return new Date(ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "";
-  }
+function activityTime(timestamp) {
+  if (!timestamp) return "Time not recorded";
+  return new Date(timestamp).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function courseProgress(course, activities, stored) {
+  const total = lessonTotal(course);
+  const storedLessons = stored[course.id]?.lessons || {};
+  const completed = new Set(
+    Object.entries(storedLessons).filter(([, lesson]) => lesson.status === "completed").map(([id]) => id)
+  );
+  activities.forEach((activity) => {
+    if (activity.lessonId && (activity.activityType === "completed" || activity.percent === 100)) completed.add(activity.lessonId);
+  });
+  const denominator = total || Object.keys(storedLessons).length;
+  return { completed: Math.min(completed.size, denominator), total: denominator, percent: denominator ? Math.round(Math.min(completed.size, denominator) / denominator * 100) : 0 };
+}
+
+function CourseCard({ course, activities, progress, onSelect }) {
+  const lastActivity = activities[0];
+  return <button type="button" onClick={onSelect} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-text/10 bg-white text-left shadow-[0_3px_14px_rgba(23,50,77,0.04)] transition hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md">
+    <img src={imageForCategory(course.category, { w: 640, h: 360 })} alt="" className="aspect-[16/8] w-full object-cover" />
+    <div className="flex flex-1 flex-col p-5"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/65">{course.category} · {course.level}</p><h2 className="mt-1 font-display text-lg font-bold text-text group-hover:text-primary">{course.title}</h2><p className="mt-1 text-xs text-text/50">{course.subtitle}</p>
+      <div className="mt-5 flex items-end justify-between gap-3"><div><strong className="font-display text-xl text-text">{progress.completed}<span className="text-sm font-medium text-text/40"> / {progress.total || "—"}</span></strong><p className="mt-0.5 text-[11px] text-text/45">Lessons completed</p></div><span className="rounded-full bg-[#e7f1ef] px-3 py-1.5 text-xs font-bold text-[#28756f]">{progress.percent}%</span></div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-text/10"><div className="h-full rounded-full bg-primary" style={{ width: `${progress.percent}%` }} /></div>
+      <p className="mt-4 min-h-4 text-[11px] text-text/45">{lastActivity ? `Last activity ${activityTime(lastActivity.createdAt)}` : "No activity yet"}</p>
+      <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">View course history <span aria-hidden="true">→</span></span>
+    </div>
+  </button>;
+}
+
+function ActivityRow({ activity, onContinue }) {
+  const completed = activity.activityType === "completed" || activity.percent === 100;
+  const video = activity.lessonType === "video" || activity.activityType === "watched";
+  const resource = activity.lessonType === "resource" || activity.lessonType === "pdf" || activity.activityType === "viewed";
+  const Icon = completed ? CheckIcon : video ? PlayIcon : resource ? DownloadIcon : FileTextIcon;
+  const status = completed ? "Completed" : activity.activityType === "watched" && activity.percent ? `${Math.round(activity.percent)}% watched` : activity.activityType === "note" ? "Note added" : "In progress";
+  return <article className="flex flex-col justify-between gap-3 rounded-2xl border border-text/10 bg-white p-4 sm:flex-row sm:items-center"><div className="flex min-w-0 items-start gap-3"><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${completed ? "bg-success/10 text-success" : "bg-primary/5 text-primary"}`}><Icon className="h-5 w-5" /></span><div className="min-w-0"><p className="text-[11px] font-semibold text-text/45">{activity.moduleTitle || "Course activity"} · {activityTime(activity.createdAt)}</p><h3 className="mt-1 truncate font-display text-sm font-bold text-text">{activity.lessonTitle || "Lesson"}</h3><p className="text-xs text-text/45">{video ? "Video lesson" : resource ? "Course resource" : activity.lessonType === "article" ? "Reading" : "Learning activity"}</p></div></div><div className="flex items-center justify-between gap-3 border-t border-text/5 pt-3 sm:border-0 sm:pt-0"><StatusBadge status={completed ? "success" : "warning"}>{status}</StatusBadge><Button variant="secondary" fullWidth={false} className="!px-3 !py-1.5 text-xs" onClick={() => onContinue(activity)}>Continue →</Button></div></article>;
 }
 
 export default function LearningHistory() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { entries } = useActivityLog();
-  const stats = useLearningStats();
-
-  const [activeFilter, setActiveFilter] = useState("all");
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const selectedId = searchParams.get("course");
+  const enrolledCourses = ENROLLED_COURSES;
+  const selectedCourse = enrolledCourses.find((course) => course.id === selectedId);
+  const storedProgress = getAllCourseProgress();
 
-  // Apply filters and search
-  const filteredActivities = useMemo(() => {
-    let list = entries;
+  const visibleCourses = useMemo(() => enrolledCourses.filter((course) => `${course.title} ${course.subtitle} ${course.category}`.toLowerCase().includes(query.trim().toLowerCase())), [enrolledCourses, query]);
+  const courseActivities = useMemo(() => entries.filter((activity) => activity.courseId === selectedId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)), [entries, selectedId]);
+  const filteredActivities = useMemo(() => courseActivities.filter((activity) => {
+    const matchesFilter = filter === "all" || (filter === "video" && (activity.lessonType === "video" || activity.activityType === "watched")) || (filter === "pdf" && ["resource", "pdf"].includes(activity.lessonType)) || (filter === "text" && ["article", "text"].includes(activity.lessonType)) || (filter === "completed" && (activity.activityType === "completed" || activity.percent === 100));
+    return matchesFilter && `${activity.lessonTitle || ""} ${activity.moduleTitle || ""}`.toLowerCase().includes(query.trim().toLowerCase());
+  }), [courseActivities, filter, query]);
 
-    if (activeFilter === "video") {
-      list = list.filter((a) => a.lessonType === "video" || a.activityType === "watched");
-    } else if (activeFilter === "pdf") {
-      list = list.filter((a) => a.lessonType === "resource" || a.lessonType === "pdf" || a.activityType === "viewed");
-    } else if (activeFilter === "text") {
-      list = list.filter((a) => a.lessonType === "article" || a.lessonType === "text" || a.activityType === "read");
-    } else if (activeFilter === "completed") {
-      list = list.filter((a) => a.activityType === "completed" || a.percent === 100);
-    }
-
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (a) =>
-          (a.courseTitle && a.courseTitle.toLowerCase().includes(q)) ||
-          (a.lessonTitle && a.lessonTitle.toLowerCase().includes(q)) ||
-          (a.moduleTitle && a.moduleTitle.toLowerCase().includes(q))
-      );
-    }
-
-    return list;
-  }, [entries, activeFilter, query]);
-
-  const grouped = useMemo(() => groupActivitiesByDate(filteredActivities), [filteredActivities]);
-
-  function handleContinue(activity) {
-    const targetCourse = activity.courseId || "c1";
-    const targetLesson = activity.lessonId || "l1";
-    navigate(`/student/courseplayer?course=${targetCourse}&lesson=${targetLesson}`);
+  function openCourse(courseId) {
+    setQuery("");
+    setFilter("all");
+    setSearchParams({ course: courseId });
   }
 
-  function handleRetry() {
-    setError(false);
-    setLoading(true);
-    setTimeout(() => setLoading(false), 400);
+  function backToCourses() {
+    setQuery("");
+    setFilter("all");
+    setSearchParams({});
   }
 
-  if (error) {
-    return (
-      <div className="mx-auto max-w-[1600px] px-4 py-16 text-center">
-        <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger">
-          <AlertTriangleIcon className="h-7 w-7" />
-        </div>
-        <h2 className="font-display text-xl font-bold text-text">Unable to load your learning activity</h2>
-        <p className="mt-1 text-sm text-text/60">There was an issue retrieving your history log. Please try again.</p>
-        <div className="mt-6">
-          <Button fullWidth={false} onClick={handleRetry}>
-            <RefreshIcon className="mr-1.5 h-4 w-4" /> Try Again
-          </Button>
-        </div>
-      </div>
-    );
+  function continueActivity(activity) {
+    navigate(`/student/courseplayer?course=${selectedCourse.id}${activity.lessonId ? `&lesson=${activity.lessonId}` : ""}`);
   }
 
-  return (
-    <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-10">
-      {/* Page Title & Stats Overview */}
-      <div className="mb-8">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-text sm:text-3xl">
-          Learning History
-        </h1>
-        <p className="mt-1 text-sm text-text/60">
-          Review your learning sessions, completed milestones, and seamlessly resume where you left off.
-        </p>
+  if (selectedId && selectedCourse) {
+    const progress = courseProgress(selectedCourse, courseActivities, storedProgress);
+    const latest = courseActivities[0];
+    const completed = courseActivities.filter((activity) => activity.activityType === "completed" || activity.percent === 100).length;
+    const modules = new Set(courseActivities.map((activity) => activity.moduleId).filter(Boolean)).size;
+    return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
+      <button type="button" onClick={backToCourses} className="inline-flex items-center gap-2 rounded-full border border-text/10 bg-white px-3.5 py-2 text-xs font-semibold text-text/65 shadow-sm hover:border-primary/30 hover:text-primary"><span aria-hidden="true">←</span> All courses</button>
+      <header className="mt-5 flex flex-col gap-5 rounded-2xl border border-text/10 bg-white p-5 sm:flex-row sm:items-center sm:p-6"><img src={imageForCategory(selectedCourse.category, { w: 480, h: 240 })} alt="" className="h-32 w-full rounded-xl object-cover sm:h-28 sm:w-48"/><div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Course learning history</p><h1 className="mt-1 font-display text-2xl font-bold text-text sm:text-3xl">{selectedCourse.title}</h1><p className="mt-1 text-sm text-text/50">{selectedCourse.subtitle} · {selectedCourse.category}</p><button type="button" onClick={() => navigate(`/student/courseplayer?course=${selectedCourse.id}`)} className="mt-3 text-sm font-semibold text-primary">Continue course →</button></div></header>
+      <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">{[[`${progress.completed}/${progress.total || "—"}`, "Lessons completed"], [`${progress.percent}%`, "Course progress"], [courseActivities.length, "Learning activities"], [modules, "Modules visited"]].map(([value, label]) => <div key={label} className="rounded-2xl border border-text/10 bg-white p-4"><strong className="font-display text-xl text-text sm:text-2xl">{value}</strong><p className="mt-1 text-xs text-text/45">{label}</p></div>)}</section>
+      <section className="mt-6 rounded-2xl border border-text/10 bg-white p-5 sm:p-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Your timeline</p><h2 className="mt-1 font-display text-xl font-bold text-text">Activity in this course</h2><p className="mt-1 text-xs text-text/50">{latest ? `Last activity ${activityTime(latest.createdAt)}` : "Your lesson activity will appear here as you learn."} · {completed} completed items</p></div><label className="relative w-full sm:w-64"><SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/35"/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search lessons..." className="w-full rounded-full border border-text/10 bg-bg py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary"/></label></div>
+        <div className="mt-4 flex flex-wrap gap-2">{FILTERS.map((item) => <button key={item.id} type="button" onClick={() => setFilter(item.id)} className={`rounded-full px-3.5 py-2 text-xs font-semibold ${filter === item.id ? "bg-primary text-white" : "border border-primary/15 bg-white text-primary hover:bg-primary/5"}`}>{item.label}</button>)}</div>
+        {filteredActivities.length ? <div className="mt-4 space-y-3">{filteredActivities.map((activity) => <ActivityRow key={activity.id} activity={activity} onContinue={continueActivity}/>)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-text/15 bg-[#fcfbfa] px-5 py-10 text-center"><CheckCircleIcon className="mx-auto h-8 w-8 text-text/30"/><h3 className="mt-3 font-display text-lg font-bold text-text">{courseActivities.length ? "No matching course activity" : "No activity recorded yet"}</h3><p className="mt-1 text-sm text-text/50">{courseActivities.length ? "Try a different filter or search term." : "Start a lesson and your progress will be tracked here."}</p>{!courseActivities.length && <Button fullWidth={false} className="mt-4" onClick={() => navigate(`/student/courseplayer?course=${selectedCourse.id}`)}>Start learning</Button>}</div>}
+      </section>
+    </div>;
+  }
 
-        {/* Quick Stats Bar */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-text/10 bg-white p-4 shadow-xs">
-            <div className="flex items-center gap-2 text-text/50">
-              <ClockIcon className="h-4 w-4 text-primary" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Total Time</span>
-            </div>
-            <p className="mt-2 font-display text-xl font-bold text-text sm:text-2xl">
-              {formatHoursMinutes(stats.totalSeconds)}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-text/10 bg-white p-4 shadow-xs">
-            <div className="flex items-center gap-2 text-text/50">
-              <FlameIcon className="h-4 w-4 text-warning" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Streak</span>
-            </div>
-            <p className="mt-2 font-display text-xl font-bold text-text sm:text-2xl">
-              {stats.streakDays} Days
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-text/10 bg-white p-4 shadow-xs">
-            <div className="flex items-center gap-2 text-text/50">
-              <CheckCircleIcon className="h-4 w-4 text-success" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Completed</span>
-            </div>
-            <p className="mt-2 font-display text-xl font-bold text-text sm:text-2xl">
-              {stats.lessonsCompleted} Lessons
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-text/10 bg-white p-4 shadow-xs">
-            <div className="flex items-center gap-2 text-text/50">
-              <ClockIcon className="h-4 w-4 text-rotation-3" />
-              <span className="text-xs font-semibold uppercase tracking-wider">This Week</span>
-            </div>
-            <p className="mt-2 font-display text-xl font-bold text-text sm:text-2xl">
-              {formatHoursMinutes(stats.thisWeekSeconds)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setActiveFilter(f.id)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors duration-150 ${
-                activeFilter === f.id
-                  ? "bg-primary text-white shadow-xs"
-                  : "border border-primary/20 bg-white text-primary hover:bg-primary/5"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative max-w-xs flex-1">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text/40" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search history..."
-            className="w-full rounded-full border border-text/10 bg-white py-2 pl-10 pr-4 text-xs text-text placeholder:text-text/35 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-      </div>
-
-      {/* Layout Grid: History List + Recent Activity Timeline */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-        {/* Main History Feed */}
-        <div className="space-y-6">
-          {loading ? (
-            <div className="space-y-3">
-              <div className="h-20 animate-pulse rounded-2xl bg-text/5" />
-              <div className="h-20 animate-pulse rounded-2xl bg-text/5" />
-              <div className="h-20 animate-pulse rounded-2xl bg-text/5" />
-            </div>
-          ) : filteredActivities.length === 0 ? (
-            /* Empty State */
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-text/15 bg-white p-12 text-center">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <ClockIcon className="h-7 w-7" />
-              </div>
-              <h3 className="font-display text-lg font-bold text-text">No learning activity yet</h3>
-              <p className="mt-1 max-w-sm text-sm text-text/60">
-                Start watching lessons or taking notes in your courses to track your activity here.
-              </p>
-              <div className="mt-6">
-                <Button fullWidth={false} onClick={() => navigate("/student/explore")}>
-                  Explore Courses
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Group: Today */}
-              {grouped.today.length > 0 && (
-                <div>
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="font-display text-xs font-bold uppercase tracking-wider text-primary">
-                      Today
-                    </span>
-                    <div className="h-px flex-1 bg-text/10" />
-                  </div>
-                  <div className="space-y-3">
-                    {grouped.today.map((act) => (
-                      <ActivityCard key={act.id} activity={act} onContinue={handleContinue} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Group: Yesterday */}
-              {grouped.yesterday.length > 0 && (
-                <div>
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="font-display text-xs font-bold uppercase tracking-wider text-text/50">
-                      Yesterday
-                    </span>
-                    <div className="h-px flex-1 bg-text/10" />
-                  </div>
-                  <div className="space-y-3">
-                    {grouped.yesterday.map((act) => (
-                      <ActivityCard key={act.id} activity={act} onContinue={handleContinue} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Group: Earlier */}
-              {grouped.earlier.length > 0 && (
-                <div>
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="font-display text-xs font-bold uppercase tracking-wider text-text/50">
-                      Earlier This Week
-                    </span>
-                    <div className="h-px flex-1 bg-text/10" />
-                  </div>
-                  <div className="space-y-3">
-                    {grouped.earlier.map((act) => (
-                      <ActivityCard key={act.id} activity={act} onContinue={handleContinue} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Sidebar: Recent Activity Timeline (Spec Section 6) */}
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-text/10 bg-white p-5 shadow-xs">
-            <h3 className="font-display text-sm font-bold uppercase tracking-wider text-text">
-              Recent Activity Timeline
-            </h3>
-            <p className="mt-0.5 text-xs text-text/50">Chronological learning actions</p>
-
-            <div className="mt-5 space-y-6">
-              {/* TODAY Timeline block */}
-              {grouped.today.length > 0 && (
-                <div>
-                  <p className="mb-3 font-display text-[11px] font-bold uppercase tracking-wider text-primary">
-                    Today
-                  </p>
-                  <ul className="relative space-y-3 pl-4 before:absolute before:left-1 before:top-2 before:bottom-2 before:w-0.5 before:bg-primary/20">
-                    {grouped.today.slice(0, 4).map((item) => (
-                      <li key={item.id} className="relative text-xs">
-                        <span className="absolute -left-[19px] top-1 h-2 w-2 rounded-full bg-primary" />
-                        <span className="font-semibold text-text">
-                          {item.activityType === "completed" ? "✓ Completed " : item.activityType === "watched" ? "▶ Watched " : "📝 Added note to "}
-                        </span>
-                        <span className="text-text/70">&ldquo;{item.lessonTitle || "Lesson"}&rdquo;</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* YESTERDAY Timeline block */}
-              {grouped.yesterday.length > 0 && (
-                <div>
-                  <p className="mb-3 font-display text-[11px] font-bold uppercase tracking-wider text-text/50">
-                    Yesterday
-                  </p>
-                  <ul className="relative space-y-3 pl-4 before:absolute before:left-1 before:top-2 before:bottom-2 before:w-0.5 before:bg-text/15">
-                    {grouped.yesterday.slice(0, 4).map((item) => (
-                      <li key={item.id} className="relative text-xs">
-                        <span className="absolute -left-[19px] top-1 h-2 w-2 rounded-full bg-text/40" />
-                        <span className="font-semibold text-text">
-                          {item.activityType === "completed" ? "✓ Completed " : item.activityType === "watched" ? "▶ Watched " : "📝 Added note to "}
-                        </span>
-                        <span className="text-text/70">&ldquo;{item.lessonTitle || "Lesson"}&rdquo;</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Activity Card Component
-function ActivityCard({ activity, onContinue }) {
-  const isComplete = activity.activityType === "completed" || activity.percent === 100;
-  const isVideo = activity.lessonType === "video" || activity.activityType === "watched";
-  const isResource = activity.lessonType === "resource" || activity.activityType === "viewed";
-  const isNote = activity.activityType === "note";
-
-  return (
-    <div className="flex flex-col justify-between gap-3 rounded-2xl border border-text/10 bg-white p-4 shadow-xs transition-all hover:border-primary/30 sm:flex-row sm:items-center">
-      <div className="flex items-start gap-3.5 min-w-0 flex-1">
-        {/* Type Icon Badge */}
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-            isComplete
-              ? "bg-success/10 text-success"
-              : isVideo
-              ? "bg-primary/10 text-primary"
-              : isNote
-              ? "bg-warning/10 text-warning"
-              : "bg-rotation-3/15 text-rotation-3"
-          }`}
-        >
-          {isComplete ? (
-            <CheckIcon className="h-5 w-5" />
-          ) : isVideo ? (
-            <PlayIcon className="h-4 w-4" />
-          ) : isResource ? (
-            <DownloadIcon className="h-5 w-5" />
-          ) : (
-            <FileTextIcon className="h-5 w-5" />
-          )}
-        </div>
-
-        {/* Content details */}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold text-text/70">
-              {activity.courseTitle || "Course"}
-            </span>
-            <span className="text-xs text-text/40">·</span>
-            <span className="text-xs text-text/50">{formatTime(activity.createdAt)}</span>
-          </div>
-
-          <p className="mt-0.5 font-display text-sm font-bold text-text truncate">
-            {activity.lessonTitle || "Lesson"}
-          </p>
-
-          <p className="text-xs text-text/50 truncate">
-            {activity.moduleTitle || "Module"}
-          </p>
-        </div>
-      </div>
-
-      {/* Progress Badge and Action */}
-      <div className="flex items-center justify-between gap-4 border-t border-text/5 pt-2 sm:border-0 sm:pt-0">
-        <div className="shrink-0 text-left sm:text-right">
-          {isComplete ? (
-            <StatusBadge status="success">✓ Completed</StatusBadge>
-          ) : activity.percent ? (
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-              {Math.round(activity.percent)}% watched
-            </span>
-          ) : (
-            <StatusBadge status="warning">In Progress</StatusBadge>
-          )}
-        </div>
-
-        <Button
-          variant="secondary"
-          fullWidth={false}
-          onClick={() => onContinue(activity)}
-          className="!py-1.5 !px-3 text-xs"
-        >
-          Continue <ChevronRightIcon className="ml-1 h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Your learning, organized by course</p><h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Learning History</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text/55">Choose an enrolled course to review your lessons, progress, and recent activity.</p></div><label className="relative w-full sm:w-72"><SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/35"/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your courses..." className="w-full rounded-full border border-text/10 bg-white py-3 pl-9 pr-4 text-sm outline-none focus:border-primary"/></label></header>
+    {visibleCourses.length ? <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleCourses.map((course) => {
+      const activities = entries.filter((activity) => activity.courseId === course.id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const progress = courseProgress(course, activities, storedProgress);
+      return <CourseCard key={course.id} course={course} activities={activities} progress={progress} onSelect={() => openCourse(course.id)}/>;
+    })}</div> : <div className="mt-6 rounded-2xl border border-dashed border-text/15 bg-white px-6 py-14 text-center"><ClockIcon className="mx-auto h-8 w-8 text-text/30"/><h2 className="mt-3 font-display text-lg font-bold text-text">No enrolled courses found</h2><p className="mt-1 text-sm text-text/50">Enroll in a course to see its learning history here.</p></div>}
+  </div>;
 }

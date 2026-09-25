@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
+import BackButton from "../../../components/common/BackButton";
 import Chip from "../../../components/ui/Chip";
 import { CheckIcon, ClockIcon } from "../../../components/ui/icons";
 import { AVAILABLE_SLOTS, SESSION, saveBooking } from "../data/sessionMock";
@@ -66,6 +67,7 @@ export default function BookSession() {
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-10">
+      <BackButton fallback="/student/explore" className="mb-5" />
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Live learning</p>

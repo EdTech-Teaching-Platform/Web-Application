@@ -3,10 +3,12 @@ import { useState } from "react";
 import Button from "../../../components/ui/Button";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { useAuth } from "../../../hooks/useAuth";
+import { useScrollToHash } from "../../../hooks/useScrollToHash";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  useScrollToHash();
   const [editing, setEditing] = useState(false);
   const [goal, setGoal] = useState("Build job-ready skills");
   const name = user?.name || "Student";
@@ -132,8 +134,8 @@ export default function Profile() {
           <h2 className="font-display text-lg font-semibold text-text">Achievements</h2>
           <div className="mt-4 space-y-3 text-sm"><button type="button" onClick={() => navigate("/student/certificates")} className="flex w-full items-center justify-between rounded-xl bg-bg px-3 py-3 text-left"><span><strong className="block text-text">First course completed</strong><span className="text-xs text-text/50">Certificate available</span></span><span className="text-primary">→</span></button><div className="flex items-center justify-between rounded-xl bg-bg px-3 py-3"><span><strong className="block text-text">7-day learner</strong><span className="text-xs text-text/50">Keep your streak going</span></span><span>🔥</span></div></div>
         </div>
-        <div className="rounded-2xl border border-[#eadbd3] bg-[#fbf0ea] p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary/70">Study preferences</p>
+        <div id="settings" className="scroll-mt-24 rounded-2xl border border-[#eadbd3] bg-[#fbf0ea] p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary/70">Study preferences &amp; settings</p>
           <h2 className="mt-1 font-display text-lg font-semibold text-text">Make your learning work for you</h2>
           <div className="mt-4 space-y-3 text-sm">
             <div className="rounded-xl bg-white/75 px-3 py-3">
@@ -150,7 +152,7 @@ export default function Profile() {
       </section>
 
       <div className="mt-5 rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5 text-sm text-text/65">
-        <strong className="text-[#28756f]">Need help with your account?</strong> Visit My Payments for billing support or submit a complaint from the Live Classes page.
+        <strong className="text-[#28756f]">Need help with your account?</strong> Visit My Payments for billing support, or manage your live class bookings from Manage Booking.
       </div>
     </div>
   );

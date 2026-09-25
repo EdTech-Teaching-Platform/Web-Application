@@ -9,9 +9,12 @@ export default function AuthCard({ eyebrow, title, subtitle, children, footer })
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md rounded-2xl bg-bg px-8 py-10 sm:px-10">
-        <Link to="/login" className="mb-8 block font-display text-lg tracking-tight text-primary">
-          Universal Learning
-        </Link>
+        <div className="mb-8 flex items-center justify-between gap-3">
+          <span className="font-display text-lg tracking-tight text-primary">Universal Learning</span>
+          <Link to="/" className="inline-flex shrink-0 items-center gap-2 rounded-full border border-text/10 bg-white px-3 py-2 text-xs font-semibold text-text/65 shadow-sm transition-colors hover:border-primary/30 hover:text-primary">
+            <span aria-hidden="true">←</span> Back to home
+          </Link>
+        </div>
         {eyebrow && (
           <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-text/40">
             {eyebrow}

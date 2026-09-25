@@ -1,101 +1,56 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
-import {
-  AwardIcon,
-  ClockIcon,
-  ChatIcon,
-  CompassIcon,
-  FileTextIcon,
-  HeartIcon,
-  HomeIcon,
-  SearchIcon,
-  WalletIcon,
-} from "../components/ui/icons";
+import { CompassIcon, HelpCircleIcon, HomeIcon } from "../components/ui/icons";
 import { useAuth } from "../hooks/useAuth";
 import StudentErrorBoundary from "../components/common/StudentErrorBoundary";
 import AmbientPortalBackdrop from "../components/common/AmbientPortalBackdrop";
 
-const groups = [
-  {
-    label: "Learn",
-    items: [
-      { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
-      { href: "/student/explore", label: "Explore", icon: CompassIcon },
-      { href: "/student/my-learning", label: "My Learning", icon: HomeIcon },
-      { href: "/student/live-classes", label: "Live Classes", icon: ClockIcon },
-    ],
-  },
-  {
-    label: "Practice",
-    items: [
-      { href: "/student/assessments", label: "Assessments", icon: FileTextIcon },
-      { href: "/student/calendar", label: "Calendar", icon: ClockIcon },
-      { href: "/student/messages", label: "Discussions", icon: ChatIcon },
-    ],
-  },
-  {
-    label: "Achievements",
-    items: [
-      { href: "/student/wishlist", label: "Wishlist", icon: HeartIcon },
-      { href: "/student/certificates", label: "Certificates", icon: AwardIcon },
-      { href: "/student/learninghistory", label: "Learning History", icon: SearchIcon },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { href: "/student/orders", label: "My Payments", icon: WalletIcon },
-      { href: "/student/profile", label: "Profile", icon: HomeIcon },
-    ],
-  },
-];
-
-const sidebarItems = groups.flatMap((group) => group.items);
-
-// What actually sits directly in the top bar (Navbar's `navItems`) —
-// Dashboard now gets its own explicit link (previously only reachable via
-// the logo) plus the two most-used destinations beyond it. Everything else
-// lives in the grouped "Menu" dropdown below instead of its own row of a
-// dozen items.
-const topNavItems = [
+const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
   { href: "/student/explore", label: "Explore" },
   { href: "/student/my-learning", label: "My Learning" },
-];
-
-// Same four categories as `groups` above, minus the three destinations
-// already reachable directly (logo → Dashboard, plus the two links in
-// topNavItems) so nothing is listed twice.
-const menuGroups = [
-  { label: "Learn", items: [{ href: "/student/live-classes", label: "Live Classes" }, { href: "/student/explore?mode=recorded", label: "Recorded Classes" }] },
   {
-    label: "Practice",
+    label: "Classes",
     items: [
-      { href: "/student/assessments", label: "Assessments" },
-      { href: "/student/calendar", label: "Calendar" },
-      { href: "/student/messages", label: "Discussions" },
-    ],
-  },
-  {
-    label: "Achievements",
-    items: [
-      { href: "/student/wishlist", label: "Wishlist" },
-      { href: "/student/certificates", label: "Certificates" },
+      { href: "/student/live-classes", label: "Live Classes" },
+      { href: "/student/recorded-classes", label: "Recorded Classes" },
       { href: "/student/learninghistory", label: "Learning History" },
     ],
   },
   {
+    label: "Assessments",
+    items: [
+      { href: "/student/assessments/test-series", label: "Test Series" },
+      { href: "/student/assessments/course-quizzes", label: "Assignments" },
+      { href: "/student/assessments/my-results", label: "My Results" },
+    ],
+  },
+  { label: "Engage", items: [
+    { href: "/student/calendar", label: "Calendar" },
+    { href: "/student/messages", label: "Discussions" },
+  ] },
+  { href: "/student/certificates", label: "Achievements" },
+  {
     label: "Account",
     items: [
-      { href: "/student/orders", label: "My Payments" },
       { href: "/student/profile", label: "Profile" },
+      { href: "/student/wishlist", label: "Wishlist" },
+      { href: "/student/orders", label: "Payments" },
+      { href: "/student/profile#settings", label: "Settings" },
+      { href: "/student/help-complaints", label: "Help & Complaints" },
     ],
   },
 ];
 
 function MobileNav() {
   const { pathname } = useLocation();
-  const items = sidebarItems.slice(0, 5);
+  const items = [
+    { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
+    { href: "/student/explore", label: "Explore", icon: CompassIcon },
+    { href: "/student/my-learning", label: "My Learning", icon: HomeIcon },
+    { href: "/student/help-complaints", label: "Help", icon: HelpCircleIcon },
+    { href: "/student/profile", label: "Account", icon: HomeIcon },
+  ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-text/10 bg-white/95 px-2 py-2 backdrop-blur md:hidden">
       {items.map((item) => {
@@ -127,8 +82,7 @@ export default function StudentLayout() {
     <div className="relative flex h-screen flex-col overflow-hidden bg-bg">
       <Navbar
         title="Universal Learning"
-        navItems={topNavItems}
-        navGroups={menuGroups}
+        navEntries={navEntries}
         notificationsHref="/student/notifications"
         onSignOut={logout}
         user={user}

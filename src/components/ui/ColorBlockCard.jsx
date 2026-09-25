@@ -29,6 +29,7 @@ export default function ColorBlockCard({
   badge, // small overlay pill on the image (course category eyebrow / "TOP RATED INSTRUCTOR" tag)
   title,
   subtitle,
+  progressCircle,
   progress, // 0-100 — when present, renders the progress-bar + Resume meta row
   price, // when present (and progress is not), renders the price/rating meta row
   originalPrice, // when higher than price, shows a struck-through original + price
@@ -121,7 +122,28 @@ export default function ColorBlockCard({
 
         {meta && <p className="line-clamp-1 text-[11px] text-text/50">{meta}</p>}
         {description && size !== "sm" && <p className="line-clamp-2 text-[11px] leading-4 text-text/55">{description}</p>}
-        {typeof progress === "number" ? (
+        {typeof progressCircle === "number" ? (
+          <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+            <div
+              role="img"
+              aria-label={`${progressCircle}% complete`}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+              style={{ background: `conic-gradient(${progressCircle === 100 ? "#28756f" : "#4a0e0e"} ${Math.min(Math.max(progressCircle, 0), 100)}%, #eee7e3 0)` }}
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[9px] font-bold text-primary">{progressCircle}%</span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onResume?.();
+              }}
+              className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white"
+            >
+              {resumeLabel}
+            </button>
+          </div>
+        ) : typeof progress === "number" ? (
           <div className="mt-auto flex items-center gap-2 pt-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-text/10">
               <div

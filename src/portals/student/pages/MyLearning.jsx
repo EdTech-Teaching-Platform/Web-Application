@@ -114,48 +114,9 @@ export default function MyLearning() {
           {courses.map((course, index) => {
             const player = course.status === "Not Started" || course.status === "In Progress";
             const destination = player ? `/student/courseplayer?course=${course.id}` : `/student/course/${course.id}`;
-            const nextAction = course.status === "Completed" ? "Review course" : course.status === "Not Started" ? "Start with course introduction" : `Continue with ${course.lesson}`;
-            return <div key={course.id} className="min-w-0"><ColorBlockCard rotationIndex={index} compact fullWidth image={imageForCategory(course.category)} title={course.title} subtitle={course.educator} description={course.description} progress={course.progress} meta={`${course.meta} · ${course.lesson}`} resumeLabel={course.status === "Completed" ? "View course" : course.status === "Not Started" ? "Start learning" : "Continue"} onClick={() => navigate(destination)} onResume={() => navigate(destination)} /><div className="mt-3 rounded-xl border border-text/10 bg-white p-3"><div className="flex items-center justify-between text-[11px]"><span className="font-semibold text-text/70">Course progress</span><strong className="text-primary">{course.progress}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-text/10"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${course.progress}%` }} /></div><div className="mt-2 flex items-center justify-between text-[10px] text-text/45"><span>{course.status === "Completed" ? "Completed" : `${Math.max(1, Math.round(course.progress / 10))} milestones reached`}</span><span>{course.progress === 100 ? "Finished" : `${100 - course.progress}% left`}</span></div><div className="mt-3 border-t border-text/10 pt-3"><p className="text-[10px] font-bold uppercase tracking-wide text-text/40">Next action</p><p className="mt-1 line-clamp-1 text-xs font-semibold text-text">{nextAction}</p><div className="mt-2 flex items-center justify-between text-[10px] text-text/45"><span>Last opened: {course.accessed}</span><button type="button" onClick={() => navigate(destination)} className="font-semibold text-primary">Open →</button></div></div></div></div>;
+            return <div key={course.id} className="min-w-0"><ColorBlockCard rotationIndex={index} compact fullWidth image={imageForCategory(course.category)} title={course.title} subtitle={course.educator} description={course.description} progressCircle={course.progress} meta={`${course.meta} · ${course.lesson}`} resumeLabel={course.status === "Completed" ? "View course" : course.status === "Not Started" ? "Start learning" : "Continue"} onClick={() => navigate(destination)} onResume={() => navigate(destination)} /></div>;
           })}
         </div>
-        <section className="mt-7 rounded-2xl border border-text/10 bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary/70">COURSE PROGRESS</p>
-              <h2 className="mt-1 font-display text-lg font-semibold text-text">Progress across your courses</h2>
-            </div>
-            <span className="text-xs text-text/50">{courses.length} courses shown</span>
-          </div>
-          <div className="mt-4 divide-y divide-text/10">
-            {courses.map((course) => {
-              const player = course.status !== "Completed";
-              const destination = player ? `/student/courseplayer?course=${course.id}` : `/student/course/${course.id}`;
-              const moduleCount = Number(course.meta.match(/\d+/)?.[0]) || 1;
-              const completedModules = course.progress === 100 ? moduleCount : Math.min(moduleCount, Math.max(0, Math.round((moduleCount * course.progress) / 100)));
-              const completionText = course.progress === 0 ? "Not started" : course.progress === 100 ? "Course completed" : `${completedModules} of ${moduleCount} modules completed`;
-              const action = course.progress === 100 ? "View certificate" : course.progress === 0 ? "Start learning" : "Continue";
-              return (
-                <div key={course.id} className="group flex flex-col gap-3 px-1 py-4 transition-colors first:pt-3 last:pb-1 hover:rounded-xl hover:bg-[#fffaf7] sm:flex-row sm:items-center">
-                  <img src={imageForCategory(course.category, { w: 96, h: 72 })} alt="" className="h-14 w-20 shrink-0 rounded-xl object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3 sm:block">
-                      <h3 className="truncate text-sm font-semibold text-text">{course.title}</h3>
-                      <span className="shrink-0 text-sm font-bold text-primary sm:hidden">{course.progress}%</span>
-                    </div>
-                    <p className="mt-1 text-xs text-text/50">{course.educator}</p>
-                    <p className="mt-2 text-[11px] text-text/50">{completionText}</p>
-                  </div>
-                  <div className="flex w-full shrink-0 items-center justify-end gap-4 sm:ml-auto sm:w-[190px]">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: `conic-gradient(${course.progress === 100 ? "#28756f" : "#4a0e0e"} ${course.progress}%, #eee7e3 0)` }}>
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[11px] font-bold text-primary">{course.progress}%</span>
-                    </div>
-                    <button type="button" onClick={() => navigate(destination)} className="flex h-8 w-[120px] shrink-0 items-center justify-center rounded-full border border-primary/25 px-2 text-[11px] font-semibold text-primary transition-colors group-hover:bg-primary group-hover:text-white">{action} <span aria-hidden="true">&nbsp;→</span></button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
         </>
       ) : (
         <div className="mt-8 rounded-2xl border border-dashed border-text/15 bg-white px-6 py-16 text-center">

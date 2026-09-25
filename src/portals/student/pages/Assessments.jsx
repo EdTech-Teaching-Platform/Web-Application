@@ -1,179 +1,38 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Button from "../../../components/ui/Button";
+import { Link } from "react-router-dom";
+import { AwardIcon, BookOpenIcon, CheckCircleIcon, ClockIcon, FileTextIcon, TrendingUpIcon } from "../../../components/ui/icons";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import ColorBlockCard from "../../../components/ui/ColorBlockCard";
-import { SearchIcon } from "../../../components/ui/icons";
-import { imageForCategory } from "../../../utils/stockImages";
-import { getCourseById } from "../../../data/catalogMock";
-import { ASSIGNMENT, getAssignmentState, QUIZ, getQuizState } from "../data/assessmentMock";
+import { COURSE_QUIZZES, getSavedAttempts } from "../data/assessmentCatalog";
 
-const ENROLLED_COURSE_IDS = ["c1", "c2"];
-
-function assessmentItems(courseId, quizState, assignmentState) {
-  if (courseId !== "c1") return [];
-
-  const latestAttempt = quizState.attempts[quizState.attempts.length - 1];
-  const latestSubmission = assignmentState.submissions[assignmentState.submissions.length - 1];
-
-  return [
-    {
-      id: QUIZ.id,
-      type: "Quiz",
-      title: QUIZ.title,
-      module: "Module 2 · Core Concepts",
-      lesson: "Loops & Functions",
-      due: "Due today",
-      status: latestAttempt ? "Submitted" : "Upcoming",
-      score: latestAttempt ? `${latestAttempt.percentage}%` : null,
-      action: `/student/quiz?course=${QUIZ.courseId}`,
-      actionLabel: latestAttempt ? "View result" : "Start quiz",
-    },
-    {
-      id: ASSIGNMENT.id,
-      type: "Assignment",
-      title: ASSIGNMENT.title,
-      module: "Module 3 · Applying What You’ve Learned",
-      lesson: "Guided project walkthrough",
-      due: `Due ${ASSIGNMENT.dueDate}`,
-      status: latestSubmission?.status || "Upcoming",
-      score: latestSubmission?.score != null ? `${latestSubmission.score}/100` : null,
-      action: `/student/assignmentsubmit?item=${ASSIGNMENT.id}`,
-      actionLabel: latestSubmission?.status === "Graded" ? "View feedback" : "Open assignment",
-    },
-  ];
-}
+const sections = [
+  { eyebrow: "TEST SERIES", title: "Test Series", description: "Take structured tests across your courses and subjects.", count: "10 available tests", action: "Explore Test Series", href: "/student/assessments/test-series", icon: FileTextIcon, color: "bg-[#f8e8df]", accent: "text-primary" },
+  { eyebrow: "ASSIGNMENTS", title: "Assignments", description: "Complete short learning checks as you move through each course.", count: COURSE_QUIZZES.length + " course assignments", action: "View Assignments", href: "/student/assessments/course-quizzes", icon: BookOpenIcon, color: "bg-[#e7f1ef]", accent: "text-[#28756f]" },
+];
 
 export default function Assessments() {
-  const navigate = useNavigate();
-  const quizState = getQuizState();
-  const assignmentState = getAssignmentState();
-  const courses = ENROLLED_COURSE_IDS.map(getCourseById).filter(Boolean);
-  const [selectedId, setSelectedId] = useState(courses[0]?.id || "");
-  const [query, setQuery] = useState("");
-  const filteredCourses = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return courses;
-    return courses.filter((course) =>
-      `${course.title} ${course.subtitle} ${course.category}`.toLowerCase().includes(normalizedQuery)
-    );
-  }, [courses, query]);
-  const selectedCourse = courses.find((course) => course.id === selectedId) || courses[0];
-  const selectedItems = useMemo(
-    () => assessmentItems(selectedCourse?.id, quizState, assignmentState),
-    [assignmentState, quizState, selectedCourse?.id]
-  );
+  const attempts = getSavedAttempts();
+  const latest = attempts.slice(0, 3);
+  const average = attempts.length ? Math.round(attempts.reduce((sum, attempt) => sum + attempt.percentage, 0) / attempts.length) : 0;
 
   return (
-    <div className="px-4 py-7 sm:px-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Practice</p>
-      <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text">Assessments</h1>
-      <p className="mt-2 max-w-2xl text-sm text-text/60">
-        Select an enrolled course to see the quizzes, assignments, and tasks remaining on your learning path.
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Learn · Practice · Measure</p><h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Assessments</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text/60">Test what you’ve learned. Identify your strengths. Know what to improve.</p></div>
+        <Link to="/student/assessments/my-results" className="rounded-full border border-primary/20 bg-white px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/5">View My Results →</Link>
+      </header>
 
-      <section className="mt-7">
-        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="font-display text-xl font-bold text-[#17324d]">Your enrolled courses</h2>
-            <p className="mt-1 text-sm text-text/55">Assessment progress is grouped by course.</p>
-          </div>
-          <label className="relative block w-full sm:w-72">
-            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/35" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search enrolled courses"
-              aria-label="Search enrolled courses"
-              className="w-full rounded-full border border-text/10 bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-            />
-          </label>
-        </div>
-        {filteredCourses.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {filteredCourses.map((course, index) => {
-            const items = assessmentItems(course.id, quizState, assignmentState);
-            const remaining = items.filter((item) => item.status === "Upcoming" || item.status === "Pending").length;
-            return (
-              <div
-                role="button"
-                tabIndex={0}
-                key={course.id}
-                onClick={() => setSelectedId(course.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") setSelectedId(course.id);
-                }}
-                className={`w-full max-w-[280px] rounded-2xl text-left transition ${selectedCourse?.id === course.id ? "rounded-2xl ring-2 ring-primary ring-offset-2" : ""}`}
-              >
-                <ColorBlockCard
-                  rotationIndex={index}
-                  fullWidth
-                  compact
-                  image={course.image || imageForCategory(course.category)}
-                  title={course.title}
-                  subtitle={course.subtitle}
-                  meta={`${course.category} · ${course.courseType === "Live" ? "Live" : "Recorded"}`}
-                  description={course.description}
-                  onClick={() => setSelectedId(course.id)}
-                />
-                <div className="-mt-1 rounded-b-2xl border border-t-0 border-text/10 bg-white px-4 py-3 shadow-sm">
-                  <p className="text-xs font-semibold text-text/55">
-                    {items.length ? `${items.length} assessment${items.length === 1 ? "" : "s"} total` : "No assessments assigned yet"}
-                  </p>
-                  <p className={`mt-1 text-sm font-bold ${remaining ? "text-primary" : "text-success"}`}>
-                    {remaining ? `${remaining} task${remaining === 1 ? "" : "s"} left` : "All caught up"}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-text/15 bg-white px-6 py-12 text-center">
-            <h3 className="font-display text-lg font-semibold text-text">No enrolled course found</h3>
-            <p className="mt-2 text-sm text-text/55">Try a different course title, subject, or educator name.</p>
-          </div>
-        )}
+      <section className="mt-7 grid gap-4 lg:grid-cols-3">
+        {sections.map((section) => {
+          const Icon = section.icon;
+          return <article key={section.title} className="flex min-h-[248px] flex-col rounded-2xl border border-text/10 bg-white p-5 shadow-[0_4px_18px_rgba(23,50,77,0.04)] sm:p-6"><div className="flex items-start justify-between"><span className={"flex h-12 w-12 items-center justify-center rounded-2xl " + section.color + " " + section.accent}><Icon className="h-6 w-6" /></span><span className="rounded-full bg-bg px-3 py-1 text-[11px] font-semibold text-text/50">{section.count}</span></div><p className={"mt-5 text-[10px] font-bold tracking-[0.16em] " + section.accent}>{section.eyebrow}</p><h2 className="mt-1 font-display text-xl font-bold text-text">{section.title}</h2><p className="mt-2 flex-1 text-sm leading-6 text-text/55">{section.description}</p><Link to={section.href} className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-primary/90">{section.action}<span aria-hidden="true">→</span></Link></article>;
+        })}
       </section>
 
-      {selectedCourse && (
-        <section className="mt-8 rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.05)] sm:p-6">
-          <div className="flex flex-col gap-4 border-b border-text/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">Course assessments</p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-[#17324d]">{selectedCourse.title}</h2>
-              <p className="mt-1 text-sm text-text/55">Tasks, quizzes, and submission status for {selectedCourse.subtitle}’s course.</p>
-            </div>
-            <Button fullWidth={false} variant="secondary" onClick={() => navigate(`/student/course/${selectedCourse.id}`)}>
-              View course
-            </Button>
-          </div>
+      <section className="mt-7 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="rounded-2xl border border-text/10 bg-white p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Your progress</p><h2 className="mt-1 font-display text-xl font-bold text-text">A clearer picture of what you know</h2></div><Link to="/student/assessments/my-results" className="text-xs font-semibold text-primary">Assessment history →</Link></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{[[attempts.length, "Tests completed"], [average + "%", "Average score"], [attempts.filter((attempt) => attempt.passed).length, "Tests passed"], [attempts.reduce((total, attempt) => total + attempt.total, 0), "Questions answered"]].map(([value, label]) => <div key={label} className="rounded-xl bg-[#fcfbfa] p-3"><strong className="font-display text-2xl text-text">{value}</strong><span className="mt-1 block text-[11px] text-text/50">{label}</span></div>)}</div><div className="mt-5 flex items-center gap-3 rounded-xl bg-[#f5f2fa] p-4"><TrendingUpIcon className="h-5 w-5 shrink-0 text-[#71549a]" /><p className="text-sm leading-5 text-text/65">{attempts.length ? "Each completed assessment adds to your learning insights and history." : "Your attempts are saved so you can compare scores and see how your skills grow."}</p></div></div>
+        <div className="rounded-2xl bg-[#4a0e0e] p-5 text-white sm:p-6"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10"><AwardIcon className="h-5 w-5 text-[#f0c2b2]" /></span><h2 className="mt-4 font-display text-xl font-bold">Show what you know</h2><p className="mt-2 text-sm leading-6 text-white/70">Some structured assessments include a certificate when you reach the passing score. Eligibility is always shown before you begin.</p><div className="mt-5 flex items-center gap-2 text-xs font-semibold text-[#f0c2b2]"><CheckCircleIcon className="h-4 w-4" />Verified assessment outcomes</div></div>
+      </section>
 
-          {selectedItems.length ? (
-            <div className="mt-5 space-y-3">
-              {selectedItems.map((item) => (
-                <article key={item.id} className="flex flex-col gap-4 rounded-2xl border border-text/10 bg-[#fcfbfa] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text/45">{item.type}</span>
-                      <StatusBadge status={item.status === "Graded" || item.status === "Submitted" ? "success" : "warning"}>{item.status}</StatusBadge>
-                    </div>
-                    <h3 className="mt-2 font-display text-base font-semibold text-text">{item.title}</h3>
-                    <p className="mt-1 text-sm text-text/55">{item.module} · {item.lesson}</p>
-                    <p className="mt-1 text-xs text-text/45">{item.due}{item.score ? ` · Latest score: ${item.score}` : ""}</p>
-                  </div>
-                  <Button fullWidth={false} onClick={() => navigate(item.action)}>{item.actionLabel}</Button>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-5 rounded-2xl border border-dashed border-text/15 bg-bg px-6 py-12 text-center">
-              <h3 className="font-display text-lg font-semibold text-text">No assessments left</h3>
-              <p className="mt-2 text-sm text-text/55">New quizzes and assignments will appear here when your educator adds them.</p>
-            </div>
-          )}
-        </section>
-      )}
+      <section className="mt-7 rounded-2xl border border-text/10 bg-white p-5 sm:p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Recent attempts</p><h2 className="mt-1 font-display text-xl font-bold text-text">Pick up where you left off</h2></div><ClockIcon className="h-5 w-5 text-text/35" /></div>{latest.length ? <div className="mt-4 divide-y divide-text/10">{latest.map((attempt) => <Link key={attempt.id} to={"/student/assessments/results/" + attempt.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-1"><div><p className="text-sm font-semibold text-text">{attempt.assessmentTitle}</p><p className="mt-1 text-xs text-text/45">{new Date(attempt.submittedAt).toLocaleDateString()} · Attempt {attempt.attemptNumber}</p></div><div className="flex items-center gap-3"><strong className="font-display text-lg text-text">{attempt.percentage}%</strong><StatusBadge status={attempt.passed ? "success" : "warning"}>{attempt.passed ? "Passed" : "Keep practicing"}</StatusBadge></div></Link>)}</div> : <p className="mt-3 text-sm text-text/50">Your completed assessments will appear here. Start with a test series or a short course quiz.</p>}</section>
     </div>
   );
 }

@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
+import BackButton from "../../../components/common/BackButton";
 import ConfirmationCard from "../../../components/ui/ConfirmationCard";
 import PaymentMethodSelector from "../components/PaymentMethodSelector";
 import { getCourseById } from "../../../data/catalogMock";
@@ -167,6 +168,7 @@ export default function Checkout() {
 
   return (
     <div className="mx-auto max-w-[1240px] px-6 py-8">
+      <BackButton fallback={course ? `/course/${course.id}` : "/student/my-learning"} label="Back" className="mb-5" />
       <h1 className="font-display text-2xl font-bold text-text">Checkout</h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-text/60">
         <ShieldCheckIcon className="h-4 w-4 text-success" /> Payments are securely processed by our payment partner.

@@ -26,7 +26,7 @@ export default function Recordings() {
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
-      <BackButton fallback="/student/live-classes" className="mb-4" />
+      <BackButton fallback="/student/managebooking" className="mb-4" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Post-session learning</p><h1 className="mt-2 font-display text-3xl font-bold text-text">Recordings</h1><p className="mt-2 text-sm text-text/60">View-only recordings from live sessions you were authorized to attend.</p></div>
         <select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)} className="rounded-full border border-text/10 bg-white px-4 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary">

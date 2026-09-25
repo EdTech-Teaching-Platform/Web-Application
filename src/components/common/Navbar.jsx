@@ -17,7 +17,7 @@ function NavGroup({ group, pathname }) {
 
   return (
     <div
-      className="group relative h-full"
+      className="group relative h-full shrink-0"
       onMouseEnter={() => {
         if (!dismissed) setOpen(true);
       }}
@@ -36,7 +36,7 @@ function NavGroup({ group, pathname }) {
         }
       }}
     >
-      <button type="button" aria-haspopup="true" aria-expanded={open} className={`inline-flex h-full items-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${active ? "text-primary" : "text-text/60 hover:text-primary"}`}>
+      <button type="button" aria-haspopup="true" aria-expanded={open} className={`inline-flex h-full items-center gap-1 whitespace-nowrap rounded-full px-2 py-2 text-[13px] font-medium transition-colors duration-150 ${active ? "text-primary" : "text-text/60 hover:text-primary"}`}>
         {group.label}
         <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
       </button>
@@ -61,7 +61,14 @@ function NavGroup({ group, pathname }) {
   );
 }
 
-export default function Navbar({ title, links = [], navItems, navGroups, user, notificationsHref, onSignOut }) {
+// `navEntries` is a single ORDERED list mixing bare links ({href, label})
+// and dropdowns ({label, items}) — kept as one array rather than separate
+// navItems/navGroups props so a caller can put a bare link anywhere in
+// the row (e.g. between two dropdowns) instead of every link always
+// rendering before every dropdown regardless of the order it was given
+// in. `navItems`/`navGroups` are still accepted for backward
+// compatibility (they render, in that fixed order, before navEntries).
+export default function Navbar({ title, links = [], navItems, navGroups, navEntries, user, notificationsHref, onSignOut }) {
   const { pathname } = useLocation();
   const initials = user?.name
     ? user.name
@@ -73,18 +80,18 @@ export default function Navbar({ title, links = [], navItems, navGroups, user, n
     : null;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-text/10 bg-bg/95 px-4 backdrop-blur sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-text/10 bg-bg/95 px-4 backdrop-blur sm:px-5">
       <Link to="/" className="shrink-0 font-display text-lg font-bold tracking-tight text-primary">
         {title}
       </Link>
 
-      {(navItems || navGroups) && (
-        <nav className="hidden min-w-0 items-center gap-0.5 lg:flex">
+      {(navItems || navGroups || navEntries) && (
+        <nav className="hidden min-w-0 flex-1 items-center gap-0 lg:flex">
           {navItems?.map((item) => (
             <Link
               key={item.href}
               to={item.href}
-              className={`rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-2 py-2 text-[13px] font-medium transition-colors duration-150 ${
                 pathname === item.href || pathname.startsWith(`${item.href}/`)
                   ? "text-primary"
                   : "text-text/60 hover:text-primary"
@@ -94,6 +101,24 @@ export default function Navbar({ title, links = [], navItems, navGroups, user, n
             </Link>
           ))}
           {navGroups?.map((group) => <NavGroup key={group.label} group={group} pathname={pathname} />)}
+          {navEntries?.map((entry) =>
+            entry.items ? (
+              <NavGroup key={entry.label} group={entry} pathname={pathname} />
+            ) : (
+              <Link
+                key={entry.href}
+                to={entry.href}
+              className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-2 text-[13px] font-medium transition-colors duration-150 ${
+                  pathname === entry.href || pathname.startsWith(`${entry.href}/`)
+                    ? "text-primary"
+                    : "text-text/60 hover:text-primary"
+                }`}
+              >
+                {entry.icon && <entry.icon className="h-4 w-4" aria-hidden="true" />}
+                {entry.label}
+              </Link>
+            )
+          )}
         </nav>
       )}
 
@@ -105,7 +130,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, user, n
         <span className="truncate">Search courses and educators</span>
       </Link>
 
-      <nav className="flex shrink-0 items-center gap-3 text-sm text-text/60">
+      <nav className="flex shrink-0 items-center gap-2 text-sm text-text/60">
         {links.map((l) => (
           <Link key={l.href} to={l.href} className="hover:text-primary">
             {l.label}

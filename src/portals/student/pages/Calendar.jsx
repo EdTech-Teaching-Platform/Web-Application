@@ -11,7 +11,7 @@ const EVENTS = [
   { id: "quiz-ielts", day: 24, type: "Quiz", course: "IELTS Speaking Mastery", title: "Speaking Practice Assessment", meta: "2:00 PM · 10 questions · ~15 min", action: "/student/quiz?course=c3", label: "Start quiz" },
   { id: "recording-algebra", day: 24, type: "Recorded class", course: "Algebra Foundations", title: "Quadratic Equations", meta: "5:30 PM · 36 min", action: "/student/courseplayer?course=c2", label: "Watch" },
   { id: "algebra-review", day: 22, type: "Assignment", course: "Algebra Foundations", title: "Complete Quadratics lesson", meta: "Continue learning", action: "/student/courseplayer?course=c2", label: "Continue" },
-  { id: "ielts-class", day: 27, type: "Live class", course: "IELTS Speaking Mastery", title: "Speaking practice", meta: "4:00 PM – 5:00 PM", action: "/student/live-classes", label: "View class" },
+  { id: "ielts-class", day: 27, type: "Live class", course: "IELTS Speaking Mastery", title: "Speaking practice", meta: "4:00 PM – 5:00 PM", action: "/student/managebooking", label: "View class" },
 ];
 
 const TYPE_STYLES = {

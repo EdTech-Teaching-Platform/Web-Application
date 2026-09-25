@@ -3,7 +3,8 @@
 // Doc reference: Sec 5.9, 5.10
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
-import { AwardIcon, DownloadIcon, CheckCircleIcon } from "../../../components/ui/icons";
+import { AwardIcon, DownloadIcon, CheckCircleIcon, FlameIcon, TargetIcon } from "../../../components/ui/icons";
+import { useScrollToHash } from "../../../hooks/useScrollToHash";
 
 const EARNED_CERTIFICATES = [
   {
@@ -19,6 +20,17 @@ const EARNED_CERTIFICATES = [
 
 export default function Certificates() {
   const navigate = useNavigate();
+  useScrollToHash();
+
+  // Lightweight badges derived from data this page already has (earned
+  // certificates, a streak figure matching Dashboard's) rather than a
+  // full badges system — there's no Badges entity/backend yet, so this is
+  // an honest preview, not a stand-in for one.
+  const badges = [
+    { icon: AwardIcon, label: "Course Completion", detail: `${EARNED_CERTIFICATES.length} course${EARNED_CERTIFICATES.length === 1 ? "" : "s"} completed` },
+    { icon: FlameIcon, label: "7-Day Streak", detail: "Learned 7 days in a row" },
+    { icon: TargetIcon, label: "Top Performer", detail: "98% score in Complete Python Bootcamp" },
+  ];
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
@@ -70,7 +82,28 @@ export default function Certificates() {
         ))}
       </div>
 
-      <div className="mt-8 rounded-3xl border border-dashed border-text/15 bg-white p-8 text-center">
+      <div id="badges" className="mt-8 scroll-mt-24 rounded-3xl border border-text/10 bg-white p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">Badges</p>
+        <h2 className="mt-1 font-display text-lg font-bold text-[#17324d]">Your achievements</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {badges.map((badge) => {
+            const Icon = badge.icon;
+            return (
+              <div key={badge.label} className="flex items-start gap-3 rounded-2xl border border-text/10 bg-[#fffaf7] p-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-text">{badge.label}</span>
+                  <span className="mt-0.5 block text-xs text-text/55">{badge.detail}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-3xl border border-dashed border-text/15 bg-white p-8 text-center">
         <h3 className="font-display text-base font-bold text-text">Earn more credentials</h3>
         <p className="mt-1 text-xs text-text/60">
           Complete courses and pass final assessments to unlock professional certificates.

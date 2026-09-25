@@ -99,6 +99,9 @@ export default function Login({ role = "student" }) {
       {/* Right panel — form */}
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
         <div className="mx-auto w-full max-w-sm">
+          <Link to="/" className="mb-6 inline-flex items-center gap-2 rounded-full border border-text/10 bg-white px-3.5 py-2 text-xs font-semibold text-text/65 shadow-sm transition-colors hover:border-primary/30 hover:text-primary">
+            <span aria-hidden="true">←</span> Back to home
+          </Link>
           <span className="mb-6 block text-center font-display text-lg tracking-tight text-primary lg:hidden">
             Universal Learning
           </span>

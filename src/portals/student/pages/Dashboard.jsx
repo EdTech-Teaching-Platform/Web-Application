@@ -81,7 +81,7 @@ const LEARNING_ACTIVITY = [
 
 const COMING_UP = [
   { icon: FileTextIcon, type: "Assignment", title: "Build a calculator", course: "Complete Python Bootcamp", when: "Due tomorrow", action: "View", href: "/student/assignmentsubmit?item=assignment-project" },
-  { icon: ClockIcon, type: "Live class", title: "Functions in practice", course: "Complete Python Bootcamp", when: "Sep 26 · 6:00 PM", action: "Join", href: "/student/live-classes" },
+  { icon: ClockIcon, type: "Live class", title: "Functions in practice", course: "Complete Python Bootcamp", when: "Sep 26 · 6:00 PM", action: "Join", href: "/student/managebooking" },
   { icon: PlayIcon, type: "Quiz", title: "Knowledge check", course: "Algebra Foundations", when: "Sep 27 · Due soon", action: "View", href: "/student/quiz?course=c2" },
 ];
 
@@ -165,7 +165,7 @@ export default function Dashboard() {
         <section className="rounded-2xl border border-text/10 bg-white p-4 shadow-[0_8px_24px_rgba(23,50,77,0.04)] sm:p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-base font-bold text-[#17324d]">Upcoming Live Classes</h2>
-            <button type="button" onClick={() => navigate("/student/live-classes")} className="text-xs font-semibold text-primary">View all →</button>
+            <button type="button" onClick={() => navigate("/student/managebooking")} className="text-xs font-semibold text-primary">View all →</button>
           </div>
           <div className="space-y-2">
             {LIVE_CLASSES.concat({ id: "l3", educator: "Anaya Kapoor", subject: "IELTS — Speaking Practice", when: "Tomorrow, 4:00 PM", joinable: false }).map((s, i) => (
@@ -196,7 +196,7 @@ export default function Dashboard() {
           <button type="button" onClick={() => navigate("/student/recommended")} className="text-xs font-semibold text-primary">View all →</button>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {RECOMMENDED.map((c, i) => <ColorBlockCard key={c.id} rotationIndex={i} image={imageForCategory(c.category)} title={c.title} subtitle={c.subtitle} description={c.description} price={c.price} originalPrice={c.originalPrice} rating={c.rating} compact fullWidth showWishlist wishlisted={wishlist.isWishlisted(c.id)} onToggleWishlist={() => { const nowSaved = !wishlist.isWishlisted(c.id); wishlist.toggle(c); showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist"); }} onClick={() => navigate(`/student/course/${c.id}`)} />)}
+          {RECOMMENDED.map((c, i) => <ColorBlockCard key={c.id} rotationIndex={i} image={imageForCategory(c.category)} title={c.title} subtitle={c.subtitle} description={c.description} price={c.price} originalPrice={c.originalPrice} rating={c.rating} actionLabel="Enroll" onAction={() => navigate(`/student/course/${c.id}`)} compact fullWidth showWishlist wishlisted={wishlist.isWishlisted(c.id)} onToggleWishlist={() => { const nowSaved = !wishlist.isWishlisted(c.id); wishlist.toggle(c); showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist"); }} onClick={() => navigate(`/student/course/${c.id}`)} />)}
         </div>
       </section>
 

@@ -30,11 +30,20 @@ import Messages from "./pages/Messages";
 import Notifications from "./pages/Notifications";
 import Reviews from "./pages/Reviews";
 import ExplorePage from "../../public/pages/ExplorePage";
+import LiveClassesDiscover from "./pages/LiveClassesDiscover";
+import RecordedClassesDiscover from "./pages/RecordedClassesDiscover";
 import Assessments from "./pages/Assessments";
 import Calendar from "./pages/Calendar";
 import MyLearning from "./pages/MyLearning";
 import Recommended from "./pages/Recommended";
 import Profile from "./pages/Profile";
+import HelpComplaints from "./pages/HelpComplaints";
+import TestSeries from "./pages/TestSeries";
+import CourseQuizzes from "./pages/CourseQuizzes";
+import SkillAssessments from "./pages/SkillAssessments";
+import AssessmentResults from "./pages/AssessmentResults";
+import AssessmentRunner from "./pages/AssessmentRunner";
+import AssessmentResultDetail from "./pages/AssessmentResultDetail";
 
 // Wraps every onboarding route in ONE OnboardingProvider instance via a
 // layout route + <Outlet/>, so the context — and the form state it holds —
@@ -79,8 +88,17 @@ const studentRoutes = (
       <Route path="my-learning" element={<MyLearning />} />
       <Route path="recommended" element={<Recommended />} />
       <Route path="explore" element={<ExplorePage />} />
-      <Route path="live-classes" element={<ManageBooking />} />
+      <Route path="live-classes" element={<LiveClassesDiscover />} />
+      <Route path="recorded-classes" element={<RecordedClassesDiscover />} />
       <Route path="assessments" element={<Assessments />} />
+      <Route path="assessments/test-series" element={<TestSeries />} />
+      <Route path="assessments/test-series/:assessmentId" element={<TestSeries />} />
+      <Route path="assessments/course-quizzes" element={<CourseQuizzes />} />
+      <Route path="assessments/skill-assessments" element={<SkillAssessments />} />
+      <Route path="assessments/my-results" element={<AssessmentResults />} />
+      <Route path="assessments/take/:assessmentId" element={<AssessmentRunner />} />
+      <Route path="assessments/results/:attemptId/review" element={<AssessmentResultDetail />} />
+      <Route path="assessments/results/:attemptId" element={<AssessmentResultDetail />} />
       <Route path="calendar" element={<Calendar />} />
       <Route path="landing" element={<Landing />} />
       <Route path="searchresults" element={<SearchResults />} />
@@ -106,6 +124,8 @@ const studentRoutes = (
       <Route path="certificates" element={<Certificates />} />
       <Route path="orders" element={<Orders />} />
       <Route path="messages" element={<Messages />} />
+      <Route path="help-complaints" element={<HelpComplaints />} />
+      <Route path="help-complaints/:ticketId" element={<HelpComplaints />} />
       <Route path="notifications" element={<Notifications />} />
       <Route path="reviews" element={<Reviews />} />
       <Route path="profile" element={<Profile />} />

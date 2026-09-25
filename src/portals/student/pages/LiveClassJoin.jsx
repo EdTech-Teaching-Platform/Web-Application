@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
-import { CheckIcon, FileTextIcon } from "../../../components/ui/icons";
+import { ArrowLeftIcon, CheckIcon, FileTextIcon } from "../../../components/ui/icons";
 import BackButton from "../../../components/common/BackButton";
 import { SESSION } from "../data/sessionMock";
 
@@ -12,6 +12,7 @@ export default function LiveClassJoin() {
   const [chatOpen, setChatOpen] = useState(true);
   const [hand, setHand] = useState("lowered");
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveToCalendar, setLeaveToCalendar] = useState(false);
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([{ author: "Priya", text: "Let's start with functions.", time: "5:02 PM" }, { author: "You", text: "Can you explain default parameters?", time: "5:04 PM" }]);
@@ -55,6 +56,7 @@ export default function LiveClassJoin() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-text/5 p-4 sm:p-6">
       <div className="mx-auto max-w-[1500px]">
+        <button type="button" onClick={() => { setLeaveToCalendar(true); setLeaveOpen(true); }} className="mb-3 inline-flex items-center gap-2 rounded-full border border-text/10 bg-white px-3.5 py-2 text-xs font-semibold text-text/65 shadow-sm transition-colors hover:border-primary/30 hover:text-primary"><ArrowLeftIcon className="h-4 w-4" />Back to calendar</button>
         <header className="mb-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Secure classroom</p><h1 className="font-display text-2xl font-bold text-text">{SESSION.classTitle}</h1><p className="text-sm text-text/55">{SESSION.educator}</p></div><div className="flex items-center gap-4"><span className="rounded-full bg-success/15 px-3 py-1.5 text-xs font-semibold text-success">● Excellent connection</span><span className="font-display text-sm font-semibold text-text">LIVE · {Math.floor(seconds / 60)}:{(seconds % 60).toString().padStart(2, "0")}</span></div></header>
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
           <section className="rounded-2xl bg-primary p-4 sm:p-6"><div className="relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-2xl bg-text/30"><div className="text-center text-white"><div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-rotation-1 text-2xl font-bold text-text">PS</div><p className="mt-4 font-display text-xl font-semibold text-white">{SESSION.educator}</p><p className="mt-1 text-sm text-white/60">Educator video</p></div><span className="absolute bottom-4 left-4 rounded-full bg-text/50 px-3 py-1 text-xs text-white">Priya Sharma</span><span className="absolute bottom-4 right-4 rounded-2xl bg-text/50 px-3 py-2 text-xs text-white">You · camera off</span></div><div className="mt-5 flex flex-wrap justify-center gap-3"><button type="button" className="rounded-full bg-white/15 px-4 py-3 text-sm text-white hover:bg-white/25">Mic</button><button type="button" className="rounded-full bg-white/15 px-4 py-3 text-sm text-white hover:bg-white/25">Camera</button><button type="button" className="rounded-full bg-white/15 px-4 py-3 text-sm text-white hover:bg-white/25">Screen</button><button type="button" className="rounded-full bg-white/15 px-4 py-3 text-sm text-white hover:bg-white/25">Fullscreen</button><button type="button" className="rounded-full bg-danger px-5 py-3 text-sm font-semibold text-white" onClick={() => setLeaveOpen(true)}>Leave</button></div></section>
@@ -66,7 +68,7 @@ export default function LiveClassJoin() {
           </aside>
         </div>
       </div>
-      <Modal open={leaveOpen} onClose={() => setLeaveOpen(false)} title="Leave this class?" footer={<><Button variant="secondary" onClick={() => setLeaveOpen(false)}>Stay</Button><Button onClick={() => { setLeaveOpen(false); setStage("ended"); }}>Leave</Button></>}>
+      <Modal open={leaveOpen} onClose={() => { setLeaveOpen(false); setLeaveToCalendar(false); }} title="Leave this class?" footer={<><Button variant="secondary" onClick={() => { setLeaveOpen(false); setLeaveToCalendar(false); }}>Stay</Button><Button onClick={() => { setLeaveOpen(false); if (leaveToCalendar) navigate("/student/calendar"); else setStage("ended"); }}>{leaveToCalendar ? "Leave class" : "Leave"}</Button></>}>
         <p className="text-sm text-text/60">You can rejoin while the session is active. Your attendance and notes will be preserved.</p>
       </Modal>
     </div>

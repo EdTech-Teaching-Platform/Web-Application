@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCourseById } from "../../../data/catalogMock";
+import BackButton from "../../../components/common/BackButton";
 import { useCourseProgress } from "../hooks/useCourseProgress";
 import { useCourseQA } from "../hooks/useCourseQA";
 import { flattenCurriculum } from "../components/coursePlayer/lessonContent";
@@ -253,6 +254,7 @@ export default function CoursePlayer() {
         </div>
 
         <main className="mx-auto max-w-3xl space-y-6">
+          <BackButton fallback="/student/my-learning" label="Back to My Learning" />
           <div>
             <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-text/45">
               <span className="truncate">{course.title}</span>
@@ -435,6 +437,9 @@ export default function CoursePlayer() {
                 </button>
                 <button type="button" onClick={() => navigate(`/student/course/${course.id}`)} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
                   <span>View course overview</span><span className="text-primary">→</span>
+                </button>
+                <button type="button" onClick={() => navigate(`/student/learninghistory?course=${course.id}`)} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                  <span>View course learning history</span><span className="text-primary">→</span>
                 </button>
               </div>
             </section>
