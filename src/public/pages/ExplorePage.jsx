@@ -8,7 +8,7 @@
 // routes.jsx) and the logged-in student portal ("/student/explore",
 // src/portals/student/routes.jsx) — same file, same marketplace content
 // either way; only the wishlist/enroll actions branch on `user`.
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ColorBlockCard from "../../components/ui/ColorBlockCard";
 import Chip from "../../components/ui/Chip";
@@ -16,7 +16,6 @@ import Button from "../../components/ui/Button";
 import SectionHeading from "../../components/common/SectionHeading";
 import CourseCarousel from "../../components/common/CourseCarousel";
 import { ChevronDownIcon, SearchIcon, TargetIcon, BriefcaseIcon, FileTextIcon, HeartIcon } from "../../components/ui/icons";
-import { COURSE_CATEGORIES, CATEGORY_META } from "../../utils/constants";
 import { useAuth } from "../../hooks/useAuth";
 import { useWishlist } from "../../hooks/useWishlist";
 import { useToast } from "../../hooks/useToast";
@@ -43,7 +42,6 @@ const SORT_OPTIONS = [
 const ALL_COURSES = CATALOG_COURSES.filter((course) => course.status === "active");
 
 // Quick topic shortcuts above the search bar — broader than the formal
-// COURSE_CATEGORIES taxonomy used by the Categories section/filters below
 // (that 8-value taxonomy is shared with Onboarding and the filter sidebar
 // and shouldn't drift into a second copy). These act as search shortcuts:
 // clicking one runs it through the same search box below, so a topic the
@@ -61,11 +59,17 @@ const QUICK_TOPICS = [
   "Personal Development",
 ];
 
+// Each goal maps to real, existing catalogMock.js/constants.js fields —
+// level and COURSE_CATEGORIES — so clicking one actually narrows the
+// catalog instead of just changing sort order. "Prepare for exams" is the
+// one exception: it routes to the real Test Series feature (structured
+// mock exams) instead of the course catalog, since that's a more accurate
+// destination for exam prep than any course category.
 const GOALS = [
-  { icon: TargetIcon, title: "Start a new skill", description: "Beginner-friendly courses to get moving on something brand new.", sort: "newest" },
-  { icon: BriefcaseIcon, title: "Build career-ready skills", description: "In-demand, job-focused tracks in tech, design and business.", sort: "popular" },
-  { icon: FileTextIcon, title: "Prepare for exams", description: "Structured practice for board, competitive and language exams.", sort: "rating" },
-  { icon: HeartIcon, title: "Learn for personal interest", description: "Music, languages, wellness and creative courses to enjoy.", sort: "popular" },
+  { icon: TargetIcon, title: "Start a new skill", description: "Beginner-friendly courses to get moving on something brand new.", level: "Beginner", categories: [] },
+  { icon: BriefcaseIcon, title: "Build career-ready skills", description: "In-demand, job-focused tracks in tech, design and business.", level: "", categories: ["Programming", "Design", "Business"] },
+  { icon: FileTextIcon, title: "Prepare for exams", description: "Structured practice for board, competitive and language exams.", to: "/student/assessments/test-series" },
+  { icon: HeartIcon, title: "Learn for personal interest", description: "Music, languages, wellness and creative courses to enjoy.", level: "", categories: ["Music", "Languages"] },
 ];
 
 const TRENDING_SKILLS = [
@@ -77,17 +81,6 @@ const TRENDING_SKILLS = [
   "Cloud Computing",
   "UI/UX Design",
   "Communication",
-];
-
-// Presentational only — there's no "Learning Path" entity in the catalog
-// data yet, so "Explore Path" filters the browse grid by the closest
-// matching category instead of linking to a path detail page that
-// doesn't exist. Flagging rather than inventing a fake destination.
-const LEARNING_PATHS = [
-  { title: "Full Stack Developer", courses: 6, hours: "48h", skills: ["JavaScript", "React", "Node.js", "SQL"], category: "Programming" },
-  { title: "Data Analyst", courses: 5, hours: "34h", skills: ["Python", "SQL", "Statistics"], category: "Math" },
-  { title: "AI & ML Foundations", courses: 4, hours: "30h", skills: ["Python", "Machine Learning"], category: "Programming" },
-  { title: "UI/UX Designer", courses: 4, hours: "26h", skills: ["UI Design", "Prototyping", "Research"], category: "Design" },
 ];
 
 const POPULAR_EDUCATOR_IDS = ["ed4", "ed6", "ed7", "ed8"];
@@ -120,9 +113,12 @@ export default function ExplorePage() {
   const { toasts, showToast, dismiss } = useToast();
   useScrollToHash();
   const enrolledIds = useMemo(() => new Set(getStudentEnrolledCourseIds(userId)), [userId]);
+  // A logged-out visitor must never be treated as enrolled, regardless of
+  // catalogMock.js's course.enrolled flag (some courses hardcode
+  // enrolled: true there) — same root-cause fix as CourseDetails.jsx.
   const studentCourses = useMemo(
-    () => ALL_COURSES.map((course) => ({ ...course, enrolled: course.enrolled || enrolledIds.has(course.id) })),
-    [enrolledIds]
+    () => ALL_COURSES.map((course) => ({ ...course, enrolled: !!user && (course.enrolled || enrolledIds.has(course.id)) })),
+    [enrolledIds, user]
   );
   const discoverableCourses = useMemo(() => studentCourses.filter((course) => !course.enrolled), [studentCourses]);
   const query = params.get("q") || "";
@@ -147,29 +143,58 @@ export default function ExplorePage() {
     });
   }
 
+  // Root cause of the "clicks filter correctly but doesn't scroll" bug:
+  // these same-page interactions call setParams() (via update()) and then
+  // tried to scroll right away. A single requestAnimationFrame only
+  // guarantees "before the next paint" — it doesn't guarantee React has
+  // committed the new filtered render AND the browser has laid out the
+  // new content yet, so the first click could fire the scroll against
+  // still-stale layout (the id="browse" element itself is always
+  // present/never conditionally rendered — that part was already fine).
+  // Fix: don't scroll inline in the click handler at all. Just flag that
+  // a scroll is pending; a useEffect keyed on `params` (below) then runs
+  // AFTER React has actually committed and the DOM has the new content,
+  // which is the only point a scroll is guaranteed to land correctly on
+  // the very first click, not just the second.
+  const pendingScrollRef = useRef(false);
+  function scrollToBrowse() {
+    pendingScrollRef.current = true;
+  }
+
+  useEffect(() => {
+    if (!pendingScrollRef.current) return;
+    pendingScrollRef.current = false;
+    document.getElementById("browse")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [params]);
+
   function runQuickSearch(term) {
     update((next) => {
       next.set("q", term);
     });
-    document.getElementById("browse")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToBrowse();
   }
 
-  function exploreByCategory(category) {
+  function exploreByGoal(goal) {
+    // "Prepare for exams" routes straight to Test Series instead of
+    // filtering the course catalog — see GOALS' comment above.
+    if (goal.to) {
+      navigate(goal.to);
+      return;
+    }
     update((next) => {
       next.delete("category");
-      next.append("category", category);
+      goal.categories.forEach((category) => next.append("category", category));
+      if (goal.level) next.set("level", goal.level);
+      else next.delete("level");
     });
-    document.getElementById("browse")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function exploreByGoal(goalSort) {
-    update((next) => next.set("sort", goalSort));
-    document.getElementById("browse")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToBrowse();
   }
 
   const results = useMemo(() => {
     const filtered = studentCourses.filter((course) => {
-      const haystack = `${course.title} ${course.subtitle} ${course.category}`.toLowerCase();
+      // Include description so a plain keyword search (e.g. "programming")
+      // also matches on subject/description text, not just title/category.
+      const haystack = `${course.title} ${course.subtitle} ${course.category} ${course.description || ""}`.toLowerCase();
       const hours = Number.parseFloat(course.duration) || 0;
       return (
         haystack.includes(query.toLowerCase()) &&
@@ -248,7 +273,7 @@ export default function ExplorePage() {
           <input
             value={query}
             onChange={(event) => update((next) => next.set("q", event.target.value))}
-            onKeyDown={(event) => event.key === "Enter" && document.getElementById("browse")?.scrollIntoView({ behavior: "smooth" })}
+            onKeyDown={(event) => event.key === "Enter" && scrollToBrowse()}
             placeholder="Search courses, skills, educators..."
             className="w-full rounded-2xl border border-text/10 bg-white py-4 pl-12 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
@@ -272,7 +297,7 @@ export default function ExplorePage() {
               <button
                 key={goal.title}
                 type="button"
-                onClick={() => exploreByGoal(goal.sort)}
+                onClick={() => exploreByGoal(goal)}
                 className="group flex flex-col items-start gap-3 rounded-2xl border border-text/10 bg-white p-4 text-left transition-transform duration-150 hover:-translate-y-0.5 hover:border-primary/30"
               >
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -388,59 +413,6 @@ export default function ExplorePage() {
         </div>
       </section>
 
-      {/* H. Learning paths */}
-      <section className="mt-12">
-        <SectionHeading eyebrow="Go further" title="Build a learning path" subtitle="A guided sequence of courses that build on each other." />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {LEARNING_PATHS.map((path) => (
-            <div key={path.title} className="flex flex-col justify-between rounded-2xl border border-text/10 bg-white p-4">
-              <div>
-                <h3 className="font-display text-sm font-semibold text-text">{path.title}</h3>
-                <p className="mt-1 text-xs text-text/50">{path.courses} courses · {path.hours}</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {path.skills.map((skill) => (
-                    <span key={skill} className="rounded-full bg-primary/[0.06] px-2.5 py-1 text-[10px] font-medium text-primary/80">{skill}</span>
-                  ))}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => exploreByCategory(path.category)}
-                className="mt-4 self-start text-xs font-semibold text-primary hover:underline"
-              >
-                Explore path →
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Categories — the real, filterable taxonomy (shared with
-          Onboarding + the sidebar filters below), distinct from the
-          broader quick-topic chips in the hero. */}
-      <section className="mt-12">
-        <SectionHeading id="categories" eyebrow="Browse by subject" title="Categories" subtitle="Every subject on Universal Learning, in one place." />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-          {COURSE_CATEGORIES.map((category) => {
-            const meta = CATEGORY_META[category];
-            const Icon = meta.icon;
-            return (
-              <button
-                key={category}
-                type="button"
-                onClick={() => exploreByCategory(category)}
-                className="group flex min-h-24 flex-col items-start justify-between rounded-xl border border-text/10 bg-white p-3 text-left transition-transform duration-150 hover:-translate-y-0.5 hover:border-primary/30"
-              >
-                <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${meta.tint}`}>
-                  <Icon className={`h-4 w-4 ${meta.iconColor}`} />
-                </span>
-                <span className="text-xs font-semibold text-text group-hover:text-primary">{category}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
       {/* Browse / full searchable catalog — "Explore Courses" in the
           navbar dropdown lands here. This is the one section that
           intentionally shows every active course (live + self-paced,
@@ -469,7 +441,7 @@ export default function ExplorePage() {
             </div>
             {results.length ? (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                {results.map((course, index) => <ColorBlockCard key={course.id} rotationIndex={index} compact fullWidth image={course.image} title={course.title} subtitle={course.subtitle} meta={`${course.courseType === "Live" ? "Live" : "Recorded"} · ${course.level} · ${course.duration}`} description={course.description} price={course.price} originalPrice={course.originalPrice} rating={course.rating} reviewCount={course.reviewCount} actionLabel={course.enrolled ? "Enrolled" : "Enroll"} actionDisabled={course.enrolled} onAction={() => openCourse(course)} showWishlist wishlisted={wishlist.isWishlisted(course.id)} onToggleWishlist={() => toggleWishlist(course)} onClick={() => openCourse(course)} />)}
+                {results.map((course, index) => <ColorBlockCard key={course.id} rotationIndex={index} compact fullWidth image={course.image} title={course.title} subtitle={course.subtitle} meta={`${course.courseType === "Live" ? "Live" : "Recorded"} · ${course.level} · ${course.duration}`} description={course.description} price={course.price} originalPrice={course.originalPrice} rating={course.rating} reviewCount={course.reviewCount} actionLabel={!!user && course.enrolled ? "Enrolled" : "Enroll"} actionDisabled={!!user && course.enrolled} onAction={() => openCourse(course)} showWishlist wishlisted={wishlist.isWishlisted(course.id)} onToggleWishlist={() => toggleWishlist(course)} onClick={() => openCourse(course)} />)}
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-text/15 bg-white px-6 py-16 text-center"><h2 className="font-display text-lg font-semibold text-text">No courses match these filters</h2><p className="mt-2 text-sm text-text/55">Try a broader search or clear the filters.</p><Button fullWidth={false} className="mt-5" onClick={() => setParams({})}>Clear filters</Button></div>

@@ -148,7 +148,11 @@ export default function LandingPage() {
               onSubmit={(event) => {
                 event.preventDefault();
                 const query = new FormData(event.currentTarget).get("query");
-                navigate(`/explore${query ? `?q=${encodeURIComponent(query)}` : ""}`);
+                // #browse scrolls straight to ExplorePage's filtered results
+                // (same fix as the category chips below), so a search
+                // actually looks like it did something instead of landing
+                // above the fold with the match buried off-screen.
+                navigate(`/explore${query ? `?q=${encodeURIComponent(query)}#browse` : ""}`);
               }}
             >
               <SearchIcon className="ml-3 h-5 w-5 shrink-0 text-text/40" />

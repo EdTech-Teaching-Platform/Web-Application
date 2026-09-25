@@ -112,6 +112,7 @@ export default function OtpVerification() {
       eyebrow="Verify"
       title={`Verify your ${kind}`}
       subtitle={`We sent a code to ${masked}.`}
+      showBackToHome={false}
       footer={
         <Link to={backHref} className="block text-center text-sm font-medium text-primary hover:underline">
           {backLabel}

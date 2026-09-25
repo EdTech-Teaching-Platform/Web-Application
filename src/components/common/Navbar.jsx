@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { SearchIcon, BellIcon, ChevronDownIcon } from "../../components/ui/icons";
+import { BellIcon, ChevronDownIcon } from "../../components/ui/icons";
 
 // Shared top navbar shell — each portal layout can pass its own
 // links/title. Re-themed off the neutral slate placeholder to design.md
@@ -124,15 +124,11 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
         </nav>
       )}
 
-      <Link
-        to="/student/searchresults"
-        className="ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-text/10 bg-white px-3 py-2 text-xs text-text/45 sm:flex sm:w-56"
-      >
-        <SearchIcon className="h-4 w-4 shrink-0" />
-        <span className="truncate">Search courses and educators</span>
-      </Link>
-
-      <nav className="flex shrink-0 items-center gap-2 text-sm text-text/60">
+      {/* Nav-bar search box removed per request — Explore's own hero
+          search (src/public/pages/ExplorePage.jsx) remains the real
+          search entry point. `ml-auto` moves here so the bell/avatar
+          group stays cleanly right-aligned without the gap it left. */}
+      <nav className="ml-auto flex shrink-0 items-center gap-2 text-sm text-text/60">
         {links.map((l) => (
           <Link key={l.href} to={l.href} className="hover:text-primary">
             {l.label}

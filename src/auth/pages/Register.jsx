@@ -13,17 +13,30 @@
 // account using these credentials. This keeps a single source of truth for
 // account creation and keeps onboarding's own design/flow untouched.
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Checkbox from "../../components/ui/Checkbox";
-import { GoogleIcon, AppleIcon } from "../../components/ui/icons";
+import { GoogleIcon, AppleIcon, ArrowLeftIcon } from "../../components/ui/icons";
 import { isEmail, isStrongPassword } from "../utils/validators";
 import { PENDING_SIGNUP_STORAGE_KEY } from "../../portals/student/context/OnboardingContext";
 import loginStudentsImg from "../../assets/illustrations/login-students.png";
 
 export default function Register() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Only set when the person arrived here mid-flow — e.g. clicked "Enroll
+  // Now" on a course details page while logged out, got bounced to
+  // /login?redirect=<course path>, then chose "Create a free account"
+  // from there (Login.jsx forwards its own `redirect` param through).
+  // Deliberately NOT shown for a direct /register visit or the landing
+  // page's "I'm a Student"/"Get Started Now" CTAs, which never set this
+  // param — this back button is conditional on that specific origin only.
+  const rawRedirect = searchParams.get("redirect") || "";
+  const originPath =
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") && !rawRedirect.includes("\\")
+      ? rawRedirect
+      : "";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -108,6 +121,15 @@ export default function Register() {
       {/* Right panel — form */}
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
         <div className="mx-auto w-full max-w-sm">
+          {originPath && (
+            <button
+              type="button"
+              onClick={() => navigate(originPath)}
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-text/10 bg-white px-3.5 py-2 text-xs font-semibold text-text/65 shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
+            >
+              <ArrowLeftIcon className="h-4 w-4" /> Back to course
+            </button>
+          )}
           <Link to="/" className="mb-6 block text-center font-display text-lg tracking-tight text-primary lg:hidden">
             Universal Learning
           </Link>

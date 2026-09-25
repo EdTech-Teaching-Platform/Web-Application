@@ -118,7 +118,10 @@ export default function Login({ role = "student" }) {
             ) : (
               <>
                 New to Universal Learning?{" "}
-                <Link to="/register" className="font-medium text-primary hover:underline">
+                <Link
+                  to={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : "/register"}
+                  className="font-medium text-primary hover:underline"
+                >
                   Create a free account
                 </Link>
               </>
