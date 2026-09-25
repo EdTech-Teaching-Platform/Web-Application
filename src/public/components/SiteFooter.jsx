@@ -44,7 +44,7 @@ const FOOTER_COLUMNS = [
       { label: "My Learning", href: "/student/my-learning" },
       { label: "Live Classes", href: "/student/live-classes" },
       { label: "Recorded Classes", href: "/student/recorded-classes" },
-      { label: "Assessments", href: "/student/assessments" },
+      { label: "Test Series", href: "/student/assessments/test-series" },
       { label: "Certificates", href: "/student/certificates" },
     ],
   },

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BellIcon, ChevronDownIcon } from "../../components/ui/icons";
+import { useAuth } from "../../hooks/useAuth";
 
 // Shared top navbar shell — each portal layout can pass its own
 // links/title. Re-themed off the neutral slate placeholder to design.md
@@ -70,7 +71,22 @@ function NavGroup({ group, pathname }) {
 // compatibility (they render, in that fixed order, before navEntries).
 export default function Navbar({ title, links = [], navItems, navGroups, navEntries, user, notificationsHref, onSignOut }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user: authUser, logout } = useAuth();
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  const [homeConfirmOpen, setHomeConfirmOpen] = useState(false);
+
+  const handleBrandClick = (event) => {
+    if (!authUser) return; // logged-out visitors navigate normally
+    event.preventDefault();
+    setHomeConfirmOpen(true);
+  };
+
+  const confirmGoHome = () => {
+    setHomeConfirmOpen(false);
+    logout?.();
+    navigate("/");
+  };
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -83,7 +99,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
   return (
     <>
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-text/10 bg-bg/95 px-4 backdrop-blur sm:px-5">
-      <Link to="/" className="shrink-0 font-display text-lg font-bold tracking-tight text-primary">
+      <Link to="/" onClick={handleBrandClick} className="shrink-0 font-display text-lg font-bold tracking-tight text-primary">
         {title}
       </Link>
 
@@ -159,6 +175,18 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
         )}
       </nav>
     </header>
+    {homeConfirmOpen && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#17324d]/35 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setHomeConfirmOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setHomeConfirmOpen(false); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="go-home-title" className="w-full max-w-md rounded-2xl border border-text/10 bg-white p-6 shadow-[0_20px_60px_rgba(23,50,77,0.22)]">
+          <h2 id="go-home-title" className="font-display text-xl font-bold text-text">Go to the homepage?</h2>
+          <p className="mt-2 text-sm leading-6 text-text/60">Going back to the homepage will sign you out. Continue?</p>
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" autoFocus onClick={() => setHomeConfirmOpen(false)} className="rounded-full border border-text/15 px-4 py-2.5 text-sm font-semibold text-text/70 hover:bg-text/5">Cancel</button>
+            <button type="button" onClick={confirmGoHome} className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90">Continue</button>
+          </div>
+        </section>
+      </div>
+    )}
     {signOutConfirmOpen && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#17324d]/35 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSignOutConfirmOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setSignOutConfirmOpen(false); }}>
         <section role="dialog" aria-modal="true" aria-labelledby="sign-out-title" className="w-full max-w-md rounded-2xl border border-text/10 bg-white p-6 shadow-[0_20px_60px_rgba(23,50,77,0.22)]">
