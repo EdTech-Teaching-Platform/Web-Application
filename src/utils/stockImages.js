@@ -54,6 +54,15 @@ export function imageForCategory(category, size) {
   return unsplash(id, size?.w, size?.h);
 }
 
+// Landing hero's main photo — a real, polished photo of live online
+// learning (replaces the earlier cartoon-style hero illustration),
+// same source/fallback mechanism as every other image in the app.
+// Reuses the same photo id as the "online class on a screen" collage
+// photo below, just at a larger, hero-appropriate size.
+export function heroPhoto(size) {
+  return unsplash("1571260899304-425eee4c7efc", size?.w ?? 640, size?.h ?? 640);
+}
+
 // Hero photo collage — four generic learning/study photos (not category-
 // specific, since the hero doesn't represent one subject).
 export const HERO_COLLAGE_PHOTOS = [

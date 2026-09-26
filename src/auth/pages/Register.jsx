@@ -21,6 +21,7 @@ import { GoogleIcon, AppleIcon, ArrowLeftIcon } from "../../components/ui/icons"
 import { isEmail, isStrongPassword } from "../utils/validators";
 import { PENDING_SIGNUP_STORAGE_KEY } from "../../portals/student/context/OnboardingContext";
 import loginStudentsImg from "../../assets/illustrations/login-students.png";
+import AuthBackdrop from "../../components/ui/AuthBackdrop";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -89,10 +90,17 @@ export default function Register() {
   };
 
   return (
-    <div className="grid min-h-screen bg-bg lg:grid-cols-[1.9fr_1fr]">
+    <div className="relative grid min-h-screen bg-bg lg:grid-cols-[1.9fr_1fr]">
+      {/* Same decorative doodle backdrop used behind the onboarding wizard
+          (see OnboardingLayout.jsx), added here per request so Sign Up
+          matches Onboarding's background treatment. It's absolutely
+          positioned, aria-hidden and pointer-events-none, so it sits
+          behind both panels' real content without overlapping the form
+          fields or the illustration image. */}
+      <AuthBackdrop />
       {/* Left panel — same treatment as Login.jsx: text upper-left, a
           grounded illustration as the dominant visual element. */}
-      <div className="relative hidden flex-col overflow-hidden border-r border-[#e5ded9] bg-bg p-10 lg:flex lg:p-14">
+      <div className="relative z-10 hidden flex-col border-r border-[#e5ded9] p-10 lg:flex lg:p-14">
         <Link to="/" className="font-display text-sm font-semibold tracking-tight text-primary">
           Universal Learning
         </Link>

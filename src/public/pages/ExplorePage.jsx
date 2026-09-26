@@ -14,6 +14,7 @@ import ColorBlockCard from "../../components/ui/ColorBlockCard";
 import Chip from "../../components/ui/Chip";
 import Button from "../../components/ui/Button";
 import SectionHeading from "../../components/common/SectionHeading";
+import SectionShapes from "../../components/common/SectionShapes";
 import CourseCarousel from "../../components/common/CourseCarousel";
 import { ChevronDownIcon, SearchIcon, TargetIcon, BriefcaseIcon, FileTextIcon, HeartIcon } from "../../components/ui/icons";
 import { useAuth } from "../../hooks/useAuth";
@@ -288,7 +289,8 @@ export default function ExplorePage() {
       </div>
 
       {/* B. Explore by goal */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-accent-lilac/10 p-6 sm:p-8">
+        <SectionShapes variant="goals" />
         <SectionHeading eyebrow="Discovery" title="Explore by goal" subtitle="Not sure where to start? Pick what you're trying to do." />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {GOALS.map((goal) => {
@@ -314,7 +316,8 @@ export default function ExplorePage() {
       </section>
 
       {/* C. Popular courses */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl border border-text/5 bg-white p-6 sm:p-8">
+        <SectionShapes variant="courses" />
         <SectionHeading id="popular" eyebrow="Trending now" title="Popular courses" subtitle="Learn what students are exploring right now." viewAllHref="/student/explore?sort=popular#browse" />
         <CourseCarousel
           courses={popularCourses}
@@ -327,7 +330,8 @@ export default function ExplorePage() {
       </section>
 
       {/* D. Trending skills */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-accent-sky/10 p-6 sm:p-8">
+        <SectionShapes variant="categories" />
         <SectionHeading title="Trending skills" subtitle="Jump straight to what learners are searching for." />
         <div className="flex flex-wrap gap-2">
           {TRENDING_SKILLS.map((skill) => (
@@ -339,7 +343,8 @@ export default function ExplorePage() {
       </section>
 
       {/* E. Recommended for you */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-bg p-6 sm:p-8">
+        <SectionShapes variant="why" />
         <SectionHeading
           id="recommended"
           eyebrow="For you"
@@ -373,7 +378,8 @@ export default function ExplorePage() {
       </section>
 
       {/* F. New & trending */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-accent-peach/10 p-6 sm:p-8">
+        <SectionShapes variant="paths" />
         <SectionHeading id="new-trending" eyebrow="Just added" title="New & trending" subtitle="Recently added courses and what's picking up momentum." viewAllHref="/student/explore?sort=newest#browse" />
         <CourseCarousel
           courses={newAndTrending}
@@ -386,7 +392,8 @@ export default function ExplorePage() {
       </section>
 
       {/* G. Popular educators */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl border border-text/5 bg-white p-6 sm:p-8">
+        <SectionShapes variant="educators" />
         <SectionHeading eyebrow="Learn from the best" title="Learn from popular educators" viewAllHref="/instructors" />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {POPULAR_EDUCATOR_IDS.map((id, i) => {

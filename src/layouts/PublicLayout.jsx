@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Button from "../components/ui/Button";
-import AmbientPortalBackdrop from "../components/common/AmbientPortalBackdrop";
+import SectionShapes from "../components/common/SectionShapes";
 
 // New top-level layout — public/marketing chrome, no sidebar. Added per
 // the Discovery build spec: Landing + Explore render for visitors who
@@ -32,8 +32,8 @@ const NAV_LINKS = [
 export default function PublicLayout() {
   const location = useLocation();
   return (
-    <div className="relative min-h-screen bg-bg font-body text-text">
-      <header className="flex h-16 items-center justify-between gap-4 px-6 md:px-10">
+    <div className="relative min-h-screen bg-white font-body text-text">
+      <header className="relative z-10 flex h-16 items-center justify-between gap-4 px-6 md:px-10">
         <Link to="/" className="font-display text-lg font-bold text-primary">
           Universal Learning
         </Link>
@@ -70,7 +70,7 @@ export default function PublicLayout() {
           </Button>
         </div>
       </header>
-      <AmbientPortalBackdrop variant="public" />
+      <SectionShapes variant="public" />
       <main className="public-page-content relative z-10">
         <Outlet />
       </main>

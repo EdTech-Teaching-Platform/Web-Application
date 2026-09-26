@@ -16,6 +16,7 @@ import { GoogleIcon, AppleIcon } from "../../components/ui/icons";
 import { isEmailOrPhone } from "../utils/validators";
 import { login, requestLoginOtp } from "../services/authApi";
 import loginStudentsImg from "../../assets/illustrations/login-students.png";
+import AuthBackdrop from "../../components/ui/AuthBackdrop";
 
 export default function Login({ role = "student" }) {
   const navigate = useNavigate();
@@ -67,11 +68,14 @@ export default function Login({ role = "student" }) {
   };
 
   return (
-    <div className="grid min-h-screen bg-bg lg:grid-cols-[1.9fr_1fr]">
+    <div className="relative grid min-h-screen bg-bg lg:grid-cols-[1.9fr_1fr]">
+      {/* Same decorative doodle backdrop as Onboarding/Register, added for
+          visual consistency across all three auth-style screens. */}
+      <AuthBackdrop />
       {/* Left panel — text sits upper-left, the illustration is grounded on a
           baseline near the bottom and sized to be the dominant visual element
           (roughly half the panel's height, spanning most of its width). */}
-      <div className="relative hidden flex-col overflow-hidden border-r border-[#e5ded9] bg-bg p-10 lg:flex lg:p-14">
+      <div className="relative z-10 hidden flex-col border-r border-[#e5ded9] p-10 lg:flex lg:p-14">
         <Link to="/" className="font-display text-sm font-semibold tracking-tight text-primary">
           Universal Learning
         </Link>

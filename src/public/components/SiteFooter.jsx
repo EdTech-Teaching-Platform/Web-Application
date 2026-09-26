@@ -18,6 +18,8 @@ import {
   YoutubeIcon,
   InstagramIcon,
   XSocialIcon,
+  GoogleIcon,
+  AppleIcon,
 } from "../../components/ui/icons";
 
 const SOCIAL_LINKS = [
@@ -124,7 +126,7 @@ export default function SiteFooter() {
       </div>
 
       <div className="relative mx-auto max-w-6xl px-6 py-12 sm:py-14">
-        <div className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr_1fr] lg:gap-x-6">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-[1.1fr_1fr_1fr_1fr_1fr_1fr] lg:gap-x-6">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1 lg:max-w-xs">
             <Link to="/" className="font-display text-lg font-bold text-text">Universal Learning</Link>
@@ -159,6 +161,30 @@ export default function SiteFooter() {
               </ul>
             </div>
           ))}
+
+          {/* Download App -- presentational only, no real mobile app exists
+              yet (see LandingPage's Learn Anywhere section and FAQ f5). Not
+              links: no real store URLs to point at yet, so these render as
+              static badges rather than fabricated destinations. */}
+          <div>
+            <p className="font-display text-sm font-semibold text-text">Download App</p>
+            <div className="mt-4 flex flex-col items-start gap-2.5">
+              <span
+                className="flex items-center gap-2 rounded-full border border-text/10 px-3 py-1.5 text-xs font-semibold text-text/40"
+                title="Coming soon -- no mobile app yet"
+              >
+                <GoogleIcon className="h-3.5 w-3.5" />
+                Google Play
+              </span>
+              <span
+                className="flex items-center gap-2 rounded-full border border-text/10 px-3 py-1.5 text-xs font-semibold text-text/40"
+                title="Coming soon -- no mobile app yet"
+              >
+                <AppleIcon className="h-3.5 w-3.5" />
+                App Store
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Bottom bar */}

@@ -30,14 +30,19 @@
   --font-body: "General Sans", "Switzer", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* No default beige page background here anymore — each section now
+ * owns its own explicit bg-white/bg-bg class edge-to-edge, so a default
+ * body color no longer peeks through gaps between them (this was the
+ * cause of the uneven "beige leak" between sections). */
 body {
-  background-color: var(--color-bg);
+  background-color: #ffffff;
   color: var(--color-text);
   font-family: var(--font-body);
 }
 
 /* One content system for every authenticated student page. */
-.student-main > div:not(.student-learning-shell) {
+.student-main > div:not(.student-learning-shell):not(.ambient-portal-backdrop):not(.decorative-shapes) {
+  position: relative;
   width: 100%;
   max-width: 1320px !important;
   margin-left: auto;
@@ -45,7 +50,7 @@ body {
 }
 
 @media (min-width: 1024px) {
-  .student-main > div:not(.student-learning-shell) {
+  .student-main > div:not(.student-learning-shell):not(.ambient-portal-backdrop):not(.decorative-shapes) {
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
   }
@@ -58,6 +63,7 @@ body {
 }
 
 .student-main {
+  position: relative;
   scrollbar-gutter: stable;
 }
 
@@ -72,19 +78,11 @@ body {
 }
 
 /*
- * `position: fixed` (not `absolute`) is deliberate: this backdrop sits
- * behind full pages that scroll far taller than one screen (the Landing
- * page, the Student dashboard shell). An absolutely-positioned box with
- * `inset: 0` stretches to the full scrollable HEIGHT of its positioned
- * ancestor, not just the viewport — combined with the SVG below being
- * told to fill that box exactly, the fixed 1440x900 artwork got scaled
- * non-uniformly (way more vertically than horizontally) to cover
- * thousands of extra pixels, which is what stretched every shape in it
- * into tall, thin ovals. Fixing it to the viewport means its box is
- * always close to the artwork's own 1440:900 aspect ratio, and
- * `preserveAspectRatio="xMidYMid slice"` on the SVG itself (see
- * AmbientPortalBackdrop.jsx) now scales it uniformly and only crops the
- * overflow instead of distorting it.
+ * `position: fixed` (not `absolute`) — per the latest, clarified user
+ * feedback: this backdrop should stay pinned to the viewport as a
+ * constant background layer while page content scrolls over/past it,
+ * not scroll away with the page. `pointer-events: none` + low `z-index`
+ * keep it inert and behind all real content at every scroll position.
  */
 .ambient-portal-backdrop {
   position: fixed;
@@ -100,40 +98,20 @@ body {
   display: block;
 }
 
-.ambient-dash {
-  animation: ambient-dash 12s linear infinite;
-}
-
-.ambient-dash--delayed {
-  animation-delay: -5s;
-}
-
-.ambient-bob {
-  animation: ambient-bob 9s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.ambient-bob--delayed {
-  animation-delay: -3s;
-}
-
-.ambient-pulse {
-  animation: ambient-pulse 9s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.ambient-sway {
-  animation: ambient-sway 8s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
+/* Per user request: the decorative backdrop shapes are now fully
+ * static — no float/pulse/sway/orbit/dash movement at all, just still
+ * decoration. Animations are disabled at the class level (rather than
+ * deleting the @keyframes/classes) so the markup in
+ * AmbientPortalBackdrop.jsx doesn't need to change if motion is ever
+ * asked for again later. */
+.ambient-dash,
+.ambient-dash--delayed,
+.ambient-bob,
+.ambient-bob--delayed,
+.ambient-pulse,
+.ambient-sway,
 .ambient-orbit {
-  animation: ambient-orbit 13s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
+  animation: none;
 }
 
 .student-main > *,
@@ -349,13 +327,9 @@ body {
   }
 }
 
-.ambient-drift {
-  animation: ambient-drift 14s ease-in-out infinite;
-  transform-origin: center;
-}
-
+.ambient-drift,
 .ambient-drift-slow {
-  animation: ambient-drift 19s ease-in-out -5s infinite reverse;
+  animation: none;
   transform-origin: center;
 }
 
