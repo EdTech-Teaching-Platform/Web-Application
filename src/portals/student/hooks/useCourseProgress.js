@@ -16,7 +16,7 @@ import { recordWatchedSeconds } from "./useLearningStats";
 //
 // Shape per course:
 // {
-//   lastLessonId,
+//   lastLessonId, lastAccessedAt,
 //   lessons: { [lessonId]: { status, maxWatchedPercent, positionSec, startedAt, completedAt, updatedAt } },
 //   notes: [{ id, lessonId, moduleId, moduleTitle, lessonTitle, text, timestampSec, createdAt, updatedAt }],
 // }
@@ -203,7 +203,12 @@ export function useCourseProgress(courseId) {
             lessonType: lesson.type || "video",
           });
         }
-        return { ...c, lastLessonId: lesson.id, lessons: { ...c.lessons, [lesson.id]: updated } };
+        return {
+          ...c,
+          lastLessonId: lesson.id,
+          lastAccessedAt: now,
+          lessons: { ...c.lessons, [lesson.id]: updated },
+        };
       });
     },
     [mutate, courseId, resolveLesson]

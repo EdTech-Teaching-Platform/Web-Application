@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
-import { AlertTriangleIcon, CheckCircleIcon, CheckIcon, ChevronDownIcon, ClockIcon, FileTextIcon, LockIcon, StarIcon } from "../../../components/ui/icons";
+import { CheckCircleIcon, CheckIcon, ChevronDownIcon, ClockIcon, FileTextIcon, LockIcon, StarIcon } from "../../../components/ui/icons";
 import { useAuth } from "../../../hooks/useAuth";
 import { getSeriesById, getSeriesStartPath, isSeriesPurchased, purchaseSeries } from "../data/testSeriesCatalog";
 
@@ -21,9 +21,7 @@ function TestRow({ test, purchased, onLockedClick }) {
         <p className="truncate text-sm font-semibold text-text">{test.title}</p>
         <p className="mt-0.5 text-xs text-text/50">{test.questions} questions · {test.durationMinutes} minutes</p>
       </div>
-      {test.comingSoon ? (
-        <span className="shrink-0 rounded-full bg-[#f6f0dc] px-3 py-1.5 text-[11px] font-semibold text-[#8a6a2a]">Coming Soon</span>
-      ) : purchased ? (
+      {purchased ? (
         <Link to={`/student/assessments/test-series/${test.assessmentId}`} className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary hover:text-white">View Test →</Link>
       ) : (
         <button type="button" onClick={onLockedClick} className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-bg px-3 py-1.5 text-[11px] font-semibold text-text/50">
@@ -68,6 +66,8 @@ export default function TestSeriesPackageDetail() {
     );
   }
 
+  const hasRunnableTests = pkg.sections.some((section) => section.tests.some((test) => test.assessmentId));
+
   function toggleSection(id) {
     setOpenSections((prev) => {
       const next = new Set(prev);
@@ -110,7 +110,7 @@ export default function TestSeriesPackageDetail() {
         </div>
         <div className="mt-7 flex flex-wrap items-center gap-4">
           {purchased ? (
-            <Button fullWidth={false} variant="inverse" disabled={!pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId))} onClick={startSeries}>{pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId)) ? "Start Test Series" : "Tests Coming Soon"}</Button>
+            <Button fullWidth={false} variant="inverse" disabled={!hasRunnableTests} onClick={startSeries}>Start Test Series</Button>
           ) : (
             <Button fullWidth={false} onClick={handleBuy}>{pkg.price === 0 ? "Enroll for Free" : `Buy Test Series — ₹${pkg.price}`}</Button>
           )}
@@ -124,13 +124,6 @@ export default function TestSeriesPackageDetail() {
           </div>
         )}
       </div>
-
-      {pkg.comingSoonNotice && (
-        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-[#f0dcc2] bg-[#fbefe7] p-4 text-sm leading-6 text-text/65">
-          <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p>{pkg.comingSoonNotice}</p>
-        </div>
-      )}
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <InfoTile label="Number of Tests" value={pkg.numberOfTests} />
@@ -198,7 +191,7 @@ export default function TestSeriesPackageDetail() {
             <p className="flex items-center gap-2"><StarIcon className="h-4 w-4 text-text/40" />{pkg.difficulty} difficulty</p>
           </div>
           {purchased ? (
-            <Button fullWidth disabled={!pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId))} onClick={startSeries}>{pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId)) ? "Start Test Series" : "Tests Coming Soon"}</Button>
+            <Button fullWidth disabled={!hasRunnableTests} onClick={startSeries}>Start Test Series</Button>
           ) : (
             <Button fullWidth onClick={handleBuy}>{pkg.price === 0 ? "Enroll for Free" : `Buy Test Series — ₹${pkg.price}`}</Button>
           )}

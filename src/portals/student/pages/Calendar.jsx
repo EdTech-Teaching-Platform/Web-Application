@@ -144,9 +144,9 @@ export default function Calendar() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">Up next</p><h2 className="mt-1 font-display text-xl font-bold text-[#17324d]">Your upcoming learning</h2></div>
-            <button type="button" onClick={() => upcomingEvents[0] && setSelectedDate(upcomingEvents[0].date)} className="text-xs font-semibold text-primary hover:underline">View all →</button>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">Up next</p>
+            <h2 className="mt-1 font-display text-xl font-bold text-[#17324d]">Your upcoming learning</h2>
           </div>
           <div className="mt-3 divide-y divide-text/10">
             {upcomingEvents.length ? upcomingEvents.map((event) => <button type="button" key={event.id} onClick={() => { setSelectedDate(event.date); navigate(event.action); }} className="flex w-full items-center justify-between gap-3 py-3 text-left"><span><strong className="block text-sm text-text">{new Date(`${event.date}T12:00:00`).toLocaleDateString("en", { month: "short", day: "numeric" })}</strong><span className="text-xs text-text/50">{event.course} · {event.type} · {event.meta}</span></span><span className="text-xs font-semibold text-primary">View →</span></button>) : <p className="py-4 text-sm text-text/50">No upcoming activities in this sample schedule.</p>}
@@ -166,15 +166,21 @@ export default function Calendar() {
           <div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary/70">Today’s progress</p><h2 className="mt-1 font-display text-xl font-bold text-[#17324d]">2 of 4 activities completed</h2></div>
           <span className="font-display text-xl font-bold text-primary">50%</span>
         </div>
-        <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[auto_1fr_260px] lg:items-center">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full" style={{ background: "conic-gradient(#4a0e0e 50%, rgba(74, 14, 14, 0.12) 0)" }}>
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white font-display text-base font-bold text-primary">50%</span>
           </div>
-          <div className="grid flex-1 gap-2 text-xs text-text/60 sm:grid-cols-2">
+          <div className="grid gap-2 text-xs text-text/60 sm:grid-cols-2">
             <p><span className="mr-2 text-success">✓</span>Python lesson</p>
             <p><span className="mr-2 text-success">✓</span>Previous assignment</p>
             <p><span className="mr-2 text-text/35">○</span>Live class</p>
             <p><span className="mr-2 text-text/35">○</span>Quiz</p>
+          </div>
+          <div className="rounded-2xl border border-[#eadbd3] bg-[#fffaf7] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">Keep your streak</p>
+            <p className="mt-1.5 text-xs leading-5 text-text/60">Finish today’s remaining two activities to complete a perfect day.</p>
+            <button type="button" onClick={() => navigate("/student/liveclassjoin?session=l3")} className="mt-3 w-full rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white">Join Live class →</button>
+            <button type="button" onClick={() => navigate("/student/quiz?course=c3")} className="mt-2 w-full rounded-full border border-primary/20 px-4 py-2 text-xs font-semibold text-primary">Start Quiz →</button>
           </div>
         </div>
       </section>

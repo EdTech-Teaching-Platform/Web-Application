@@ -101,7 +101,7 @@ export default function CoursePlayer() {
     setResumedNotice(Boolean(wasResuming));
     progress.openLesson(currentLesson);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLesson?.id]);
+  }, [courseId, currentLesson?.id]);
 
   // Seek video if initial `seek` parameter provided
   useEffect(() => {

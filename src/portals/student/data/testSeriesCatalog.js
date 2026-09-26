@@ -6,14 +6,11 @@
 // tests, kept as-is so the existing /student/assessments/test-series
 // catalog and exam runner keep working unchanged).
 //
-// Where a package's tests reuse a real assessment id from
-// assessmentCatalog.js, "Start Test" links into the existing, fully
-// working exam-taking flow (AssessmentRunner). Packages built around
-// curricula we don't have real question banks for yet (e.g. CBSE Class 10
-// Maths) list their tests for browsing/marketplace purposes only — no
-// fabricated live test-taking for content that doesn't exist — flagged
-// with `comingSoon: true` per test, matching the "Scheduled / Not Yet
-// Available" access state in the spec rather than pretending it's ready.
+// Every package's tests reuse a real assessment id from assessmentCatalog.js
+// (including the generated Class 10 Maths / Science question banks in
+// generatedSeriesAssessments.js), so "Start Test" always links into the
+// existing, fully working exam-taking flow (AssessmentRunner) — no
+// "Coming Soon" placeholders left anywhere in the catalog.
 import { TEST_SERIES as ASSESSMENTS } from "./assessmentCatalog";
 import { getSavedAttempts } from "./assessmentCatalog";
 
@@ -43,15 +40,10 @@ function linkedTest(assessmentId, testType) {
     questions: assessment.questions.length,
     durationMinutes: assessment.durationMinutes,
     negativeMarking: false,
-    comingSoon: false,
     assessmentId: assessment.id, // present => "Start Test" can link to the real runner
   };
 }
 
-// A browsing-only test row for curricula without a real question bank yet.
-function plannedTest(id, title, testType, questions, durationMinutes) {
-  return { id, title, testType, questions, durationMinutes, negativeMarking: true, comingSoon: true, assessmentId: null };
-}
 
 function sumQuestions(tests) {
   return tests.reduce((sum, test) => sum + test.questions, 0);
@@ -73,33 +65,33 @@ const programmingSections = [
 
 const mathsSections = [
   { id: "chapter-tests", title: "Chapter Tests", tests: [
-    plannedTest("maths-real-numbers", "Real Numbers", "Chapter Test", 20, 30),
-    plannedTest("maths-polynomials", "Polynomials", "Chapter Test", 20, 30),
-    plannedTest("maths-linear-equations", "Pair of Linear Equations", "Chapter Test", 25, 35),
-    plannedTest("maths-quadratic-equations", "Quadratic Equations", "Chapter Test", 20, 30),
-    plannedTest("maths-arithmetic-progressions", "Arithmetic Progressions", "Chapter Test", 20, 30),
-    plannedTest("maths-triangles", "Triangles", "Chapter Test", 20, 30),
-    plannedTest("maths-coordinate-geometry", "Coordinate Geometry", "Chapter Test", 20, 30),
+    linkedTest("maths-real-numbers", "Chapter Test"),
+    linkedTest("maths-polynomials", "Chapter Test"),
+    linkedTest("maths-linear-equations", "Chapter Test"),
+    linkedTest("maths-quadratic-equations", "Chapter Test"),
+    linkedTest("maths-arithmetic-progressions", "Chapter Test"),
+    linkedTest("maths-triangles", "Chapter Test"),
+    linkedTest("maths-coordinate-geometry", "Chapter Test"),
   ] },
   { id: "subject-tests", title: "Subject Tests", tests: [
-    plannedTest("maths-algebra", "Algebra", "Subject Test", 50, 60),
-    plannedTest("maths-geometry", "Geometry", "Subject Test", 50, 60),
+    linkedTest("maths-algebra", "Subject Test"),
+    linkedTest("maths-geometry", "Subject Test"),
   ] },
   { id: "full-length", title: "Full-Length Tests", tests: [
-    plannedTest("maths-mock-1", "Mock Test 01", "Full-Length Test", 100, 180),
-    plannedTest("maths-mock-2", "Mock Test 02", "Full-Length Test", 100, 180),
+    linkedTest("maths-mock-1", "Full-Length Test"),
+    linkedTest("maths-mock-2", "Full-Length Test"),
   ] },
 ];
 
 const scienceSections = [
   { id: "subject-tests", title: "Subject Tests", tests: [
-    plannedTest("science-physics", "Physics — Full Syllabus", "Subject Test", 45, 90),
-    plannedTest("science-chemistry", "Chemistry — Full Syllabus", "Subject Test", 45, 90),
-    plannedTest("science-biology", "Biology — Full Syllabus", "Subject Test", 45, 90),
+    linkedTest("science-physics", "Subject Test"),
+    linkedTest("science-chemistry", "Subject Test"),
+    linkedTest("science-biology", "Subject Test"),
   ] },
   { id: "full-length", title: "Full-Length Tests", tests: [
-    plannedTest("science-mock-1", "Full-Length Mock 01", "Full-Length Test", 90, 150),
-    plannedTest("science-mock-2", "Full-Length Mock 02", "Full-Length Test", 90, 150),
+    linkedTest("science-mock-1", "Full-Length Test"),
+    linkedTest("science-mock-2", "Full-Length Test"),
   ] },
 ];
 
@@ -158,13 +150,12 @@ export const TEST_SERIES_PACKAGES = [
     description: "A complete board-exam-style test series covering every Class 10 Maths chapter, built up from chapter tests to subject tests to two full-length mock exams under real exam timing.",
     audience: "Class 10 students preparing for board exams who want structured, chapter-by-chapter practice before attempting full-length mocks.",
     negativeMarking: { enabled: true, correct: 4, incorrect: 1, unanswered: 0 },
-    passingScoreLabel: "33%",
-    attemptsLabel: "3 per test",
+    passingScoreLabel: "50%",
+    attemptsLabel: "Unlimited",
     accessLabel: "On demand",
     certificateLabel: "Yes, on full-length tests",
     questionTypes: ["MCQ", "Numerical Answer"],
     access: "on-demand",
-    comingSoonNotice: "This series's question bank is being finalized — tests are listed for preview and will open for attempts soon.",
   },
   {
     id: "science-competitive-series",
@@ -188,7 +179,6 @@ export const TEST_SERIES_PACKAGES = [
     certificateLabel: "No",
     questionTypes: ["MCQ"],
     access: "on-demand",
-    comingSoonNotice: "This series's question bank is being finalized — tests are listed for preview and will open for attempts soon.",
   },
   {
     id: "developer-certification-prep",
@@ -294,7 +284,7 @@ export function getSeriesById(seriesId) {
 }
 
 export function getSeriesStartPath(pkg) {
-  const firstReadyTest = pkg?.sections.flatMap((section) => section.tests).find((test) => !test.comingSoon && test.assessmentId);
+  const firstReadyTest = pkg?.sections.flatMap((section) => section.tests).find((test) => test.assessmentId);
   return firstReadyTest
     ? `/student/assessments/test-series/${firstReadyTest.assessmentId}`
     : `/student/test-series/${pkg?.id || ""}`;
@@ -344,7 +334,7 @@ export function purchaseSeries(seriesId, userOrId) {
 // separate, parallel progress store, so this can never drift from what
 // AssessmentRunner/AssessmentResultDetail already recorded.
 export function getSeriesProgress(pkg, userOrId) {
-  const gradableTests = pkg.sections.flatMap((section) => section.tests).filter((test) => !test.comingSoon && test.assessmentId);
+  const gradableTests = pkg.sections.flatMap((section) => section.tests).filter((test) => test.assessmentId);
   const attempts = getSavedAttempts();
   const perTest = gradableTests.map((test) => {
     const testAttempts = attempts

@@ -1,5 +1,7 @@
 // Assessment configuration is separate from the interface so the same
 // schema can accept educator-authored records when assessment APIs exist.
+import { GENERATED_SERIES_ASSESSMENTS } from "./generatedSeriesAssessments";
+
 const pyRows = [
   ["Which statement about Python lists is correct?", ["Lists are immutable", "Lists can contain different data types", "Lists cannot be nested", "Lists only store strings"], 1, "Lists are mutable sequences and can contain values of different types.", "Python Fundamentals"],
   ["What does len({\"a\": 1, \"b\": 2}) return?", ["1", "2", "3", "An error"], 1, "len() returns the number of keys in a dictionary.", "Data Structures"],
@@ -20,7 +22,7 @@ function makeQuestions(prefix, rows, learnTo) {
   }));
 }
 
-export const ASSESSMENT_CATEGORIES = ["Programming", "Data Science", "AI & Machine Learning", "Web Development", "Database", "Cybersecurity", "Cloud Computing", "Mathematics", "Business", "Communication", "Other"];
+export const ASSESSMENT_CATEGORIES = ["Programming", "Data Science", "AI & Machine Learning", "Web Development", "Database", "Cybersecurity", "Cloud Computing", "Mathematics", "Science", "Business", "Communication", "Other"];
 export const DIFFICULTIES = ["Beginner", "Intermediate", "Advanced"];
 export const TEST_TYPES = ["Course Test", "Practice Test", "Mock Exam", "Certification Prep", "Skill Test"];
 export const DURATION_FILTERS = ["Under 15 min", "15–30 min", "30–60 min", "60+ min"];
@@ -39,6 +41,7 @@ export const TEST_SERIES = [
   { id: "communication-check", title: "Communication Skills — Assessment", subject: "Communication", category: "Communication", difficulty: "Beginner", durationMinutes: 12, attemptsAllowed: 2, passingScore: 70, rating: 4.3, attempts: 430, badge: "", type: "Skill Test", questionType: "Multiple Choice", certificateEligible: false, description: "Assess active listening, clear writing, constructive feedback and audience awareness.", skills: ["Communication", "Professional Writing"], topics: ["Listening", "Writing", "Feedback"], questions: makeQuestions("comm", [["Active listening includes…", ["Planning your reply while others speak", "Reflecting and clarifying what you heard", "Changing the subject", "Avoiding questions"], 1, "Reflecting and clarifying confirms understanding.", "Listening"], ["A useful email subject line should…", ["Be blank", "Summarize the purpose", "Include the whole message", "Use punctuation only"], 1, "A concise specific subject helps the reader quickly understand the message.", "Writing"], ["Constructive feedback is most helpful when it is…", ["Specific and actionable", "Personal and vague", "Delayed indefinitely", "Only positive"], 0, "Specific actionable feedback makes the next step clear.", "Feedback"], ["Before presenting, first consider…", ["The audience and purpose", "The font only", "The room color", "The longest script"], 0, "Audience and purpose guide content and detail.", "Audience Awareness"], ["Which phrase invites clarification?", ["That makes no sense", "Could you explain what you mean by…?", "Never mind", "I already know"], 1, "An open question supports a respectful exchange.", "Listening"]]) },
   { id: "aptitude-series", title: "Aptitude & Logical Reasoning — Test Series", subject: "Aptitude", category: "Mathematics", difficulty: "Intermediate", durationMinutes: 18, attemptsAllowed: 3, passingScore: 70, rating: 4.5, attempts: 1540, badge: "POPULAR", type: "Mock Exam", questionType: "Mixed", certificateEligible: false, description: "Practice number patterns, proportions, logic and data interpretation in a timed format.", skills: ["Quantitative Reasoning", "Logical Reasoning"], topics: ["Patterns", "Proportions", "Logic"], questions: makeQuestions("apt", [["What number comes next: 3, 6, 12, 24, …?", ["30", "36", "48", "42"], 2, "Each value doubles, so the next value is 48.", "Patterns"], ["If 4 notebooks cost ₹80, what do 7 cost at the same rate?", ["₹120", "₹140", "₹160", "₹180"], 1, "Each notebook costs ₹20, so seven cost ₹140.", "Proportions"], ["All mentors are learners. What must be true?", ["All designers are mentors", "All mentors are learners", "No mentors are designers", "Some mentors are designers"], 1, "The first statement directly establishes this relationship.", "Logic"], ["A value rises from 50 to 60. What is the percentage increase?", ["10%", "15%", "20%", "25%"], 2, "The increase of 10 is 20% of the original 50.", "Percentages"], ["Which is the odd one out?", ["Square", "Triangle", "Circle", "Meter"], 3, "Meter is a unit of measurement; the others are shapes.", "Classification"]]) },
 ];
+TEST_SERIES.push(...GENERATED_SERIES_ASSESSMENTS);
 
 export const COURSE_QUIZZES = [
   { id: "python-module-1", title: "Python Foundations Check", courseId: "c1", module: "Module 1 · Foundations", status: "Completed", score: 90, questions: 8, durationMinutes: 8, items: makeQuestions("pyq1", pyRows.slice(0, 5), "/student/courseplayer?course=c1") },

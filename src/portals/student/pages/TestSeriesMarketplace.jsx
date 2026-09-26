@@ -39,7 +39,7 @@ function badgeTone(badge) {
 function SeriesCard({ pkg }) {
   const { user } = useAuth();
   const purchased = isSeriesPurchased(pkg.id, user);
-  const ready = pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId));
+  const ready = pkg.sections.some((section) => section.tests.some((test) => test.assessmentId));
   const href = purchased && ready ? getSeriesStartPath(pkg) : `/student/test-series/${pkg.id}`;
   return (
     <article className="flex h-full flex-col rounded-2xl border border-text/10 bg-white p-5 shadow-[0_4px_18px_rgba(23,50,77,0.04)] transition hover:-translate-y-0.5 hover:shadow-md">
@@ -59,7 +59,7 @@ function SeriesCard({ pkg }) {
       <p className="mt-3 text-[11px] text-text/50">{pkg.testTypeSummary.map((entry) => `${entry.count} ${entry.type}${entry.count === 1 ? "" : "s"}`).join(" · ")}</p>
       <div className="mt-4 flex items-center justify-between">
         <span className="font-display text-base font-bold text-text">{pkg.price === 0 ? "Free" : `₹${pkg.price}`}</span>
-        <Link to={href} className="rounded-full border border-primary/20 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white">{purchased ? ready ? "Start Test Series →" : "View Series →" : "View Test Series →"}</Link>
+        <Link to={href} className="rounded-full border border-primary/20 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white">Join Test Series →</Link>
       </div>
     </article>
   );

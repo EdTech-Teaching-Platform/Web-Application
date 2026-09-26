@@ -40,6 +40,8 @@ const SAMPLE_VIDEOS = [
   "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
   "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4",
   "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/coffee.mp4",
+  "https://www.w3schools.com/html/mov_bbb.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
 ];
 
 function hashIndex(id, mod) {
@@ -62,9 +64,12 @@ export function flattenCurriculum(curriculum) {
   return flat;
 }
 
-export function videoSrcFor(lesson) {
-  return SAMPLE_VIDEOS[hashIndex(lesson.id, SAMPLE_VIDEOS.length)];
+export function videoSrcFor(lesson, attempt = 0) {
+  const startIndex = hashIndex(lesson.id, SAMPLE_VIDEOS.length);
+  return SAMPLE_VIDEOS[(startIndex + attempt) % SAMPLE_VIDEOS.length];
 }
+
+export const VIDEO_SOURCE_COUNT = SAMPLE_VIDEOS.length;
 
 // Mock reading content for "article" (Text Lesson Reader) lessons.
 export function textBodyFor(lesson, moduleTitle) {

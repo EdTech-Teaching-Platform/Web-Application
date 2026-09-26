@@ -33,6 +33,7 @@
 // Data below is mock/placeholder — wire to studentApi.js once dashboard
 // endpoints exist; kept local so the screen renders and is reviewable
 // without a backend.
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import ListRow from "../../../components/ui/ListRow";
@@ -49,6 +50,9 @@ import { COURSES } from "../../../data/catalogMock";
 import { isStudentCourseEnrolled } from "../data/studentLocalState";
 import MyTestSeriesSection from "../components/MyTestSeriesSection";
 import { formatClassStart, getLiveCourseSchedule } from "../data/liveCourseSchedule";
+import { getAllCourseProgress } from "../hooks/useCourseProgress";
+import { getCourseById } from "../../../data/catalogMock";
+import { flattenCurriculum } from "../components/coursePlayer/lessonContent";
 
 // `category` drives the card's placeholder photo (imageForCategory) — see
 // src/utils/stockImages.js.
@@ -96,18 +100,41 @@ export default function Dashboard() {
   const { user } = useAuth();
   const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
+  const [courseProgress, setCourseProgress] = useState(getAllCourseProgress);
+
+  useEffect(() => {
+    const refreshProgress = () => setCourseProgress(getAllCourseProgress());
+    window.addEventListener("ul-course-progress-changed", refreshProgress);
+    window.addEventListener("storage", refreshProgress);
+    return () => {
+      window.removeEventListener("ul-course-progress-changed", refreshProgress);
+      window.removeEventListener("storage", refreshProgress);
+    };
+  }, []);
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
   const overallProgress = 68;
   const streakDays = 7;
 
-  // Whichever in-progress course has the most recent activity — same
-  // source array the "Continue Learning" cards below render from, so the
-  // hero's course/lesson and its button target always match a real card,
-  // never a guess or a duplicate/conflicting summary.
-  const currentCourse = [...IN_PROGRESS_COURSES].sort(
-    (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-  )[0];
+  // The saved lastAccessedAt timestamp is written whenever a lesson opens.
+  // Keep the sample dates as a first-visit fallback, then let real student
+  // activity decide which course the welcome card resumes.
+  const currentCourse = [...IN_PROGRESS_COURSES]
+    .map((course) => {
+      const saved = courseProgress[course.id];
+      const lesson = saved?.lastLessonId
+        ? flattenCurriculum(getCourseById(course.id)?.curriculum ?? []).find((item) => item.id === saved.lastLessonId)
+        : null;
+      const savedLessonActivity = saved?.lastLessonId
+        ? saved.lessons?.[saved.lastLessonId]?.updatedAt
+        : null;
+      return {
+        ...course,
+        currentLesson: lesson?.title ?? course.currentLesson,
+        activityAt: Number(saved?.lastAccessedAt || savedLessonActivity) || new Date(course.updatedAt).getTime(),
+      };
+    })
+    .sort((a, b) => b.activityAt - a.activityAt)[0];
 
   return (
     <div className="mx-auto max-w-[1320px] px-4 py-7 sm:px-7 lg:px-10">

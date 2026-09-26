@@ -10,7 +10,7 @@ import {
   AlertTriangleIcon,
   RefreshIcon,
 } from "../../../../components/ui/icons";
-import { formatSeconds, videoSrcFor } from "./lessonContent";
+import { formatSeconds, videoSrcFor, VIDEO_SOURCE_COUNT } from "./lessonContent";
 import { VIDEO_COMPLETION_THRESHOLD } from "../../hooks/useCourseProgress";
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
@@ -46,6 +46,7 @@ const VideoLessonPlayer = forwardRef(function VideoLessonPlayer(
   const [errored, setErrored] = useState(simulateError);
   const [loading, setLoading] = useState(true);
   const [retryKey, setRetryKey] = useState(0);
+  const [sourceAttempt, setSourceAttempt] = useState(0);
   const resumedRef = useRef(false);
   const lastReportRef = useRef(0);
   const lastTickRef = useRef(0);
@@ -65,6 +66,7 @@ const VideoLessonPlayer = forwardRef(function VideoLessonPlayer(
   useEffect(() => {
     setErrored(simulateError);
     setLoading(!simulateError);
+    setSourceAttempt(0);
     resumedRef.current = false;
     lastTickRef.current = 0;
   }, [lesson.id, retryKey, simulateError]);
@@ -170,6 +172,9 @@ const VideoLessonPlayer = forwardRef(function VideoLessonPlayer(
   }
 
   function retry() {
+    setErrored(false);
+    setLoading(true);
+    setSourceAttempt(0);
     setRetryKey((k) => k + 1);
   }
 
@@ -195,9 +200,9 @@ const VideoLessonPlayer = forwardRef(function VideoLessonPlayer(
       <div ref={containerRef} className="group relative aspect-video w-full bg-black">
         {loading && <div className="absolute inset-0 z-10 animate-pulse bg-text/70" aria-hidden="true" />}
         <video
-          key={`${lesson.id}-${retryKey}`}
+          key={`${lesson.id}-${retryKey}-${sourceAttempt}`}
           ref={videoRef}
-          src={videoSrcFor(lesson)}
+          src={videoSrcFor(lesson, sourceAttempt)}
           className="h-full w-full"
           onLoadedMetadata={handleLoadedMetadata}
           onTimeUpdate={handleTimeUpdate}
@@ -212,7 +217,12 @@ const VideoLessonPlayer = forwardRef(function VideoLessonPlayer(
           onEnded={(e) => reportNow(e)}
           onError={() => {
             setLoading(false);
-            setErrored(true);
+            if (sourceAttempt + 1 < VIDEO_SOURCE_COUNT) {
+              setSourceAttempt((attempt) => attempt + 1);
+              setLoading(true);
+            } else {
+              setErrored(true);
+            }
           }}
           onClick={togglePlay}
         />
