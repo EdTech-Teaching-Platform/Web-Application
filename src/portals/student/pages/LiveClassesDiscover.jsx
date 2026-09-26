@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import Button from "../../../components/ui/Button";
 import SectionHeading from "../../../components/common/SectionHeading";
+import SectionShapes from "../../../components/common/SectionShapes";
 import CourseCarousel from "../../../components/common/CourseCarousel";
 import { ChevronDownIcon, SearchIcon } from "../../../components/ui/icons";
 import { COURSE_CATEGORIES, CATEGORY_META } from "../../../utils/constants";
@@ -147,7 +148,8 @@ export default function LiveClassesDiscover() {
       </div>
 
       {/* Live now / Starting soon */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-accent-peach/10 p-6 sm:p-8">
+        <SectionShapes variant="hero" />
         <SectionHeading eyebrow="Happening today" title="Live now & starting soon" subtitle="Jump into a session that's live, or catch one about to start." />
         <CourseCarousel
           courses={liveAndSoon}
@@ -162,7 +164,8 @@ export default function LiveClassesDiscover() {
       </section>
 
       {/* Popular */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl border border-text/5 bg-white p-6 sm:p-8">
+        <SectionShapes variant="courses" />
         <SectionHeading eyebrow="Trending" title="Popular live classes" subtitle="The live sessions students are booking the most." viewAllHref="#browse" />
         <CourseCarousel
           courses={popular}
@@ -176,7 +179,8 @@ export default function LiveClassesDiscover() {
       </section>
 
       {/* Recommended */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-accent-teal/10 p-6 sm:p-8">
+        <SectionShapes variant="why" />
         <SectionHeading eyebrow="For you" title="Recommended live classes" subtitle="Highly rated sessions in subjects you've shown interest in." />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {recommended.map((course, index) => (
@@ -204,7 +208,8 @@ export default function LiveClassesDiscover() {
       </section>
 
       {/* Browse by subject */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-bg p-6 sm:p-8">
+        <SectionShapes variant="categories" />
         <SectionHeading eyebrow="Browse" title="Browse by subject" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
           {COURSE_CATEGORIES.map((category) => {
@@ -228,7 +233,8 @@ export default function LiveClassesDiscover() {
       </section>
 
       {/* Browse / full filterable grid */}
-      <div id="browse" className="mt-14 scroll-mt-24 border-t border-text/10 pt-10">
+      <div id="browse" className="relative mt-14 scroll-mt-24 border-t border-text/10 bg-white rounded-3xl pt-10 p-6 sm:p-8">
+        <SectionShapes variant="educators" />
         <SectionHeading eyebrow="All live classes" title="Browse live classes" subtitle="Filter by category, level or educator to find your next session." />
         <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="h-fit rounded-2xl border border-text/10 bg-white p-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:self-start lg:overflow-y-auto">

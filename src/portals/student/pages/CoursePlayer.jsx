@@ -28,6 +28,10 @@ import {
   BookOpenIcon,
   FileTextIcon,
   ChatIcon,
+  UsersIcon,
+  ClockIcon,
+  VideoIcon,
+  PlayCircleIcon,
 } from "../../../components/ui/icons";
 import { RECORDINGS } from "../data/sessionMock";
 
@@ -200,6 +204,7 @@ export default function CoursePlayer() {
       currentLessonId={currentLesson.id}
       courseProgressPercent={courseProgressPercent}
       onSelectLesson={goToLesson}
+      recordingLessonId={recording?.lessonId ?? null}
     />
   );
 
@@ -237,10 +242,38 @@ export default function CoursePlayer() {
       <div className="flex min-w-0 min-h-0 flex-1">
       <div className="min-w-0 min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:px-10">
         {recording && (
-          <div className="mb-5 rounded-2xl bg-rotation-3 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text/55">Live session recording</p>
-            <p className="mt-1 text-sm font-semibold text-text">{recording.title} · {recording.date}</p>
-            <p className="mt-1 text-xs text-text/60">View-only playback · {recording.duration}</p>
+          <div className="mb-5 overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/8 via-white to-[#fbf0ea] shadow-[0_8px_24px_rgba(23,50,77,0.06)]">
+            <div className="flex items-center gap-2 border-b border-primary/10 bg-primary/10 px-5 py-2">
+              <VideoIcon className="h-3.5 w-3.5 text-primary" />
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Recorded Live Session</p>
+            </div>
+            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 font-display text-sm font-bold text-primary">
+                  {recording.educator
+                    .split(" ")
+                    .map((p) => p[0])
+                    .join("")
+                    .slice(0, 2)}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-display text-sm font-bold text-text">{recording.title}</p>
+                  <p className="mt-0.5 text-xs text-text/55">Hosted live by {recording.educator} · {recording.date}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 sm:justify-end">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-text/60">
+                  <ClockIcon className="h-3.5 w-3.5 text-primary/70" /> {recording.duration}
+                </span>
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-text/60">
+                  {/* Presentational mock stat — no live attendance-count backend field on RECORDINGS today */}
+                  <UsersIcon className="h-3.5 w-3.5 text-primary/70" /> {recording.mockAttendeeCount ?? 48} students attended live
+                </span>
+                <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-text/50 shadow-xs">
+                  View-only playback
+                </span>
+              </div>
+            </div>
           </div>
         )}
         <div className="flex items-center justify-between gap-4 mb-3">
@@ -393,61 +426,109 @@ export default function CoursePlayer() {
         </div>
 
           <aside className="hidden h-full min-h-0 w-[300px] shrink-0 overflow-y-auto px-6 py-6 xl:block">
-            <section className="rounded-2xl border border-[#eadbd3] bg-[#fbf0ea] p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/65">Keep going</p>
-                  <h2 className="mt-1 font-display text-base font-bold text-text">Your course progress</h2>
-                </div>
-                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-primary">{courseProgressPercent}%</span>
-              </div>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/80">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${courseProgressPercent}%` }} />
-              </div>
-              <p className="mt-3 text-xs leading-5 text-text/60">
-                {completedCount} of {flatLessons.length} lessons completed. A little progress today adds up.
-              </p>
-            </section>
+            {recording ? (
+              <>
+                <section className="rounded-2xl border border-[#eadbd3] bg-[#fbf0ea] p-5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/65">Recorded session</p>
+                  <h2 className="mt-1 font-display text-base font-bold text-text">Session details</h2>
+                  <dl className="mt-3 space-y-2 text-xs text-text/65">
+                    <div className="flex items-center justify-between">
+                      <dt className="text-text/45">Host</dt>
+                      <dd className="font-semibold text-text">{recording.educator}</dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt className="text-text/45">Original date</dt>
+                      <dd className="font-semibold text-text">{recording.date}</dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt className="text-text/45">Duration</dt>
+                      <dd className="font-semibold text-text">{recording.duration}</dd>
+                    </div>
+                  </dl>
+                </section>
 
-            <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.05)]">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text/45">Up next</p>
-              <h2 className="mt-1 font-display text-base font-bold text-text">
-                {nextLesson ? nextLesson.title : "Course complete"}
-              </h2>
-              <p className="mt-2 text-xs leading-5 text-text/55">
-                {nextLesson
-                  ? `${nextLesson.moduleTitle} · ${nextLesson.type === "video" ? "Video lesson" : "Learning activity"}`
-                  : "You have finished every lesson in this course."}
-              </p>
-              {nextLesson && (
-                <button type="button" onClick={() => goToLesson(nextLesson.id)} className="mt-4 w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-primary/90">
-                  Continue next lesson
-                </button>
-              )}
-            </section>
+                <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.05)]">
+                  <h2 className="font-display text-base font-bold text-text">Session materials</h2>
+                  <div className="mt-3 space-y-2">
+                    <button type="button" onClick={() => setActiveTab("notes")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>Review my notes</span><span className="text-primary">→</span>
+                    </button>
+                    <button type="button" onClick={() => setActiveTab("qa")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>Ask about this session</span><span className="text-primary">→</span>
+                    </button>
+                    <button type="button" onClick={() => navigate("/student/recordings")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>All my recordings</span><span className="text-primary">→</span>
+                    </button>
+                    <button type="button" onClick={() => navigate("/student/attendance")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>My live session attendance</span><span className="text-primary">→</span>
+                    </button>
+                  </div>
+                </section>
 
-            <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.05)]">
-              <h2 className="font-display text-base font-bold text-text">Study shortcuts</h2>
-              <div className="mt-3 space-y-2">
-                <button type="button" onClick={() => setActiveTab("notes")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
-                  <span>Review my notes</span><span className="text-primary">→</span>
-                </button>
-                <button type="button" onClick={() => setActiveTab("qa")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
-                  <span>Ask the course community</span><span className="text-primary">→</span>
-                </button>
-                <button type="button" onClick={() => navigate(`/student/course/${course.id}`)} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
-                  <span>View course overview</span><span className="text-primary">→</span>
-                </button>
-                <button type="button" onClick={() => navigate(`/student/learninghistory?course=${course.id}`)} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
-                  <span>View course learning history</span><span className="text-primary">→</span>
-                </button>
-              </div>
-            </section>
+                <section className="rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5">
+                  <p className="text-xs font-bold text-[#28756f]">Recording note</p>
+                  <p className="mt-2 text-xs leading-5 text-text/65">This is a view-only replay of a past live class — chat and live Q&amp;A aren't available, but you can still ask questions in the course Q&amp;A tab.</p>
+                </section>
+              </>
+            ) : (
+              <>
+                <section className="rounded-2xl border border-[#eadbd3] bg-[#fbf0ea] p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/65">Keep going</p>
+                      <h2 className="mt-1 font-display text-base font-bold text-text">Your course progress</h2>
+                    </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-primary">{courseProgressPercent}%</span>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/80">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${courseProgressPercent}%` }} />
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-text/60">
+                    {completedCount} of {flatLessons.length} lessons completed. A little progress today adds up.
+                  </p>
+                </section>
 
-            <section className="rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5">
-              <p className="text-xs font-bold text-[#28756f]">Learning tip</p>
-              <p className="mt-2 text-xs leading-5 text-text/65">After each lesson, write one takeaway and one question. It makes revision and discussion much easier.</p>
-            </section>
+                <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.05)]">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text/45">Up next</p>
+                  <h2 className="mt-1 font-display text-base font-bold text-text">
+                    {nextLesson ? nextLesson.title : "Course complete"}
+                  </h2>
+                  <p className="mt-2 text-xs leading-5 text-text/55">
+                    {nextLesson
+                      ? `${nextLesson.moduleTitle} · ${nextLesson.type === "video" ? "Video lesson" : "Learning activity"}`
+                      : "You have finished every lesson in this course."}
+                  </p>
+                  {nextLesson && (
+                    <button type="button" onClick={() => goToLesson(nextLesson.id)} className="mt-4 w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-primary/90">
+                      Continue next lesson
+                    </button>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.05)]">
+                  <h2 className="font-display text-base font-bold text-text">Study shortcuts</h2>
+                  <div className="mt-3 space-y-2">
+                    <button type="button" onClick={() => setActiveTab("notes")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>Review my notes</span><span className="text-primary">→</span>
+                    </button>
+                    <button type="button" onClick={() => setActiveTab("qa")} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>Ask the course community</span><span className="text-primary">→</span>
+                    </button>
+                    <button type="button" onClick={() => navigate(`/student/course/${course.id}`)} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>View course overview</span><span className="text-primary">→</span>
+                    </button>
+                    <button type="button" onClick={() => navigate(`/student/learninghistory?course=${course.id}`)} className="flex w-full items-center justify-between rounded-xl bg-[#fffaf7] px-3 py-3 text-left text-xs font-semibold text-text/70 transition hover:bg-primary/5 hover:text-primary">
+                      <span>View course learning history</span><span className="text-primary">→</span>
+                    </button>
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5">
+                  <p className="text-xs font-bold text-[#28756f]">Learning tip</p>
+                  <p className="mt-2 text-xs leading-5 text-text/65">After each lesson, write one takeaway and one question. It makes revision and discussion much easier.</p>
+                </section>
+              </>
+            )}
           </aside>
       </div>
       </div>

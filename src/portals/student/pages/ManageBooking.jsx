@@ -12,7 +12,7 @@ import {
 import { AVAILABLE_SLOTS, ATTENDANCE_SESSIONS, RECORDINGS, getStoredBooking } from "../data/sessionMock";
 import { imageForCategory } from "../../../utils/stockImages";
 
-const weekDays = ["MON 15", "TUE 16", "WED 17", "THU 18", "FRI 19", "SAT 20", "SUN 21"];
+const DAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const todayItems = [
   { time: "10:00 AM", title: "Python Programming", topic: "Loops & Functions", educator: "Priya Sharma", status: "Completed", category: "Programming" },
   { time: "2:00 PM", title: "Java Programming", topic: "OOP Concepts", educator: "Rohit Mehta", status: "Upcoming", category: "Programming" },
@@ -22,6 +22,19 @@ const weekItems = [
   ...todayItems,
   { time: "7:00 PM", title: "Data Science", topic: "Working with datasets", educator: "Anaya Kapoor", status: "Upcoming", category: "Science" },
 ];
+
+function getCurrentWeek() {
+  const now = new Date();
+  const mondayOffset = (now.getDay() + 6) % 7; // 0 = Monday
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(now.getDate() - mondayOffset);
+  return DAY_LABELS.map((label, index) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + index);
+    return { label, dayOfMonth: date.getDate(), isToday: index === mondayOffset };
+  });
+}
 
 function StatusPill({ children }) {
   const tone = children === "Completed"
@@ -68,6 +81,9 @@ export default function ManageBooking() {
   const [booking] = useState(() => getStoredBooking());
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const currentWeek = useState(() => getCurrentWeek())[0];
+  const todayIndex = currentWeek.findIndex((day) => day.isToday);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex);
   const availableRecordings = RECORDINGS.filter((recording) => recording.status === "Available");
   const attended = ATTENDANCE_SESSIONS.filter((session) => session.attended).length;
   const missed = ATTENDANCE_SESSIONS.filter((session) => !session.attended).length;
@@ -172,9 +188,13 @@ export default function ManageBooking() {
       <section className="mt-6 rounded-2xl border border-text/10 bg-white p-5 shadow-sm sm:p-6">
         <SectionHeading eyebrow="This week" title="This week's schedule" action={<button type="button" onClick={() => navigate("/student/calendar")} className="text-xs font-semibold text-primary hover:underline">View full calendar →</button>} />
         <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
-          {weekDays.map((day, index) => <button type="button" key={day} className={`rounded-xl border px-2 py-2.5 text-center text-[11px] font-semibold ${index === 2 ? "border-primary bg-primary text-white" : "border-text/10 text-text/60 hover:border-primary/40"}`}>{day}</button>)}
+          {currentWeek.map((day, index) => <button type="button" key={`${day.label}-${day.dayOfMonth}`} onClick={() => setSelectedDayIndex(index)} className={`rounded-xl border px-2 py-2.5 text-center text-[11px] font-semibold ${index === selectedDayIndex ? "border-primary bg-primary text-white" : day.isToday ? "border-primary/50 text-primary" : "border-text/10 text-text/60 hover:border-primary/40"}`}>{day.label} {day.dayOfMonth}</button>)}
         </div>
-        <div>{weekItems.map((item) => <ScheduleRow key={`${item.time}-${item.title}`} item={item} onClick={() => undefined} />)}</div>
+        <div>
+          {selectedDayIndex === todayIndex
+            ? weekItems.map((item) => <ScheduleRow key={`${item.time}-${item.title}`} item={item} onClick={() => undefined} />)
+            : <div className="rounded-2xl bg-bg p-5 text-sm text-text/50">No sample classes scheduled for this day.</div>}
+        </div>
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

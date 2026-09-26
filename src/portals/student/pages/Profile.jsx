@@ -3,6 +3,7 @@ import { useState } from "react";
 import Button from "../../../components/ui/Button";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { useAuth } from "../../../hooks/useAuth";
+import SectionShapes from "../../../components/common/SectionShapes";
 import { useScrollToHash } from "../../../hooks/useScrollToHash";
 
 export default function Profile() {
@@ -20,14 +21,17 @@ export default function Profile() {
     .toUpperCase();
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-10">
-      <div className="border-b border-text/10 pb-6">
+    <div>
+      <div className="relative rounded-b-3xl bg-bg px-4 pb-6 pt-8 sm:px-6 lg:px-10">
+      <SectionShapes variant="hero" />
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Account</p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text">Your profile</h1>
         <p className="mt-2 text-sm text-text/60">Manage your learner identity and account preferences.</p>
       </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="px-4 py-8 sm:px-6 lg:px-10">
+      <div className="relative rounded-3xl bg-white p-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+      <SectionShapes variant="courses" />
         <section className="rounded-2xl border border-text/10 bg-white p-6">
           <div className="flex items-start justify-between gap-4 border-b border-text/10 pb-5">
             <div className="flex items-center gap-4">
@@ -76,7 +80,7 @@ export default function Profile() {
             <button type="button" onClick={() => navigate("/student/learninghistory")} className="text-xs font-semibold text-primary">View history →</button>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[["2", "Courses enrolled", "bg-[#fff0eb]"], ["62%", "Course progress", "bg-[#eef7f4]"], ["7 days", "Current streak", "bg-[#fff8df]"], ["1", "Certificate earned", "bg-[#f1eefb]"]].map(([value, label, color]) => <div key={label} className={`rounded-2xl ${color} p-4`}><strong className="block font-display text-2xl text-text">{value}</strong><span className="mt-1 block text-xs text-text/55">{label}</span></div>)}
+            {[["2", "Courses enrolled"], ["62%", "Course progress"], ["7 days", "Current streak"], ["1", "Certificate earned"]].map(([value, label]) => <div key={label} className="rounded-2xl bg-bg p-4"><strong className="block font-display text-2xl text-text">{value}</strong><span className="mt-1 block text-xs text-text/55">{label}</span></div>)}
           </div>
           <div className="mt-5 rounded-2xl bg-bg p-4">
             <div className="flex items-center justify-between text-xs"><span className="font-semibold text-text">Profile completion</span><strong className="text-primary">75%</strong></div>
@@ -153,6 +157,7 @@ export default function Profile() {
 
       <div className="mt-5 rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5 text-sm text-text/65">
         <strong className="text-[#28756f]">Need help with your account?</strong> Visit My Payments for billing support, or manage your live class bookings from Manage Booking.
+      </div>
       </div>
     </div>
   );

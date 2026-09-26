@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
+import SectionShapes from "../../../components/common/SectionShapes";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { AlertTriangleIcon, CheckCircleIcon, ClockIcon, FileTextIcon, SearchIcon, StarIcon, TargetIcon } from "../../../components/ui/icons";
 import { ATTEMPT_STORAGE_KEY, ASSESSMENT_CATEGORIES, DIFFICULTIES, DURATION_FILTERS, QUESTION_TYPES, SORT_OPTIONS, TEST_SERIES, TEST_TYPES, getSavedAttempts } from "../data/assessmentCatalog";
@@ -95,9 +96,14 @@ export default function TestSeries() {
     </div>;
   }
 
-  return <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
-    <div className="flex flex-wrap items-end justify-between gap-4"><div><Link to="/student/assessments/test-series" className="text-xs font-semibold text-primary">Test Series</Link><p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Structured tests & mock exams</p><h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Test Series</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text/55">Build confidence with focused practice, timed mock exams and course-level assessments.</p></div><div className="flex flex-col items-end gap-2"><div className="rounded-2xl bg-[#e7f1ef] px-4 py-3 text-xs font-semibold text-[#28756f]">{TEST_SERIES.length} curated assessments · results saved to My Results</div><Link to="/student/assessments/my-results" className="rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/5">View My Results →</Link></div></div>
-    <div className="mt-6 grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
+  return <div>
+    <div className="relative rounded-b-3xl bg-bg px-4 py-8 sm:px-6 lg:px-10">
+    <SectionShapes variant="hero" />
+    <div className="mx-auto max-w-7xl flex flex-wrap items-end justify-between gap-4"><div><Link to="/student/assessments/test-series" className="text-xs font-semibold text-primary">Test Series</Link><p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Structured tests & mock exams</p><h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Test Series</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text/55">Build confidence with focused practice, timed mock exams and course-level assessments.</p></div><div className="flex flex-col items-end gap-2"><div className="rounded-2xl bg-accent-teal/10 px-4 py-3 text-xs font-semibold text-[#28756f]">{TEST_SERIES.length} curated assessments · results saved to My Results</div><Link to="/student/assessments/my-results" className="rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/5">View My Results →</Link></div></div>
+    </div>
+    <div className="relative mx-auto max-w-7xl bg-white rounded-3xl px-4 py-8 sm:px-6 lg:px-10">
+    <SectionShapes variant="courses" />
+    <div className="grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
       <aside className="h-fit rounded-2xl border border-text/10 bg-white p-4 lg:sticky lg:top-20"><div className="flex items-center justify-between border-b border-text/10 pb-3"><h2 className="font-display font-bold text-text">Filters</h2><button type="button" onClick={() => { setCategory(""); setDifficulty(""); setType(""); setDuration(""); setQuestionType(""); setQuery(""); }} className="text-xs font-semibold text-primary">Clear all</button></div>
         {[["Category", "categories", ASSESSMENT_CATEGORIES, category, setCategory], ["Difficulty", "difficulties", DIFFICULTIES, difficulty, setDifficulty], ["Test type", "test types", TEST_TYPES, type, setType], ["Duration", "durations", DURATION_FILTERS, duration, setDuration], ["Question type", "question types", QUESTION_TYPES, questionType, setQuestionType]].map(([label, plural, options, value, setter]) => <label key={label} className="mt-4 block"><span className="mb-1.5 block text-xs font-semibold text-text/65">{label}</span><select value={value} onChange={(event) => setter(event.target.value)} className="w-full rounded-lg border border-text/10 bg-white px-3 py-2.5 text-xs text-text outline-none focus:border-primary"><option value="">All {plural}</option>{options.map((option) => <option key={option}>{option}</option>)}</select></label>)}
       </aside>
@@ -105,6 +111,7 @@ export default function TestSeries() {
         <div className="mt-4 flex items-center justify-between text-xs text-text/45"><span>{filtered.length} assessments</span><span className="hidden items-center gap-1 sm:inline-flex"><StarIcon className="h-3.5 w-3.5 fill-current text-[#b88825]" />Original practice content</span></div>
         {filtered.length ? <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{filtered.map((item) => <SeriesCard key={item.id} assessment={item} />)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-text/15 bg-white px-6 py-14 text-center"><h2 className="font-display text-lg font-bold text-text">No tests match these filters</h2><p className="mt-2 text-sm text-text/50">Try a broader search or clear your filters.</p></div>}
       </section>
+    </div>
     </div>
   </div>;
 }

@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import Button from "../../../components/ui/Button";
 import SectionHeading from "../../../components/common/SectionHeading";
+import SectionShapes from "../../../components/common/SectionShapes";
 import CourseCarousel from "../../../components/common/CourseCarousel";
 import { ChevronDownIcon, SearchIcon } from "../../../components/ui/icons";
 import { COURSE_CATEGORIES, CATEGORY_META } from "../../../utils/constants";
@@ -141,7 +142,8 @@ export default function RecordedClassesDiscover() {
       </div>
 
       {/* Popular recorded classes */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl border border-text/5 bg-white p-6 sm:p-8">
+        <SectionShapes variant="courses" />
         <SectionHeading eyebrow="Trending now" title="Popular recorded classes" subtitle="Self-paced courses students are enrolling in most." viewAllHref="#browse" />
         <CourseCarousel
           courses={popular}
@@ -155,7 +157,8 @@ export default function RecordedClassesDiscover() {
       </section>
 
       {/* Trending this week */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-accent-sky/10 p-6 sm:p-8">
+        <SectionShapes variant="paths" />
         <SectionHeading eyebrow="This week" title="Trending this week" subtitle="Highly rated courses picking up momentum." />
         <CourseCarousel
           courses={trending}
@@ -170,7 +173,8 @@ export default function RecordedClassesDiscover() {
       </section>
 
       {/* Recommended for you */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-bg p-6 sm:p-8">
+        <SectionShapes variant="why" />
         <SectionHeading eyebrow="For you" title="Recommended for you" subtitle="Based on your interests and learning goals." />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {recommended.map((course, index) => (
@@ -198,7 +202,8 @@ export default function RecordedClassesDiscover() {
       </section>
 
       {/* Newly added */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl bg-accent-lilac/10 p-6 sm:p-8">
+        <SectionShapes variant="goals" />
         <SectionHeading eyebrow="Fresh" title="Newly added" subtitle="The latest recorded courses on Universal Learning." />
         <CourseCarousel
           courses={newlyAdded}
@@ -213,7 +218,8 @@ export default function RecordedClassesDiscover() {
       </section>
 
       {/* Browse by category */}
-      <section className="mt-12">
+      <section className="relative mt-12 rounded-3xl border border-text/5 bg-white p-6 sm:p-8">
+        <SectionShapes variant="student" />
         <SectionHeading eyebrow="Browse" title="Browse by category" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
           {COURSE_CATEGORIES.map((category) => {
@@ -237,7 +243,8 @@ export default function RecordedClassesDiscover() {
       </section>
 
       {/* Browse / full filterable grid */}
-      <div id="browse" className="mt-14 scroll-mt-24 border-t border-text/10 pt-10">
+      <div id="browse" className="relative mt-14 scroll-mt-24 border-t border-text/10 pt-10">
+        <SectionShapes variant="educators" />
         <SectionHeading eyebrow="All recorded classes" title="Browse recorded classes" subtitle="Filter by category, level, price or rating." />
         <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="h-fit rounded-2xl border border-text/10 bg-white p-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:self-start lg:overflow-y-auto">

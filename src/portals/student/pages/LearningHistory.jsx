@@ -9,6 +9,8 @@ import { getStudentEnrolledCourseIds } from "../data/studentLocalState";
 import { imageForCategory } from "../../../utils/stockImages";
 import { useActivityLog } from "../hooks/useActivityLog";
 import { getAllCourseProgress } from "../hooks/useCourseProgress";
+import { ATTENDANCE_SESSIONS } from "../data/sessionMock";
+import SectionShapes from "../../../components/common/SectionShapes";
 
 const FILTERS = [
   { id: "all", label: "All activity" },
@@ -79,6 +81,19 @@ export default function LearningHistory() {
   const storedProgress = getAllCourseProgress();
 
   const visibleCourses = useMemo(() => enrolledCourses.filter((course) => `${course.title} ${course.subtitle} ${course.category}`.toLowerCase().includes(query.trim().toLowerCase())), [enrolledCourses, query]);
+  // Missed live classes -- reuses the same ATTENDANCE_SESSIONS data and
+  // recordingId/sessionId fields already wired up in CourseDetails.jsx's
+  // attendance card ("Watch recording" -> /student/recordings?session=...
+  // when recordingId exists, otherwise -> /student/attendance"). "Missed"
+  // is simply attended === false on a session for a course the student is
+  // currently enrolled in -- no new missed/recording data model.
+  const missedSessions = useMemo(
+    () =>
+      ATTENDANCE_SESSIONS.filter(
+        (session) => session.attended === false && enrolledCourses.some((course) => course.id === session.courseId)
+      ),
+    [enrolledCourses]
+  );
   const courseActivities = useMemo(() => entries.filter((activity) => activity.courseId === selectedId).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)), [entries, selectedId]);
   const filteredActivities = useMemo(() => courseActivities.filter((activity) => {
     const matchesFilter = filter === "all" || (filter === "video" && (activity.lessonType === "video" || activity.activityType === "watched")) || (filter === "pdf" && ["resource", "pdf"].includes(activity.lessonType)) || (filter === "text" && ["article", "text"].includes(activity.lessonType)) || (filter === "completed" && (activity.activityType === "completed" || activity.percent === 100));
@@ -119,6 +134,45 @@ export default function LearningHistory() {
 
   return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Your learning, organized by course</p><h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Learning History</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text/55">Choose an enrolled course to review your lessons, progress, and recent activity.</p></div><label className="relative w-full sm:w-72"><SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/35"/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your courses..." className="w-full rounded-full border border-text/10 bg-white py-3 pl-9 pr-4 text-sm outline-none focus:border-primary"/></label></header>
+    {missedSessions.length > 0 && (
+      <section className="relative mt-6 overflow-hidden rounded-2xl bg-bg p-5 sm:p-6">
+        <SectionShapes variant="why" />
+        <div className="relative">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Catch up</p>
+          <h2 className="mt-1 font-display text-lg font-bold text-text">Missed live classes</h2>
+          <p className="mt-1 text-xs text-text/50">Live sessions you were enrolled in but didn't attend. Watch the recording if one is available.</p>
+          <div className="mt-4 space-y-2">
+            {missedSessions.map((session) => {
+              const missedCourse = enrolledCourses.find((course) => course.id === session.courseId);
+              return (
+                <div key={session.id} className="flex flex-col gap-3 rounded-xl border border-text/10 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-text/45">{missedCourse?.title || "Course"} · {session.date}</p>
+                    <h3 className="mt-1 truncate font-display text-sm font-bold text-text">{session.topic}</h3>
+                    <p className="text-xs text-text/45">{session.educator}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status="warning">Missed</StatusBadge>
+                    {session.recordingId ? (
+                      <Button
+                        fullWidth={false}
+                        variant="secondary"
+                        className="!px-3 !py-1.5 text-xs"
+                        onClick={() => navigate(`/student/recordings?session=${session.sessionId}`)}
+                      >
+                        Watch recording →
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-text/40">No recording available</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    )}
     {visibleCourses.length ? <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleCourses.map((course) => {
       const activities = entries.filter((activity) => activity.courseId === course.id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       const progress = courseProgress(course, activities, storedProgress);

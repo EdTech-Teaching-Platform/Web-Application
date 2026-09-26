@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckIcon, ChevronDownIcon, CircleIcon, PlayIcon } from "../../../../components/ui/icons";
+import { CheckIcon, ChevronDownIcon, CircleIcon, PlayIcon, VideoIcon } from "../../../../components/ui/icons";
 import { LESSON_TYPE_ICON } from "./lessonContent";
 
 // Left-hand Course Navigation rail (spec Section 1). Not the FilterPill-
@@ -8,10 +8,39 @@ import { LESSON_TYPE_ICON } from "./lessonContent";
 // needs custom per-lesson rows (icon + duration + state), so it's its own
 // small collapsible list, same "new, portal-local, single consumer today"
 // pattern as GoalRing/StreakRow from the Dashboard restyle.
-function LessonRow({ lesson, state, active, onSelect }) {
+function LessonRow({ lesson, state, active, onSelect, isRecording }) {
   const TypeIcon = LESSON_TYPE_ICON[lesson.type] ?? CircleIcon;
   const isCompleted = state.status === "completed";
   const isInProgress = state.status === "in-progress";
+
+  // Live-session recording lessons get their own distinct card treatment
+  // (not just a highlight color) so they don't blend in as "just another
+  // lesson" — see CoursePlayer's Recorded Live Session summary card above.
+  if (isRecording) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={active ? "true" : undefined}
+        className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 ${
+          active
+            ? "border-primary bg-primary text-white"
+            : "border-primary/20 bg-primary/5 text-text hover:bg-primary/10"
+        }`}
+      >
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${active ? "bg-white/20" : "bg-primary/15"}`}>
+          <VideoIcon className={`h-3.5 w-3.5 ${active ? "text-white" : "text-primary"}`} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={`block truncate text-sm ${active ? "font-semibold" : "font-medium"}`}>{lesson.title}</span>
+          <span className={`block text-[10px] font-bold uppercase tracking-wide ${active ? "text-white/70" : "text-primary/70"}`}>
+            Recorded live session
+          </span>
+        </span>
+        <span className={`shrink-0 text-xs ${active ? "text-white/70" : "text-text/40"}`}>{lesson.duration}</span>
+      </button>
+    );
+  }
 
   return (
     <button
@@ -42,7 +71,7 @@ function LessonRow({ lesson, state, active, onSelect }) {
   );
 }
 
-function ModuleSection({ module, lessons, getLessonState, currentLessonId, onSelectLesson, defaultOpen }) {
+function ModuleSection({ module, lessons, getLessonState, currentLessonId, onSelectLesson, defaultOpen, recordingLessonId }) {
   const [open, setOpen] = useState(defaultOpen);
   const completedCount = lessons.filter((l) => getLessonState(l.id).status === "completed").length;
   const modulePercent = lessons.length ? Math.round((completedCount / lessons.length) * 100) : 0;
@@ -77,6 +106,7 @@ function ModuleSection({ module, lessons, getLessonState, currentLessonId, onSel
               state={getLessonState(lesson.id)}
               active={lesson.id === currentLessonId}
               onSelect={() => onSelectLesson(lesson.id)}
+              isRecording={lesson.id === recordingLessonId}
             />
           ))}
         </div>
@@ -96,6 +126,7 @@ export default function CourseNavSidebar({
   currentLessonId,
   courseProgressPercent,
   onSelectLesson,
+  recordingLessonId = null,
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -128,6 +159,7 @@ export default function CourseNavSidebar({
             currentLessonId={currentLessonId}
             onSelectLesson={onSelectLesson}
             defaultOpen={module.lessons.some((l) => l.id === currentLessonId) || i === 0}
+            recordingLessonId={recordingLessonId}
           />
         ))}
       </div>

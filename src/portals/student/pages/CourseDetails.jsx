@@ -20,6 +20,7 @@ import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import { getCourseById, getEducatorById, getRelatedCourses, imageForEducator } from "../../../data/catalogMock";
 import { imgFallback } from "../../../utils/stockImages";
+import SectionShapes from "../../../components/common/SectionShapes";
 import AttendanceCard from "../components/AttendanceCard";
 import { ATTENDANCE_SESSIONS } from "../data/sessionMock";
 import {
@@ -266,7 +267,8 @@ export default function CourseDetails() {
         {/* Main column */}
         <div className="lg:col-span-2">
           {/* Hero */}
-          <div className="overflow-hidden rounded-3xl bg-white">
+          <div className="relative overflow-hidden rounded-3xl bg-white">
+            <SectionShapes variant="hero" />
             <div className="relative aspect-[16/8] w-full overflow-hidden">
               <img
                 src={course.image}
@@ -571,7 +573,8 @@ export default function CourseDetails() {
             more functional" guidance for transactional surfaces even
             though this specific card sits on a bold Discovery page. */}
         <aside className="lg:col-span-1">
-          <div className="rounded-3xl bg-white p-6 lg:sticky lg:top-6">
+          <div className="relative rounded-3xl bg-white p-6 lg:sticky lg:top-6">
+          <SectionShapes variant="cta" />
             <div className="flex items-baseline gap-2">
               <span className="font-display text-3xl font-bold text-text">
                 {course.price === 0 ? "Free" : `₹${course.price}`}

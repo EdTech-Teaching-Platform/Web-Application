@@ -46,7 +46,7 @@ export const ATTENDANCE_SESSIONS = [
     duration: "0 minutes",
     attended: false,
     percentage: 0,
-    recordingId: null,
+    recordingId: "rec-5",
   },
   {
     id: "att-3",
@@ -59,6 +59,18 @@ export const ATTENDANCE_SESSIONS = [
     attended: true,
     percentage: 82,
     recordingId: "rec-2",
+  },
+  {
+    id: "att-4",
+    courseId: "c1",
+    sessionId: "old-1",
+    topic: "Python — Getting Started Q&A",
+    educator: "Priya Sharma",
+    date: "January 12, 2025",
+    duration: "0 minutes",
+    attended: false,
+    percentage: 0,
+    recordingId: "rec-3",
   },
 ];
 
@@ -110,6 +122,18 @@ export const RECORDINGS = [
     duration: "36 minutes",
     status: "Available",
     access: "unauthorized",
+  },
+  {
+    id: "rec-5",
+    courseId: "c1",
+    lessonId: "l10",
+    sessionId: "l2",
+    title: "Python — Debugging Clinic",
+    educator: "Priya Sharma",
+    date: "September 6, 2026",
+    duration: "46 minutes",
+    status: "Available",
+    access: "authorized",
   },
 ];
 

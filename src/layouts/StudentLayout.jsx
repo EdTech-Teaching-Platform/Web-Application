@@ -3,19 +3,13 @@ import Navbar from "../components/common/Navbar";
 import { CompassIcon, HelpCircleIcon, HomeIcon } from "../components/ui/icons";
 import { useAuth } from "../hooks/useAuth";
 import StudentErrorBoundary from "../components/common/StudentErrorBoundary";
-import AmbientPortalBackdrop from "../components/common/AmbientPortalBackdrop";
+import SectionShapes from "../components/common/SectionShapes";
 
 const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
-  {
-    label: "Test Series",
-    items: [
-      { href: "/student/assessments/test-series", label: "Browse Test Series" },
-      { href: "/student/assessments/my-results", label: "My Results" },
-    ],
-  },
   { href: "/student/explore", label: "Explore" },
   { href: "/student/my-learning", label: "My Learning" },
+  { href: "/student/test-series", label: "Test Series" },
   {
     label: "Classes",
     items: [
@@ -28,6 +22,8 @@ const navEntries = [
     label: "Assessments",
     items: [
       { href: "/student/assessments/course-quizzes", label: "Assignments" },
+      { href: "/student/assessments/test-series", label: "Practice Test Catalog" },
+      { href: "/student/assessments/my-results", label: "My Results" },
     ],
   },
   { label: "Engage", items: [
@@ -91,7 +87,6 @@ export default function StudentLayout() {
         onSignOut={logout}
         user={user}
       />
-      <AmbientPortalBackdrop />
       <div className="relative z-10 flex min-h-0 flex-1">
         {/* No global "Back" button here on purpose — it used to show on
             every page except Dashboard, which put it on plain sidebar
@@ -101,6 +96,7 @@ export default function StudentLayout() {
             render their own BackButton / contextual "Back to X" action
             instead, scoped to where that specific page was entered from. */}
         <main className={`student-main min-w-0 flex-1 pb-20 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
+          <SectionShapes variant="student" />
           <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
             <Outlet />
           </StudentErrorBoundary>

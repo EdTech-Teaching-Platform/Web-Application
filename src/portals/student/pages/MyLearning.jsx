@@ -4,6 +4,7 @@ import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import Chip from "../../../components/ui/Chip";
 import Button from "../../../components/ui/Button";
 import { SearchIcon } from "../../../components/ui/icons";
+import SectionShapes from "../../../components/common/SectionShapes";
 import { imageForCategory } from "../../../utils/stockImages";
 import { getCourseById } from "../../../data/catalogMock";
 import { useAuth } from "../../../hooks/useAuth";
@@ -81,8 +82,10 @@ export default function MyLearning() {
   const averageProgress = enrolledCourses.length ? Math.round(enrolledCourses.reduce((total, course) => total + course.progress, 0) / enrolledCourses.length) : 0;
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-10">
-      <div className="flex flex-col gap-5 border-b border-text/10 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <div className="relative rounded-b-3xl bg-bg px-4 pb-6 pt-8 sm:px-6 lg:px-10">
+        <SectionShapes variant="hero" />
+      <div className="flex flex-col gap-5 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Your library</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text">My Learning</h1>
@@ -105,14 +108,17 @@ export default function MyLearning() {
           </select>
         </div>
       </div>
-      <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      </div>
+      <div className="px-4 py-8 sm:px-6 lg:px-10">
+      <section className="relative mt-0 rounded-3xl bg-white p-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SectionShapes variant="categories" />
         {[
           [String(enrolledCourses.length), "Enrolled courses", "Across your learning library"],
           [String(inProgressCount), "In progress", "Ready for your next session"],
           [`${averageProgress}%`, "Average progress", "Across all enrolled courses"],
           [String(completedCount), "Completed", "Certificates and milestones"],
         ].map(([value, label, detail], index) => (
-          <div key={label} className={`rounded-2xl border border-text/10 p-4 ${index === 1 ? "bg-[#fbf0ea]" : "bg-white"}`}>
+          <div key={label} className="rounded-2xl border border-text/10 bg-white p-4">
             <strong className="block font-display text-2xl text-[#17324d]">{value}</strong>
             <span className="mt-1 block text-sm font-semibold text-text">{label}</span>
             <span className="mt-1 block text-xs text-text/45">{detail}</span>
@@ -205,7 +211,8 @@ export default function MyLearning() {
       </section>
       {courses.length ? (
         <>
-        <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="relative mt-7 rounded-3xl bg-bg p-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <SectionShapes variant="courses" />
           {courses.map((course, index) => {
             const player = course.status === "Not Started" || course.status === "In Progress";
             const destination = player ? `/student/courseplayer?course=${course.id}` : `/student/course/${course.id}`;
@@ -220,6 +227,7 @@ export default function MyLearning() {
           <Button fullWidth={false} className="mt-5" onClick={() => navigate("/student/explore")}>Explore Courses</Button>
         </div>
       )}
+      </div>
     </div>
   );
 }

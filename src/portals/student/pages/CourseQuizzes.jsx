@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import { BookOpenIcon, CheckCircleIcon, ClockIcon, FileTextIcon } from "../../../components/ui/icons";
+import { BookOpenIcon, CheckCircleIcon, ClockIcon, FileTextIcon, SearchIcon } from "../../../components/ui/icons";
 import { COURSES, getCourseById } from "../../../data/catalogMock";
 import { imageForCategory } from "../../../utils/stockImages";
 import { COURSE_QUIZZES, getSavedAttempts } from "../data/assessmentCatalog";
@@ -13,11 +14,17 @@ export default function CourseQuizzes() {
   const { user } = useAuth();
   const enrolled = getStudentEnrolledCourseIds(user).map((id) => COURSES.find((course) => course.id === id) || getCourseById(id)).filter(Boolean);
   const attempts = getSavedAttempts();
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleCourses = normalizedQuery
+    ? enrolled.filter((course) => `${course.title} ${course.subtitle || ""}`.toLowerCase().includes(normalizedQuery))
+    : enrolled;
 
   return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
-    <Link to="/student/assessments/course-quizzes" className="text-xs font-semibold text-primary">← Assignments</Link>
     <header className="mt-4 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#28756f]">Learning checks inside your courses</p><h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Assignments</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-text/55">Short, focused checks tied to your enrolled course modules. Your results help you decide when you’re ready to move on.</p></div><div className="rounded-2xl bg-[#e7f1ef] px-4 py-3 text-xs font-semibold text-[#28756f]">{enrolled.length} enrolled courses · {COURSE_QUIZZES.length} assignments</div></header>
-    {enrolled.map((course) => {
+    {enrolled.length > 0 && <label className="relative mt-6 block w-full sm:w-80"><SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text/35" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your enrolled courses..." aria-label="Search your enrolled courses" className="w-full rounded-full border border-text/10 bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary" /></label>}
+    {enrolled.length > 0 && !visibleCourses.length && <div className="mt-7 rounded-2xl border border-dashed border-text/15 bg-white px-6 py-10 text-center text-sm text-text/50">No enrolled courses match “{query}”.</div>}
+    {visibleCourses.map((course) => {
       const quizzes = COURSE_QUIZZES.filter((quiz) => quiz.courseId === course.id);
       const completedCount = quizzes.filter((quiz) => attempts.some((attempt) => attempt.assessmentId === quiz.id) || quiz.status === "Completed").length;
       return <section key={course.id} className="mt-7 overflow-hidden rounded-2xl border border-text/10 bg-white shadow-[0_4px_18px_rgba(23,50,77,0.04)]">

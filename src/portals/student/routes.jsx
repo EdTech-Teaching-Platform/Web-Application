@@ -37,6 +37,8 @@ import Recommended from "./pages/Recommended";
 import Profile from "./pages/Profile";
 import HelpComplaints from "./pages/HelpComplaints";
 import TestSeries from "./pages/TestSeries";
+import TestSeriesMarketplace from "./pages/TestSeriesMarketplace";
+import TestSeriesPackageDetail from "./pages/TestSeriesPackageDetail";
 import CourseQuizzes from "./pages/CourseQuizzes";
 import SkillAssessments from "./pages/SkillAssessments";
 import AssessmentResults from "./pages/AssessmentResults";
@@ -88,6 +90,8 @@ const studentRoutes = (
       <Route path="explore" element={<ExplorePage />} />
       <Route path="live-classes" element={<LiveClassesDiscover />} />
       <Route path="recorded-classes" element={<RecordedClassesDiscover />} />
+      <Route path="test-series" element={<TestSeriesMarketplace />} />
+      <Route path="test-series/:seriesId" element={<TestSeriesPackageDetail />} />
       <Route path="assessments/test-series" element={<TestSeries />} />
       <Route path="assessments/test-series/:assessmentId" element={<TestSeries />} />
       <Route path="assessments/course-quizzes" element={<CourseQuizzes />} />

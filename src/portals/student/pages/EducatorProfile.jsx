@@ -23,6 +23,7 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
 import ToastStack from "../../../components/ui/Toast";
+import SectionShapes from "../../../components/common/SectionShapes";
 import { useAuth } from "../../../hooks/useAuth";
 import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
@@ -144,7 +145,8 @@ export default function EducatorProfile() {
       </button>
 
       {/* Header */}
-      <div className="flex flex-col gap-6 rounded-3xl bg-white p-6 sm:flex-row sm:items-start sm:p-8">
+      <div className="relative flex flex-col gap-6 rounded-3xl bg-bg p-6 sm:flex-row sm:items-start sm:p-8">
+        <SectionShapes variant="hero" />
         <img
           src={imageForEducator(educator)}
           alt={educator.name}
@@ -194,7 +196,8 @@ export default function EducatorProfile() {
       </div>
 
       {/* Bio */}
-      <div className="mt-8 rounded-3xl bg-white p-6 sm:p-8">
+      <div className="relative mt-8 rounded-3xl bg-white p-6 sm:p-8">
+        <SectionShapes variant="courses" />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Educator profile</p><h2 className="mt-1 font-display text-2xl font-bold text-[#17324d]">About {educator.name}</h2></div>
           <span className="rounded-full bg-[#e7f1ef] px-3 py-1.5 text-xs font-semibold text-[#28756f]">{educator.experienceYears}+ years of experience</span>
@@ -242,11 +245,11 @@ export default function EducatorProfile() {
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 rounded-2xl bg-accent-lilac/10 p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-text/50">Subjects & Expertise</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             {educator.subjects.map((s) => (
-              <span key={s} className="rounded-full border border-primary/30 bg-bg px-3 py-1 text-xs font-medium text-primary">
+              <span key={s} className="rounded-full border border-primary/30 bg-white px-3 py-1 text-xs font-medium text-primary">
                 {s}
               </span>
             ))}
@@ -256,7 +259,8 @@ export default function EducatorProfile() {
 
       {/* Courses */}
       {courses.length > 0 && (
-        <section id="educator-courses" className="mt-8 scroll-mt-24 rounded-3xl border border-text/10 bg-white p-5 sm:p-7">
+        <section id="educator-courses" className="relative mt-8 scroll-mt-24 rounded-3xl bg-bg p-5 sm:p-7">
+          <SectionShapes variant="paths" />
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Learn from {educator.name.split(" ")[0]}</p><h2 className="mt-1 font-display text-xl font-semibold text-text">Courses by {educator.name.split(" ")[0]}</h2><p className="mt-1 text-sm text-text/55">Compare course formats and choose what fits your learning goals.</p></div>
             <div className="flex flex-wrap gap-2 text-xs font-medium text-text/60"><span className="rounded-full bg-[#fff4ed] px-3 py-1.5">{courses.length} courses</span><span className="rounded-full bg-[#e7f1ef] px-3 py-1.5">{liveCourseCount} live</span><span className="rounded-full bg-[#f1eefb] px-3 py-1.5">{recordedCourseCount} recorded / self-paced</span></div>
@@ -298,7 +302,8 @@ export default function EducatorProfile() {
       )}
 
       {/* Learner reviews */}
-      <section className="mt-8 mb-4 rounded-3xl border border-text/10 bg-white p-5 shadow-[0_8px_28px_rgba(23,50,77,0.045)] sm:p-7">
+      <section className="relative mt-8 mb-4 rounded-3xl border border-text/10 bg-white p-5 shadow-[0_8px_28px_rgba(23,50,77,0.045)] sm:p-7">
+        <SectionShapes variant="testimonials" />
         <div className="mb-6">
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary/70">Learner feedback</p>
           <h2 className="mt-1 font-display text-2xl font-bold text-[#17324d]">Reviews for {educator.name.split(" ")[0]}</h2>
