@@ -15,6 +15,20 @@ function statusTone(status) {
 
 function SeriesProgressCard({ pkg, progress }) {
   const percent = progress.totalTests ? Math.round((progress.testsCompleted / progress.totalTests) * 100) : 0;
+  // A purchased package whose entire content is still comingSoon (no
+  // linked assessment has shipped yet) has totalTests === 0 — "0 of 0
+  // tests completed" reads as broken, so show its actual state instead.
+  if (!progress.totalTests) {
+    return (
+      <article className="flex h-full flex-col rounded-2xl border border-text/10 bg-white p-5 shadow-[0_4px_18px_rgba(23,50,77,0.04)]">
+        <span className="w-fit rounded-full bg-[#f6f0dc] px-2.5 py-1 text-[10px] font-bold tracking-wider text-[#8a6a2a]">COMING SOON</span>
+        <p className="mt-3 text-[11px] font-semibold text-text/45">{pkg.classGrade} · {pkg.subject}</p>
+        <h3 className="mt-1 font-display text-base font-bold leading-snug text-text">{pkg.title}</h3>
+        <p className="mt-3 text-xs leading-5 text-text/50">{pkg.comingSoonNotice || "This series's tests aren't open for attempts yet."}</p>
+        <Link to={`/student/test-series/${pkg.id}`} className="mt-4 inline-flex items-center justify-center rounded-full border border-primary/20 px-4 py-2.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white">View Series →</Link>
+      </article>
+    );
+  }
   return (
     <article className="flex h-full flex-col rounded-2xl border border-text/10 bg-white p-5 shadow-[0_4px_18px_rgba(23,50,77,0.04)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -72,7 +86,7 @@ export default function MyTestSeriesSection({ variant = "full" }) {
 
   if (!rows.length) {
     return (
-      <section className="mt-7">
+      <section id="my-test-series" className="mt-7">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display text-xl font-bold text-text">My Test Series</h2>
         </div>
@@ -86,7 +100,7 @@ export default function MyTestSeriesSection({ variant = "full" }) {
   }
 
   return (
-    <section className="mt-7">
+    <section id="my-test-series" className="mt-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold text-text">My Test Series</h2>
         {variant === "compact" ? (

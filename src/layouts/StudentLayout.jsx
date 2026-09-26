@@ -9,7 +9,13 @@ const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
   { href: "/student/explore", label: "Explore" },
   { href: "/student/my-learning", label: "My Learning" },
-  { href: "/student/test-series", label: "Test Series" },
+  {
+    label: "Test Series",
+    items: [
+      { href: "/student/test-series", label: "Browse Test Series" },
+      { href: "/student/assessments/my-results", label: "My Results" },
+    ],
+  },
   {
     label: "Classes",
     items: [

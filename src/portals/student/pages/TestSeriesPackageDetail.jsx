@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
-import { AlertTriangleIcon, CheckCircleIcon, CheckIcon, ChevronDownIcon, ClockIcon, FileTextIcon, StarIcon } from "../../../components/ui/icons";
+import { AlertTriangleIcon, CheckCircleIcon, CheckIcon, ChevronDownIcon, ClockIcon, FileTextIcon, LockIcon, StarIcon } from "../../../components/ui/icons";
 import { useAuth } from "../../../hooks/useAuth";
 import { getSeriesById, isSeriesPurchased, purchaseSeries } from "../data/testSeriesCatalog";
 
@@ -14,7 +14,7 @@ function InfoTile({ label, value }) {
   );
 }
 
-function TestRow({ test }) {
+function TestRow({ test, purchased, onLockedClick }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 py-3">
       <div className="min-w-0">
@@ -23,14 +23,18 @@ function TestRow({ test }) {
       </div>
       {test.comingSoon ? (
         <span className="shrink-0 rounded-full bg-[#f6f0dc] px-3 py-1.5 text-[11px] font-semibold text-[#8a6a2a]">Coming Soon</span>
-      ) : (
+      ) : purchased ? (
         <Link to={`/student/assessments/test-series/${test.assessmentId}`} className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary hover:text-white">View Test →</Link>
+      ) : (
+        <button type="button" onClick={onLockedClick} className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-bg px-3 py-1.5 text-[11px] font-semibold text-text/50">
+          <LockIcon className="h-3 w-3" />Locked
+        </button>
       )}
     </div>
   );
 }
 
-function ContentSection({ section, open, onToggle }) {
+function ContentSection({ section, open, onToggle, purchased, onLockedClick }) {
   return (
     <div className="border-b border-text/10 last:border-0">
       <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center justify-between gap-4 py-4 text-left">
@@ -40,7 +44,7 @@ function ContentSection({ section, open, onToggle }) {
           <ChevronDownIcon className={`transition-transform duration-200 ease-out ${open ? "rotate-180" : ""}`} />
         </span>
       </button>
-      {open && <div className="divide-y divide-text/10 pb-3">{section.tests.map((test) => <TestRow key={test.id} test={test} />)}</div>}
+      {open && <div className="divide-y divide-text/10 pb-3">{section.tests.map((test) => <TestRow key={test.id} test={test} purchased={purchased} onLockedClick={onLockedClick} />)}</div>}
     </div>
   );
 }
@@ -110,7 +114,7 @@ export default function TestSeriesPackageDetail() {
           <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl bg-white/10 p-4 text-sm">
             <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#f0c2b2]" />
             <span>Test series added to My Test Series.</span>
-            <button type="button" onClick={() => navigate("/student/my-learning")} className="ml-auto rounded-full bg-white px-4 py-2 text-xs font-semibold text-primary">Go to My Test Series</button>
+            <button type="button" onClick={() => navigate("/student/my-learning#my-test-series")} className="ml-auto rounded-full bg-white px-4 py-2 text-xs font-semibold text-primary">Go to My Test Series</button>
           </div>
         )}
       </div>
@@ -146,7 +150,7 @@ export default function TestSeriesPackageDetail() {
             <h2 className="font-display text-xl font-bold text-text">Test series content</h2>
             <div className="mt-2">
               {pkg.sections.map((section) => (
-                <ContentSection key={section.id} section={section} open={openSections.has(section.id)} onToggle={() => toggleSection(section.id)} />
+                <ContentSection key={section.id} section={section} open={openSections.has(section.id)} onToggle={() => toggleSection(section.id)} purchased={purchased} onLockedClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
               ))}
             </div>
           </section>
@@ -188,7 +192,7 @@ export default function TestSeriesPackageDetail() {
             <p className="flex items-center gap-2"><StarIcon className="h-4 w-4 text-text/40" />{pkg.difficulty} difficulty</p>
           </div>
           {purchased ? (
-            <Button fullWidth onClick={() => navigate("/student/my-learning")}>Go to My Test Series</Button>
+            <Button fullWidth onClick={() => navigate("/student/my-learning#my-test-series")}>Go to My Test Series</Button>
           ) : (
             <Button fullWidth onClick={handleBuy}>{pkg.price === 0 ? "Enroll for Free" : `Buy Test Series — ₹${pkg.price}`}</Button>
           )}

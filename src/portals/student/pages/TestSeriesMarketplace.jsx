@@ -134,11 +134,11 @@ export default function TestSeriesMarketplace() {
       <div className="relative mx-auto max-w-7xl bg-white rounded-3xl px-4 py-8 sm:px-6 lg:px-10">
         <SectionShapes variant="courses" />
 
-        <HorizontalRow title="Featured Test Series" packages={featured} />
-        <HorizontalRow title="Free Test Series" packages={freeSeries} />
-        <HorizontalRow title="Full-Length Mock Tests" packages={fullLength} />
+        <HorizontalRow title="Featured Test Series" packages={featured} viewAllOnClick={() => document.getElementById("browse-all-test-series")?.scrollIntoView({ behavior: "smooth", block: "start" })} />
+        <HorizontalRow title="Free Test Series" packages={freeSeries} viewAllOnClick={() => { setFilters({ price: "Free" }); document.getElementById("browse-all-test-series")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
+        <HorizontalRow title="Full-Length Mock Tests" packages={fullLength} viewAllOnClick={() => { setFilters({ testType: "Full-Length Test" }); document.getElementById("browse-all-test-series")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
 
-        <section className="mt-10 border-t border-text/10 pt-8">
+        <section id="browse-all-test-series" className="mt-10 border-t border-text/10 pt-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-xl font-bold text-text">Browse all test series</h2>
             <div className="flex items-center gap-2">

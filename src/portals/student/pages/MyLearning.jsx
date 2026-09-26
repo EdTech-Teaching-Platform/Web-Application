@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import Chip from "../../../components/ui/Chip";
@@ -27,6 +27,15 @@ export default function MyLearning() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("accessed");
   const userId = user?.identifier || user?.id || "guest";
+
+  // Deep-link support: TestSeriesPackageDetail's "Go to My Test Series"
+  // button navigates here with a #my-test-series hash so the student
+  // lands directly on their progress section instead of the page top.
+  useEffect(() => {
+    if (window.location.hash === "#my-test-series") {
+      document.getElementById("my-test-series")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
 
   const enrolledCourses = useMemo(() => {
     const ids = getStudentEnrolledCourseIds(userId);
