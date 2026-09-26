@@ -25,16 +25,6 @@ export const LIVE_CLASS_SESSIONS = [
     duration: "60 minutes",
   },
   {
-    id: "l2",
-    courseId: "c2",
-    courseTitle: "Algebra Foundations",
-    educator: "Rohan Mehta",
-    classTitle: "Algebra — Quadratics",
-    date: "September 21, 2026",
-    time: "4:00 PM – 5:00 PM",
-    duration: "60 minutes",
-  },
-  {
     id: "l3",
     courseId: "c3",
     courseTitle: "IELTS Speaking Mastery",
@@ -94,17 +84,6 @@ export const ATTENDANCE_SESSIONS = [
     recordingId: "rec-5",
   },
   {
-    id: "att-3",
-    courseId: "c2",
-    sessionId: "m2",
-    topic: "Algebra — Quadratics",
-    educator: "Rohan Mehta",
-    date: "August 28, 2026",
-    duration: "44 minutes",
-    attended: true,
-    percentage: 82,
-  },
-  {
     id: "att-4",
     courseId: "c1",
     sessionId: "old-1",
@@ -122,7 +101,6 @@ export const RECORDINGS = [
   {
     id: "rec-1",
     courseId: "c1",
-    lessonId: "l10",
     sessionId: "l1",
     title: "Python — Loops & Functions",
     educator: "Priya Sharma",
@@ -134,7 +112,6 @@ export const RECORDINGS = [
   {
     id: "rec-3",
     courseId: "c1",
-    lessonId: "l10",
     sessionId: "old-1",
     title: "Python — Getting Started Q&A",
     educator: "Priya Sharma",
@@ -146,7 +123,6 @@ export const RECORDINGS = [
   {
     id: "rec-4",
     courseId: "c3",
-    lessonId: "l10",
     sessionId: "other-1",
     title: "IELTS Speaking Practice",
     educator: "Anaya Kapoor",
@@ -158,7 +134,6 @@ export const RECORDINGS = [
   {
     id: "rec-5",
     courseId: "c1",
-    lessonId: "l10",
     sessionId: "l2",
     title: "Python — Debugging Clinic",
     educator: "Priya Sharma",

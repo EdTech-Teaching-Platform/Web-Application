@@ -2,9 +2,10 @@ import { Link } from "react-router-dom";
 import { AwardIcon, BookOpenIcon, CheckCircleIcon, ClockIcon, FileTextIcon, TrendingUpIcon } from "../../../components/ui/icons";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { COURSE_QUIZZES, getSavedAttempts } from "../data/assessmentCatalog";
+import { TEST_SERIES_PACKAGES } from "../data/testSeriesCatalog";
 
 const sections = [
-  { eyebrow: "TEST SERIES", title: "Test Series", description: "Take structured tests across your courses and subjects.", count: "10 available tests", action: "Explore Test Series", href: "/student/assessments/test-series", icon: FileTextIcon, color: "bg-[#f8e8df]", accent: "text-primary" },
+  { eyebrow: "TEST SERIES", title: "Test Series", description: "Take structured tests across your courses and subjects.", count: `${TEST_SERIES_PACKAGES.length} available series`, action: "Explore Test Series", href: "/student/test-series", icon: FileTextIcon, color: "bg-[#f8e8df]", accent: "text-primary" },
   { eyebrow: "ASSIGNMENTS", title: "Assignments", description: "Complete short learning checks as you move through each course.", count: COURSE_QUIZZES.length + " course assignments", action: "View Assignments", href: "/student/assessments/course-quizzes", icon: BookOpenIcon, color: "bg-[#e7f1ef]", accent: "text-[#28756f]" },
 ];
 

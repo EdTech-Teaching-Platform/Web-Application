@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import { AlertTriangleIcon, CheckCircleIcon, CheckIcon, ChevronDownIcon, ClockIcon, FileTextIcon, LockIcon, StarIcon } from "../../../components/ui/icons";
 import { useAuth } from "../../../hooks/useAuth";
-import { getSeriesById, isSeriesPurchased, purchaseSeries } from "../data/testSeriesCatalog";
+import { getSeriesById, getSeriesStartPath, isSeriesPurchased, purchaseSeries } from "../data/testSeriesCatalog";
 
 function InfoTile({ label, value }) {
   return (
@@ -51,12 +51,13 @@ function ContentSection({ section, open, onToggle, purchased, onLockedClick }) {
 
 export default function TestSeriesPackageDetail() {
   const { seriesId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const pkg = getSeriesById(seriesId);
   const [openSections, setOpenSections] = useState(() => new Set(pkg ? [pkg.sections[0]?.id] : []));
   const [purchased, setPurchased] = useState(() => (pkg ? isSeriesPurchased(pkg.id, user) : false));
-  const [justPurchased, setJustPurchased] = useState(false);
+  const [justPurchased, setJustPurchased] = useState(Boolean(location.state?.purchaseComplete));
 
   if (!pkg) {
     return (
@@ -76,12 +77,17 @@ export default function TestSeriesPackageDetail() {
   }
 
   function handleBuy() {
-    // Mock purchase — no payment gateway wired up in this phase (see
-    // testSeriesCatalog.js). Marks the series purchased locally so
-    // "My Test Series" states can build on real purchased-ids data next.
+    if (pkg.price > 0) {
+      navigate(`/student/test-series/${pkg.id}/checkout`);
+      return;
+    }
     purchaseSeries(pkg.id, user);
     setPurchased(true);
     setJustPurchased(true);
+  }
+
+  function startSeries() {
+    navigate(getSeriesStartPath(pkg));
   }
 
   const negativeMarking = pkg.negativeMarking;
@@ -104,7 +110,7 @@ export default function TestSeriesPackageDetail() {
         </div>
         <div className="mt-7 flex flex-wrap items-center gap-4">
           {purchased ? (
-            <Button fullWidth={false} variant="inverse" disabled>Enrolled ✓</Button>
+            <Button fullWidth={false} variant="inverse" disabled={!pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId))} onClick={startSeries}>{pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId)) ? "Start Test Series" : "Tests Coming Soon"}</Button>
           ) : (
             <Button fullWidth={false} onClick={handleBuy}>{pkg.price === 0 ? "Enroll for Free" : `Buy Test Series — ₹${pkg.price}`}</Button>
           )}
@@ -114,7 +120,7 @@ export default function TestSeriesPackageDetail() {
           <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl bg-white/10 p-4 text-sm">
             <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#f0c2b2]" />
             <span>Test series added to My Test Series.</span>
-            <button type="button" onClick={() => navigate("/student/my-learning#my-test-series")} className="ml-auto rounded-full bg-white px-4 py-2 text-xs font-semibold text-primary">Go to My Test Series</button>
+            <button type="button" onClick={startSeries} className="ml-auto rounded-full bg-white px-4 py-2 text-xs font-semibold text-primary">Start Test Series →</button>
           </div>
         )}
       </div>
@@ -192,7 +198,7 @@ export default function TestSeriesPackageDetail() {
             <p className="flex items-center gap-2"><StarIcon className="h-4 w-4 text-text/40" />{pkg.difficulty} difficulty</p>
           </div>
           {purchased ? (
-            <Button fullWidth onClick={() => navigate("/student/my-learning#my-test-series")}>Go to My Test Series</Button>
+            <Button fullWidth disabled={!pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId))} onClick={startSeries}>{pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId)) ? "Start Test Series" : "Tests Coming Soon"}</Button>
           ) : (
             <Button fullWidth onClick={handleBuy}>{pkg.price === 0 ? "Enroll for Free" : `Buy Test Series — ₹${pkg.price}`}</Button>
           )}

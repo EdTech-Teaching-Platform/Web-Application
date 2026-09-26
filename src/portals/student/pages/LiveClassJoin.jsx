@@ -5,6 +5,7 @@ import Modal from "../../../components/ui/Modal";
 import { ArrowLeftIcon, CheckIcon, FileTextIcon } from "../../../components/ui/icons";
 import BackButton from "../../../components/common/BackButton";
 import { getStoredBooking, LIVE_CLASS_SESSIONS, SESSION } from "../data/sessionMock";
+import { getLiveClassSessionById } from "../data/liveCourseSchedule";
 import { useAuth } from "../../../hooks/useAuth";
 import { studentStorageKey } from "../data/studentLocalState";
 
@@ -17,12 +18,12 @@ export default function LiveClassJoin() {
   const storedBooking = sessionId === "booked" ? getStoredBooking() : null;
   const session = sessionId === "booked"
     ? { ...SESSION, ...(storedBooking || {}) }
-    : LIVE_CLASS_SESSIONS.find((item) => item.id === sessionId);
+    : getLiveClassSessionById(sessionId) || LIVE_CLASS_SESSIONS.find((item) => item.id === sessionId);
   const sessionTitle = session?.classTitle;
   const sessionEducator = session?.educator;
   const roomRef = useRef(null);
   const notesKey = studentStorageKey(`ul_class_notes_v1_${sessionId || "unknown"}`, user);
-  const [stage, setStage] = useState(() => joinImmediately ? "live" : "lobby");
+  const [stage, setStage] = useState(() => joinImmediately && (!session?.status || session.status === "live") ? "live" : "lobby");
   const [chatOpen, setChatOpen] = useState(true);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaveToCalendar, setLeaveToCalendar] = useState(false);
@@ -35,6 +36,7 @@ export default function LiveClassJoin() {
   ] : []);
 
   function secureJoin() {
+    if (session.status && session.status !== "live") return;
     setStage("connecting");
     window.setTimeout(() => setStage("live"), 900);
   }
@@ -76,7 +78,7 @@ export default function LiveClassJoin() {
         <p className="mt-2 text-sm text-white/65">{session.date} · {session.time} · {session.duration}</p>
         <div className="mt-8 rounded-2xl bg-white/10 p-5"><p className="text-sm font-semibold text-white">Frontend preview</p><p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">This page previews the student classroom layout. Live educator video, device checks, class attendance, and shared resources are not connected in this prototype.</p></div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2"><div className="rounded-2xl bg-white p-5 text-text"><p className="font-semibold">Available in this preview</p><p className="mt-2 text-sm leading-6 text-text/60">Review the classroom layout, try the local chat controls, save your notes, and use fullscreen.</p></div><div className="rounded-2xl bg-white/10 p-5 text-white"><p className="font-semibold">Attendance</p><p className="mt-2 text-sm text-white/70">Attendance is not recorded from this preview.</p></div></div>
-        <Button variant="inverse" className="mt-8" onClick={secureJoin}>Open room preview</Button>
+        <Button variant="inverse" className="mt-8" disabled={Boolean(session.status && session.status !== "live")} onClick={secureJoin}>{session.status === "live" ? "Join Live Class" : session.status === "ended" ? "This class has ended" : "Join available when class starts"}</Button>
       </div>
     </div>
   );

@@ -41,12 +41,13 @@ export default function MyLearning() {
     const ids = getStudentEnrolledCourseIds(userId);
     const seedById = new Map(COURSES.map((course) => [course.id, course]));
     return ids.map((id) => {
-      if (seedById.has(id)) return seedById.get(id);
+      if (seedById.has(id)) return { ...seedById.get(id), courseType: getCourseById(id)?.courseType };
       const course = getCourseById(id);
       if (!course) return null;
       const lessons = course.curriculum.reduce((total, module) => total + module.lessons.length, 0);
       return {
         id: course.id,
+        courseType: course.courseType,
         title: course.title,
         educator: course.subtitle,
         description: course.description,
@@ -226,8 +227,13 @@ export default function MyLearning() {
         <SectionShapes variant="courses" />
           {courses.map((course, index) => {
             const player = course.status === "Not Started" || course.status === "In Progress";
-            const destination = player ? `/student/courseplayer?course=${course.id}` : `/student/course/${course.id}`;
-            return <div key={course.id} className="min-w-0"><ColorBlockCard rotationIndex={index} compact fullWidth image={imageForCategory(course.category)} title={course.title} subtitle={course.educator} description={course.description} progressCircle={course.progress} meta={`${course.meta} · ${course.lesson}`} resumeLabel={course.status === "Completed" ? "View course" : course.status === "Not Started" ? "Start learning" : "Continue"} onClick={() => navigate(destination)} onResume={() => navigate(destination)} /></div>;
+            const destination = course.courseType === "Live"
+              ? `/student/live-course?course=${course.id}`
+              : player ? `/student/courseplayer?course=${course.id}` : `/student/course/${course.id}`;
+            const resumeLabel = course.courseType === "Live"
+              ? "View schedule"
+              : course.status === "Completed" ? "View course" : course.status === "Not Started" ? "Start learning" : "Continue";
+            return <div key={course.id} className="min-w-0"><ColorBlockCard rotationIndex={index} compact fullWidth image={imageForCategory(course.category)} title={course.title} subtitle={course.educator} description={course.description} progressCircle={course.progress} meta={`${course.meta} · ${course.lesson}`} resumeLabel={resumeLabel} onClick={() => navigate(destination)} onResume={() => navigate(destination)} /></div>;
           })}
         </div>
         </>

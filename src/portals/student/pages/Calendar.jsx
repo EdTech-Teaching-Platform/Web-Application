@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getLiveCourseSchedule } from "../data/liveCourseSchedule";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const EVENT_TYPES = ["All activities", "Live class", "Recorded class", "Assignment", "Quiz", "Deadline"];
@@ -11,7 +12,7 @@ const EVENTS = [
   { id: "quiz-ielts", date: "2026-09-24", type: "Quiz", course: "IELTS Speaking Mastery", title: "Speaking Practice Assessment", meta: "2:00 PM · 10 questions · ~15 min", action: "/student/quiz?course=c3", label: "Start quiz" },
   { id: "recording-algebra", date: "2026-09-24", type: "Recorded class", course: "Algebra Foundations", title: "Quadratic Equations", meta: "5:30 PM · 36 min", action: "/student/courseplayer?course=c2", label: "Watch" },
   { id: "algebra-review", date: "2026-09-22", type: "Assignment", course: "Algebra Foundations", title: "Complete Quadratics lesson", meta: "Continue learning", action: "/student/courseplayer?course=c2", label: "Continue" },
-  { id: "ielts-class", date: "2026-09-27", type: "Live class", course: "IELTS Speaking Mastery", title: "Speaking practice", meta: "4:00 PM – 5:00 PM", action: "/student/managebooking", label: "View class" },
+  { id: "ielts-class", date: "2026-09-22", type: "Live class", course: "IELTS Speaking Mastery", title: "Speaking practice", meta: "4:00 PM – 5:00 PM", action: "/student/liveclassjoin?session=l3", label: "Join class" },
 ];
 
 const TYPE_STYLES = {
@@ -30,6 +31,21 @@ function EventBadge({ type }) {
 export default function Calendar() {
   const navigate = useNavigate();
   const currentDate = new Date();
+  const liveCourseByEvent = { "live-today": "c1", "live-python": "c1", "ielts-class": "c3" };
+  const events = EVENTS.filter((event) => event.id !== "live-today").map((event) => {
+    const courseId = liveCourseByEvent[event.id];
+    if (!courseId) return event;
+    const schedule = getLiveCourseSchedule(courseId, currentDate);
+    if (!schedule) return event;
+    return {
+      ...event,
+      date: `${schedule.startAt.getFullYear()}-${String(schedule.startAt.getMonth() + 1).padStart(2, "0")}-${String(schedule.startAt.getDate()).padStart(2, "0")}`,
+      title: schedule.classTitle,
+      meta: `${schedule.time} · ${schedule.duration}`,
+      action: `/student/live-course?course=${courseId}`,
+      label: schedule.status === "live" ? "View live class" : "View schedule",
+    };
+  });
   const toDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(currentDate));
   const [monthOffset, setMonthOffset] = useState(0);
@@ -45,9 +61,9 @@ export default function Calendar() {
     if (dayNumber > daysInMonth) return { day: dayNumber - daysInMonth, outside: true };
     return { day: dayNumber, outside: false };
   });
-  const filteredEvents = filter === "All activities" ? EVENTS : EVENTS.filter((event) => event.type === filter);
+  const filteredEvents = filter === "All activities" ? events : events.filter((event) => event.type === filter);
   const visibleEvents = useMemo(() => filteredEvents.filter((event) => event.date === selectedDate), [filteredEvents, selectedDate]);
-  const upcomingEvents = EVENTS.filter((event) => event.date >= toDateKey(new Date())).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+  const upcomingEvents = events.filter((event) => event.date >= toDateKey(new Date())).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
 
   function shiftMonth(amount) {
     setMonthOffset((value) => value + amount);

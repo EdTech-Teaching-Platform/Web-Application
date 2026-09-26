@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import SectionShapes from "../../../components/common/SectionShapes";
 import Chip from "../../../components/ui/Chip";
 import { SearchIcon, StarIcon, FileTextIcon, ClockIcon, BookOpenIcon } from "../../../components/ui/icons";
+import { useAuth } from "../../../hooks/useAuth";
 import {
   CLASS_LEVELS,
   SERIES_SUBJECTS,
@@ -13,6 +14,8 @@ import {
   SERIES_PRICE_FILTERS,
   SERIES_SORT_OPTIONS,
   TEST_SERIES_PACKAGES,
+  getSeriesStartPath,
+  isSeriesPurchased,
 } from "../data/testSeriesCatalog";
 
 const FILTER_GROUPS = [
@@ -34,6 +37,10 @@ function badgeTone(badge) {
 }
 
 function SeriesCard({ pkg }) {
+  const { user } = useAuth();
+  const purchased = isSeriesPurchased(pkg.id, user);
+  const ready = pkg.sections.some((section) => section.tests.some((test) => !test.comingSoon && test.assessmentId));
+  const href = purchased && ready ? getSeriesStartPath(pkg) : `/student/test-series/${pkg.id}`;
   return (
     <article className="flex h-full flex-col rounded-2xl border border-text/10 bg-white p-5 shadow-[0_4px_18px_rgba(23,50,77,0.04)] transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex flex-wrap items-center gap-2">
@@ -52,7 +59,7 @@ function SeriesCard({ pkg }) {
       <p className="mt-3 text-[11px] text-text/50">{pkg.testTypeSummary.map((entry) => `${entry.count} ${entry.type}${entry.count === 1 ? "" : "s"}`).join(" · ")}</p>
       <div className="mt-4 flex items-center justify-between">
         <span className="font-display text-base font-bold text-text">{pkg.price === 0 ? "Free" : `₹${pkg.price}`}</span>
-        <Link to={`/student/test-series/${pkg.id}`} className="rounded-full border border-primary/20 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white">View Test Series →</Link>
+        <Link to={href} className="rounded-full border border-primary/20 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white">{purchased ? ready ? "Start Test Series →" : "View Series →" : "View Test Series →"}</Link>
       </div>
     </article>
   );
@@ -74,7 +81,6 @@ function HorizontalRow({ title, packages, viewAllOnClick }) {
 }
 
 export default function TestSeriesMarketplace() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({});
   const [sort, setSort] = useState("Popular");
@@ -124,10 +130,6 @@ export default function TestSeriesMarketplace() {
               className="w-full rounded-full border border-text/10 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-primary"
             />
           </label>
-          <p className="mt-3 text-xs text-text/45">
-            Looking for individual practice tests instead of a full series?{" "}
-            <Link to="/student/assessments/test-series" className="font-semibold text-primary hover:underline">Browse the practice test catalog →</Link>
-          </p>
         </div>
       </div>
 

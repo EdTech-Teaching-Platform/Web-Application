@@ -127,7 +127,7 @@ export default function RecordedClassesDiscover() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Self-paced learning</p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Learn at your own pace</h1>
         <p className="mx-auto mt-3 max-w-xl text-sm text-text/60">
-          Explore recorded classes and self-paced courses from expert educators.
+          Browse prerecorded courses and lessons you can watch on demand. Scheduled live sessions and their replays are listed separately.
         </p>
         <div className="relative mt-6">
           <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text/35" />
@@ -135,16 +135,16 @@ export default function RecordedClassesDiscover() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && document.getElementById("browse")?.scrollIntoView({ behavior: "smooth" })}
-            placeholder="Search recorded classes..."
+            placeholder="Search prerecorded courses..."
             className="w-full rounded-2xl border border-text/10 bg-white py-4 pl-12 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
         </div>
       </div>
 
-      {/* Popular recorded classes */}
+      {/* Popular prerecorded courses */}
       <section className="relative mt-12 rounded-3xl border border-text/5 bg-white p-6 sm:p-8">
         <SectionShapes variant="courses" />
-        <SectionHeading eyebrow="Trending now" title="Popular recorded classes" subtitle="Self-paced courses students are enrolling in most." viewAllHref="#browse" />
+        <SectionHeading eyebrow="Trending now" title="Popular prerecorded courses" subtitle="Self-paced courses students are enrolling in most." viewAllHref="#browse" />
         <CourseCarousel
           courses={popular}
           wishlist={wishlist}
@@ -245,7 +245,7 @@ export default function RecordedClassesDiscover() {
       {/* Browse / full filterable grid */}
       <div id="browse" className="relative mt-14 scroll-mt-24 border-t border-text/10 pt-10">
         <SectionShapes variant="educators" />
-        <SectionHeading eyebrow="All recorded classes" title="Browse recorded classes" subtitle="Filter by category, level, price or rating." />
+        <SectionHeading eyebrow="On demand" title="Browse prerecorded courses" subtitle="Filter by category, level, price or rating." />
         <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="h-fit rounded-2xl border border-text/10 bg-white p-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:self-start lg:overflow-y-auto">
             <div className="flex items-center justify-between border-b border-text/10 pb-3">
@@ -260,7 +260,7 @@ export default function RecordedClassesDiscover() {
             </div>
           </aside>
           <section className="min-w-0">
-            <p className="mb-5 text-sm text-text/60"><strong className="text-text">{filtered.length}</strong> recorded classes</p>
+            <p className="mb-5 text-sm text-text/60"><strong className="text-text">{filtered.length}</strong> prerecorded courses</p>
             {filtered.length ? (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 {filtered.map((course, index) => (
@@ -289,7 +289,7 @@ export default function RecordedClassesDiscover() {
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-text/15 bg-white px-6 py-16 text-center">
-                <h2 className="font-display text-lg font-semibold text-text">No recorded classes match these filters</h2>
+                <h2 className="font-display text-lg font-semibold text-text">No prerecorded courses match these filters</h2>
                 <p className="mt-2 text-sm text-text/55">Try a broader search or clear the filters.</p>
                 <Button fullWidth={false} className="mt-5" onClick={clearAll}>Clear filters</Button>
               </div>

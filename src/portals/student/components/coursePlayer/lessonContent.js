@@ -28,7 +28,7 @@ export const LESSON_TYPE_LABEL = {
   quiz: "Quiz",
   assignment: "Assignment",
   resource: "Resource",
-  live: "Live recording",
+  live: "Live class",
 };
 
 // A handful of small, real, CORS-friendly sample clips so the video player

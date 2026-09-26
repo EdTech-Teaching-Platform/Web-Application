@@ -122,7 +122,7 @@ export default function Checkout() {
           heading="You're already enrolled"
           message={`You already have access to "${course.title}".`}
           primaryAction={
-            <Button onClick={() => navigate(`/student/courseplayer?course=${course.id}`)}>Go to Course</Button>
+            <Button onClick={() => navigate(course.courseType === "Live" ? `/student/live-course?course=${course.id}` : `/student/courseplayer?course=${course.id}`)}>{course.courseType === "Live" ? "View Class Schedule" : "Go to Course"}</Button>
           }
         />
       </div>

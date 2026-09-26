@@ -190,6 +190,84 @@ export const TEST_SERIES_PACKAGES = [
     access: "on-demand",
     comingSoonNotice: "This series's question bank is being finalized — tests are listed for preview and will open for attempts soon.",
   },
+  {
+    id: "developer-certification-prep",
+    title: "Software Developer Certification Prep",
+    classGrade: "College / University",
+    subject: "Computer Science",
+    examGoal: "Certification Prep",
+    difficulty: "Intermediate",
+    language: "English",
+    price: 399,
+    rating: 4.8,
+    studentsEnrolled: 1840,
+    badges: ["CERTIFICATION PREP", "BEST VALUE"],
+    sections: [
+      { id: "core-programming", title: "Core Programming", tests: [linkedTest("python-final", "Course Test"), linkedTest("java-oop", "Course Test"), linkedTest("web-final", "Course Test")].filter(Boolean) },
+      { id: "advanced-practice", title: "Advanced Practice", tests: [linkedTest("dsa-mock", "Mock Exam")].filter(Boolean) },
+    ],
+    description: "A structured preparation path across Python, Java, web development and data structures, with realistic timed assessments and topic-level feedback.",
+    audience: "Learners preparing for developer interviews, entry-level certifications or a practical check of core software skills.",
+    negativeMarking: { enabled: false, correct: null, incorrect: null, unanswered: 0 },
+    passingScoreLabel: "70–75% (varies by test)",
+    attemptsLabel: "2–3 per test",
+    accessLabel: "On demand",
+    certificateLabel: "On eligible tests",
+    questionTypes: ["MCQ", "Mixed"],
+    access: "on-demand",
+  },
+  {
+    id: "data-cloud-practice-series",
+    title: "Data & Cloud Foundations Series",
+    classGrade: "College / University",
+    subject: "Data & Cloud",
+    examGoal: "Skill Tests",
+    difficulty: "Beginner",
+    language: "English",
+    price: 249,
+    rating: 4.6,
+    studentsEnrolled: 960,
+    badges: ["NEW", "PRACTICAL"],
+    sections: [
+      { id: "data-skills", title: "Data Skills", tests: [linkedTest("sql-practice", "Topic Test")].filter(Boolean) },
+      { id: "cloud-skills", title: "Cloud Skills", tests: [linkedTest("cloud-practice", "Topic Test")].filter(Boolean) },
+    ],
+    description: "Build confidence with essential SQL and cloud concepts through short, focused practice tests with explanations for every answer.",
+    audience: "Students moving into analytics, backend development or cloud fundamentals who want a concise skills check.",
+    negativeMarking: { enabled: false, correct: null, incorrect: null, unanswered: 0 },
+    passingScoreLabel: "70%",
+    attemptsLabel: "Unlimited",
+    accessLabel: "On demand",
+    certificateLabel: "No",
+    questionTypes: ["MCQ"],
+    access: "on-demand",
+  },
+  {
+    id: "ai-security-career-series",
+    title: "AI & Cybersecurity Career Skills",
+    classGrade: "College / University",
+    subject: "AI & Cybersecurity",
+    examGoal: "Skill Tests",
+    difficulty: "Intermediate",
+    language: "English",
+    price: 349,
+    rating: 4.7,
+    studentsEnrolled: 1210,
+    badges: ["RECOMMENDED"],
+    sections: [
+      { id: "ai-skills", title: "AI Fundamentals", tests: [linkedTest("ml-skill", "Skill Test")].filter(Boolean) },
+      { id: "security-skills", title: "Security Fundamentals", tests: [linkedTest("cyber-skill", "Skill Test")].filter(Boolean) },
+    ],
+    description: "Explore practical foundations of machine learning and cybersecurity through short assessments designed to reveal strengths and next steps.",
+    audience: "Learners exploring AI or cybersecurity paths who want to assess their current foundation before choosing a deeper course.",
+    negativeMarking: { enabled: false, correct: null, incorrect: null, unanswered: 0 },
+    passingScoreLabel: "70%",
+    attemptsLabel: "2 per test",
+    accessLabel: "On demand",
+    certificateLabel: "No",
+    questionTypes: ["MCQ"],
+    access: "on-demand",
+  },
 ];
 
 // Derived, read-only fields every package needs on cards/detail pages —
@@ -213,6 +291,13 @@ TEST_SERIES_PACKAGES.forEach((pkg) => {
 
 export function getSeriesById(seriesId) {
   return TEST_SERIES_PACKAGES.find((pkg) => pkg.id === seriesId);
+}
+
+export function getSeriesStartPath(pkg) {
+  const firstReadyTest = pkg?.sections.flatMap((section) => section.tests).find((test) => !test.comingSoon && test.assessmentId);
+  return firstReadyTest
+    ? `/student/assessments/test-series/${firstReadyTest.assessmentId}`
+    : `/student/test-series/${pkg?.id || ""}`;
 }
 
 function learnerScope(userOrId) {

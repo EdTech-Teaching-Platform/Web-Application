@@ -16,25 +16,27 @@ export default function Recordings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const courseFilter = searchParams.get("course") || "all";
+  const sessionFilter = searchParams.get("session");
   const liveCourseIds = [...new Set(RECORDINGS
     .filter((recording) => getCourseById(recording.courseId)?.courseType === "Live")
     .map((recording) => recording.courseId))];
   const recordings = useMemo(
     () => RECORDINGS.filter((recording) => getCourseById(recording.courseId)?.courseType === "Live"
-      && (courseFilter === "all" || recording.courseId === courseFilter)),
-    [courseFilter]
+      && (courseFilter === "all" || recording.courseId === courseFilter)
+      && (!sessionFilter || recording.sessionId === sessionFilter)),
+    [courseFilter, sessionFilter]
   );
 
   function openRecording(recording) {
     if (recording.status !== "Available" || recording.access !== "authorized") return;
-    navigate(`/student/courseplayer?course=${recording.courseId}&lesson=${recording.lessonId}&recording=${recording.id}`);
+    navigate(`/student/live-recording?recording=${recording.id}`);
   }
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
       <BackButton fallback="/student/managebooking" className="mb-4" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Post-session learning</p><h1 className="mt-2 font-display text-3xl font-bold text-text">Recordings</h1><p className="mt-2 text-sm text-text/60">View-only recordings from live sessions you were authorized to attend.</p></div>
+        <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Live class archive</p><h1 className="mt-2 font-display text-3xl font-bold text-text">Live Session Recordings</h1><p className="mt-2 text-sm text-text/60">Replays of past live classes. These are separate from prerecorded Recorded Classes courses.</p></div>
         <select value={courseFilter} onChange={(event) => {
           const next = new URLSearchParams(searchParams);
           if (event.target.value === "all") next.delete("course");
@@ -49,7 +51,7 @@ export default function Recordings() {
           const canOpen = recording.status === "Available" && recording.access === "authorized";
           return <div key={recording.id} className="flex flex-col gap-4 rounded-xl border border-text/10 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-3"><h2 className="font-display font-semibold text-text">{recording.title}</h2><StatusBadge status={STATUS[recording.status]}>{recording.status}</StatusBadge></div><p className="mt-1 text-sm text-text/55">{recording.educator} · {recording.date} · {recording.duration}</p>{recording.status === "Processing" && <p className="mt-2 text-xs text-warning">The recording is being prepared and will appear here when ready.</p>}{recording.status === "Expired" && <p className="mt-2 text-xs text-danger">This recording has passed its access period.</p>}{recording.access === "unauthorized" && <p className="mt-2 text-xs text-danger">You are not authorized to access this classroom recording.</p>}</div>
-            <Button fullWidth={false} disabled={!canOpen} onClick={() => openRecording(recording)}>{canOpen ? "Watch recording" : "Unavailable"}</Button>
+            <Button fullWidth={false} disabled={!canOpen} onClick={() => openRecording(recording)}>{canOpen ? "View replay" : "Unavailable"}</Button>
           </div>;
         })}
       </div>

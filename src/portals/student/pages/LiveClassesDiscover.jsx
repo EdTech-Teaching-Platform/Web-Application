@@ -22,36 +22,12 @@ import { useToast } from "../../../hooks/useToast";
 import { useScrollToHash } from "../../../hooks/useScrollToHash";
 import ToastStack from "../../../components/ui/Toast";
 import { COURSES, EDUCATORS } from "../../../data/catalogMock";
+import { formatClassStart, getLiveCourseSchedule } from "../data/liveCourseSchedule";
+import { isStudentCourseEnrolled } from "../data/studentLocalState";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
-const LIVE_COURSES = COURSES.filter((c) => c.status === "active" && c.courseType === "Live" && !c.enrolled);
+const LIVE_COURSES = COURSES.filter((c) => c.status === "active" && c.courseType === "Live");
 const LIVE_EDUCATOR_IDS = [...new Set(LIVE_COURSES.map((c) => c.educatorId))];
-
-// Presentational "when" slots — the catalog doesn't track a real
-// date/time per course (only 1:1 booking slots do, in sessionMock, which
-// are per-educator, not per-course). Fixed, deterministic strings here
-// mirror the same kind of static mock schedule ManageBooking already
-// uses, purely to make the cards look like real class listings.
-const WHEN_SLOTS = [
-  { date: "Today", time: "6:00 PM" },
-  { date: "Today", time: "8:00 PM" },
-  { date: "Tomorrow", time: "10:00 AM" },
-  { date: "Tomorrow", time: "4:00 PM" },
-  { date: "Fri, 26 Sep", time: "6:00 PM" },
-  { date: "Sat, 27 Sep", time: "11:00 AM" },
-  { date: "Sun, 28 Sep", time: "5:00 PM" },
-  { date: "Mon, 29 Sep", time: "7:00 PM" },
-];
-
-function whenFor(index) {
-  return WHEN_SLOTS[index % WHEN_SLOTS.length];
-}
-
-function statusFor(index) {
-  if (index === 0) return "LIVE NOW";
-  if (index === 1 || index === 2) return "STARTING SOON";
-  return undefined;
-}
 
 function CheckGroup({ label, options, selected, onToggle }) {
   return (
@@ -83,6 +59,7 @@ export default function LiveClassesDiscover() {
   const [categories, setCategories] = useState([]);
   const [level, setLevel] = useState("");
   const [educatorId, setEducatorId] = useState("");
+  const availableLiveCourses = LIVE_COURSES.filter((course) => !course.enrolled && !isStudentCourseEnrolled(course.id, user));
 
   function toggleCategory(category) {
     setCategories((prev) => (prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]));
@@ -95,7 +72,7 @@ export default function LiveClassesDiscover() {
 
   const filtered = useMemo(
     () =>
-      LIVE_COURSES.filter((course) => {
+      availableLiveCourses.filter((course) => {
         const haystack = `${course.title} ${course.subtitle} ${course.category}`.toLowerCase();
         return (
           haystack.includes(query.toLowerCase()) &&
@@ -104,13 +81,25 @@ export default function LiveClassesDiscover() {
           (!educatorId || course.educatorId === educatorId)
         );
       }),
-    [query, categories, level, educatorId]
+    [availableLiveCourses, query, categories, level, educatorId]
   );
 
-  const liveAndSoon = LIVE_COURSES.slice(0, 6);
-  const popular = useMemo(() => [...LIVE_COURSES].sort((a, b) => b.enrolledCount - a.enrolledCount).slice(0, 6), []);
+  const liveAndSoon = [...availableLiveCourses].sort((a, b) => getLiveCourseSchedule(a.id).startAt - getLiveCourseSchedule(b.id).startAt).slice(0, 6);
+  const popular = useMemo(() => [...availableLiveCourses].sort((a, b) => b.enrolledCount - a.enrolledCount).slice(0, 6), [availableLiveCourses]);
   const popularIds = useMemo(() => new Set(popular.map((c) => c.id)), [popular]);
-  const recommended = useMemo(() => LIVE_COURSES.filter((c) => !popularIds.has(c.id) && c.rating >= 4.5).slice(0, 4), [popularIds]);
+  const recommended = useMemo(() => availableLiveCourses.filter((c) => !popularIds.has(c.id) && c.rating >= 4.5).slice(0, 4), [availableLiveCourses, popularIds]);
+
+  const scheduleMeta = (course) => {
+    const schedule = getLiveCourseSchedule(course.id);
+    return schedule ? `${formatClassStart(schedule.startAt)} · ${schedule.time} · ${schedule.duration}` : course.duration;
+  };
+
+  const scheduleBadge = (course) => {
+    const schedule = getLiveCourseSchedule(course.id);
+    if (schedule?.status === "live") return "LIVE NOW";
+    if (schedule && schedule.startAt.getTime() - Date.now() < 30 * 60 * 1000) return "STARTING SOON";
+    return undefined;
+  };
 
   function openCourse(course) {
     navigate(`/course/${course.id}`);
@@ -158,8 +147,8 @@ export default function LiveClassesDiscover() {
           onCourseClick={openCourse}
           onAction={openCourse}
           actionLabel="View Details"
-          metaFor={(c, i) => `${whenFor(i).date} · ${whenFor(i).time} · ${c.duration}`}
-          badgeFor={(c, i) => statusFor(i)}
+          metaFor={scheduleMeta}
+          badgeFor={scheduleBadge}
         />
       </section>
 
@@ -174,7 +163,7 @@ export default function LiveClassesDiscover() {
           onCourseClick={openCourse}
           onAction={openCourse}
           actionLabel="View Details"
-          metaFor={(c, i) => `${whenFor(i + 3).date} · ${whenFor(i + 3).time} · ${c.level}`}
+          metaFor={(c) => `${scheduleMeta(c)} · ${c.level}`}
         />
       </section>
 
@@ -191,7 +180,7 @@ export default function LiveClassesDiscover() {
               image={course.image}
               title={course.title}
               subtitle={course.subtitle}
-              meta={`${whenFor(index + 5).date} · ${whenFor(index + 5).time} · ${course.duration}`}
+              meta={scheduleMeta(course)}
               price={course.price}
               originalPrice={course.originalPrice}
               rating={course.rating}

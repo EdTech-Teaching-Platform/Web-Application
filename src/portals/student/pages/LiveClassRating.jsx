@@ -28,7 +28,7 @@ export default function LiveClassRating() {
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-success"><CheckIcon /></span>
             <h1 className="mt-5 font-display text-2xl font-bold text-text">Thank you for your feedback</h1>
             <p className="mt-2 text-sm text-text/60">Your rating for {session.topic} has been saved.</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row"><Button variant="secondary" onClick={() => navigate("/student/recordings")}>View recordings</Button><Button onClick={() => navigate("/student/dashboard")}>Back to dashboard</Button></div>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row"><Button variant="secondary" onClick={() => navigate("/student/recordings")}>View live class replays</Button><Button onClick={() => navigate("/student/dashboard")}>Back to dashboard</Button></div>
           </>
         ) : (
           <>

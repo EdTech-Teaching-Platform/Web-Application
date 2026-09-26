@@ -24,14 +24,7 @@ const navEntries = [
       { href: "/student/learninghistory", label: "Learning History" },
     ],
   },
-  {
-    label: "Assessments",
-    items: [
-      { href: "/student/assessments/course-quizzes", label: "Assignments" },
-      { href: "/student/assessments/test-series", label: "Practice Test Catalog" },
-      { href: "/student/assessments/my-results", label: "My Results" },
-    ],
-  },
+  { href: "/student/assessments/course-quizzes", label: "Assignments" },
   { label: "Engage", items: [
     { href: "/student/calendar", label: "Calendar" },
     { href: "/student/messages", label: "Discussions" },

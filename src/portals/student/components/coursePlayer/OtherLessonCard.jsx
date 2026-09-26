@@ -5,13 +5,13 @@ import { LESSON_TYPE_ICON, LESSON_TYPE_LABEL } from "./lessonContent";
 const ROUTE_BY_TYPE = {
   quiz: "/student/quiz",
   assignment: "/student/assignmentsubmit",
-  live: "/student/recordings",
+  live: "/student/live-classes",
 };
 
 const CTA_BY_TYPE = {
   quiz: "Start Quiz",
   assignment: "Open Assignment",
-  live: "Watch Recording",
+  live: "View Live Classes",
 };
 
 // Quiz/Assignment/Live-recording lessons already have their own dedicated,

@@ -9,7 +9,7 @@
 // educator, timestamp }); also readable via ?status=success|failed|pending
 // query params directly, so each of the four states can be opened/QA'd
 // without re-running the whole checkout flow.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import BackButton from "../../../components/common/BackButton";
@@ -17,6 +17,9 @@ import ConfirmationCard from "../../../components/ui/ConfirmationCard";
 import { getDemoOrder, getPaymentStatus } from "../services/checkoutApi";
 import { DownloadIcon, RefreshIcon, MailIcon } from "../../../components/ui/icons";
 import { useAuth } from "../../../hooks/useAuth";
+import { getCourseById } from "../../../data/catalogMock";
+import { formatClassStart, getLiveCourseSchedule } from "../data/liveCourseSchedule";
+import { enrollStudentInCourse } from "../data/studentLocalState";
 
 function buildInvoiceText(data) {
   return [
@@ -41,9 +44,24 @@ export default function PaymentResult() {
 
   const orderId = location.state?.orderId || searchParams.get("orderId");
   const data = (location.state?.orderId ? location.state : null) || getDemoOrder(orderId, user?.identifier || user?.id);
+  const course = data ? getCourseById(data.courseId) : null;
+  const isLiveCourse = course?.courseType === "Live";
 
   const [status, setStatus] = useState(data?.status || "missing");
   const [checking, setChecking] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const liveSchedule = isLiveCourse ? getLiveCourseSchedule(course.id, now) : null;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (status === "success" && isLiveCourse && course) {
+      enrollStudentInCourse(course.id, user);
+    }
+  }, [status, isLiveCourse, course, user]);
 
   async function handleCheckStatus() {
     setChecking(true);
@@ -106,7 +124,34 @@ export default function PaymentResult() {
         />
       )}
 
-      {status === "success" && (
+      {status === "success" && isLiveCourse && liveSchedule && (
+        <div className="space-y-4">
+          <ConfirmationCard
+            state="success"
+            heading="Live class enrollment confirmed"
+            message={`Your demo enrollment for "${data.courseTitle}" is ready. No real payment was processed. Order ${data.orderId} · ₹${data.amount}.`}
+          />
+          <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Your class schedule</p>
+            <h2 className="mt-2 font-display text-xl font-bold text-text">{liveSchedule.classTitle}</h2>
+            <p className="mt-1 text-sm text-text/55">{liveSchedule.courseTitle} · {liveSchedule.educator}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl bg-bg p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-text/45">Date</p><p className="mt-1 text-sm font-semibold text-text">{liveSchedule.date}</p></div>
+              <div className="rounded-xl bg-bg p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-text/45">Time · duration</p><p className="mt-1 text-sm font-semibold text-text">{liveSchedule.time} · {liveSchedule.duration}</p></div>
+            </div>
+            <p className="mt-3 text-xs text-text/50">{liveSchedule.status === "live" ? "Your class has started. Join the live class now." : `Class starts ${formatClassStart(liveSchedule.startAt)}. The join button will appear when it begins.`}</p>
+            <Button className="mt-4" onClick={() => navigate(liveSchedule.status === "live" ? `/student/liveclassjoin?session=${liveSchedule.id}&join=1` : `/student/live-course?course=${course.id}`)}>
+              {liveSchedule.status === "live" ? "Join Live Class" : "View Class Schedule"}
+            </Button>
+            <div className="mt-3 flex gap-3">
+              <Button fullWidth variant="secondary" onClick={() => navigate("/student/dashboard")}>Go to Dashboard</Button>
+              <Button fullWidth variant="secondary" onClick={handleDownloadInvoice}><DownloadIcon className="h-4 w-4" /> Invoice</Button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {status === "success" && !isLiveCourse && (
         <ConfirmationCard
           state="success"
           heading="Demo Payment Complete"

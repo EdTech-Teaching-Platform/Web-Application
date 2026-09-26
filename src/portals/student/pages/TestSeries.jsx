@@ -2,9 +2,8 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import SectionShapes from "../../../components/common/SectionShapes";
-import StatusBadge from "../../../components/ui/StatusBadge";
-import { AlertTriangleIcon, CheckCircleIcon, ClockIcon, FileTextIcon, SearchIcon, StarIcon, TargetIcon } from "../../../components/ui/icons";
-import { ATTEMPT_STORAGE_KEY, ASSESSMENT_CATEGORIES, DIFFICULTIES, DURATION_FILTERS, QUESTION_TYPES, SORT_OPTIONS, TEST_SERIES, TEST_TYPES, getSavedAttempts } from "../data/assessmentCatalog";
+import { AlertTriangleIcon, CheckCircleIcon, ClockIcon, FileTextIcon, SearchIcon, StarIcon } from "../../../components/ui/icons";
+import { ASSESSMENT_CATEGORIES, DIFFICULTIES, DURATION_FILTERS, QUESTION_TYPES, SORT_OPTIONS, TEST_SERIES, TEST_TYPES, getSavedAttempts } from "../data/assessmentCatalog";
 
 function durationMatches(minutes, filter) {
   if (filter === "Under 15 min") return minutes < 15;

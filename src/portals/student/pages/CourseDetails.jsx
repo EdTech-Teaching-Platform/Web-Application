@@ -552,10 +552,10 @@ export default function CourseDetails() {
                           showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
                         })
                       }
-                      actionLabel={relatedEnrolled ? "Go to Course" : "Enroll"}
+                      actionLabel={relatedEnrolled ? (c.courseType === "Live" ? "View Schedule" : "Go to Course") : "Enroll"}
                       onAction={() =>
                         relatedEnrolled
-                          ? navigate(`/student/courseplayer?course=${c.id}`)
+                          ? navigate(c.courseType === "Live" ? `/student/live-course?course=${c.id}` : `/student/courseplayer?course=${c.id}`)
                           : requireAuth(relatedCoursePath(c.id), () =>
                               navigate("/student/checkout", { state: { courseId: c.id } })
                             )
@@ -590,8 +590,8 @@ export default function CourseDetails() {
             )}
 
             {isEnrolled ? (
-              <Button className="mt-5" onClick={() => navigate(`/student/courseplayer?course=${course.id}`)}>
-                Go to Course
+              <Button className="mt-5" onClick={() => navigate(course.courseType === "Live" ? `/student/live-course?course=${course.id}` : `/student/courseplayer?course=${course.id}`)}>
+                {course.courseType === "Live" ? "View Class Schedule" : "Go to Course"}
               </Button>
             ) : isArchived ? (
               <Button className="mt-5" disabled>

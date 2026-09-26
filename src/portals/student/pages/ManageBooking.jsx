@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
@@ -9,8 +9,12 @@ import {
   HelpCircleIcon,
   VideoIcon,
 } from "../../../components/ui/icons";
-import { AVAILABLE_SLOTS, ATTENDANCE_SESSIONS, RECORDINGS, getStoredBooking } from "../data/sessionMock";
+import { AVAILABLE_SLOTS, ATTENDANCE_SESSIONS, RECORDINGS } from "../data/sessionMock";
 import { imageForCategory } from "../../../utils/stockImages";
+import { COURSES } from "../../../data/catalogMock";
+import { useAuth } from "../../../hooks/useAuth";
+import { formatClassStart, getLiveCourseSchedule } from "../data/liveCourseSchedule";
+import { isStudentCourseEnrolled } from "../data/studentLocalState";
 
 const DAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const todayItems = [
@@ -78,12 +82,14 @@ function ScheduleRow({ item, onClick }) {
 
 export default function ManageBooking() {
   const navigate = useNavigate();
-  const [booking] = useState(() => getStoredBooking());
+  const { user } = useAuth();
+  const [now, setNow] = useState(() => new Date());
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const currentWeek = useState(() => getCurrentWeek())[0];
   const todayIndex = currentWeek.findIndex((day) => day.isToday);
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex);
+  const enrolledLiveCourses = COURSES.filter((course) => course.courseType === "Live" && isStudentCourseEnrolled(course.id, user));
   const availableRecordings = RECORDINGS.filter((recording) => recording.status === "Available");
   const attended = ATTENDANCE_SESSIONS.filter((session) => session.attended).length;
   const missed = ATTENDANCE_SESSIONS.filter((session) => !session.attended).length;
@@ -93,6 +99,11 @@ export default function ManageBooking() {
   todayStart.setHours(0, 0, 0, 0);
   const upcomingCount = AVAILABLE_SLOTS.filter((slot) => slot.status === "available" && new Date(slot.date) >= todayStart).length;
   const todayCount = todayItems.filter((item) => item.status !== "Completed").length;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <div className="mx-auto max-w-[1320px] px-4 py-7 sm:px-6 lg:px-8">
@@ -128,18 +139,25 @@ export default function ManageBooking() {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary/65">Class schedule</p>
-                <h2 className="mt-1 font-display text-xl font-bold text-[#17324d]">Your next live class</h2>
+                <h2 className="mt-1 font-display text-xl font-bold text-[#17324d]">Your enrolled live classes</h2>
               </div>
-              <span className="rounded-full bg-[#f8e8df] px-2.5 py-1 text-[11px] font-bold text-primary">{booking ? "SAMPLE BOOKING" : "NO BOOKING"}</span>
+              <span className="rounded-full bg-[#f8e8df] px-2.5 py-1 text-[11px] font-bold text-primary">{enrolledLiveCourses.length} ENROLLED</span>
             </div>
-            {booking ? (
-              <div className="flex flex-col gap-4 rounded-2xl bg-bg p-4 sm:flex-row sm:items-center">
-                <img src={imageForCategory("Programming")} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-                <div className="min-w-0 flex-1"><h3 className="font-display text-lg font-bold text-[#17324d]">{booking.classTitle || booking.topic}</h3><p className="mt-1 text-sm text-text/55">{booking.educator} · {booking.date} · {booking.time}</p><p className="mt-2 text-xs text-text/45">This is a locally saved prototype booking. Live video and attendance are not connected.</p></div>
-                <Button fullWidth={false} variant="secondary" onClick={() => navigate("/student/liveclassjoin?session=booked")}>Open room preview</Button>
+            {enrolledLiveCourses.length ? (
+              <div className="space-y-3">
+                {enrolledLiveCourses.map((course) => {
+                  const schedule = getLiveCourseSchedule(course.id, now);
+                  if (!schedule) return null;
+                  const liveNow = schedule.status === "live";
+                  return <div key={course.id} className="flex flex-col gap-4 rounded-2xl bg-bg p-4 sm:flex-row sm:items-center">
+                    <img src={course.image || imageForCategory(course.category)} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-display text-lg font-bold text-[#17324d]">{schedule.classTitle}</h3><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${liveNow ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{liveNow ? "LIVE NOW" : "UPCOMING"}</span></div><p className="mt-1 text-sm text-text/55">{course.title} · {schedule.educator}</p><p className="mt-1 text-sm font-semibold text-text">{schedule.date} · {schedule.time} · {schedule.duration}</p><p className="mt-1 text-xs text-text/45">{liveNow ? "Your class has started. Join now." : `Starts ${formatClassStart(schedule.startAt)}. Join becomes available when class starts.`}</p></div>
+                    <Button fullWidth={false} onClick={() => navigate(liveNow ? `/student/liveclassjoin?session=${schedule.id}&join=1` : `/student/live-course?course=${course.id}`)}>{liveNow ? "Join Live Class" : "View Schedule"}</Button>
+                  </div>;
+                })}
               </div>
             ) : (
-              <div className="rounded-2xl bg-bg p-5"><p className="font-semibold text-text">No class is booked yet.</p><p className="mt-1 text-sm text-text/55">Explore scheduled group classes and open a class overview to see its details.</p><Button fullWidth={false} className="mt-4" onClick={() => navigate("/student/live-classes")}>Explore live classes</Button></div>
+              <div className="rounded-2xl bg-bg p-5"><p className="font-semibold text-text">No live classes enrolled yet.</p><p className="mt-1 text-sm text-text/55">Enroll in a live class to see its schedule here. The join button appears once class begins.</p><Button fullWidth={false} className="mt-4" onClick={() => navigate("/student/live-classes")}>Explore live classes</Button></div>
             )}
           </section>
 
@@ -155,7 +173,7 @@ export default function ManageBooking() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 [BookOpenIcon, "Calendar", "View schedule", "/student/calendar"],
-                [VideoIcon, "Recordings", "Watch past classes", "/student/recordings"],
+                [VideoIcon, "Live class replays", "Revisit past live sessions", "/student/recordings"],
                 [CheckIcon, "Attendance", "View attendance", "/student/attendance"],
                 [HelpCircleIcon, "Discussions", "Ask questions", "/student/messages"],
               ].map(([Icon, label, description, href]) => (
@@ -205,13 +223,13 @@ export default function ManageBooking() {
         </section>
 
         <section className="rounded-2xl border border-text/10 bg-white p-5 shadow-sm">
-          <SectionHeading eyebrow="Post-session learning" title="Recent recordings" action={<button type="button" onClick={() => navigate("/student/recordings")} className="text-xs font-semibold text-primary hover:underline">View all →</button>} />
+          <SectionHeading eyebrow="Live class archive" title="Recent live session replays" action={<button type="button" onClick={() => navigate("/student/recordings")} className="text-xs font-semibold text-primary hover:underline">View all →</button>} />
           <div className="space-y-1">
             {availableRecordings.slice(0, 3).map((recording) => (
               <div key={recording.id} className="flex items-center gap-3 border-b border-text/10 py-2.5 last:border-0">
                 <img src={imageForCategory(recording.courseId === "c1" ? "Programming" : recording.courseId === "c3" ? "Languages" : "Math")} alt="" className="h-10 w-14 rounded-lg object-cover" />
                 <span className="min-w-0 flex-1"><strong className="block truncate text-sm text-text">{recording.title}</strong><span className="text-[11px] text-text/50">{recording.date} · {recording.duration} · {recording.educator}</span></span>
-                <Button fullWidth={false} variant="secondary" className="rounded-full px-3 py-1.5 text-[11px]" onClick={() => navigate(`/student/courseplayer?course=${recording.courseId}&lesson=${recording.lessonId}&recording=${recording.id}`)}>Watch</Button>
+                <Button fullWidth={false} variant="secondary" className="rounded-full px-3 py-1.5 text-[11px]" onClick={() => navigate(`/student/live-recording?recording=${recording.id}`)}>View replay</Button>
               </div>
             ))}
           </div>

@@ -200,8 +200,8 @@ function ratingBreakdownFrom(reviews) {
   return counts;
 }
 
-function buildCurriculum(topic, courseType) {
-  const modules = [
+function buildCurriculum(topic) {
+  return [
     {
       id: "m1",
       title: `Getting Started with ${topic}`,
@@ -230,20 +230,6 @@ function buildCurriculum(topic, courseType) {
       ],
     },
   ];
-
-  // Live-session recordings belong only to courses explicitly delivered as
-  // live classes. Self-paced/recorded courses keep their own curriculum.
-  if (courseType === "Live") {
-    modules[2].lessons.push({
-      id: "l10",
-      title: `${topic} live session recording: common mistakes`,
-      type: "live",
-      duration: "45 min",
-      preview: false,
-    });
-  }
-
-  return modules;
 }
 
 const FAQS = [
@@ -385,7 +371,7 @@ export const COURSES = BASE_COURSES.map((c, i) => {
       "Get ready for the next level course in this track",
     ],
     requirements: ["A computer with a stable internet connection", "No prior experience required unless stated in the curriculum"],
-    curriculum: buildCurriculum(c.title.split(" ")[0], c.courseType),
+    curriculum: buildCurriculum(c.title.split(" ")[0]),
     faqs: FAQS,
     reviews,
     ratingBreakdown: ratingBreakdownFrom(reviews),

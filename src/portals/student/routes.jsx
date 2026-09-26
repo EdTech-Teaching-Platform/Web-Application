@@ -18,8 +18,10 @@ import LearningHistory from "./pages/LearningHistory";
 import ProgressTracking from "./pages/ProgressTracking";
 import ManageBooking from "./pages/ManageBooking";
 import LiveClassJoin from "./pages/LiveClassJoin";
+import LiveCourseSchedule from "./pages/LiveCourseSchedule";
 import LiveClassRating from "./pages/LiveClassRating";
 import Recordings from "./pages/Recordings";
+import LiveRecordingDetail from "./pages/LiveRecordingDetail";
 import Attendance from "./pages/Attendance";
 import Quiz from "./pages/Quiz";
 import AssignmentSubmit from "./pages/AssignmentSubmit";
@@ -39,6 +41,7 @@ import HelpComplaints from "./pages/HelpComplaints";
 import TestSeries from "./pages/TestSeries";
 import TestSeriesMarketplace from "./pages/TestSeriesMarketplace";
 import TestSeriesPackageDetail from "./pages/TestSeriesPackageDetail";
+import TestSeriesCheckout from "./pages/TestSeriesCheckout";
 import CourseQuizzes from "./pages/CourseQuizzes";
 import SkillAssessments from "./pages/SkillAssessments";
 import AssessmentResults from "./pages/AssessmentResults";
@@ -91,8 +94,9 @@ const studentRoutes = (
       <Route path="live-classes" element={<LiveClassesDiscover />} />
       <Route path="recorded-classes" element={<RecordedClassesDiscover />} />
       <Route path="test-series" element={<TestSeriesMarketplace />} />
+      <Route path="test-series/:seriesId/checkout" element={<TestSeriesCheckout />} />
       <Route path="test-series/:seriesId" element={<TestSeriesPackageDetail />} />
-      <Route path="assessments/test-series" element={<TestSeries />} />
+      <Route path="assessments/test-series" element={<Navigate to="/student/test-series" replace />} />
       <Route path="assessments/test-series/:assessmentId" element={<TestSeries />} />
       <Route path="assessments/course-quizzes" element={<CourseQuizzes />} />
       <Route path="assessments/skill-assessments" element={<SkillAssessments />} />
@@ -117,8 +121,10 @@ const studentRoutes = (
       <Route path="booksession" element={<Navigate to="live-classes" replace />} />
       <Route path="managebooking" element={<ManageBooking />} />
       <Route path="liveclassjoin" element={<LiveClassJoin />} />
+      <Route path="live-course" element={<LiveCourseSchedule />} />
       <Route path="liveclassrating" element={<LiveClassRating />} />
       <Route path="recordings" element={<Recordings />} />
+      <Route path="live-recording" element={<LiveRecordingDetail />} />
       <Route path="attendance" element={<Attendance />} />
       <Route path="quiz" element={<Quiz />} />
       <Route path="assignmentsubmit" element={<AssignmentSubmit />} />

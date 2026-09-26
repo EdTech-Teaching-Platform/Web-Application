@@ -48,6 +48,7 @@ import { RECOMMENDED } from "../data/recommendedMock";
 import { COURSES } from "../../../data/catalogMock";
 import { isStudentCourseEnrolled } from "../data/studentLocalState";
 import MyTestSeriesSection from "../components/MyTestSeriesSection";
+import { formatClassStart, getLiveCourseSchedule } from "../data/liveCourseSchedule";
 
 // `category` drives the card's placeholder photo (imageForCategory) — see
 // src/utils/stockImages.js.
@@ -71,8 +72,7 @@ const IN_PROGRESS_COURSES = [
 ];
 
 const LIVE_CLASSES = [
-  { id: "l1", educator: "Priya Sharma", subject: "Python — Loops & Functions", when: "Today, 5:00 PM", joinable: true },
-  { id: "l2", educator: "Rohan Mehta", subject: "Algebra — Quadratics", when: "Tomorrow, 4:00 PM", joinable: false },
+  { id: "l1", courseId: "c1", educator: "Priya Sharma", subject: "Python — Functions in practice" },
 ];
 
 const LEARNING_ACTIVITY = [
@@ -84,7 +84,7 @@ const LEARNING_ACTIVITY = [
 
 const COMING_UP = [
   { icon: FileTextIcon, type: "Assignment", title: "Build a calculator", course: "Complete Python Bootcamp", when: "Due tomorrow", action: "View", href: "/student/assignmentsubmit?item=assignment-project" },
-  { icon: ClockIcon, type: "Live class", title: "Functions in practice", course: "Complete Python Bootcamp", when: "Sep 26 · 6:00 PM", action: "Join", href: "/student/liveclassjoin?session=functions-practice-2026-09-26&join=1" },
+  { icon: ClockIcon, type: "Live class", courseId: "c1", title: "Functions in practice", course: "Complete Python Bootcamp", action: "View Schedule" },
   { icon: PlayIcon, type: "Quiz", title: "Knowledge check", course: "Algebra Foundations", when: "Sep 27 · Due soon", action: "View", href: "/student/quiz?course=c2" },
 ];
 
@@ -171,9 +171,11 @@ export default function Dashboard() {
             <button type="button" onClick={() => navigate("/student/managebooking")} className="text-xs font-semibold text-primary">View all →</button>
           </div>
           <div className="space-y-2">
-            {LIVE_CLASSES.concat({ id: "l3", educator: "Anaya Kapoor", subject: "IELTS — Speaking Practice", when: "Tomorrow, 4:00 PM", joinable: false }).map((s, i) => (
-              <ListRow key={s.id} leading={<div className="w-16 rounded-xl bg-[#f3f6fb] px-2 py-2 text-center text-[10px] font-semibold text-text/55"><span className="block text-primary">{i === 0 ? "Today" : "Tomorrow"}</span><span>Sep {i + 7}</span></div>} title={s.subject} subtitle={`${s.educator} · ${s.when}`} trailing={<Button fullWidth={false} className="rounded-full px-4 py-2 text-xs" disabled={!s.joinable} onClick={() => navigate(`/student/liveclassjoin?session=${s.id}`)}>Join</Button>} />
-            ))}
+            {LIVE_CLASSES.concat({ id: "l3", courseId: "c3", educator: "Anaya Kapoor", subject: "IELTS — Speaking Practice" }).map((s) => {
+              const schedule = getLiveCourseSchedule(s.courseId);
+              const liveNow = schedule?.status === "live";
+              return <ListRow key={s.id} leading={<div className="w-16 rounded-xl bg-[#f3f6fb] px-2 py-2 text-center text-[10px] font-semibold text-text/55"><span className="block text-primary">{schedule?.startAt.toLocaleDateString("en-IN", { weekday: "short" })}</span><span>{schedule?.startAt.getDate()}</span></div>} title={s.subject} subtitle={`${s.educator} · ${schedule ? formatClassStart(schedule.startAt) : "Schedule unavailable"}`} trailing={<Button fullWidth={false} className="rounded-full px-4 py-2 text-xs" onClick={() => navigate(liveNow ? `/student/liveclassjoin?session=${schedule.id}&join=1` : `/student/live-course?course=${s.courseId}`)}>{liveNow ? "Join Live Class" : "View Schedule"}</Button>} />;
+            })}
           </div>
         </section>
 
@@ -268,7 +270,14 @@ export default function Dashboard() {
         <article className="mt-4 rounded-2xl border border-text/10 bg-white">
           <div className="flex items-center justify-between border-b border-text/10 px-5 py-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text/45">Coming up</p><h3 className="mt-1 font-display text-base font-bold text-[#17324d]">Next learning tasks</h3></div><button type="button" onClick={() => navigate("/student/calendar")} className="text-xs font-semibold text-primary">Open calendar →</button></div>
           <div className="grid divide-y divide-text/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            {COMING_UP.map(({ icon: Icon, type, title, course, when, action, href }) => <div key={title} className="flex items-center gap-3 px-5 py-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fff0eb] text-primary"><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-wide text-primary/65">{type}</p><p className="mt-1 truncate text-sm font-semibold text-text">{title}</p><p className="mt-0.5 truncate text-xs text-text/50">{course}</p><p className="mt-1 text-[11px] text-text/45">{when}</p></div><button type="button" onClick={() => navigate(href)} className="shrink-0 text-xs font-semibold text-primary">{action} →</button></div>)}
+            {COMING_UP.map(({ icon: Icon, type, title, course, when, action, href, courseId }) => {
+              const schedule = type === "Live class" ? getLiveCourseSchedule(courseId) : null;
+              const liveNow = schedule?.status === "live";
+              const destination = schedule
+                ? liveNow ? `/student/liveclassjoin?session=${schedule.id}&join=1` : `/student/live-course?course=${courseId}`
+                : href;
+              return <div key={title} className="flex items-center gap-3 px-5 py-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fff0eb] text-primary"><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-wide text-primary/65">{type}</p><p className="mt-1 truncate text-sm font-semibold text-text">{title}</p><p className="mt-0.5 truncate text-xs text-text/50">{course}</p><p className="mt-1 text-[11px] text-text/45">{schedule ? formatClassStart(schedule.startAt) : when}</p></div><button type="button" onClick={() => navigate(destination)} className="shrink-0 text-xs font-semibold text-primary">{schedule && liveNow ? "Join Live Class" : schedule ? "View Schedule" : action} →</button></div>;
+            })}
           </div>
         </article>
       </section>

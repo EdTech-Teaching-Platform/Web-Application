@@ -59,7 +59,7 @@ function SeriesProgressCard({ pkg, progress }) {
         to={progress.nextTest ? `/student/assessments/test-series/${progress.nextTest.assessmentId}` : `/student/test-series/${pkg.id}`}
         className="mt-4 inline-flex items-center justify-center rounded-full border border-primary/20 px-4 py-2.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white"
       >
-        {progress.status === "Not Started" ? "Start Series →" : progress.status === "Completed" ? "Retake Latest Test →" : "Continue Series →"}
+        {progress.status === "Not Started" ? "Start Test Series →" : progress.status === "Completed" ? "Retake Latest Test →" : "Continue Test Series →"}
       </Link>
       <Link to={`/student/test-series/${pkg.id}`} className="mt-2 text-center text-[11px] font-semibold text-text/40 hover:text-primary hover:underline">
         View all tests in this series
