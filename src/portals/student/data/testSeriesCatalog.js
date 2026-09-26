@@ -278,5 +278,11 @@ export function getSeriesProgress(pkg, userOrId) {
     .map((row) => row.latest)
     .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0] || null;
   const status = testsCompleted === 0 ? "Not Started" : testsCompleted >= totalTests && totalTests > 0 ? "Completed" : "In Progress";
-  return { perTest, testsCompleted, totalTests, averageScore, bestScore, lastAttempt, status, purchased: isSeriesPurchased(pkg.id, userOrId) };
+  // The next test to actually take — first not-yet-attempted gradable
+  // test, in package order, so "Continue Series" / "Start Series" can
+  // jump straight into a real test instead of just re-opening the
+  // package detail page (which was the bug: it looked like Continue
+  // Series did nothing because it always landed back on the same page).
+  const nextTest = (perTest.find((row) => !row.attempted) || perTest[0])?.test || null;
+  return { perTest, testsCompleted, totalTests, averageScore, bestScore, lastAttempt, status, nextTest, purchased: isSeriesPurchased(pkg.id, userOrId) };
 }
