@@ -47,6 +47,7 @@ import ToastStack from "../../../components/ui/Toast";
 import { RECOMMENDED } from "../data/recommendedMock";
 import { COURSES } from "../../../data/catalogMock";
 import { isStudentCourseEnrolled } from "../data/studentLocalState";
+import MyTestSeriesSection from "../components/MyTestSeriesSection";
 
 // `category` drives the card's placeholder photo (imageForCategory) — see
 // src/utils/stockImages.js.
@@ -204,6 +205,8 @@ export default function Dashboard() {
           })}
         </div>
       </section>
+
+      <MyTestSeriesSection variant="compact" />
 
       <section className="mt-6 rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.04)] sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">

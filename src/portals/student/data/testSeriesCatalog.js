@@ -15,6 +15,7 @@
 // with `comingSoon: true` per test, matching the "Scheduled / Not Yet
 // Available" access state in the spec rather than pretending it's ready.
 import { TEST_SERIES as ASSESSMENTS } from "./assessmentCatalog";
+import { getSavedAttempts } from "./assessmentCatalog";
 
 export const CLASS_LEVELS = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12", "College / University", "Competitive Exams", "Other"];
 export const SERIES_SUBJECTS = ["Mathematics", "Physics", "Chemistry", "Biology", "English", "Computer Science", "Social Science", "Other"];
@@ -249,4 +250,33 @@ export function purchaseSeries(seriesId, userOrId) {
   } catch {
     // Best-effort mock persistence; page still renders without it.
   }
+}
+
+
+// Aggregates a purchased package's progress from real saved attempts
+// (assessmentCatalog's getSavedAttempts), cross-referenced against the
+// package's own linked (non comingSoon) tests by assessmentId — never a
+// separate, parallel progress store, so this can never drift from what
+// AssessmentRunner/AssessmentResultDetail already recorded.
+export function getSeriesProgress(pkg, userOrId) {
+  const gradableTests = pkg.sections.flatMap((section) => section.tests).filter((test) => !test.comingSoon && test.assessmentId);
+  const attempts = getSavedAttempts();
+  const perTest = gradableTests.map((test) => {
+    const testAttempts = attempts
+      .filter((attempt) => attempt.assessmentId === test.assessmentId)
+      .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    const latest = testAttempts[0] || null;
+    const best = testAttempts.reduce((max, attempt) => Math.max(max, attempt.percentage), 0);
+    return { test, attempted: testAttempts.length > 0, attemptsCount: testAttempts.length, latest, bestPercentage: testAttempts.length ? best : null };
+  });
+  const completed = perTest.filter((row) => row.attempted);
+  const testsCompleted = completed.length;
+  const totalTests = gradableTests.length;
+  const averageScore = completed.length ? Math.round(completed.reduce((sum, row) => sum + row.latest.percentage, 0) / completed.length) : null;
+  const bestScore = completed.length ? Math.max(...completed.map((row) => row.bestPercentage)) : null;
+  const lastAttempt = completed
+    .map((row) => row.latest)
+    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0] || null;
+  const status = testsCompleted === 0 ? "Not Started" : testsCompleted >= totalTests && totalTests > 0 ? "Completed" : "In Progress";
+  return { perTest, testsCompleted, totalTests, averageScore, bestScore, lastAttempt, status, purchased: isSeriesPurchased(pkg.id, userOrId) };
 }

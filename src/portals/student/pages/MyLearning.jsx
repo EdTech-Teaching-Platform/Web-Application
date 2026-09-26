@@ -9,6 +9,7 @@ import { imageForCategory } from "../../../utils/stockImages";
 import { getCourseById } from "../../../data/catalogMock";
 import { useAuth } from "../../../hooks/useAuth";
 import { getStudentEnrolledCourseIds } from "../data/studentLocalState";
+import MyTestSeriesSection from "../components/MyTestSeriesSection";
 
 const COURSES = [
   { id: "c1", title: "Complete Python Bootcamp", educator: "Priya Sharma", description: "Build practical Python skills through projects, core concepts, and guided practice.", category: "Programming", progress: 62, status: "In Progress", accessed: "2 hours ago", enrolled: "Sep 12, 2026", lesson: "Loops & Functions", meta: "12 modules · 48 lessons" },
@@ -209,6 +210,7 @@ export default function MyLearning() {
           <button type="button" onClick={() => navigate("/student/certificates")} className="mt-auto self-start rounded-full bg-[#28756f] px-4 py-2.5 text-xs font-semibold text-white">View certificate path →</button>
         </div>
       </section>
+      <MyTestSeriesSection />
       {courses.length ? (
         <>
         <div className="relative mt-7 rounded-3xl bg-bg p-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
