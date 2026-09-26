@@ -40,6 +40,13 @@ body {
   font-family: var(--font-body);
 }
 
+/* Keep each decorative shape layer above its section's own background but
+ * behind the section content. This makes the shared shapes visible on
+ * public and student pages without affecting the separate auth flows. */
+:where(*:has(> .decorative-shapes)) {
+  isolation: isolate;
+}
+
 /* One content system for every authenticated student page. */
 .student-main > div:not(.student-learning-shell):not(.ambient-portal-backdrop):not(.decorative-shapes) {
   position: relative;

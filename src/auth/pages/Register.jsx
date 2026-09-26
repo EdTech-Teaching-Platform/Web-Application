@@ -17,7 +17,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Checkbox from "../../components/ui/Checkbox";
-import { GoogleIcon, AppleIcon, ArrowLeftIcon } from "../../components/ui/icons";
+import { GoogleIcon, AppleIcon } from "../../components/ui/icons";
 import { isEmail, isStrongPassword } from "../utils/validators";
 import { PENDING_SIGNUP_STORAGE_KEY } from "../../portals/student/context/OnboardingContext";
 import loginStudentsImg from "../../assets/illustrations/login-students.png";
@@ -129,15 +129,6 @@ export default function Register() {
       {/* Right panel — form */}
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
         <div className="mx-auto w-full max-w-sm">
-          {originPath && (
-            <button
-              type="button"
-              onClick={() => navigate(originPath)}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-text/10 bg-white px-3.5 py-2 text-xs font-semibold text-text/65 shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
-            >
-              <ArrowLeftIcon className="h-4 w-4" /> Back to course
-            </button>
-          )}
           <Link to="/" className="mb-6 block text-center font-display text-lg tracking-tight text-primary lg:hidden">
             Universal Learning
           </Link>
@@ -229,7 +220,10 @@ export default function Register() {
 
           <p className="mt-6 text-center text-sm text-text/60">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-primary hover:underline">
+            <Link
+              to={originPath ? `/login?redirect=${encodeURIComponent(originPath)}` : "/login"}
+              className="font-medium text-primary hover:underline"
+            >
               Log in
             </Link>
           </p>

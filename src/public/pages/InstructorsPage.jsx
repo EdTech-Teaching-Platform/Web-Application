@@ -12,7 +12,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ColorBlockCard from "../../components/ui/ColorBlockCard";
-import Chip from "../../components/ui/Chip";
 import { SearchIcon } from "../../components/ui/icons";
 import { EDUCATORS, getCoursesByEducator } from "../../data/catalogMock";
 import { imageForPerson } from "../../utils/stockImages";
@@ -46,31 +45,24 @@ export default function InstructorsPage() {
         courses before you enroll or book a session.
       </p>
 
-      <div className="relative mt-6 max-w-xl">
-        <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text/35" />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search educators by name or subject..."
-          className="w-full rounded-2xl border border-text/10 bg-white py-3.5 pl-12 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-        />
-      </div>
-
-      {/* Single scrollable row instead of wrapping to several lines — same
-          pattern already used for Explore's category chips
-          (src/public/pages/ExplorePage.jsx), so a long subject list never
-          pushes the results down the page. */}
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-        {SUBJECT_FILTERS.map((subject) => (
-          <Chip
-            key={subject}
-            active={activeSubject === subject}
-            onClick={() => setActiveSubject(subject)}
-            className="shrink-0"
-          >
-            {subject}
-          </Chip>
-        ))}
+      <div className="mt-6 flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 sm:w-full sm:max-w-xl">
+          <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text/35" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search educators by name or subject..."
+            className="w-full rounded-2xl border border-text/10 bg-white py-3.5 pl-12 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+          />
+        </div>
+        <select
+          value={activeSubject}
+          onChange={(event) => setActiveSubject(event.target.value)}
+          aria-label="Filter educators by subject"
+          className="rounded-2xl border border-text/10 bg-white px-4 py-3.5 text-sm text-text/70 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 sm:ml-auto sm:w-52"
+        >
+          {SUBJECT_FILTERS.map((subject) => <option key={subject} value={subject}>{subject === "All" ? "All subjects" : subject}</option>)}
+        </select>
       </div>
 
       <p className="mt-6 text-sm text-text/60">

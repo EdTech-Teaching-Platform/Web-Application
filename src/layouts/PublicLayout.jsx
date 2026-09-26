@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Button from "../components/ui/Button";
 import SectionShapes from "../components/common/SectionShapes";
+import { useAuth } from "../hooks/useAuth";
 
 // New top-level layout — public/marketing chrome, no sidebar. Added per
 // the Discovery build spec: Landing + Explore render for visitors who
@@ -31,6 +32,10 @@ const NAV_LINKS = [
 
 export default function PublicLayout() {
   const location = useLocation();
+  const { user } = useAuth();
+  const communityHref = user
+    ? "/student/messages"
+    : `/register?redirect=${encodeURIComponent("/student/messages")}`;
   return (
     <div className="relative min-h-screen bg-white font-body text-text">
       <header className="relative z-10 flex h-16 items-center justify-between gap-4 px-6 md:px-10">
@@ -46,19 +51,13 @@ export default function PublicLayout() {
             // hardcoded "first link is always active" hack, which used to
             // keep "Courses" permanently highlighted on every page/section.
             const isActive = location.pathname === "/" && location.hash === link.href;
-            return (
-              <a
-                key={link.label}
-                href={link.href}
-                className={
-                  isActive
-                    ? "border-b-2 border-primary pb-1 text-text"
-                    : "text-text/60 hover:text-text"
-                }
-              >
-                {link.label}
-              </a>
-            );
+            const className = isActive
+              ? "border-b-2 border-primary pb-1 text-text"
+              : "text-text/60 hover:text-text";
+            if (link.label === "Community") {
+              return <Link key={link.label} to={communityHref} className={className}>{link.label}</Link>;
+            }
+            return <a key={link.label} href={link.href} className={className}>{link.label}</a>;
           })}
         </nav>
 

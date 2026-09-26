@@ -143,9 +143,9 @@ export default function LandingPage() {
   return (
     <div>
       {/* Hero: editorial headline + an original animated learning scene. */}
-      <section className="relative bg-bg py-16">
-        <SectionShapes variant="hero" />
-        <div className="relative mx-auto grid max-w-6xl gap-8 px-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+      <section className="relative isolate bg-bg py-16">
+        <SectionShapes visible variant="hero" />
+        <div className="relative z-10 mx-auto grid max-w-6xl gap-8 px-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
           <div className="flex flex-col items-start">
             <span className="mb-5 inline-flex items-center rounded-full bg-blush px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Learn without limits
@@ -252,9 +252,9 @@ export default function LandingPage() {
       {/* Explore by goal — 4 distinct pastel cards, matching the reference
           layout's "Explore by goal" row (icon, title, one-line description,
           arrow), reusing the same real goal copy as ExplorePage.jsx. */}
-      <section className="relative bg-white py-16">
-        <SectionShapes variant="goals" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section className="relative isolate bg-white py-16">
+        <SectionShapes visible variant="goals" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">Explore by goal</p>
           <h2 className="mt-1 font-display text-2xl font-bold text-text">Not sure where to start? Pick what you're trying to do.</h2>
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -272,7 +272,6 @@ export default function LandingPage() {
                   </span>
                   <span className="font-display text-sm font-bold text-text">{goal.title}</span>
                   <span className="text-xs leading-5 text-text/60">{goal.description}</span>
-                  <span className="mt-auto text-xs font-semibold text-primary">Explore →</span>
                 </button>
               );
             })}
@@ -281,9 +280,9 @@ export default function LandingPage() {
       </section>
 
       {/* Goal-led discovery strip. */}
-      <section className="relative bg-accent-peach/10 py-16">
-        <SectionShapes variant="categories" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section className="relative isolate bg-accent-peach/10 py-16">
+        <SectionShapes visible variant="categories" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Start with a subject</p>
@@ -316,9 +315,9 @@ export default function LandingPage() {
       </section>
 
       {/* Our most popular courses */}
-      <section id="courses" className="relative bg-white py-16">
-        <SectionShapes variant="courses" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section id="courses" className="relative isolate bg-white py-16">
+        <SectionShapes visible variant="courses" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
@@ -371,9 +370,9 @@ export default function LandingPage() {
       {/* Test Series — a main Phase-1 product, not a small feature card:
           full-width section, exam-mockup preview on the right, primary CTA
           into the /student/test-series marketplace. */}
-      <section className="relative bg-bg py-16">
-        <SectionShapes variant="testimonials" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section className="relative isolate bg-bg py-16">
+        <SectionShapes visible variant="testimonials" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="grid gap-8 rounded-3xl border border-text/10 bg-white p-6 shadow-sm md:grid-cols-[1fr_0.9fr] md:p-10">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary/70">Test Series</p>
@@ -422,9 +421,9 @@ export default function LandingPage() {
           "learning paths" pattern: heading + CTA on the left, path cards
           on the right. Same real "Learn → Practice → Assess → Improve"
           step copy as before, just restructured. */}
-      <section className="relative bg-[#f4f0f8] py-16">
-        <SectionShapes variant="paths" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section className="relative isolate bg-[#f4f0f8] py-16">
+        <SectionShapes visible variant="paths" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
           <div className="grid gap-8 lg:grid-cols-[0.85fr_1.6fr] lg:items-center">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-[#71549a]">A complete learning cycle</p>
@@ -459,9 +458,9 @@ export default function LandingPage() {
           courseType === "Live" in catalogMock), adapted from a competitor
           reference layout but grounded in what this platform actually
           offers, not an invented English-teaching pitch. */}
-      <section className="relative bg-white py-16">
-        <SectionShapes variant="why" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section className="relative isolate bg-white py-16">
+        <SectionShapes visible variant="why" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="grid gap-8 rounded-3xl bg-primary p-6 text-white md:grid-cols-2 md:p-10">
           <div className="flex flex-col items-start">
             <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white">
@@ -526,9 +525,9 @@ export default function LandingPage() {
       {/* Learn Anywhere -- the platform is responsive today; the app-store
           badges below are presentational placeholders (no real mobile app
           exists yet), flagged rather than linked to fabricated store URLs. */}
-      <section className="relative bg-bg py-16">
-        <SectionShapes variant="cta" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section className="relative isolate bg-bg py-16">
+        <SectionShapes visible variant="cta" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="grid gap-8 rounded-3xl bg-primary p-6 text-white md:grid-cols-2 md:p-10">
           <div className="relative order-2 mx-auto w-full max-w-sm md:order-1 md:max-w-none">
             <img
@@ -556,13 +555,13 @@ export default function LandingPage() {
                   (see FAQ_ITEMS f5 above). Not links: no real store URLs to
                   point at, so these render as static badges rather than
                   fabricated destinations. */}
-              <span className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/60" title="Coming soon -- no mobile app yet">
-                <GoogleIcon className="h-4 w-4" />
-                Google Play
+              <span className="inline-flex min-w-[142px] items-center gap-2.5 rounded-lg border border-white/15 bg-[#111] px-3 py-2 text-white shadow-md" title="Coming soon -- no mobile app yet">
+                <GoogleIcon className="h-5 w-5 shrink-0" />
+                <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/75">Coming soon on</span><span className="block text-xs font-semibold">Google Play</span></span>
               </span>
-              <span className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/60" title="Coming soon -- no mobile app yet">
-                <AppleIcon className="h-4 w-4" />
-                App Store
+              <span className="inline-flex min-w-[142px] items-center gap-2.5 rounded-lg border border-white/15 bg-[#111] px-3 py-2 text-white shadow-md" title="Coming soon -- no mobile app yet">
+                <AppleIcon className="h-5 w-5 shrink-0" />
+                <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/75">Coming soon on</span><span className="block text-xs font-semibold">App Store</span></span>
               </span>
             </div>
             <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
@@ -580,6 +579,13 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => navigate("/register")}
+              className="mt-8 rounded-full bg-white px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90"
+            >
+              Join Universal Learning
+            </button>
           </div>
         </div>
         </div>
@@ -587,9 +593,9 @@ export default function LandingPage() {
 
       {/* Learn from the best — Instructor Grid (same ColorBlockCard,
           different meta row — never a separate InstructorCard) */}
-      <section id="instructors" className="relative bg-white py-16">
-        <SectionShapes variant="educators" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section id="instructors" className="relative isolate bg-white py-16">
+        <SectionShapes visible variant="educators" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
@@ -632,9 +638,9 @@ export default function LandingPage() {
       </section>
 
       {/* Become an Educator */}
-      <section id="educators" className="relative bg-bg py-16">
-        <SectionShapes variant="why" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section id="educators" className="relative isolate bg-bg py-16">
+        <SectionShapes visible variant="why" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="grid gap-10 rounded-2xl bg-white p-8 md:grid-cols-[1fr_1.2fr] md:p-12">
           <div className="flex flex-col items-start">
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
@@ -671,9 +677,9 @@ export default function LandingPage() {
       </section>
 
       {/* Stats row */}
-      <section className="relative bg-white py-16">
-        <SectionShapes variant="categories" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section className="relative isolate bg-white py-16">
+        <SectionShapes visible variant="categories" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-2 gap-8 rounded-2xl bg-bg p-8 sm:grid-cols-4">
           <StatCard value={8} suffix="+" label="Years Experience" />
           <StatCard value={92} suffix="%" label="Student Satisfaction" />
@@ -684,9 +690,9 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="relative bg-bg py-16">
-        <SectionShapes variant="testimonials" />
-        <div className="relative mx-auto max-w-6xl px-6">
+      <section id="testimonials" className="relative isolate bg-bg py-16">
+        <SectionShapes visible variant="testimonials" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
@@ -702,9 +708,9 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="relative bg-white py-16">
-        <SectionShapes variant="faq" />
-        <div className="relative mx-auto max-w-3xl px-6">
+      <section id="faq" className="relative isolate bg-white py-16">
+        <SectionShapes visible variant="faq" />
+        <div className="relative z-10 mx-auto max-w-3xl px-6">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
@@ -720,9 +726,9 @@ export default function LandingPage() {
       </section>
 
       {/* Closing CTA banner */}
-      <section className="relative mx-auto max-w-6xl px-6 py-16">
-        <SectionShapes variant="cta" />
-        <div className="relative flex flex-col items-center gap-5 rounded-2xl bg-primary px-8 py-12 text-center text-white">
+      <section className="relative isolate mx-auto max-w-6xl px-6 py-16">
+        <SectionShapes visible variant="cta" />
+        <div className="relative z-10 flex flex-col items-center gap-5 rounded-2xl bg-primary px-8 py-12 text-center text-white">
           <h2 className="font-display text-2xl font-bold sm:text-3xl">Ready to start learning?</h2>
           <p className="max-w-lg text-sm text-white/80">
             Join over 50,000 learners mastering in-demand skills today with world-class mentors.

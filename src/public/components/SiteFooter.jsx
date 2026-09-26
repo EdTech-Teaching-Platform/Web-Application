@@ -170,18 +170,18 @@ export default function SiteFooter() {
             <p className="font-display text-sm font-semibold text-text">Download App</p>
             <div className="mt-4 flex flex-col items-start gap-2.5">
               <span
-                className="flex items-center gap-2 rounded-full border border-text/10 px-3 py-1.5 text-xs font-semibold text-text/40"
+                className="inline-flex min-w-[112px] items-center gap-2 rounded-md border border-primary/20 bg-primary px-2.5 py-1.5 text-white shadow-sm"
                 title="Coming soon -- no mobile app yet"
               >
-                <GoogleIcon className="h-3.5 w-3.5" />
-                Google Play
+                <GoogleIcon className="h-4 w-4 shrink-0" />
+                <span className="text-left leading-tight"><span className="block text-[10px] font-semibold">Google Play</span></span>
               </span>
               <span
-                className="flex items-center gap-2 rounded-full border border-text/10 px-3 py-1.5 text-xs font-semibold text-text/40"
+                className="inline-flex min-w-[112px] items-center gap-2 rounded-md border border-primary/20 bg-primary px-2.5 py-1.5 text-white shadow-sm"
                 title="Coming soon -- no mobile app yet"
               >
-                <AppleIcon className="h-3.5 w-3.5" />
-                App Store
+                <AppleIcon className="h-4 w-4 shrink-0" />
+                <span className="text-left leading-tight"><span className="block text-[10px] font-semibold">App Store</span></span>
               </span>
             </div>
           </div>
