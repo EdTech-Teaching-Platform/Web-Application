@@ -62,8 +62,10 @@ export default function CoursePlayer() {
 
   const course = useMemo(() => (courseId ? getCourseById(courseId) : null), [courseId]);
   const recording = useMemo(
-    () => (recordingId ? RECORDINGS.find((item) => item.id === recordingId) : null),
-    [recordingId]
+    () => (recordingId && course?.courseType === "Live"
+      ? RECORDINGS.find((item) => item.id === recordingId && item.courseId === courseId)
+      : null),
+    [recordingId, course, courseId]
   );
   const progress = useCourseProgress(courseId ?? "unknown");
   const qa = useCourseQA(courseId ?? "unknown");

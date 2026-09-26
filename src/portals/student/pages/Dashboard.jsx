@@ -84,7 +84,7 @@ const LEARNING_ACTIVITY = [
 
 const COMING_UP = [
   { icon: FileTextIcon, type: "Assignment", title: "Build a calculator", course: "Complete Python Bootcamp", when: "Due tomorrow", action: "View", href: "/student/assignmentsubmit?item=assignment-project" },
-  { icon: ClockIcon, type: "Live class", title: "Functions in practice", course: "Complete Python Bootcamp", when: "Sep 26 · 6:00 PM", action: "Join", href: "/student/managebooking" },
+  { icon: ClockIcon, type: "Live class", title: "Functions in practice", course: "Complete Python Bootcamp", when: "Sep 26 · 6:00 PM", action: "Join", href: "/student/liveclassjoin?session=functions-practice-2026-09-26&join=1" },
   { icon: PlayIcon, type: "Quiz", title: "Knowledge check", course: "Algebra Foundations", when: "Sep 27 · Due soon", action: "View", href: "/student/quiz?course=c2" },
 ];
 

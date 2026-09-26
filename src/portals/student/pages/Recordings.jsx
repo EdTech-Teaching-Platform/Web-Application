@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import BackButton from "../../../components/common/BackButton";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import { getCourseById } from "../../../data/catalogMock";
 import { RECORDINGS } from "../data/sessionMock";
 
 const STATUS = {
@@ -13,9 +14,14 @@ const STATUS = {
 
 export default function Recordings() {
   const navigate = useNavigate();
-  const [courseFilter, setCourseFilter] = useState("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const courseFilter = searchParams.get("course") || "all";
+  const liveCourseIds = [...new Set(RECORDINGS
+    .filter((recording) => getCourseById(recording.courseId)?.courseType === "Live")
+    .map((recording) => recording.courseId))];
   const recordings = useMemo(
-    () => RECORDINGS.filter((recording) => courseFilter === "all" || recording.courseId === courseFilter),
+    () => RECORDINGS.filter((recording) => getCourseById(recording.courseId)?.courseType === "Live"
+      && (courseFilter === "all" || recording.courseId === courseFilter)),
     [courseFilter]
   );
 
@@ -29,8 +35,13 @@ export default function Recordings() {
       <BackButton fallback="/student/managebooking" className="mb-4" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Post-session learning</p><h1 className="mt-2 font-display text-3xl font-bold text-text">Recordings</h1><p className="mt-2 text-sm text-text/60">View-only recordings from live sessions you were authorized to attend.</p></div>
-        <select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)} className="rounded-full border border-text/10 bg-white px-4 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary">
-          <option value="all">All courses</option><option value="c1">Complete Python Bootcamp</option><option value="c2">Algebra Foundations</option>
+        <select value={courseFilter} onChange={(event) => {
+          const next = new URLSearchParams(searchParams);
+          if (event.target.value === "all") next.delete("course");
+          else next.set("course", event.target.value);
+          setSearchParams(next);
+        }} className="rounded-full border border-text/10 bg-white px-4 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary">
+          <option value="all">All live courses</option>{liveCourseIds.map((id) => <option key={id} value={id}>{getCourseById(id)?.title ?? "Live course"}</option>)}
         </select>
       </div>
       <div className="mt-6 space-y-2">

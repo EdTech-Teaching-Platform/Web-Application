@@ -11,6 +11,51 @@ export const SESSION = {
   policy: "Free cancellation up to 24 hours before the session. Late cancellations may be partially refundable.",
 };
 
+// Student-facing scheduled classroom records. The route carries one of these
+// IDs so the classroom page can show the class the learner selected.
+export const LIVE_CLASS_SESSIONS = [
+  {
+    id: "l1",
+    courseId: "c1",
+    courseTitle: "Complete Python Bootcamp",
+    educator: "Priya Sharma",
+    classTitle: "Python — Loops & Functions",
+    date: "September 20, 2026",
+    time: "5:00 PM – 6:00 PM",
+    duration: "60 minutes",
+  },
+  {
+    id: "l2",
+    courseId: "c2",
+    courseTitle: "Algebra Foundations",
+    educator: "Rohan Mehta",
+    classTitle: "Algebra — Quadratics",
+    date: "September 21, 2026",
+    time: "4:00 PM – 5:00 PM",
+    duration: "60 minutes",
+  },
+  {
+    id: "l3",
+    courseId: "c3",
+    courseTitle: "IELTS Speaking Mastery",
+    educator: "Anaya Kapoor",
+    classTitle: "IELTS — Speaking Practice",
+    date: "September 22, 2026",
+    time: "4:00 PM – 5:00 PM",
+    duration: "60 minutes",
+  },
+  {
+    id: "functions-practice-2026-09-26",
+    courseId: "c1",
+    courseTitle: "Complete Python Bootcamp",
+    educator: "Priya Sharma",
+    classTitle: "Python — Functions in practice",
+    date: "September 26, 2026",
+    time: "6:00 PM – 7:00 PM",
+    duration: "60 minutes",
+  },
+];
+
 export const AVAILABLE_SLOTS = [
   { id: "sep-20-5", date: "September 20, 2026", day: "20", label: "Sun", time: "5:00 PM – 6:00 PM", status: "available" },
   { id: "sep-21-6", date: "September 21, 2026", day: "21", label: "Mon", time: "6:00 PM – 7:00 PM", status: "available" },
@@ -58,7 +103,6 @@ export const ATTENDANCE_SESSIONS = [
     duration: "44 minutes",
     attended: true,
     percentage: 82,
-    recordingId: "rec-2",
   },
   {
     id: "att-4",
@@ -85,18 +129,6 @@ export const RECORDINGS = [
     date: "September 12, 2026",
     duration: "58 minutes",
     status: "Available",
-    access: "authorized",
-  },
-  {
-    id: "rec-2",
-    courseId: "c2",
-    lessonId: "l10",
-    sessionId: "m2",
-    title: "Algebra — Quadratics",
-    educator: "Rohan Mehta",
-    date: "August 28, 2026",
-    duration: "44 minutes",
-    status: "Processing",
     access: "authorized",
   },
   {
