@@ -263,7 +263,7 @@ export default function LiveClassesDiscover() {
                     badge="Live"
                     title={course.title}
                     subtitle={course.subtitle}
-                    meta={`${whenFor(index).date} · ${whenFor(index).time} · ${course.duration}`}
+                    meta={scheduleMeta(course)}
                     description={`${course.level} · ${course.enrolledCount.toLocaleString()} learners`}
                     price={course.price}
                     originalPrice={course.originalPrice}

@@ -9,7 +9,13 @@ const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
   { href: "/student/explore", label: "Explore" },
   { href: "/student/my-learning", label: "My Learning" },
-  { href: "/student/test-series", label: "Test Series" },
+  {
+    label: "Test Series",
+    items: [
+      { href: "/student/test-series", label: "Browse Test Series" },
+      { href: "/student/assessments/my-results", label: "My Results" },
+    ],
+  },
   {
     label: "Classes",
     items: [
@@ -72,7 +78,8 @@ export default function StudentLayout() {
   const isCoursePlayer = location.pathname === "/student/courseplayer";
 
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden bg-bg">
+    <div className="relative isolate flex h-screen flex-col overflow-hidden bg-bg">
+      <SectionShapes visible variant="student" />
       <Navbar
         title="Universal Learning"
         navEntries={navEntries}
@@ -89,7 +96,6 @@ export default function StudentLayout() {
             render their own BackButton / contextual "Back to X" action
             instead, scoped to where that specific page was entered from. */}
         <main className={`student-main min-w-0 flex-1 pb-20 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
-          <SectionShapes variant="student" />
           <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
             <Outlet />
           </StudentErrorBoundary>
