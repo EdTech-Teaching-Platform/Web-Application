@@ -22,7 +22,7 @@ export default function Button({
   as: Component = "button",
   ...props
 }) {
-  const base = `inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none ${
+  const base = `inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:pointer-events-none disabled:translate-y-0 disabled:shadow-none ${
     fullWidth ? "w-full" : ""
   }`;
 
@@ -41,7 +41,8 @@ export default function Button({
     // cascade fight by JSX string order — overriding bg-primary/text-white
     // with bg-white/text-primary via className was landing as invisible
     // white-text-on-white in practice.
-    inverse: "bg-white text-primary hover:bg-white/90",
+    inverse:
+      "bg-white text-primary hover:bg-white/90 disabled:bg-white/20 disabled:text-white/50 disabled:hover:bg-white/20",
   };
 
   const typeProp = Component === "button" ? { type } : {};

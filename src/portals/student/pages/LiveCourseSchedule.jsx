@@ -29,7 +29,7 @@ export default function LiveCourseSchedule() {
   const schedule = useMemo(() => course ? getLiveCourseSchedule(course.id, now) : null, [course, now]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 15000);
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -71,7 +71,7 @@ export default function LiveCourseSchedule() {
 
         <div className="mt-5 rounded-2xl border border-text/10 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-text/45">Class details</p>
-          <p className="mt-2 text-sm leading-6 text-text/65">Join the scheduled group session for {course.title}. The room opens when the class starts. This class is separate from prerecorded lessons in Recorded Classes.</p>
+          <p className="mt-2 text-sm leading-6 text-text/65">Join the scheduled group session for {course.title}. The room opens when the class starts. This class is separate from self-paced prerecorded lessons.</p>
           <p className="mt-2 text-sm text-text/55">Educator: <strong className="text-text">{schedule.educator}</strong> · Online group class · {schedule.duration}</p>
         </div>
 

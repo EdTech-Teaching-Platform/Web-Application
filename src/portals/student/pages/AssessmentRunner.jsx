@@ -74,9 +74,14 @@ function StartConfirmation({ assessment, attemptsRemainingLabel, onBack, onStart
         </ul>
       </div>
 
-      <label className="mt-5 flex items-start gap-2.5 text-sm text-text/70">
-        <input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-primary" />
-        I have read and understood the instructions.
+      <label className="mt-5 inline-flex cursor-pointer items-center gap-2.5 text-sm select-none text-text/70">
+        <input
+          type="checkbox"
+          checked={acknowledged}
+          onChange={(event) => setAcknowledged(event.target.checked)}
+          className="h-4 w-4 shrink-0 rounded accent-primary cursor-pointer"
+        />
+        <span>I have read and understood the instructions.</span>
       </label>
 
       <div className="mt-5 flex flex-wrap gap-2">

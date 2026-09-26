@@ -1,10 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
 import { ArrowLeftIcon, CheckIcon, FileTextIcon } from "../../../components/ui/icons";
 import BackButton from "../../../components/common/BackButton";
-import { getStoredBooking, LIVE_CLASS_SESSIONS, SESSION } from "../data/sessionMock";
 import { getLiveClassSessionById } from "../data/liveCourseSchedule";
 import { useAuth } from "../../../hooks/useAuth";
 import { studentStorageKey } from "../data/studentLocalState";
@@ -15,15 +14,26 @@ export default function LiveClassJoin() {
   const { user } = useAuth();
   const sessionId = searchParams.get("session");
   const joinImmediately = searchParams.get("join") === "1";
-  const storedBooking = sessionId === "booked" ? getStoredBooking() : null;
-  const session = sessionId === "booked"
-    ? { ...SESSION, ...(storedBooking || {}) }
-    : getLiveClassSessionById(sessionId) || LIVE_CLASS_SESSIONS.find((item) => item.id === sessionId);
+
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const session = useMemo(() => {
+    return getLiveClassSessionById(sessionId, now);
+  }, [sessionId, now]);
+
+  const isLive = session?.status === "live";
+  const isEnded = session?.status === "ended";
+
   const sessionTitle = session?.classTitle;
   const sessionEducator = session?.educator;
   const roomRef = useRef(null);
   const notesKey = studentStorageKey(`ul_class_notes_v1_${sessionId || "unknown"}`, user);
-  const [stage, setStage] = useState(() => joinImmediately && (!session?.status || session.status === "live") ? "live" : "lobby");
+  const [stage, setStage] = useState(() => (joinImmediately && isLive) ? "live" : "lobby");
   const [chatOpen, setChatOpen] = useState(true);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaveToCalendar, setLeaveToCalendar] = useState(false);
@@ -36,7 +46,7 @@ export default function LiveClassJoin() {
   ] : []);
 
   function secureJoin() {
-    if (session.status && session.status !== "live") return;
+    if (!isLive) return;
     setStage("connecting");
     window.setTimeout(() => setStage("live"), 900);
   }
@@ -78,7 +88,7 @@ export default function LiveClassJoin() {
         <p className="mt-2 text-sm text-white/65">{session.date} · {session.time} · {session.duration}</p>
         <div className="mt-8 rounded-2xl bg-white/10 p-5"><p className="text-sm font-semibold text-white">Frontend preview</p><p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">This page previews the student classroom layout. Live educator video, device checks, class attendance, and shared resources are not connected in this prototype.</p></div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2"><div className="rounded-2xl bg-white p-5 text-text"><p className="font-semibold">Available in this preview</p><p className="mt-2 text-sm leading-6 text-text/60">Review the classroom layout, try the local chat controls, save your notes, and use fullscreen.</p></div><div className="rounded-2xl bg-white/10 p-5 text-white"><p className="font-semibold">Attendance</p><p className="mt-2 text-sm text-white/70">Attendance is not recorded from this preview.</p></div></div>
-        <Button variant="inverse" className="mt-8" disabled={Boolean(session.status && session.status !== "live")} onClick={secureJoin}>{session.status === "live" ? "Join Live Class" : session.status === "ended" ? "This class has ended" : "Join available when class starts"}</Button>
+        <Button variant="inverse" className="mt-8" disabled={!isLive} onClick={secureJoin}>{isLive ? "Join Live Class" : isEnded ? "This class has ended" : "Join available when class starts"}</Button>
       </div>
     </div>
   );

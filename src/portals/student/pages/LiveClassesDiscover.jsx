@@ -8,7 +8,7 @@
 // there rather than here, on purpose, so this page never mixes enrolled
 // sessions into a discovery grid.
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import Button from "../../../components/ui/Button";
 import SectionHeading from "../../../components/common/SectionHeading";
@@ -50,6 +50,7 @@ function CheckGroup({ label, options, selected, onToggle }) {
 
 export default function LiveClassesDiscover() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
@@ -101,13 +102,22 @@ export default function LiveClassesDiscover() {
     return undefined;
   };
 
+  // Mounted at both the public /live-classes and the protected
+  // /student/live-classes (see public/routes.jsx) -- a logged-in student
+  // browsing under /student/ must stay in /student/course/:id
+  // (StudentLayout's logged-in navbar), never fall through to the public
+  // /course/:id (PublicLayout's logged-out navbar), same pattern as
+  // EducatorProfile's coursePath and TestSeriesMarketplace's detailPath.
+  const isStudentContext = location.pathname.startsWith("/student/");
+  const coursePath = (id) => (isStudentContext ? `/student/course/${id}` : `/course/${id}`);
+
   function openCourse(course) {
-    navigate(`/course/${course.id}`);
+    navigate(coursePath(course.id));
   }
 
   function toggleWishlist(course) {
     if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/course/${course.id}`)}`);
+      navigate(`/login?redirect=${encodeURIComponent(coursePath(course.id))}`);
       return;
     }
     const saved = !wishlist.isWishlisted(course.id);

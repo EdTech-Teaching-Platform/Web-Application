@@ -384,7 +384,7 @@ export default function LandingPage() {
                 { n: "02", title: "Per-Question Reporting", text: "Detailed breakdowns of time spent and accuracy per question, so you know exactly where to improve.", icon: BookOpenIcon, tint: "bg-[#e7f1ef] text-[#28756f]" },
               ].map((item) => <article key={item.title} className="rounded-2xl border border-text/10 bg-[#fcfbfa] p-4"><div className="flex items-center justify-between"><span className="text-xs font-bold tracking-widest text-text/35">{item.n}</span><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.tint}`}><item.icon className="h-4 w-4"/></span></div><h3 className="mt-3 text-sm font-bold text-text">{item.title}</h3><p className="mt-1 text-xs leading-5 text-text/55">{item.text}</p></article>)}
             </div>
-            <Button fullWidth={false} className="mt-6 px-6" onClick={() => navigate("/student/test-series")}>Explore Test Series</Button>
+            <Button fullWidth={false} className="mt-6 px-6" onClick={() => navigate("/test-series")}>Explore Test Series</Button>
           </div>
           <div className="flex flex-col justify-center">
             {/* Static exam-UI mockup — illustrative preview, not a real
@@ -479,7 +479,7 @@ export default function LandingPage() {
               fullWidth={false}
               variant="inverse"
               className="mt-6 px-6"
-              onClick={() => navigate("/student/live-classes")}
+              onClick={() => navigate("/live-classes")}
             >
               Explore Live Classes
             </Button>
@@ -522,74 +522,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Learn Anywhere -- the platform is responsive today; the app-store
-          badges below are presentational placeholders (no real mobile app
-          exists yet), flagged rather than linked to fabricated store URLs. */}
-      <section className="relative isolate bg-bg py-16">
-        <SectionShapes visible variant="cta" />
-        <div className="relative z-10 mx-auto max-w-6xl px-6">
-        <div className="grid gap-8 rounded-3xl bg-primary p-6 text-white md:grid-cols-2 md:p-10">
-          <div className="relative order-2 mx-auto w-full max-w-sm md:order-1 md:max-w-none">
-            <img
-              src={imageForPerson("mobile-app-hero", { w: 480, h: 420 })}
-              onError={(e) => imgFallback(e, "mobile-app-hero", 480, 420)}
-              alt="Learner studying from a phone"
-              className="h-full w-full rounded-2xl object-cover"
-            />
-          </div>
-          <div className="order-1 flex flex-col items-start md:order-2">
-            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white">
-              <UsersIcon className="h-3.5 w-3.5" />
-              Any Device
-            </span>
-            <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">
-              Learn Anytime, Anywhere
-            </h2>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
-              The web platform works across desktop and mobile browsers today,
-              so you can pick up a course or join a live class from whatever
-              device is in front of you.
-            </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              {/* Presentational only -- no dedicated mobile app exists yet
-                  (see FAQ_ITEMS f5 above). Not links: no real store URLs to
-                  point at, so these render as static badges rather than
-                  fabricated destinations. */}
-              <span className="inline-flex min-w-[142px] items-center gap-2.5 rounded-lg border border-white/15 bg-[#111] px-3 py-2 text-white shadow-md" title="Coming soon -- no mobile app yet">
-                <GoogleIcon className="h-5 w-5 shrink-0" />
-                <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/75">Coming soon on</span><span className="block text-xs font-semibold">Google Play</span></span>
-              </span>
-              <span className="inline-flex min-w-[142px] items-center gap-2.5 rounded-lg border border-white/15 bg-[#111] px-3 py-2 text-white shadow-md" title="Coming soon -- no mobile app yet">
-                <AppleIcon className="h-5 w-5 shrink-0" />
-                <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/75">Coming soon on</span><span className="block text-xs font-semibold">App Store</span></span>
-              </span>
-            </div>
-            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              {[
-                "Sync across devices",
-                "Continue where you left off",
-                "Downloadable resources",
-                "Topic-based learning",
-                "Live class access",
-                "Daily learning goals",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-2 text-sm text-white/90">
-                  <CheckCircleIcon className="h-4 w-4 shrink-0 text-accent-peach" />
-                  {item}
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate("/register")}
-              className="mt-8 rounded-full bg-white px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90"
-            >
-              Join Universal Learning
-            </button>
-          </div>
-        </div>
-        </div>
-      </section>
 
       {/* Learn from the best — Instructor Grid (same ColorBlockCard,
           different meta row — never a separate InstructorCard) */}
@@ -725,22 +657,72 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Closing CTA banner */}
-      <section className="relative isolate mx-auto max-w-6xl px-6 py-16">
+      {/* Learn Anywhere -- the platform is responsive today; the app-store
+          badges below are presentational placeholders (no real mobile app
+          exists yet), flagged rather than linked to fabricated store URLs. */}
+      <section className="relative isolate bg-bg py-16">
         <SectionShapes visible variant="cta" />
-        <div className="relative z-10 flex flex-col items-center gap-5 rounded-2xl bg-primary px-8 py-12 text-center text-white">
-          <h2 className="font-display text-2xl font-bold sm:text-3xl">Ready to start learning?</h2>
-          <p className="max-w-lg text-sm text-white/80">
-            Join over 50,000 learners mastering in-demand skills today with world-class mentors.
-          </p>
-          <Button
-            fullWidth={false}
-            variant="inverse"
-            className="px-8"
-            onClick={() => navigate("/register")}
-          >
-            Get Started Now
-          </Button>
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
+        <div className="grid gap-8 rounded-3xl bg-primary p-6 text-white md:grid-cols-2 md:p-10">
+          <div className="relative order-2 mx-auto w-full max-w-sm md:order-1 md:max-w-none">
+            <img
+              src={imageForPerson("mobile-app-hero", { w: 480, h: 420 })}
+              onError={(e) => imgFallback(e, "mobile-app-hero", 480, 420)}
+              alt="Learner studying from a phone"
+              className="h-full w-full rounded-2xl object-cover"
+            />
+          </div>
+          <div className="order-1 flex flex-col items-start md:order-2">
+            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white">
+              <UsersIcon className="h-3.5 w-3.5" />
+              Any Device
+            </span>
+            <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">
+              Learn Anytime, Anywhere
+            </h2>
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
+              The web platform works across desktop and mobile browsers today,
+              so you can pick up a course or join a live class from whatever
+              device is in front of you.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {/* Presentational only -- no dedicated mobile app exists yet
+                  (see FAQ_ITEMS f5 above). Not links: no real store URLs to
+                  point at, so these render as static badges rather than
+                  fabricated destinations. */}
+              <span className="inline-flex min-w-[142px] items-center gap-2.5 rounded-lg border border-white/15 bg-[#111] px-3 py-2 text-white shadow-md" title="Coming soon -- no mobile app yet">
+                <GoogleIcon className="h-5 w-5 shrink-0" />
+                <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/75">Coming soon on</span><span className="block text-xs font-semibold">Google Play</span></span>
+              </span>
+              <span className="inline-flex min-w-[142px] items-center gap-2.5 rounded-lg border border-white/15 bg-[#111] px-3 py-2 text-white shadow-md" title="Coming soon -- no mobile app yet">
+                <AppleIcon className="h-5 w-5 shrink-0" />
+                <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/75">Coming soon on</span><span className="block text-xs font-semibold">App Store</span></span>
+              </span>
+            </div>
+            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+              {[
+                "Sync across devices",
+                "Continue where you left off",
+                "Downloadable resources",
+                "Topic-based learning",
+                "Live class access",
+                "Daily learning goals",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2 text-sm text-white/90">
+                  <CheckCircleIcon className="h-4 w-4 shrink-0 text-accent-peach" />
+                  {item}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/register")}
+              className="mt-8 rounded-full bg-white px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90"
+            >
+              Join Universal Learning
+            </button>
+          </div>
+        </div>
         </div>
       </section>
 

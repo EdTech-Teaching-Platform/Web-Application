@@ -82,6 +82,7 @@ export default function ForgotPassword() {
 
   return (
     <AuthCard
+      showBackToHome={false}
       eyebrow="Reset password"
       title="Forgot your password?"
       subtitle="Enter the email or phone number on your account and we'll send you a reset link."

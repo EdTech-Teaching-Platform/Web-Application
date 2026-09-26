@@ -36,7 +36,7 @@ export default function Recordings() {
     <div className="px-4 py-8 sm:px-6 lg:px-10">
       <BackButton fallback="/student/managebooking" className="mb-4" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Live class archive</p><h1 className="mt-2 font-display text-3xl font-bold text-text">Live Session Recordings</h1><p className="mt-2 text-sm text-text/60">Replays of past live classes. These are separate from prerecorded Recorded Classes courses.</p></div>
+        <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-text/45">Live class archive</p><h1 className="mt-2 font-display text-3xl font-bold text-text">Live Session Recordings</h1><p className="mt-2 text-sm text-text/60">Replays of past live classes. These are separate from self-paced prerecorded courses.</p></div>
         <select value={courseFilter} onChange={(event) => {
           const next = new URLSearchParams(searchParams);
           if (event.target.value === "all") next.delete("course");

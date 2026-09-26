@@ -107,12 +107,16 @@ export default function RecordedClassesDiscover() {
   const newlyAdded = useMemo(() => [...RECORDED_COURSES].slice(-6).reverse(), []);
 
   function openCourse(course) {
-    navigate(`/course/${course.id}`);
+    // RecordedClassesDiscover is only ever mounted under /student/
+    // (see routes.jsx) -- no public counterpart the way Live Classes has --
+    // so this must always stay inside StudentLayout's logged-in navbar
+    // rather than falling through to the public /course/:id route.
+    navigate(`/student/course/${course.id}`);
   }
 
   function toggleWishlist(course) {
     if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/course/${course.id}`)}`);
+      navigate(`/login?redirect=${encodeURIComponent(`/student/course/${course.id}`)}`);
       return;
     }
     const saved = !wishlist.isWishlisted(course.id);

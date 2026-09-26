@@ -20,7 +20,6 @@ const navEntries = [
     label: "Classes",
     items: [
       { href: "/student/live-classes", label: "Live Classes" },
-      { href: "/student/recorded-classes", label: "Recorded Classes" },
       { href: "/student/learninghistory", label: "Learning History" },
     ],
   },
@@ -79,7 +78,6 @@ export default function StudentLayout() {
 
   return (
     <div className="relative isolate flex h-screen flex-col overflow-hidden bg-bg">
-      <SectionShapes visible variant="student" />
       <Navbar
         title="Universal Learning"
         navEntries={navEntries}
@@ -96,9 +94,24 @@ export default function StudentLayout() {
             render their own BackButton / contextual "Back to X" action
             instead, scoped to where that specific page was entered from. */}
         <main className={`student-main min-w-0 flex-1 pb-20 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
-          <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
-            <Outlet />
-          </StudentErrorBoundary>
+          {/* SectionShapes used to sit directly on the outer h-screen/
+              overflow-hidden shell above, which never scrolls — only this
+              <main> does (overflow-y-auto) -- so those shapes stayed glued
+              to the viewport instead of moving with the page, unlike
+              Landing/Explore where each section's shapes are normal-flow
+              content inside the page that actually scrolls. Moving the
+              wrapper here, INSIDE <main>, in normal flow with the real
+              content (so its height matches the full scrollable content,
+              not just the viewport-sized <main> box), fixes that: it now
+              scrolls up together with the page exactly like Landing. */}
+          <div className="relative min-h-full">
+            <SectionShapes visible variant="student" />
+            <div className="relative z-10">
+              <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
+                <Outlet />
+              </StudentErrorBoundary>
+            </div>
+          </div>
         </main>
       </div>
       <MobileNav />

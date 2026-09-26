@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import SectionShapes from "../../../components/common/SectionShapes";
 import Chip from "../../../components/ui/Chip";
 import { SearchIcon, StarIcon, FileTextIcon, ClockIcon, BookOpenIcon } from "../../../components/ui/icons";
@@ -38,9 +38,19 @@ function badgeTone(badge) {
 
 function SeriesCard({ pkg }) {
   const { user } = useAuth();
+  const location = useLocation();
+  // Rendered both at the protected /student/test-series (logged-in browse)
+  // and the public /test-series (anonymous browse — see public/routes.jsx).
+  // Anyone can look; only actually starting/buying a test gates on login,
+  // handled inside TestSeriesPackageDetail, so the "not purchased" link
+  // below must still point at the RIGHT package-detail route family
+  // depending on where the visitor currently is, same pattern CourseDetails
+  // uses for relatedCoursePath.
+  const isStudentContext = location.pathname.startsWith("/student/");
   const purchased = isSeriesPurchased(pkg.id, user);
   const ready = pkg.sections.some((section) => section.tests.some((test) => test.assessmentId));
-  const href = purchased && ready ? getSeriesStartPath(pkg) : `/student/test-series/${pkg.id}`;
+  const detailPath = isStudentContext ? `/student/test-series/${pkg.id}` : `/test-series/${pkg.id}`;
+  const href = purchased && ready ? getSeriesStartPath(pkg) : detailPath;
   return (
     <article className="flex h-full flex-col rounded-2xl border border-text/10 bg-white p-5 shadow-[0_4px_18px_rgba(23,50,77,0.04)] transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex flex-wrap items-center gap-2">

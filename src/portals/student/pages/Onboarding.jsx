@@ -112,13 +112,14 @@ export default function Onboarding() {
     }
   };
   const goBack = () => setStep((s) => Math.max(0, s - 1));
+  const goBackToLastPage = () => (window.history.length > 1 ? navigate(-1) : navigate("/"));
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-bg">
       <AuthBackdrop />
 
       <header className="relative flex items-center justify-between border-b border-text/10 px-6 py-4 sm:px-10">
-        <Link to="/" className="font-display text-lg tracking-tight text-primary">Universal Learning</Link>
+        <button type="button" onClick={goBackToLastPage} className="font-display text-lg tracking-tight text-primary">Universal Learning</button>
         <span className="text-xs font-semibold uppercase tracking-wide text-text/40">Onboarding</span>
       </header>
 

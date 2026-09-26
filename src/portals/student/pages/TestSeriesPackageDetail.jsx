@@ -57,11 +57,27 @@ export default function TestSeriesPackageDetail() {
   const [purchased, setPurchased] = useState(() => (pkg ? isSeriesPurchased(pkg.id, user) : false));
   const [justPurchased, setJustPurchased] = useState(Boolean(location.state?.purchaseComplete));
 
+  // Reached both from the protected /student/test-series/:id (logged-in
+  // browse) and the public /test-series/:id (anonymous browse — see
+  // public/routes.jsx). Browsing itself never gates on auth; only Buy/
+  // Start does, via requireAuth below, same pattern as CourseDetails.
+  const isStudentContext = location.pathname.startsWith("/student/");
+  const listPath = isStudentContext ? "/student/test-series" : "/test-series";
+  const currentDetailPath = `${location.pathname}${location.search}`;
+
+  function requireAuth(action) {
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(currentDetailPath)}`);
+      return;
+    }
+    action();
+  }
+
   if (!pkg) {
     return (
       <div className="px-5 py-16 text-center">
         <h1 className="font-display text-2xl font-bold text-text">Test series not found</h1>
-        <Button fullWidth={false} className="mt-4" onClick={() => navigate("/student/test-series")}>Back to Test Series</Button>
+        <Button fullWidth={false} className="mt-4" onClick={() => navigate(listPath)}>Back to Test Series</Button>
       </div>
     );
   }
@@ -77,24 +93,26 @@ export default function TestSeriesPackageDetail() {
   }
 
   function handleBuy() {
-    if (pkg.price > 0) {
-      navigate(`/student/test-series/${pkg.id}/checkout`);
-      return;
-    }
-    purchaseSeries(pkg.id, user);
-    setPurchased(true);
-    setJustPurchased(true);
+    requireAuth(() => {
+      if (pkg.price > 0) {
+        navigate(`/student/test-series/${pkg.id}/checkout`);
+        return;
+      }
+      purchaseSeries(pkg.id, user);
+      setPurchased(true);
+      setJustPurchased(true);
+    });
   }
 
   function startSeries() {
-    navigate(getSeriesStartPath(pkg));
+    requireAuth(() => navigate(getSeriesStartPath(pkg)));
   }
 
   const negativeMarking = pkg.negativeMarking;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
-      <Link to="/student/test-series" className="text-sm font-semibold text-primary">← Back to Test Series</Link>
+      <Link to={listPath} className="text-sm font-semibold text-primary">← Back to Test Series</Link>
 
       <div className="mt-5 overflow-hidden rounded-3xl bg-[#4a0e0e] p-6 text-white shadow-sm sm:p-9">
         <div className="flex flex-wrap items-center gap-2">

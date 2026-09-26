@@ -1,4 +1,5 @@
 import { COURSES, getCourseById } from "../../../data/catalogMock";
+import { LIVE_CLASS_SESSIONS, SESSION, getStoredBooking } from "./sessionMock";
 
 const TIME_SLOTS = [
   { hour: 18, minute: 0 },
@@ -64,12 +65,67 @@ export function getLiveCourseSchedule(courseId, now = new Date()) {
 
 export function getLiveClassSessionById(sessionId, now = new Date()) {
   const match = /^scheduled-(c\d+)-(\d{8})$/.exec(sessionId || "");
-  if (!match) return null;
-  const course = getCourseById(match[1]);
-  if (!course || course.courseType !== "Live") return null;
-  const dateKeyValue = match[2];
-  const date = new Date(Number(dateKeyValue.slice(0, 4)), Number(dateKeyValue.slice(4, 6)) - 1, Number(dateKeyValue.slice(6, 8)));
-  return sessionForDate(course, date, now);
+  if (match) {
+    const course = getCourseById(match[1]);
+    if (!course || course.courseType !== "Live") return null;
+    const dateKeyValue = match[2];
+    const date = new Date(Number(dateKeyValue.slice(0, 4)), Number(dateKeyValue.slice(4, 6)) - 1, Number(dateKeyValue.slice(6, 8)));
+    return sessionForDate(course, date, now);
+  }
+
+  // Handle static or booked session IDs (such as 'l1', 'l3', or 'booked')
+  let session = null;
+  if (sessionId === "booked") {
+    session = getStoredBooking() || SESSION;
+  } else {
+    session = LIVE_CLASS_SESSIONS.find((item) => item.id === sessionId);
+  }
+
+  if (session) {
+    if (session.courseId) {
+      const courseSchedule = getLiveCourseSchedule(session.courseId, now);
+      if (courseSchedule) {
+        return {
+          ...session,
+          date: courseSchedule.date,
+          time: courseSchedule.time,
+          startAt: courseSchedule.startAt,
+          endAt: courseSchedule.endAt,
+          status: courseSchedule.status,
+          duration: courseSchedule.duration || session.duration || "60 minutes",
+        };
+      }
+    }
+
+    let startAt = session.startAt ? new Date(session.startAt) : null;
+    let endAt = session.endAt ? new Date(session.endAt) : null;
+    if (!startAt && session.date && session.time) {
+      const startTimePart = session.time.split(/[\u2013\u2014-]/)[0]?.trim();
+      const parsedStart = new Date(`${session.date} ${startTimePart}`);
+      if (!isNaN(parsedStart.getTime())) {
+        startAt = parsedStart;
+        const endTimePart = session.time.split(/[\u2013\u2014-]/)[1]?.trim();
+        const parsedEnd = endTimePart ? new Date(`${session.date} ${endTimePart}`) : new Date(startAt.getTime() + 60 * 60 * 1000);
+        endAt = isNaN(parsedEnd.getTime()) ? new Date(startAt.getTime() + 60 * 60 * 1000) : parsedEnd;
+      }
+    }
+
+    let status = session.status;
+    if (!status && startAt && endAt) {
+      status = now < startAt ? "upcoming" : now < endAt ? "live" : "ended";
+    } else if (!status) {
+      status = "upcoming";
+    }
+
+    return {
+      ...session,
+      startAt,
+      endAt,
+      status,
+    };
+  }
+
+  return null;
 }
 
 export function formatClassStart(startAt) {

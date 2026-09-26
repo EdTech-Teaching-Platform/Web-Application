@@ -92,7 +92,7 @@ const studentRoutes = (
       <Route path="recommended" element={<Recommended />} />
       <Route path="explore" element={<ExplorePage />} />
       <Route path="live-classes" element={<LiveClassesDiscover />} />
-      <Route path="recorded-classes" element={<RecordedClassesDiscover />} />
+      <Route path="recorded-classes" element={<Navigate to="/student/explore" replace />} />
       <Route path="test-series" element={<TestSeriesMarketplace />} />
       <Route path="test-series/:seriesId/checkout" element={<TestSeriesCheckout />} />
       <Route path="test-series/:seriesId" element={<TestSeriesPackageDetail />} />

@@ -9,7 +9,7 @@
 // src/portals/student/routes.jsx) — same file, same marketplace content
 // either way; only the wishlist/enroll actions branch on `user`.
 import { useEffect, useMemo, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import ColorBlockCard from "../../components/ui/ColorBlockCard";
 import Chip from "../../components/ui/Chip";
 import Button from "../../components/ui/Button";
@@ -108,6 +108,7 @@ function CheckGroup({ label, options, selected, onToggle }) {
 export default function ExplorePage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const userId = user?.identifier || user?.id || "guest";
   const wishlist = useWishlist();
@@ -244,13 +245,21 @@ export default function ExplorePage() {
     [discoverableCourses, popularIds, recommendedIds]
   );
 
+  // ExplorePage is mounted at both the public /explore and the protected
+  // /student/explore (see student/routes.jsx) -- a logged-in student
+  // browsing under /student/ must stay in /student/course/:id
+  // (StudentLayout's logged-in navbar), never fall through to the public
+  // /course/:id (PublicLayout's logged-out navbar).
+  const isStudentContext = location.pathname.startsWith("/student/");
+  const coursePath = (id) => (isStudentContext ? `/student/course/${id}` : `/course/${id}`);
+
   function openCourse(course) {
-    navigate(`/course/${course.id}`);
+    navigate(coursePath(course.id));
   }
 
   function toggleWishlist(course) {
     if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/course/${course.id}`)}`);
+      navigate(`/login?redirect=${encodeURIComponent(coursePath(course.id))}`);
       return;
     }
     const saved = !wishlist.isWishlisted(course.id);

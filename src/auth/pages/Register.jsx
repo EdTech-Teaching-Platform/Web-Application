@@ -25,6 +25,7 @@ import AuthBackdrop from "../../components/ui/AuthBackdrop";
 
 export default function Register() {
   const navigate = useNavigate();
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate("/"));
   const [searchParams] = useSearchParams();
   // Only set when the person arrived here mid-flow — e.g. clicked "Enroll
   // Now" on a course details page while logged out, got bounced to
@@ -101,9 +102,9 @@ export default function Register() {
       {/* Left panel — same treatment as Login.jsx: text upper-left, a
           grounded illustration as the dominant visual element. */}
       <div className="relative z-10 hidden flex-col border-r border-[#e5ded9] p-10 lg:flex lg:p-14">
-        <Link to="/" className="font-display text-sm font-semibold tracking-tight text-primary">
+        <button type="button" onClick={goBack} className="font-display text-sm font-semibold tracking-tight text-primary">
           Universal Learning
-        </Link>
+        </button>
 
         <div className="flex flex-1 flex-col items-start justify-between">
           <div className="max-w-xs -translate-x-1 pt-2">
@@ -129,9 +130,9 @@ export default function Register() {
       {/* Right panel — form */}
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
         <div className="mx-auto w-full max-w-sm">
-          <Link to="/" className="mb-6 block text-center font-display text-lg tracking-tight text-primary lg:hidden">
+          <button type="button" onClick={goBack} className="mb-6 block w-full text-center font-display text-lg tracking-tight text-primary lg:hidden">
             Universal Learning
-          </Link>
+          </button>
 
           <div className="mx-auto mb-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary font-display text-sm font-bold text-white">
             UL

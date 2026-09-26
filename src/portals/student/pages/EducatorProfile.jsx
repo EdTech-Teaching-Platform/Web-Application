@@ -103,6 +103,11 @@ export default function EducatorProfile() {
     typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : `/educator?educator=${educator.id}`;
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}${currentPath}`;
   const allCoursesPath = `${location.pathname.startsWith("/student/") ? "/student/explore" : "/explore"}?educator=${encodeURIComponent(educator.id)}#browse`;
+  // Same "which route family am I in" check as CourseDetails/TestSeries use
+  // elsewhere -- a logged-in student browsing under /student/ must stay in
+  // /student/course/:id (StudentLayout's logged-in navbar), never fall
+  // through to the public /course/:id (PublicLayout's logged-out navbar).
+  const coursePath = (id) => (location.pathname.startsWith("/student/") ? `/student/course/${id}` : `/course/${id}`);
 
   function requireAuth(action) {
     if (!user) {
@@ -282,7 +287,7 @@ export default function EducatorProfile() {
                 rating={course.rating}
                 actionLabel={enrolled ? "Enrolled" : "Enroll"}
                 actionDisabled={enrolled}
-                onAction={() => navigate(`/course/${course.id}`)}
+                onAction={() => navigate(coursePath(course.id))}
                 showWishlist
                 wishlisted={wishlist.isWishlisted(course.id)}
                 onToggleWishlist={() =>
@@ -292,7 +297,7 @@ export default function EducatorProfile() {
                     showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
                   })
                 }
-                onClick={() => navigate(`/course/${course.id}`)}
+                onClick={() => navigate(coursePath(course.id))}
               />
               );
             })}

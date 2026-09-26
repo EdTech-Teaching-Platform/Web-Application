@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import OnboardingStepper from "./OnboardingStepper";
 import AuthBackdrop from "../../../components/ui/AuthBackdrop";
@@ -20,6 +20,8 @@ export default function OnboardingLayout({
   submitting = false,
   error = "",
 }) {
+  const navigate = useNavigate();
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate("/"));
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
       <AuthBackdrop />
@@ -29,9 +31,9 @@ export default function OnboardingLayout({
             mark (still links home, per item 1's "logo always links to /"
             rule, but it's a brand mark, not a back button). */}
         <div className="mb-8">
-          <Link to="/" className="font-display text-lg tracking-tight text-primary">
+          <button type="button" onClick={goBack} className="font-display text-lg tracking-tight text-primary">
             Universal Learning
-          </Link>
+          </button>
         </div>
 
         {title && <h1 className="font-display text-2xl text-text">{title}</h1>}
