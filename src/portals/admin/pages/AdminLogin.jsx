@@ -86,7 +86,7 @@ export default function AdminLogin() {
       const timer = setTimeout(() => {
         setUser({ name: "Admin User", email: form.email.trim(), role: "admin" });
         setStage("leaving");
-      }, 1600);
+      }, 700);
       return () => clearTimeout(timer);
     }
     if (stage === "leaving") {
@@ -96,7 +96,7 @@ export default function AdminLogin() {
       // leaves off — no blank/paused frame in between.
       const timer = setTimeout(() => {
         navigate("/admin/logindashboard", { replace: true });
-      }, 320);
+      }, 220);
       return () => clearTimeout(timer);
     }
   }, [stage, form.email, navigate, setUser]);

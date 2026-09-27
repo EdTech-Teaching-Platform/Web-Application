@@ -326,7 +326,7 @@
    dashboard, so the swap reads as one continuous slide instead of an
    abrupt cut to a blank frame. ---------- */
 .ul-login--leaving {
-  animation: ul-login-exit 320ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: ul-login-exit 220ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 @keyframes ul-login-exit {
   from {

@@ -226,6 +226,14 @@ export default function LandingPage() {
               >
                 I'm an Educator
               </Button>
+              <Button
+                fullWidth={false}
+                variant="secondary"
+                className="px-6"
+                onClick={() => navigate("/admin/login")}
+              >
+                Admin Login
+              </Button>
             </div>
             <div className="mt-8 w-full max-w-xl border-t border-primary/15 pt-5">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Make every practice count</p>

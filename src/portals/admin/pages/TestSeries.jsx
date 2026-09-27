@@ -263,6 +263,20 @@ export default function TestSeries() {
     setTab("tests");
   };
 
+  // Switching tabs via the tab bar itself (as opposed to "Manage Tests" on
+  // a specific series row, which calls manageTests() above) must never
+  // carry over a stale selectedSeriesId from an earlier visit — entering
+  // "Test & Question Structure" this way should always land on its empty
+  // "Select a Test Series" default, not silently reopen whatever series
+  // happened to be selected last time.
+  const switchTab = (key) => {
+    if (key === "tests") {
+      setSelectedSeriesId(null);
+      setSelectedTestId(null);
+    }
+    setTab(key);
+  };
+
   return (
     <div className="ul-ts-page">
       <div className="ul-dash-welcome">
@@ -277,7 +291,7 @@ export default function TestSeries() {
               key={t.key}
               type="button"
               className={`ul-tab${tab === t.key ? " is-active" : ""}`}
-              onClick={() => setTab(t.key)}
+              onClick={() => switchTab(t.key)}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <t.icon size={13} /> {t.label}

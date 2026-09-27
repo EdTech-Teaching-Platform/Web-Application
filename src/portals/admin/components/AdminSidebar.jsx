@@ -18,6 +18,7 @@ import {
   IconClose,
   IconGraduationCap,
   IconBook,
+  IconLayers,
 } from "./icons";
 import ConfirmModal from "./ConfirmModal";
 import "./AdminChrome.css";
@@ -43,6 +44,7 @@ const NAV_SECTIONS = [
   {
     heading: "Finance & Analytics",
     items: [
+      { to: "/admin/transactionhistory", label: "Transaction History", icon: IconLayers },
       { to: "/admin/paymentoversight", label: "Refund Management", icon: IconWallet },
       { to: "/admin/financialanalytics", label: "Financial Analytics", icon: IconChart },
       { to: "/admin/regionalanalytics", label: "Regional Growth", icon: IconGlobe },

@@ -1,0 +1,48 @@
+/*
+ * Transaction History — reuses .ul-edu-toolbar / .ul-edu-select /
+ * .ul-edu-table / .ul-edu-pagination (EducatorVerification.css), .ul-card
+ * (AdminDashboard.css) and the detail-modal primitives (ManagementDashboards
+ * pattern, via PaymentOversight.css / ConfirmModal.css). Only the small
+ * "matching transactions / total amount" stat strip is specific to this page.
+ */
+
+.ul-txn-stats {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.ul-txn-stats__item {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+.ul-txn-stats__item span {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ul-txn-stats__item strong {
+  font-size: 18px;
+  color: var(--color-text-primary);
+}
+
+.ul-txn-table tbody tr {
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .ul-txn-stats {
+    gap: 10px;
+  }
+  .ul-txn-stats__item {
+    min-width: 0;
+    flex: 1 1 45%;
+  }
+}

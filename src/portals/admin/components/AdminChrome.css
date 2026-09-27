@@ -122,7 +122,7 @@
    frame in between since the outgoing page keeps rendering until this one
    is ready to animate in. */
 .ul-main__page {
-  animation: ul-page-slide-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ul-page-slide-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes ul-page-slide-in {
   from {

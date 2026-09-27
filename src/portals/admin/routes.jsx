@@ -8,6 +8,7 @@ import TestSeriesDetail from "./pages/TestSeriesDetail";
 import TestDetail from "./pages/TestDetail";
 import UserManagement from "./pages/UserManagement";
 import PaymentOversight from "./pages/PaymentOversight";
+import TransactionHistory from "./pages/TransactionHistory";
 import FinancialAnalytics from "./pages/FinancialAnalytics";
 import ReportsBuilder from "./pages/ReportsBuilder";
 import ContentModeration from "./pages/ContentModeration";
@@ -32,6 +33,7 @@ const adminRoutes = (
       <Route path="testseries/:seriesId/tests/:testId" element={<TestDetail />} />
       <Route path="usermanagement" element={<UserManagement />} />
       <Route path="paymentoversight" element={<PaymentOversight />} />
+      <Route path="transactionhistory" element={<TransactionHistory />} />
       <Route path="financialanalytics" element={<FinancialAnalytics />} />
       <Route path="reportsbuilder" element={<ReportsBuilder />} />
       <Route path="contentmoderation" element={<ContentModeration />} />
