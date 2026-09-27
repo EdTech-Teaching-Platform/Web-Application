@@ -1,0 +1,1224 @@
+/*
+ * Admin Dashboard content (bento grid). Ported from the reference Admin
+ * implementation's Dashboard.css. `.ul-shell` / `.ul-main` now live in
+ * AdminChrome.css (the persistent layout owns them); everything below is
+ * specific to the dashboard page's own content.
+ */
+
+.ul-dash-welcome {
+  margin-bottom: 22px;
+}
+.ul-dash-welcome__title {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.ul-dash-welcome__subtitle {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+}
+/* ---------- stat row ---------- */
+.ul-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+/* Compact by default: label first (small caps), value right beside it on
+   the same line, and the supporting trend text tucked underneath in a
+   single short line — cuts card height roughly in half versus the old
+   stacked layout, with far less empty padding around the content. */
+.ul-stat-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 11px 14px;
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 128px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(40, 16, 10, 0.04), 0 12px 24px -12px rgba(122, 46, 31, 0.2);
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+.ul-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(40, 16, 10, 0.07), 0 18px 30px -14px rgba(122, 46, 31, 0.26);
+}
+
+/* Dashboard-only sizing: smaller boxes, smaller text, and the value alone
+   picked out in the brand brown. Scoped to --dash so the six other admin
+   pages that share the plain .ul-stat-card are untouched. */
+.ul-stats--dash {
+  gap: 10px;
+}
+.ul-stat-card--dash {
+  padding: 9px 12px;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+}
+.ul-stat-card--dash .ul-stat-card__label {
+  font-size: 9px;
+}
+.ul-stat-card--dash .ul-stat-card__value {
+  font-size: 16px;
+  color: var(--color-primary);
+}
+.ul-stat-card--dash .ul-stat-card__trend {
+  font-size: 10px;
+}
+
+/* ---------- bento grid (still used by ContentModeration / ManagementDashboards / PaymentOversight) ---------- */
+.ul-bento {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.ul-bento__col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- notepad card (fills the leftover space below Admin Note) ---------- */
+.ul-notepad-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.ul-notepad-card__area {
+  flex: 1;
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
+}
+.ul-notepad-card__area:focus {
+  outline: none;
+  background: var(--color-card);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-ring);
+}
+.ul-notepad-card__area::placeholder {
+  color: var(--color-text-muted);
+}
+.ul-notepad-card__foot {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.ul-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(40, 16, 10, 0.05), 0 16px 32px -14px rgba(122, 46, 31, 0.24);
+  transition: box-shadow 220ms ease, transform 220ms ease, border-color 220ms ease;
+}
+.ul-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(40, 16, 10, 0.08), 0 24px 40px -16px rgba(122, 46, 31, 0.32);
+  border-color: var(--color-primary-light, var(--color-border));
+}
+
+.ul-card--tall {
+  display: flex;
+  flex-direction: column;
+}
+
+.ul-card--warning {
+  background: var(--color-warning-bg);
+  border-color: #f0dba3;
+}
+
+.ul-card--dark {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.ul-card__head {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ul-card__head:has(> .ul-card__see-all) {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ul-card__head h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-card__head h3.is-light {
+  color: #fff;
+}
+
+.ul-card__eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-transform: uppercase;
+}
+.ul-card__eyebrow--warning {
+  color: var(--color-warning-accent);
+}
+.ul-card__eyebrow--light {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.ul-card__group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.ul-card__group-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  display: block;
+}
+
+.ul-card__see-all {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.ul-card__see-all:hover {
+  text-decoration: underline;
+}
+
+.ul-card__body-text {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+/* ---------- approvals list ---------- */
+.ul-approval-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ul-approval-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-bg-secondary);
+}
+.ul-approval-row:last-child {
+  border-bottom: none;
+}
+/* Course-approval rows now match the educator rows: name/author on the
+   left, Approve/Reject sitting beside them on the same line instead of
+   dropping to their own row underneath. */
+.ul-approval-row--course {
+  align-items: center;
+}
+.ul-approval-row--course .ul-approval-row__actions {
+  flex-shrink: 0;
+}
+
+.ul-approval-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ul-approval-row__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ul-approval-row__meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ul-approval-row__actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.ul-avatar-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-soft-pink);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ul-avatar-chip--stacked {
+  color: #fff;
+  margin-left: -8px;
+  border: 2px solid var(--color-primary);
+}
+.ul-avatar-chip--stacked:first-child {
+  margin-left: 0;
+}
+
+/* buttons */
+.ul-btn {
+  border-radius: 8px;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ul-btn--ghost {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary-dark);
+  border: 1px solid var(--color-soft-pink);
+}
+.ul-btn--ghost:hover {
+  background: var(--color-soft-pink);
+}
+.ul-btn--primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.ul-btn--primary:hover {
+  background: var(--color-primary-dark);
+}
+.ul-btn--danger {
+  background: var(--color-card);
+  color: #b3261e;
+  border: 1px solid #f0cccc;
+}
+.ul-btn--danger:hover {
+  background: #fdf1f1;
+}
+
+/* ---------- line chart ---------- */
+.ul-linechart {
+  width: 100%;
+  height: 90px;
+  display: block;
+}
+.ul-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+.ul-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+}
+.ul-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* ---------- big number + split bar ---------- */
+.ul-big-number {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 27px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ul-big-number.is-light {
+  color: #fff;
+}
+.ul-big-number__trend {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2f8f4e;
+}
+.ul-big-number.is-light .ul-big-number__trend {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.ul-split-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.ul-split-bar__labels {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ul-split-bar__labels span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+}
+.ul-split-bar__labels i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* ---------- checklist (warning card) ---------- */
+.ul-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+.ul-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+}
+.ul-checklist__mark {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1.5px solid var(--color-warning-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ul-checklist__mark.is-done {
+  background: var(--color-warning-accent);
+  border-color: var(--color-warning-accent);
+}
+.ul-checklist__bullet {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-warning-accent);
+  flex-shrink: 0;
+}
+.ul-checklist__label {
+  flex: 1;
+}
+.is-done-text {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+.ul-checklist__dismiss {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  opacity: 0.55;
+  transition: opacity var(--transition-base), background var(--transition-base), color var(--transition-base);
+}
+.ul-checklist__dismiss:hover,
+.ul-checklist__dismiss:focus-visible {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-primary);
+}
+
+.ul-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 20px;
+}
+.ul-pill--warning {
+  background: var(--color-card);
+  color: var(--color-warning-accent);
+  border: 1px solid var(--color-warning-accent);
+}
+
+/* ---------- dark bars card ---------- */
+.ul-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 82px;
+  margin-bottom: 8px;
+}
+.ul-bars__col {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+.ul-bars__fill {
+  width: 100%;
+  border-radius: 4px;
+  min-height: 4px;
+}
+.ul-bars__labels {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.ul-bars__labels span {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ul-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+.ul-avatar-row__label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-left: 4px;
+}
+
+/* ---------- task list ---------- */
+.ul-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ul-task__top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+.ul-task__meta {
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.ul-task__bar {
+  height: 7px;
+  border-radius: 5px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+.ul-task__fill {
+  height: 100%;
+  border-radius: 5px;
+}
+
+/* ---------- Today's Activity card: intentionally very compact so it only
+   ever fills column 3's existing leftover space and never grows the bento
+   row height (which would push Financial Reports / Regional Growth down). */
+.ul-activity-card {
+  padding: 14px 16px;
+  max-height: 148px;
+  overflow: hidden;
+}
+.ul-activity-card .ul-card__head {
+  margin-bottom: 8px;
+}
+.ul-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ul-activity-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ul-activity-item__text {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.ul-activity-item__text strong {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-activity-item__time {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ---------- quick actions ---------- */
+.ul-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 0;
+}
+.ul-quick-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.ul-quick-action:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+/* ---------- monthly progress ---------- */
+.ul-progress-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ul-progress-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ul-progress-card__head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ul-progress-card__detail {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+.ul-progress-card__value {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+.ul-progress-track {
+  height: 12px;
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+.ul-progress-fill {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-analytics-orange));
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1180px) {
+  .ul-bento {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ul-bento__col:last-child {
+    grid-column: span 2;
+    flex-direction: row;
+  }
+  .ul-bento__col:last-child > * {
+    flex: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .ul-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ul-bento {
+    grid-template-columns: 1fr;
+  }
+  .ul-bento__col:last-child {
+    grid-column: auto;
+    flex-direction: column;
+  }
+  .ul-quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 560px) {
+  .ul-dash-welcome {
+    margin-bottom: 14px;
+  }
+  .ul-dash-welcome__title {
+    font-size: 19px;
+  }
+  .ul-dash-welcome__subtitle {
+    font-size: 12.5px;
+  }
+
+  /* Compact stat cards: 2-up instead of 1-per-row, and each card itself
+     shrunk (less padding, tighter line spacing, smaller type) so the four
+     stats take roughly a quarter of the vertical space they did before —
+     that's what was pushing everything else down the page. */
+  .ul-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .ul-stat-card {
+    padding: 12px 13px;
+    gap: 3px;
+    border-radius: var(--radius-sm);
+  }
+  .ul-stat-card__label {
+    font-size: 9px;
+  }
+  .ul-stat-card__value {
+    font-size: 17px;
+  }
+  .ul-stat-card__trend {
+    font-size: 10.5px;
+  }
+  .ul-stat-card__trend em {
+    display: block; /* "vs last month" wraps to its own line instead of
+                        forcing the card wider than the grid column */
+    margin-left: 0;
+  }
+
+  .ul-bento {
+    gap: 12px;
+  }
+  .ul-bento__col {
+    gap: 12px;
+  }
+  .ul-card {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .ul-approval-row--course .ul-btn {
+    padding: 6px 9px;
+    font-size: 10.5px;
+  }
+
+  .ul-big-number {
+    font-size: 23px;
+  }
+
+  .ul-bars {
+    height: 64px;
+  }
+
+  .ul-quick-actions {
+    gap: 12px;
+  }
+  .ul-quick-action {
+    padding: 14px 16px;
+  }
+
+  .ul-progress-card__head {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .ul-avatar-row__label {
+    display: none; /* the moderator avatars alone still communicate this on
+                       the narrowest phones — the sentence just doesn't fit */
+  }
+}
+
+/* =======================================================================
+   Reference-layout dashboard (LoginDashboard.jsx current content):
+   welcome hero, colored stat cards + sparkline, Platform Revenue +
+   Transaction Overview, Top Performing Courses + Students by Region +
+   My Notepad. Scoped with ul-dash2- prefixes / ul-stat-card--<accent>
+   modifiers so nothing shared elsewhere is redefined.
+   ======================================================================= */
+
+.ul-dash2-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  flex-wrap: wrap;
+}
+.ul-dash2-hero-text { min-width: 220px; }
+.ul-dash2-hero-eyebrow {
+  margin: 0;
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 15px;
+}
+.ul-dash2-hero-title {
+  margin: 2px 0 4px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.ul-dash2-hero-art {
+  flex-shrink: 0;
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+.ul-dash2-hero-quote {
+  max-width: 210px;
+  margin: 0;
+  font-style: italic;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--color-primary-dark, var(--color-primary));
+  border-left: 3px solid var(--color-primary);
+  padding-left: 12px;
+}
+.ul-dash2-hero-date {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  position: relative;
+}
+.ul-dash2-hero-date span {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ul-dash2-hero-date strong {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+/* ---------- colored stat cards ---------- */
+.ul-stat-card--dash {
+  position: relative;
+  flex: 1 1 200px;
+  padding: 14px 16px;
+  gap: 4px;
+  overflow: hidden;
+}
+.ul-dash2-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  color: var(--color-primary-dark);
+  background: rgba(255, 255, 255, 0.6);
+}
+.ul-stat-card--dash .ul-stat-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: none;
+}
+.ul-stat-card--dash .ul-stat-card__value {
+  font-size: 22px;
+  color: var(--color-text-primary);
+}
+.ul-stat-card--dash .ul-stat-card__trend {
+  font-size: 11px;
+}
+.ul-dash2-spark {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 68px;
+  height: 30px;
+}
+.ul-stat-card--rose { background: linear-gradient(160deg, #fbe4ea 0%, #fdf3f4 100%); border-color: #f6d3dd; }
+.ul-stat-card--amber { background: linear-gradient(160deg, #fdead2 0%, #fdf5ea 100%); border-color: #f7ddb2; }
+.ul-stat-card--violet { background: linear-gradient(160deg, #ece3fb 0%, #f6f1fd 100%); border-color: #ddccf5; }
+.ul-stat-card--sky { background: linear-gradient(160deg, #dcf0f8 0%, #eef8fb 100%); border-color: #c3e7f3; }
+
+/* ---------- shared two/three column rows ---------- */
+.ul-dash2-row {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+.ul-dash2-row--split {
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+.ul-dash2-row--split > .ul-card {
+  display: flex;
+  flex-direction: column;
+}
+.ul-dash2-row--triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+.ul-dash2-row--triple > .ul-card {
+  align-self: start;
+  height: auto;
+}
+
+/* ---------- Platform Revenue chart ---------- */
+.ul-dash2-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.ul-dash2-chart-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  background: var(--color-warning-bg, #eafaf1);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+.ul-dash2-net-value {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.ul-dash2-chart-wrap {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  padding: 10px 0 4px;
+}
+.ul-dash2-chart-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  padding: 2px 0 20px;
+}
+.ul-dash2-chart-plot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.ul-dash2-chart {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+}
+.ul-dash2-gridline {
+  stroke: var(--color-border);
+  stroke-dasharray: 3 5;
+  stroke-width: 1;
+}
+.ul-dash2-chart-dot {
+  fill: var(--color-card);
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  transition: r 150ms ease;
+}
+.ul-dash2-chart-tooltip {
+  background: var(--color-primary-dark);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 4px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.ul-dash2-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Transaction Overview ---------- */
+.ul-dash2-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+.ul-dash2-tx-row {
+  display: grid;
+  grid-template-columns: 14px 88px 30px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 10px;
+}
+.ul-dash2-tx-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.ul-dash2-tx-icon.is-success { background: #1fa971; }
+.ul-dash2-tx-icon.is-amber { background: var(--color-warning-accent); }
+.ul-dash2-tx-icon.is-danger { background: #d64545; }
+.ul-dash2-tx-label {
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.ul-dash2-tx-count {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+.ul-dash2-tx-track {
+  height: 8px;
+}
+.ul-progress-fill.is-success { background: #1fa971; }
+.ul-progress-fill.is-amber { background: var(--color-warning-accent); }
+.ul-progress-fill.is-danger { background: #d64545; }
+.ul-dash2-tx-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+/* ---------- Students by Region ---------- */
+.ul-dash2-region-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+.ul-dash2-region-map {
+  width: 96px;
+  height: auto;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.ul-dash2-region-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+.ul-dash2-region-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--color-border);
+}
+.ul-dash2-region-row strong {
+  color: var(--color-text-primary);
+}
+.ul-dash2-region-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.ul-dash2-region-legend i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+.ul-dash2-region-legend .is-hi { background: var(--color-primary-dark); }
+.ul-dash2-region-legend .is-mid { background: var(--color-primary); }
+.ul-dash2-region-legend .is-low { background: var(--color-analytics-orange); }
+.ul-dash2-region-legend .is-min { background: var(--color-soft-pink); }
+.ul-dash2-region-total {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- My Notepad ---------- */
+.ul-dash2-notepad {
+  display: flex;
+  flex-direction: column;
+}
+.ul-dash2-notepad .ul-card__head {
+  position: relative;
+}
+.ul-dash2-notepad-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0 10px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+.ul-dash2-notepad-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.ul-dash2-notepad-item input {
+  accent-color: var(--color-primary);
+}
+.ul-dash2-notepad-item span.is-done {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+.ul-dash2-notepad-item span {
+  flex: 1;
+}
+.ul-dash2-notepad-remove {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.ul-dash2-notepad-item:hover .ul-dash2-notepad-remove {
+  display: inline-flex;
+}
+.ul-dash2-notepad-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+.ul-dash2-notepad-input input {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 12.5px;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+.ul-dash2-notepad-input input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+.ul-dash2-notepad-send {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-dark);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1180px) {
+  .ul-dash2-row--triple {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ul-dash2-row--triple .ul-dash2-notepad {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 900px) {
+  .ul-dash2-row--split,
+  .ul-dash2-row--triple {
+    grid-template-columns: 1fr;
+  }
+  .ul-dash2-row--triple .ul-dash2-notepad {
+    grid-column: auto;
+  }
+  .ul-dash2-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ul-dash2-hero-art {
+    display: none;
+  }
+  .ul-dash2-hero-quote {
+    max-width: none;
+    border-left: none;
+    padding-left: 0;
+  }
+}

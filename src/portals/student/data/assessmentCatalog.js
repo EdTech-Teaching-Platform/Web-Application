@@ -1,0 +1,171 @@
+// Assessment configuration is separate from the interface so the same
+// schema can accept educator-authored records when assessment APIs exist.
+import { GENERATED_SERIES_ASSESSMENTS } from "./generatedSeriesAssessments";
+
+const pyRows = [
+  ["Which statement about Python lists is correct?", ["Lists are immutable", "Lists can contain different data types", "Lists cannot be nested", "Lists only store strings"], 1, "Lists are mutable sequences and can contain values of different types.", "Python Fundamentals"],
+  ["What does len({\"a\": 1, \"b\": 2}) return?", ["1", "2", "3", "An error"], 1, "len() returns the number of keys in a dictionary.", "Data Structures"],
+  ["Which keyword creates a function in Python?", ["func", "define", "def", "lambda"], 2, "The def keyword starts a named function definition.", "Functions"],
+  ["What is the main purpose of __init__ in a class?", ["Delete an instance", "Initialize a new instance", "Import a module", "Catch exceptions"], 1, "__init__ initializes attributes when a class instance is created.", "Object-Oriented Programming"],
+  ["Which block runs whether or not an exception was raised?", ["except", "catch", "finally", "else"], 2, "A finally block runs after the try/except sequence in either case.", "Exception Handling"],
+  ["What does [x * 2 for x in range(3)] produce?", ["[0, 2, 4]", "[2, 4, 6]", "[0, 1, 2]", "[1, 2, 3]"], 0, "range(3) produces 0, 1, 2, and each value is doubled.", "Collections"],
+  ["Which mode opens a file for appending text?", ["r", "w", "a", "x"], 2, "The a mode appends without truncating existing content.", "File Handling"],
+  ["What is the result of 7 // 2?", ["3.5", "3", "4", "1"], 1, "// performs floor division and returns the integer quotient.", "Python Fundamentals"],
+  ["Which method returns a default when a dictionary key is absent?", ["get()", "find()", "value()", "select()"], 0, "get() returns the default value when the key is absent.", "Data Structures"],
+  ["Which principle hides implementation details behind an interface?", ["Iteration", "Encapsulation", "Recursion", "Casting"], 1, "Encapsulation bundles state and behavior behind a controlled interface.", "Object-Oriented Programming"],
+];
+
+function makeQuestions(prefix, rows, learnTo) {
+  return rows.map(([prompt, options, answer, explanation, topic], index) => ({
+    id: prefix + "-" + (index + 1), prompt, options, answer, explanation, topic,
+    type: "single", learnTo: learnTo || "/student/my-learning",
+  }));
+}
+
+export const ASSESSMENT_CATEGORIES = ["Programming", "Data Science", "AI & Machine Learning", "Web Development", "Database", "Cybersecurity", "Cloud Computing", "Mathematics", "Science", "Business", "Communication", "Other"];
+export const DIFFICULTIES = ["Beginner", "Intermediate", "Advanced"];
+export const TEST_TYPES = ["Course Test", "Practice Test", "Mock Exam", "Certification Prep", "Skill Test"];
+export const DURATION_FILTERS = ["Under 15 min", "15–30 min", "30–60 min", "60+ min"];
+export const QUESTION_TYPES = ["Multiple Choice", "Multiple Select", "True / False", "Coding", "Mixed"];
+export const SORT_OPTIONS = ["Popular", "Newest", "Highest Rated", "Shortest", "Most Attempted"];
+
+export const TEST_SERIES = [
+  { id: "python-final", title: "Python Programming — Final Assessment", subject: "Python Programming", category: "Programming", difficulty: "Intermediate", durationMinutes: 20, attemptsAllowed: 3, passingScore: 70, rating: 4.8, attempts: 2460, badge: "POPULAR", type: "Course Test", questionType: "Multiple Choice", certificateEligible: true, courseId: "c1", description: "Measure your command of Python fundamentals, functions, OOP, data structures and exception handling.", skills: ["Python", "Programming Logic", "Object-Oriented Programming"], topics: ["Python Fundamentals", "Functions", "Object-Oriented Programming", "Data Structures", "Exception Handling", "Collections", "File Handling"], questions: makeQuestions("py", pyRows, "/student/courseplayer?course=c1") },
+  { id: "sql-practice", title: "SQL & Database Fundamentals — Practice Test", subject: "SQL & Databases", category: "Database", difficulty: "Beginner", durationMinutes: 15, attemptsAllowed: "Unlimited", passingScore: 70, rating: 4.7, attempts: 1820, badge: "RECOMMENDED", type: "Practice Test", questionType: "Multiple Choice", certificateEligible: false, description: "Practice relational concepts, joins, filtering, aggregation and safe data updates.", skills: ["SQL", "Relational Databases"], topics: ["Queries", "Joins", "Aggregation"], questions: makeQuestions("sql", [["Which clause filters grouped results?", ["WHERE", "HAVING", "ORDER BY", "LIMIT"], 1, "HAVING filters groups after aggregation.", "Aggregation"], ["What does an INNER JOIN return?", ["Every row pair", "Rows with matching join keys", "Only unmatched rows", "The left table only"], 1, "An inner join includes records whose keys match in both tables.", "Joins"], ["Which command retrieves data?", ["SELECT", "FETCH", "OPEN", "READ"], 0, "SELECT queries rows from one or more tables.", "Queries"], ["Which constraint prevents duplicate values?", ["CHECK", "UNIQUE", "DEFAULT", "INDEX"], 1, "UNIQUE enforces distinct values in the constrained column.", "Database Design"], ["Which statement changes values in existing rows?", ["ALTER", "UPDATE", "REPLACE TABLE", "MODIFY"], 1, "UPDATE changes selected row values.", "Data Changes"]]) },
+  { id: "java-oop", title: "Java OOP — Module Assessment", subject: "Java", category: "Programming", difficulty: "Intermediate", durationMinutes: 18, attemptsAllowed: 2, passingScore: 70, rating: 4.6, attempts: 940, badge: "NEW", type: "Course Test", questionType: "Mixed", certificateEligible: false, description: "Check your understanding of classes, inheritance, interfaces and object design.", skills: ["Java", "OOP"], topics: ["Classes", "Inheritance", "Interfaces"], questions: makeQuestions("java", [["Which keyword creates a subclass in Java?", ["implements", "extends", "inherits", "super"], 1, "A class uses extends to inherit from another class.", "Inheritance"], ["An interface primarily defines…", ["A database schema", "A contract of methods", "A constructor", "A memory address"], 1, "An interface specifies behavior that implementing classes provide.", "Interfaces"], ["Which access level is limited to its declaring class?", ["public", "protected", "private", "default"], 2, "private members are accessible only within their declaring class.", "Encapsulation"], ["What does new do?", ["Declares a package", "Creates an object", "Overrides a method", "Closes a stream"], 1, "new allocates and initializes an object.", "Classes"], ["Method overloading uses…", ["Same name, different parameter lists", "Different names, same body", "Only static methods", "Only a parent class"], 0, "Overloads share a name but differ by parameter list.", "Polymorphism"]], "/student/courseplayer?course=c1") },
+  { id: "dsa-mock", title: "Data Structures & Algorithms — Mock Test", subject: "Data Structures & Algorithms", category: "Programming", difficulty: "Advanced", durationMinutes: 25, attemptsAllowed: 3, passingScore: 75, rating: 4.9, attempts: 3120, badge: "POPULAR", type: "Mock Exam", questionType: "Mixed", certificateEligible: true, description: "A timed review of complexity, trees, graphs, sorting and core algorithm strategies.", skills: ["Data Structures", "Algorithms"], topics: ["Complexity", "Trees", "Graphs", "Sorting"], questions: makeQuestions("dsa", [["What is the average lookup time in a hash table?", ["O(1)", "O(log n)", "O(n)", "O(n log n)"], 0, "A well-distributed hash table gives average constant-time lookup.", "Complexity"], ["Which traversal visits a binary search tree in sorted order?", ["Preorder", "Inorder", "Postorder", "Level order"], 1, "Inorder traversal of a BST visits keys in ascending order.", "Trees"], ["Which structure is typically used by BFS?", ["Stack", "Queue", "Heap", "Set only"], 1, "BFS uses a queue to visit nodes level by level.", "Graphs"], ["What is merge sort's worst-case time complexity?", ["O(n)", "O(log n)", "O(n log n)", "O(n²)"], 2, "Merge sort divides recursively and merges each level in O(n).", "Sorting"], ["A topological order exists for which graph?", ["Every undirected graph", "A directed acyclic graph", "A cyclic directed graph", "A complete graph only"], 1, "A DAG has at least one topological ordering.", "Graphs"]]) },
+  { id: "ml-skill", title: "Machine Learning Fundamentals — Skill Assessment", subject: "Machine Learning", category: "AI & Machine Learning", difficulty: "Intermediate", durationMinutes: 15, attemptsAllowed: "Unlimited", passingScore: 60, rating: 4.7, attempts: 1160, badge: "RECOMMENDED", type: "Skill Test", questionType: "Multiple Choice", certificateEligible: false, description: "Find your current level across model evaluation, features, supervised learning and overfitting.", skills: ["Machine Learning", "Model Evaluation"], topics: ["Supervised Learning", "Evaluation", "Features"], questions: makeQuestions("ml", [["What is a labeled example used for?", ["Unsupervised learning", "Supervised learning", "Clustering only", "Compression"], 1, "Supervised learning uses examples paired with target labels.", "Supervised Learning"], ["What does a validation set help estimate?", ["Training speed", "Generalization to unseen data", "Number of features", "Disk use"], 1, "Validation data estimates performance on unseen examples.", "Evaluation"], ["A model performs well on training but poorly on new data. This is…", ["Underfitting", "Overfitting", "Normalization", "Sampling"], 1, "Overfitting occurs when a model memorizes patterns that do not generalize.", "Model Quality"], ["Why scale numeric features?", ["Make labels equal", "Put features on comparable ranges", "Remove the target", "Increase row count"], 1, "Scaling helps algorithms sensitive to feature magnitude.", "Features"], ["Which metric can help with imbalanced classes?", ["Accuracy only", "F1 score", "Mean absolute error", "R-squared"], 1, "F1 balances precision and recall.", "Evaluation"]]) },
+  { id: "web-final", title: "Web Development Fundamentals — Final Assessment", subject: "Web Development", category: "Web Development", difficulty: "Beginner", durationMinutes: 18, attemptsAllowed: 3, passingScore: 70, rating: 4.5, attempts: 780, badge: "CERTIFICATION PREP", type: "Certification Prep", questionType: "Mixed", certificateEligible: true, description: "Review accessible HTML, CSS layout, JavaScript fundamentals and HTTP concepts.", skills: ["HTML", "CSS", "JavaScript"], topics: ["HTML", "CSS", "JavaScript", "HTTP"], questions: makeQuestions("web", [["Which element is best for a page's main content?", ["<div>", "<main>", "<span>", "<b>"], 1, "main identifies the dominant content of the document.", "HTML"], ["Which CSS layout is one-dimensional?", ["Grid", "Flexbox", "Float", "Table"], 1, "Flexbox is designed for layout along one primary axis.", "CSS"], ["What does === check in JavaScript?", ["Value only", "Value and type", "Assignment", "Object keys"], 1, "Strict equality compares value without type coercion.", "JavaScript"], ["Which HTTP method commonly retrieves a resource?", ["POST", "GET", "PATCH", "DELETE"], 1, "GET requests a representation of a resource.", "HTTP"], ["What does alt text provide?", ["A CSS class", "A text alternative", "A file path", "A caption style"], 1, "Alternative text communicates image meaning when it cannot be seen.", "Accessibility"]]) },
+  { id: "cyber-skill", title: "Cybersecurity Basics — Skill Check", subject: "Cybersecurity", category: "Cybersecurity", difficulty: "Beginner", durationMinutes: 12, attemptsAllowed: "Unlimited", passingScore: 60, rating: 4.6, attempts: 680, badge: "NEW", type: "Skill Test", questionType: "Multiple Choice", certificateEligible: false, description: "Check practical knowledge of account security, phishing, encryption and safe browsing.", skills: ["Security Awareness", "Cybersecurity"], topics: ["Phishing", "Passwords", "Encryption"], questions: makeQuestions("cyber", [["Which is the strongest account practice?", ["Reuse one long password", "Use unique passwords with a password manager", "Share a team password", "Use a birthday"], 1, "Unique credentials limit the impact if one service is compromised.", "Passwords"], ["A message asks for your password through a shortened link. This may be…", ["A routine patch", "Phishing", "A certificate", "A backup"], 1, "Unexpected credential requests and suspicious links are phishing signals.", "Phishing"], ["What does encryption do?", ["Deletes data", "Makes data unreadable without a key", "Verifies a domain only", "Compresses files"], 1, "Encryption transforms data so it can be read only with the right key.", "Encryption"], ["Why enable multi-factor authentication?", ["It removes passwords", "It adds another proof of identity", "It disables encryption", "It shares logins"], 1, "MFA requires an additional factor beyond a password.", "Account Security"], ["What should you do with an unexpected attachment?", ["Open it quickly", "Verify the sender and context first", "Forward it widely", "Disable protection"], 1, "Verify suspicious attachments before opening them.", "Safe Browsing"]]) },
+  { id: "cloud-practice", title: "Cloud Computing Fundamentals — Practice Test", subject: "Cloud Computing", category: "Cloud Computing", difficulty: "Intermediate", durationMinutes: 16, attemptsAllowed: "Unlimited", passingScore: 70, rating: 4.4, attempts: 590, badge: "", type: "Practice Test", questionType: "Multiple Choice", certificateEligible: false, description: "Review cloud service models, scaling, availability and shared responsibility.", skills: ["Cloud Fundamentals"], topics: ["Service Models", "Scaling", "Availability"], questions: makeQuestions("cloud", [["Which model provides virtual machines and networks?", ["SaaS", "PaaS", "IaaS", "DaaS"], 2, "IaaS provides on-demand compute, networking and storage infrastructure.", "Service Models"], ["What does horizontal scaling add?", ["More instances", "More CPU to one instance", "More regions only", "More users"], 0, "Horizontal scaling adds instances to distribute load.", "Scaling"], ["Multiple availability zones primarily improve…", ["Availability", "Code readability", "Password strength", "Compression"], 0, "Multiple zones reduce the impact of a single-zone outage.", "Availability"], ["Who is responsible for configuring user access?", ["Cloud provider only", "Customer", "Internet provider", "Hardware vendor"], 1, "Customers remain responsible for account permissions under shared responsibility.", "Security"], ["What is object storage suited to?", ["Booting a machine", "Durable unstructured objects", "SQL transactions", "CPU scheduling"], 1, "Object storage is durable, scalable storage for files and blobs.", "Storage"]]) },
+  { id: "communication-check", title: "Communication Skills — Assessment", subject: "Communication", category: "Communication", difficulty: "Beginner", durationMinutes: 12, attemptsAllowed: 2, passingScore: 70, rating: 4.3, attempts: 430, badge: "", type: "Skill Test", questionType: "Multiple Choice", certificateEligible: false, description: "Assess active listening, clear writing, constructive feedback and audience awareness.", skills: ["Communication", "Professional Writing"], topics: ["Listening", "Writing", "Feedback"], questions: makeQuestions("comm", [["Active listening includes…", ["Planning your reply while others speak", "Reflecting and clarifying what you heard", "Changing the subject", "Avoiding questions"], 1, "Reflecting and clarifying confirms understanding.", "Listening"], ["A useful email subject line should…", ["Be blank", "Summarize the purpose", "Include the whole message", "Use punctuation only"], 1, "A concise specific subject helps the reader quickly understand the message.", "Writing"], ["Constructive feedback is most helpful when it is…", ["Specific and actionable", "Personal and vague", "Delayed indefinitely", "Only positive"], 0, "Specific actionable feedback makes the next step clear.", "Feedback"], ["Before presenting, first consider…", ["The audience and purpose", "The font only", "The room color", "The longest script"], 0, "Audience and purpose guide content and detail.", "Audience Awareness"], ["Which phrase invites clarification?", ["That makes no sense", "Could you explain what you mean by…?", "Never mind", "I already know"], 1, "An open question supports a respectful exchange.", "Listening"]]) },
+  { id: "aptitude-series", title: "Aptitude & Logical Reasoning — Test Series", subject: "Aptitude", category: "Mathematics", difficulty: "Intermediate", durationMinutes: 18, attemptsAllowed: 3, passingScore: 70, rating: 4.5, attempts: 1540, badge: "POPULAR", type: "Mock Exam", questionType: "Mixed", certificateEligible: false, description: "Practice number patterns, proportions, logic and data interpretation in a timed format.", skills: ["Quantitative Reasoning", "Logical Reasoning"], topics: ["Patterns", "Proportions", "Logic"], questions: makeQuestions("apt", [["What number comes next: 3, 6, 12, 24, …?", ["30", "36", "48", "42"], 2, "Each value doubles, so the next value is 48.", "Patterns"], ["If 4 notebooks cost ₹80, what do 7 cost at the same rate?", ["₹120", "₹140", "₹160", "₹180"], 1, "Each notebook costs ₹20, so seven cost ₹140.", "Proportions"], ["All mentors are learners. What must be true?", ["All designers are mentors", "All mentors are learners", "No mentors are designers", "Some mentors are designers"], 1, "The first statement directly establishes this relationship.", "Logic"], ["A value rises from 50 to 60. What is the percentage increase?", ["10%", "15%", "20%", "25%"], 2, "The increase of 10 is 20% of the original 50.", "Percentages"], ["Which is the odd one out?", ["Square", "Triangle", "Circle", "Meter"], 3, "Meter is a unit of measurement; the others are shapes.", "Classification"]]) },
+];
+TEST_SERIES.push(...GENERATED_SERIES_ASSESSMENTS);
+
+export const COURSE_QUIZZES = [
+  { id: "python-module-1", title: "Python Foundations Check", courseId: "c1", module: "Module 1 · Foundations", status: "Completed", score: 90, questions: 8, durationMinutes: 8, items: makeQuestions("pyq1", pyRows.slice(0, 5), "/student/courseplayer?course=c1") },
+  { id: "python-module-2", title: "Control Flow & Functions", courseId: "c1", module: "Module 2 · Core Concepts", status: "Not Started", score: null, questions: 10, durationMinutes: 10, items: makeQuestions("pyq2", pyRows.slice(2, 7), "/student/courseplayer?course=c1") },
+  { id: "python-module-3", title: "Data Structures Check", courseId: "c1", module: "Module 3 · Data Structures", status: "In Progress", score: null, questions: 12, durationMinutes: 12, items: makeQuestions("pyq3", pyRows.slice(1, 6), "/student/courseplayer?course=c1") },
+  { id: "algebra-module-1", title: "Algebra Essentials Check", courseId: "c2", module: "Module 1 · Equations", status: "Not Started", score: null, questions: 8, durationMinutes: 8, items: makeQuestions("alq1", [["Solve 2x + 4 = 10.", ["2", "3", "4", "7"], 1, "Subtract four then divide by two.", "Linear Equations"], ["Which expression equals 3(a + 2)?", ["3a + 2", "3a + 6", "a + 6", "5a"], 1, "Distribute three to both terms.", "Expressions"], ["What is the slope between (0, 1) and (2, 5)?", ["1", "2", "3", "4"], 1, "Slope is the change in y divided by the change in x.", "Coordinate Geometry"]], "/student/courseplayer?course=c2") },
+  { id: "ielts-module-1", title: "Speaking Fluency Check", courseId: "c3", module: "Module 1 · Fluency & Structure", status: "Not Started", score: null, questions: 8, durationMinutes: 8, items: makeQuestions("ieltsq1", [["What is a useful way to extend an answer in a speaking test?", ["Repeat the question", "Give a reason and a relevant example", "Use unrelated details", "Stop after one word"], 1, "A reason and a relevant example develop an answer naturally.", "Answer Development"], ["Which phrase is best for politely clarifying a question?", ["I don't understand anything", "Could you rephrase the question, please?", "Say it again now", "That is wrong"], 1, "A courteous clarification request helps ensure you answer the intended question.", "Interaction"], ["How can a speaker make a comparison clear?", ["Use comparative language and explain the difference", "List two topics without linking them", "Avoid describing either item", "Change the subject"], 0, "Comparative forms and a stated difference make comparisons clear.", "Comparisons"], ["Which habit usually improves fluency?", ["Memorize a full answer word for word", "Organize a few ideas and speak naturally", "Pause after every word", "Use the same phrase repeatedly"], 1, "Planning a few ideas supports natural, connected speech.", "Fluency"], ["What should you do if you make a small grammar mistake while speaking?", ["Stop and restart the entire answer", "Correct it briefly if needed, then continue", "Apologize repeatedly", "End your response"], 1, "A brief correction is fine; maintaining clear communication matters more than restarting.", "Self-Correction"]], "/student/courseplayer?course=c3") },
+];
+
+export const SKILL_ASSESSMENTS = ["python-final", "sql-practice", "ml-skill", "cyber-skill", "communication-check"].map((id) => TEST_SERIES.find((assessment) => assessment.id === id));
+export const ATTEMPT_STORAGE_KEY = "ul_assessment_attempts_v1";
+export const DRAFT_STORAGE_KEY = "ul_assessment_drafts_v1";
+
+function learnerKey(baseKey) {
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem("universal-learning-session") || "null"); } catch { /* use guest scope */ }
+  const raw = user?.identifier || user?.id || user?.name || "guest";
+  return `${baseKey}:${encodeURIComponent(String(raw).toLowerCase())}`;
+}
+
+export function getSavedAttempts() {
+  try { const value = JSON.parse(localStorage.getItem(learnerKey(ATTEMPT_STORAGE_KEY)) || "[]"); return Array.isArray(value) ? value : []; } catch { return []; }
+}
+export function saveAttempts(attempts) {
+  try { localStorage.setItem(learnerKey(ATTEMPT_STORAGE_KEY), JSON.stringify(attempts)); } catch { /* session state remains available */ }
+}
+export function getDraft(id) {
+  try { return JSON.parse(localStorage.getItem(learnerKey(DRAFT_STORAGE_KEY)) || "{}")[id] || null; } catch { return null; }
+}
+export function saveDraft(id, draft) {
+  try { const key = learnerKey(DRAFT_STORAGE_KEY); const drafts = JSON.parse(localStorage.getItem(key) || "{}"); localStorage.setItem(key, JSON.stringify({ ...drafts, [id]: draft })); } catch { /* autosave is best effort */ }
+}
+export function removeDraft(id) {
+  try { const key = learnerKey(DRAFT_STORAGE_KEY); const drafts = JSON.parse(localStorage.getItem(key) || "{}"); delete drafts[id]; localStorage.setItem(key, JSON.stringify(drafts)); } catch { /* result remains available */ }
+}
+
+export function computeTopicAnalysis(attempt) {
+  if (!attempt) {
+    return {
+      topicBreakdown: [],
+      strongTopics: [],
+      weakTopics: [],
+      strongestTopic: null,
+      weakestTopic: null,
+      passingScore: 70,
+    };
+  }
+
+  const passingScore = typeof attempt.passingScore === "number" ? attempt.passingScore : 70;
+  const questions = attempt.questions || [];
+  const answers = attempt.answers || {};
+
+  const topicMap = new Map();
+
+  if (questions.length > 0) {
+    questions.forEach((q) => {
+      const topicName = q.topic || "General Concepts";
+      const cur = topicMap.get(topicName) || {
+        topic: topicName,
+        correct: 0,
+        incorrect: 0,
+        skipped: 0,
+        total: 0,
+        learnTo: q.learnTo || "/student/my-learning",
+      };
+      cur.total += 1;
+      const userAnswer = answers[q.id];
+      if (userAnswer === undefined) {
+        cur.skipped += 1;
+      } else if (userAnswer === q.answer) {
+        cur.correct += 1;
+      } else {
+        cur.incorrect += 1;
+      }
+      if (q.learnTo) cur.learnTo = q.learnTo;
+      topicMap.set(topicName, cur);
+    });
+  } else if (Array.isArray(attempt.topicBreakdown) && attempt.topicBreakdown.length > 0) {
+    attempt.topicBreakdown.forEach((t) => {
+      const correct = t.correct || 0;
+      const total = t.total || 0;
+      const skipped = t.skipped || 0;
+      const incorrect = t.incorrect !== undefined ? t.incorrect : Math.max(0, total - correct - skipped);
+      topicMap.set(t.topic, {
+        topic: t.topic,
+        correct,
+        incorrect,
+        skipped,
+        total,
+        learnTo: t.learnTo || "/student/my-learning",
+        percentage: typeof t.percentage === "number" ? t.percentage : (total ? Math.round((correct / total) * 100) : 0),
+      });
+    });
+  }
+
+  const topicBreakdown = Array.from(topicMap.values()).map((t) => {
+    const percentage = typeof t.percentage === "number"
+      ? t.percentage
+      : (t.total > 0 ? Math.round((t.correct / t.total) * 100) : 0);
+    const isStrong = percentage >= passingScore;
+    return {
+      ...t,
+      percentage,
+      isStrong,
+      status: isStrong ? "Strong" : "Needs Practice",
+    };
+  });
+
+  const sortedDesc = [...topicBreakdown].sort((a, b) => b.percentage - a.percentage || b.correct - a.correct);
+  const sortedAsc = [...topicBreakdown].sort((a, b) => a.percentage - b.percentage || b.incorrect - a.incorrect);
+
+  const strongTopics = sortedDesc.filter((t) => t.percentage >= passingScore);
+  const weakTopics = sortedAsc.filter((t) => t.percentage < passingScore);
+
+  const strongestTopic = sortedDesc.length > 0 ? sortedDesc[0] : null;
+  const weakestTopic = sortedAsc.length > 0 ? sortedAsc[0] : null;
+
+  return {
+    topicBreakdown,
+    strongTopics,
+    weakTopics,
+    strongestTopic,
+    weakestTopic,
+    passingScore,
+  };
+}
+

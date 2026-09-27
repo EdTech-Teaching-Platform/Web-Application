@@ -1,0 +1,744 @@
+/*
+ * Educator Management — list/table page.
+ * Reuses the shared .ul-card / .ul-btn / .ul-avatar-chip primitives from
+ * AdminDashboard.css so this screen matches the rest of the Admin
+ * Dashboard exactly. Layout below is specific to the compact educator
+ * table, toolbar, filters, row-menu, pagination and status badges.
+ */
+
+.ul-edu-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.ul-edu-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-size: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.ul-edu-header__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
+}
+.ul-edu-header__subtitle {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+/* ---------- summary cards ---------- */
+.ul-edu-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ul-edu-summary__card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  flex: 0 1 auto;
+  min-width: 128px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-card);
+}
+.ul-edu-summary__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 3px;
+}
+.ul-edu-summary__value {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* ---------- toolbar ---------- */
+.ul-edu-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ul-edu-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+.ul-edu-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+  width: 100%;
+  font-family: inherit;
+}
+.ul-edu-search input::placeholder {
+  color: var(--color-text-muted);
+}
+.ul-edu-search__clear {
+  border: none;
+  background: var(--color-soft-pink);
+  color: var(--color-primary-dark);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ul-edu-select {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+.ul-edu-select:hover {
+  border-color: var(--color-soft-pink);
+}
+.ul-edu-select--sort {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+}
+
+/* ---------- table card ---------- */
+.ul-edu-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ul-edu-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.ul-edu-table-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.ul-edu-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Column widths come from the <colgroup> in EducatorVerification.jsx
+   (percentages for content columns, a fixed 52px for the Actions column)
+   so the whole table fits one screen width without horizontal scrolling,
+   and the Actions column always has exactly enough room for the kebab
+   button regardless of table width. */
+
+.ul-edu-table thead th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--color-bg-secondary);
+}
+.ul-edu-table thead th:first-child {
+  padding-left: 16px;
+}
+.ul-edu-table thead th:last-child {
+  padding: 10px 12px 10px 0;
+}
+
+.ul-edu-table tbody td {
+  padding: 7px 6px;
+  font-size: 11.5px;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  overflow: hidden;
+}
+.ul-edu-table tbody td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)) {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ul-edu-table tbody td:first-child {
+  padding-left: 16px;
+}
+.ul-edu-table tbody td:last-child {
+  padding: 7px 12px 7px 0;
+  overflow: hidden;
+}
+
+.ul-edu-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ul-edu-table tbody tr:hover {
+  background: var(--color-bg-secondary);
+}
+.ul-edu-table tbody tr.ul-edu-row--clickable {
+  cursor: pointer;
+}
+
+.ul-edu-cell-id {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.ul-edu-table-avatar {
+  width: 25px;
+  height: 25px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.ul-edu-cell-id__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+.ul-edu-cell-id__sub {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ul-edu-name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.ul-edu-name-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.ul-edu-cell-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ul-edu-cell-email {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.ul-edu-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ul-edu-chip {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--color-soft-pink);
+  color: var(--color-primary-dark);
+  white-space: nowrap;
+}
+
+.ul-edu-subject-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ul-edu-subject-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+.ul-edu-subject-chip:hover {
+  border-color: var(--color-primary);
+}
+.ul-edu-subject-chip.is-selected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.ul-edu-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+/* ---------- status badges ---------- */
+.ul-status-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.ul-status-badge.is-pending {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-accent);
+}
+.ul-status-badge.is-approved,
+.ul-status-badge.is-verified {
+  background: #e4f5ea;
+  color: #2f9e56;
+}
+.ul-status-badge.is-rejected {
+  background: #fdecec;
+  color: #b3261e;
+}
+.ul-status-badge.is-account-active {
+  background: #e4f5ea;
+  color: #2f9e56;
+}
+.ul-status-badge.is-account-inactive {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+}
+.ul-status-badge.is-account-suspended {
+  background: #fdecec;
+  color: #b3261e;
+}
+
+/* ---------- actions cell / row menu ---------- */
+/* .ul-edu-actions-cell stays a plain table cell (no display override) so
+   it centers vertically via the table's own vertical-align: middle, the
+   same mechanism every other cell in the row uses — giving the kebab
+   button the exact same vertical position as the row's text. All the
+   flex/position behavior lives on the inner wrapper div instead. */
+.ul-edu-actions-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Documents tab (EducatorProfile.jsx) reuses .ul-edu-table but its last
+   column holds several buttons (View + icon actions) rather than a
+   single kebab — lay those out horizontally with breathing room instead
+   of letting them stack. */
+.ul-edu-doc-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ul-edu-view-btn {
+  padding: 5px 11px;
+  flex-shrink: 0;
+}
+
+.ul-edu-more-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ul-edu-more-btn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+}
+
+/* Fixed (viewport) positioning, not absolute: the table lives inside a
+   couple of overflow:hidden/auto containers (.ul-edu-table-card /
+   .ul-edu-table-scroll) so an absolutely-positioned dropdown gets clipped
+   to invisible for most rows. top/right are computed from the kebab
+   button's own bounding rect on open (see toggleRowMenu in
+   EducatorVerification.jsx) and passed in as inline style. */
+.ul-edu-row-menu {
+  position: fixed;
+  z-index: 200;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(11, 11, 15, 0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+}
+.ul-edu-row-menu button {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.ul-edu-row-menu button:hover {
+  background: var(--color-bg-secondary);
+}
+.ul-edu-row-menu button.is-danger {
+  color: #b3261e;
+}
+.ul-edu-row-menu button.is-danger:hover {
+  background: #fdecec;
+}
+
+/* ---------- pagination ---------- */
+.ul-edu-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ul-edu-pagination__info {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.ul-edu-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+.ul-edu-pagination__controls button {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-primary-dark);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ul-edu-pagination__controls button:hover:not(:disabled) {
+  background: var(--color-soft-pink);
+}
+.ul-edu-pagination__controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .ul-edu-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ul-edu-select,
+  .ul-edu-search {
+    flex: 1 1 auto;
+  }
+  .ul-edu-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ul-edu-add-btn {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .ul-edu-header__title {
+    font-size: 18px;
+  }
+  .ul-edu-summary {
+    grid-template-columns: 1fr;
+  }
+  .ul-edu-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ul-edu-select,
+  .ul-edu-search {
+    width: 100%;
+    min-width: 0;
+  }
+  .ul-edu-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ul-edu-pagination__controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .ul-edu-row-menu {
+    min-width: 140px;
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* ---------- Add Teacher form (modal reuses the compact pill-field layout;
+   these rules are self-contained here so the modal doesn't depend on
+   InstitutionManagement.css, which no longer ships with the app) ---------- */
+.ul-inst-form-modal {
+  max-width: 640px;
+  height: auto;
+  max-height: 88vh;
+}
+.ul-inst-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.ul-inst-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.ul-inst-field--full {
+  grid-column: 1 / -1;
+}
+.ul-inst-field__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+.ul-inst-field input,
+.ul-inst-field select {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  outline: none;
+}
+.ul-inst-field select {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.ul-inst-field input:focus,
+.ul-inst-field select:focus {
+  border-color: var(--color-primary);
+}
+.ul-inst-field__error {
+  font-size: 11px;
+  color: #b3261e;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .ul-inst-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Add Teacher modal — "Add Individually" vs "Import from CSV/Excel"
+   mode toggle, plus the bulk-import upload/preview/done UI
+   (BulkImportTeachers.jsx). Kept page-scoped like the rest of this
+   file's .ul-inst-* additions above. */
+.ul-edu-add-mode-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 14px 24px 0;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+.ul-edu-add-mode-toggle button {
+  border: none;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.ul-edu-add-mode-toggle button.is-active {
+  background: var(--color-card);
+  color: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(11, 11, 15, 0.12);
+}
+
+.ul-edu-import {
+  padding: 20px 24px;
+}
+.ul-edu-import-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 36px 20px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  background: var(--color-bg-secondary);
+}
+.ul-edu-import-dropzone:hover {
+  border-color: var(--color-primary);
+}
+.ul-edu-import-dropzone__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 4px 0 0;
+}
+.ul-edu-import-dropzone__hint {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+.ul-edu-import-sample-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+.ul-edu-import-sample-btn:hover {
+  text-decoration: underline;
+}
+.ul-edu-import-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ul-edu-import-banner.is-error {
+  background: #fdece9;
+  color: #b3261e;
+}
+.ul-edu-import-banner.is-success {
+  background: #e6f4ea;
+  color: #2f9e56;
+}
+.ul-edu-import-banner.is-pending {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-accent);
+}
+.ul-edu-import-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+.ul-edu-import-summary__counts {
+  display: flex;
+  gap: 6px;
+}
+.ul-edu-import-table-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.ul-edu-import-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.ul-edu-import-errlist {
+  font-size: 11px;
+  color: #b3261e;
+  margin-top: 3px;
+}
+.ul-edu-import-note {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  margin: 12px 0 0;
+}
+
+/* The generic .ul-btn base rule doesn't set display/align-items (plenty
+   of .ul-btn usages elsewhere are plain text with no icon), so an icon +
+   label button here (e.g. "Send Invites") fell back to inline/baseline
+   alignment and its icon sat above/beside the text instead of centered
+   with it. This modal-actions row is reused by every admin review/import
+   modal, so fixing it here straightens icon+text buttons everywhere that
+   pattern is used, not just this one. */
+.ul-usr-review-modal__actions .ul-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

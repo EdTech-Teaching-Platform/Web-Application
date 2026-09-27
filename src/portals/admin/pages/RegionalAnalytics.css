@@ -1,0 +1,373 @@
+/*
+ * Regional Growth Analytics + Accreditation/Compliance Reports (Day 14).
+ * Reuses shared .ul-card / .ul-stats / .ul-stat-card / .ul-status-badge
+ * primitives from AdminDashboard.css / EducatorVerification.css, the
+ * .ul-tabs / .ul-tab primitive from SettingsPermissions.css, and the
+ * .ul-report-bars bar-chart primitive from ReportsBuilder.css so this
+ * screen matches the rest of Admin exactly. Everything below is
+ * namespaced .ul-reg-* since this file owns it.
+ */
+
+.ul-reg-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.ul-reg-stats .ul-stat-card { padding: 12px 14px; gap: 4px; border-radius: var(--radius-sm); }
+.ul-reg-stats .ul-stat-card__label { font-size: 9.5px; }
+.ul-reg-stats .ul-stat-card__value { font-size: 17px; color: #b3261e; }
+.ul-reg-stats .ul-stat-card__trend { font-size: 10.5px; }
+
+.ul-reg-welcome {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* ---------- growth trend chart (mirrors .ul-fin-chart-*) ---------- */
+.ul-reg-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ul-reg-chart-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ul-reg-region-select {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+  min-width: 170px;
+}
+.ul-reg-custom-range {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+.ul-reg-custom-range label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.ul-reg-custom-range input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  padding: 6px 8px;
+  font: inherit;
+  font-weight: 500;
+}
+.ul-reg-stat-value-text {
+  font-size: 14px !important;
+}
+.ul-reg-chart-wrap {
+  margin-top: 14px;
+  overflow: hidden;
+}
+.ul-reg-chart {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+}
+.ul-reg-gridline {
+  stroke: var(--color-border);
+  stroke-dasharray: 3 5;
+  stroke-width: 1;
+}
+.ul-reg-line {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: ulRegLineIn 900ms ease-out forwards;
+}
+.ul-reg-area {
+  opacity: 1;
+  animation: ulRegAreaIn 900ms ease-out 260ms both;
+}
+.ul-reg-chart-dot {
+  fill: var(--color-bg-primary);
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  transition: r 150ms ease;
+  animation: ulRegDotIn 400ms ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ul-reg-chart-dot:hover {
+  cursor: pointer;
+}
+.ul-reg-chart-tooltip {
+  pointer-events: none;
+}
+.ul-reg-chart-tooltip__box {
+  background: var(--color-text-primary);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  gap: 2px;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+.ul-reg-chart-tooltip__box strong {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+@keyframes ulRegLineIn {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ulRegAreaIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes ulRegDotIn {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ul-reg-area,
+  .ul-reg-line,
+  .ul-reg-chart-dot {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+.ul-reg-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- region comparison grid + table ---------- */
+.ul-reg-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
+  gap: 18px;
+}
+.ul-reg-grid > .ul-card {
+  min-width: 0;
+}
+.ul-reg-grid .ul-report-bars {
+  gap: 16px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.ul-reg-grid .ul-report-bar-group {
+  flex: 0 0 52px;
+}
+
+.ul-reg-table-scroll {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+.ul-reg-table-scroll .ul-set-table {
+  min-width: 760px;
+}
+
+.ul-reg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ul-reg-growth {
+  font-weight: 700;
+  font-size: 12px;
+}
+.ul-reg-growth-col {
+  text-align: right !important;
+}
+.ul-reg-growth.is-up {
+  color: #2f9e56;
+}
+.ul-reg-growth.is-down {
+  color: #b3261e;
+}
+
+.ul-reg-region-name {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-reg-region-sub {
+  display: block;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+/* ---------- compliance summary + filters ---------- */
+.ul-reg-score {
+  font-weight: 800;
+  font-size: 13px;
+}
+.ul-reg-score.is-high { color: #2f9e56; }
+.ul-reg-score.is-mid { color: var(--color-warning-accent); }
+.ul-reg-score.is-low { color: #b3261e; }
+
+.ul-status-badge.is-expiring {
+  background: var(--color-warning-bg);
+  color: var(--color-analytics-orange);
+}
+
+/* ---------- checklist (inside details drawer) ---------- */
+.ul-reg-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ul-reg-checklist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text-primary);
+}
+.ul-reg-checklist-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ul-reg-checklist-badge.is-pass { background: #e4f5ea; color: #2f9e56; }
+.ul-reg-checklist-badge.is-fail { background: #fdecec; color: #b3261e; }
+.ul-reg-checklist-badge.is-pending { background: var(--color-warning-bg); color: var(--color-warning-accent); }
+
+.ul-reg-note-box {
+  border: 1px solid #f0dba3;
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  margin-top: 14px;
+}
+.ul-reg-note-box strong {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-warning-accent);
+  margin-bottom: 4px;
+}
+
+/* ---------- compliance reports list ---------- */
+.ul-reg-reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ul-reg-report-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+.ul-reg-report-row:last-child {
+  border-bottom: none;
+}
+.ul-reg-report-row__body {
+  min-width: 0;
+}
+.ul-reg-report-row__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 3px;
+}
+.ul-reg-report-row__meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.ul-reg-report-row__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ul-reg-format-chip {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+@media (max-width: 900px) {
+  .ul-reg-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .ul-reg-welcome {
+    flex-direction: column;
+  }
+  .ul-reg-chart-filters,
+  .ul-reg-custom-range {
+    justify-content: stretch;
+    width: 100%;
+  }
+  .ul-reg-chart-filters .ul-reg-region-select,
+  .ul-reg-custom-range label,
+  .ul-reg-custom-range input {
+    flex: 1;
+    min-width: 0;
+  }
+}

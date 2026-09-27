@@ -1,0 +1,284 @@
+/*
+ * Payments & Revenue — payment/revenue oversight, transaction ledger,
+ * commission tracking and refund management (Day 8). Reuses the
+ * shared .ul-card / .ul-stats / .ul-bento / .ul-btn / .ul-status-badge /
+ * .ul-avatar-chip / .ul-edu-table / .ul-edu-toolbar / .ul-approval-list /
+ * .ul-checklist / .ul-confirm-backdrop / .ul-confirm-modal primitives from
+ * AdminDashboard.css, EducatorVerification.css and ConfirmModal.css, plus
+ * the scope-note/detail-modal primitives from ManagementDashboards.css —
+ * only the pieces specific to this screen live here.
+ */
+
+.ul-pay-permission-note {
+  margin-bottom: 18px;
+}
+
+/* ---------- payment method breakdown ---------- */
+.ul-pay-method-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ul-pay-method-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ul-pay-method-row__label {
+  width: 92px;
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.ul-pay-method-row__track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+.ul-pay-method-row__fill {
+  height: 100%;
+  border-radius: 999px;
+}
+.ul-pay-method-row__value {
+  width: 64px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* ---------- section headers between the overview and the lists below ---------- */
+.ul-pay-section-head {
+  margin: 26px 0 12px;
+}
+.ul-pay-section-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 3px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.ul-pay-section-head p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.ul-pay-welcome + .ul-card {
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+
+/* ---------- small inline action buttons (table + refund rows) ---------- */
+.ul-pay-btn-sm {
+  padding: 6px 12px;
+  font-size: 11.5px;
+}
+
+/* ---------- commission tracking list ---------- */
+.ul-pay-commission-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  flex-shrink: 0;
+}
+
+/* ---------- refund management: pending + history tables, full width ---------- */
+/* These two tables have fewer/leaner columns than the shared .ul-edu-table
+   default (which sets a 1100px min-width sized for wider tables elsewhere,
+   e.g. Educator Management) — scoped, specific overrides so ONLY these two
+   refund tables fill the full card width, without touching .ul-edu-table's
+   behavior on any other admin page. !important settles a same-specificity
+   cascade tie against the shared rule regardless of stylesheet import order. */
+.ul-pay-refund-card,
+.ul-pay-history-card {
+  width: 100% !important;
+}
+.ul-pay-refund-card .ul-edu-table-scroll,
+.ul-pay-history-card .ul-edu-table-scroll {
+  width: 100% !important;
+}
+.ul-pay-refund-table,
+.ul-pay-history-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+}
+.ul-pay-refund-table .ul-pay-refund-item {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-pay-refund-table .ul-pay-refund-reason {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  white-space: normal;
+}
+.ul-pay-refund-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ul-pay-requester-tag {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 3px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-primary-soft, #fdece0), transparent 140%);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+.ul-pay-requester-tag__role {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--color-primary);
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1.3;
+}
+.ul-pay-requester-tag__for {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-primary);
+  letter-spacing: 0.01em;
+}
+/* Compact variant inside the Refund History table cell — same info,
+   no pill chrome so it reads well in a dense row. */
+.ul-edu-table .ul-pay-requester-tag {
+  background: none;
+  border: none;
+  padding: 0;
+  gap: 5px;
+  white-space: nowrap;
+}
+.ul-edu-table .ul-pay-requester-tag__role {
+  font-size: 9.5px;
+  padding: 2px 7px;
+}
+.ul-edu-table .ul-pay-requester-tag__for {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+/* refund status not covered by the shared badge set */
+.ul-status-badge.is-refunded {
+  background: #e6f6fb;
+  color: #1f8aa8;
+}
+
+/* ---------- transaction detail modal ---------- */
+.ul-pay-detail-modal {
+  max-width: 440px;
+  width: 100%;
+  text-align: left;
+}
+.ul-pay-detail-modal .ul-confirm-modal__title,
+.ul-pay-detail-modal .ul-confirm-modal__desc {
+  text-align: left;
+}
+.ul-pay-detail-select {
+  width: 100%;
+  margin-top: 4px;
+}
+.ul-pay-detail-error {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: #b3261e;
+}
+
+/* ---------- approve/reject note textarea (inside the shared ConfirmModal) ---------- */
+.ul-pay-decision-note {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+  resize: vertical;
+}
+
+/* ---------- header row: title + Export Report ---------- */
+.ul-pay-welcome {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ul-pay-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---------- export confirmation toast ---------- */
+.ul-pay-toast {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 200;
+  max-width: 320px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(11, 11, 15, 0.18);
+}
+
+/* ---------- recent transactions row: align the trailing status badge ---------- */
+.ul-pay-activity-row {
+  align-items: center;
+}
+.ul-pay-activity-row .ul-mgmt-activity-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- refund history table note column ---------- */
+.ul-pay-history-note {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0; /* let the table-layout: fixed column width govern, not the content */
+}
+
+@media (max-width: 640px) {
+  .ul-pay-method-row__label {
+    width: 76px;
+  }
+  .ul-pay-welcome {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ul-pay-export-btn {
+    justify-content: center;
+  }
+  .ul-pay-toast {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}
+

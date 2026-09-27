@@ -1,0 +1,87 @@
+/*
+ * Floating notepad panel — toggled from AdminSidebar's "Notepad" switch.
+ * Fixed to the viewport so it floats above whatever admin page is open,
+ * independent of the sidebar's own DOM position.
+ */
+.ul-notepad {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 60;
+  width: 280px;
+  max-width: calc(100vw - 40px);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ul-notepad__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--gradient-primary);
+}
+
+.ul-notepad__title {
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ul-notepad__close {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+.ul-notepad__close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.ul-notepad__area {
+  flex: 1;
+  min-height: 160px;
+  resize: vertical;
+  border: none;
+  outline: none;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: transparent;
+}
+.ul-notepad__area::placeholder {
+  color: var(--color-text-muted);
+}
+
+.ul-notepad__foot {
+  padding: 7px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 560px) {
+  .ul-notepad {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-width: none;
+  }
+}

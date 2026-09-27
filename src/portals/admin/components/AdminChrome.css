@@ -1,0 +1,672 @@
+/*
+ * Admin chrome — persistent shell, sidebar and topbar, rendered by
+ * src/layouts/AdminLayout.jsx around every /admin/* route.
+ *
+ * Visual-only redesign: class names/structure are unchanged from the
+ * original implementation (AdminSidebar.jsx / AdminTopbar.jsx render the
+ * same markup), only the styling here changed — deep-indigo gradient
+ * sidebar, refined topbar, and a few very subtle decorative background
+ * shapes behind the main content area (pure CSS, no assets, no
+ * interaction, kept well clear of cards/tables/buttons).
+ */
+
+.ul-shell {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-bg);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  isolation: isolate;
+}
+
+/* ---------- subtle decorative background (main content only) ----------
+   Two soft, low-opacity gradient blobs pinned to the viewport behind the
+   content area. They sit on a fixed, negative-z layer so they never shift
+   card layout, never capture clicks, and stay out of the way of text. */
+.ul-main-wrap {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ul-main-wrap::before,
+.ul-main-wrap::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(2px);
+  opacity: 0.5;
+}
+
+.ul-main-wrap::before {
+  top: -120px;
+  right: -160px;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle at 30% 30%, rgba(124, 111, 238, 0.16), rgba(124, 111, 238, 0) 70%);
+}
+
+.ul-main-wrap::after {
+  bottom: -180px;
+  left: 30%;
+  width: 560px;
+  height: 560px;
+  background: radial-gradient(circle at 50% 50%, rgba(44, 174, 214, 0.1), rgba(44, 174, 214, 0) 70%);
+}
+
+/* ---------- floating study-icon backdrop (every /admin/* page) ----------
+   Same idea as the Admin login screen's drifting line icons, rendered
+   once here in the shared layout instead of per-page: a fixed, negative-
+   z layer of faint icons scattered mostly toward the page margins, at
+   very low opacity so they read as ambient texture in the gaps around
+   cards rather than competing with any page's actual content. */
+.ul-main-wrap__floating-icons {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ul-main-wrap__float-icon {
+  position: absolute;
+  display: flex;
+  color: var(--color-primary);
+  opacity: 0.07;
+  animation-name: ul-dash-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.ul-main-wrap__float-icon svg {
+  display: block;
+}
+
+@keyframes ul-dash-float {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); }
+  25%  { transform: translateY(-14px) translateX(6px) rotate(4deg); }
+  50%  { transform: translateY(3px) translateX(-5px) rotate(-3deg); }
+  75%  { transform: translateY(-8px) translateX(4px) rotate(2deg); }
+  100% { transform: translateY(0) translateX(0) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ul-main-wrap__float-icon {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Sidebar goes off-canvas below 900px (see the sidebar rules further
+     down), so the margins these icons rely on mostly disappear — hide
+     them rather than have them crowd the narrower content column. */
+  .ul-main-wrap__floating-icons {
+    display: none;
+  }
+}
+
+.ul-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 22px 32px 48px;
+}
+
+/* Every /admin/* page slides + fades in as it mounts (keyed by route in
+   AdminLayout.jsx, so it replays on every navigation) — most noticeably
+   coming off the login screen straight into the Dashboard, with no blank
+   frame in between since the outgoing page keeps rendering until this one
+   is ready to animate in. */
+.ul-main__page {
+  animation: ul-page-slide-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ul-page-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ul-main__page {
+    animation: none;
+  }
+}
+
+.ul-main:has(.ul-quick-actions) {
+  padding-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .ul-main {
+    padding: 16px 16px 32px;
+  }
+}
+
+/* ---------- sidebar ---------- */
+.ul-sidebar {
+  --sb-text: #2c150f;
+  --sb-text-dim: #6b4a3e;
+  --sb-text-muted: #a1806f;
+  --sb-border: rgba(58, 19, 12, 0.12);
+  --sb-hover: rgba(58, 19, 12, 0.06);
+
+  width: 256px;
+  min-width: 256px;
+  height: 100vh;
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--gradient-sidebar);
+  border-right: 1px solid rgba(58, 19, 12, 0.1);
+  display: flex;
+  flex-direction: column;
+  padding: 22px 14px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+/* faint ambient glow, purely decorative, clipped to the sidebar itself */
+.ul-sidebar::before {
+  content: "";
+  position: absolute;
+  top: -90px;
+  left: -70px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(122, 46, 31, 0.1), rgba(122, 46, 31, 0) 72%);
+  pointer-events: none;
+}
+
+.ul-sidebar__brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 22px;
+}
+
+/* mobile-drawer-only close button, see the responsive block below */
+.ul-sidebar__close {
+  display: none;
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--sb-border);
+  background: transparent;
+  color: var(--sb-text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+.ul-sidebar__close:hover {
+  background: var(--sb-hover);
+  color: var(--sb-text);
+}
+
+/* backdrop behind the mobile drawer — see the responsive block below */
+.ul-sidebar__backdrop {
+  display: none;
+}
+
+.ul-sidebar__logo {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--gradient-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 8px 18px -6px rgba(79, 70, 229, 0.65);
+}
+
+.ul-sidebar__brand-name {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 14.5px;
+  color: var(--sb-text);
+  line-height: 1.2;
+}
+
+.ul-sidebar__brand-sub {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  color: var(--sb-text-muted);
+  margin-top: 3px;
+}
+
+.ul-sidebar__nav {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+}
+
+.ul-sidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.ul-sidebar__heading {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  color: var(--sb-text-muted);
+  padding: 12px 12px 6px;
+  text-transform: uppercase;
+}
+
+.ul-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--sb-text-dim);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  text-decoration: none;
+  transition: background var(--transition-base), color var(--transition-base), transform var(--transition-base);
+}
+
+.ul-sidebar__item:hover {
+  background: var(--sb-hover);
+  color: var(--sb-text);
+}
+
+.ul-sidebar__item--active {
+  background: var(--gradient-primary);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 10px 22px -10px rgba(79, 70, 229, 0.75);
+}
+
+.ul-sidebar__item--active:hover {
+  background: var(--gradient-primary);
+  color: #fff;
+}
+
+/* ---------- footer artwork: plant + books vignette above the profile ---------- */
+.ul-sidebar__footer {
+  margin-top: 10px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.ul-sidebar__footer-art {
+  display: block;
+  margin: 0 auto;
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+.ul-sidebar__footer-caption {
+  margin: 4px 0 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sb-text-muted);
+  opacity: 0.8;
+}
+
+/* ---------- admin profile + logout popover ---------- */
+.ul-sidebar__profile {
+  position: relative;
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--sb-border);
+}
+
+.ul-sidebar__profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-base);
+}
+
+.ul-sidebar__profile-trigger:hover {
+  background: var(--sb-hover);
+}
+
+.ul-sidebar__profile-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 6px 14px -6px rgba(79, 70, 229, 0.7);
+}
+
+.ul-sidebar__profile-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ul-sidebar__profile-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ul-sidebar__profile-role {
+  font-size: 11px;
+  color: var(--sb-text-muted);
+}
+
+.ul-sidebar__profile-menu {
+  position: absolute;
+  bottom: calc(100% - 2px);
+  left: 0;
+  right: 0;
+  margin-bottom: 8px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+}
+
+.ul-sidebar__profile-menu-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-bg-secondary);
+}
+
+.ul-sidebar__profile-menu-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ul-sidebar__profile-menu-email {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ul-sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.ul-sidebar__logout:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* ---------- topbar ---------- */
+.ul-topbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--color-border);
+  /* A soft translucent brown tint (instead of solid white) so the
+     floating decorative icons behind the layout (AdminFloatingIcons,
+     z-index: 0) show through here too instead of being hidden behind an
+     opaque bar. */
+  background: rgba(250, 232, 219, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* mobile-only hamburger that opens the AdminSidebar drawer */
+.ul-topbar__menu-btn {
+  display: none;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+.ul-topbar__menu-btn:hover {
+  background: var(--color-bg-secondary);
+}
+
+.ul-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.ul-topbar__search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 9px 15px;
+  width: 100%;
+  max-width: 320px;
+  min-width: 0;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
+}
+
+.ul-topbar__search:focus-within {
+  background: var(--color-card);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-ring);
+}
+
+.ul-topbar__search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  width: 100%;
+}
+
+.ul-topbar__search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.ul-topbar__icon-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+}
+
+.ul-topbar__icon-btn:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary-soft);
+  transform: translateY(-1px);
+}
+
+/* small hover tooltip — labels the Notifications / Settings
+   shortcuts so they read the same way a sidebar nav label would */
+.ul-topbar__icon-btn[data-tooltip] {
+  overflow: visible;
+}
+.ul-topbar__icon-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 50%;
+  transform: translate(-50%, -4px);
+  white-space: nowrap;
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 7px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base), transform var(--transition-base);
+  z-index: 40;
+}
+.ul-topbar__icon-btn[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 220ms;
+}
+
+.ul-topbar__dot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-analytics-orange);
+  border: 1.5px solid var(--color-card);
+}
+
+.ul-topbar__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ---------- responsive: below this the sidebar becomes an off-canvas
+   drawer instead of squeezing into the layout, so the dashboard content
+   keeps its own full width on phones/tablets ---------- */
+@media (max-width: 900px) {
+  .ul-topbar__menu-btn {
+    display: flex;
+  }
+
+  .ul-sidebar__close {
+    display: flex;
+  }
+
+  .ul-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: min(84vw, 300px);
+    min-width: 0;
+    z-index: 60;
+    box-shadow: 0 12px 40px -8px rgba(11, 11, 15, 0.35);
+    transform: translateX(-100%);
+    transition: transform 220ms ease;
+  }
+
+  .ul-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .ul-sidebar__backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(11, 11, 15, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+
+  .ul-sidebar__backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .ul-topbar {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+  .ul-topbar__search {
+    padding: 8px 13px;
+  }
+}
+
+@media (max-width: 420px) {
+  .ul-topbar__search {
+    display: none; /* the sidebar/topbar chrome still fits; search moves
+                       out of the way entirely on the narrowest phones */
+  }
+}

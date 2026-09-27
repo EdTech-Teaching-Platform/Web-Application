@@ -1,0 +1,378 @@
+/*
+ * Admin sign-in screen.
+ * Rendered inside the shared AuthLayout (see src/layouts/AuthLayout.jsx),
+ * whose centered max-w-md card is only meant for the simple auth stubs
+ * (Register/ForgotPassword/ResetPassword) — Admin escapes that card with
+ * position:fixed so AuthLayout itself doesn't need to change.
+ *
+ * Layout: a single centered stack on an open cream page — a small brand
+ * logomark, the "Universal Learning" wordmark, a subtitle, then a plain
+ * white card holding the form (three stages: credentials -> loading ->
+ * redirect). The open background carries soft corner blobs and a
+ * scattering of faint, slowly drifting line icons behind the card.
+ *
+ * Palette: this screen intentionally overrides the shared admin theme
+ * tokens (adminTheme.css, navy) with a light reddish-brown/cream palette,
+ * scoped to .ul-login only — the rest of the admin console is untouched.
+ */
+.ul-login {
+  /* ---------- light cream + reddish-brown palette (scoped to the login screen only) --------- */
+  --color-primary: #a8492c;
+  --color-primary-dark: #7a2e1f;
+  --color-primary-soft: #f5e3da;
+  --color-bg: #fbf3ee;
+  --color-bg-secondary: #f8ece5;
+  --color-card: #ffffff;
+  --color-soft-pink: #f9ded2;
+  --color-border: #ecdccf;
+  --color-text-primary: #241009;
+  --color-text-secondary: #8a6a5c;
+  --color-text-muted: #c2a094;
+  --color-accent-red: #cf3a1e;
+  --gradient-primary: linear-gradient(135deg, #c96a44 0%, #a8492c 100%);
+  --shadow-card: 0 10px 26px -14px rgba(122, 46, 31, 0.22);
+  --shadow-elevated: 0 26px 60px -24px rgba(90, 40, 26, 0.22);
+  --shadow-ring: 0 0 0 3px rgba(168, 73, 44, 0.16);
+
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  overflow: hidden;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  z-index: 50;
+  padding: 24px;
+}
+
+/* ---------- page background: corner blobs + drifting line icons ---------- */
+.ul-login__page-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ul-login__page-glow {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--color-soft-pink);
+}
+.ul-login__page-glow--tr-big {
+  width: 340px;
+  height: 340px;
+  top: -110px;
+  right: -110px;
+  opacity: 0.9;
+}
+.ul-login__page-glow--tr-small {
+  width: 64px;
+  height: 64px;
+  top: 190px;
+  right: 90px;
+  opacity: 0.85;
+}
+.ul-login__page-glow--bl-big {
+  width: 300px;
+  height: 300px;
+  bottom: -110px;
+  left: -120px;
+  opacity: 0.9;
+}
+.ul-login__page-glow--bl-small {
+  width: 78px;
+  height: 78px;
+  bottom: 150px;
+  left: 60px;
+  opacity: 0.85;
+}
+
+.ul-login__page-icon {
+  position: absolute;
+  display: flex;
+  color: var(--color-primary);
+  opacity: 0.16;
+  animation-name: ul-login-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.ul-login__page-icon svg {
+  display: block;
+}
+
+@keyframes ul-login-float {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); }
+  25%  { transform: translateY(-14px) translateX(6px) rotate(4deg); }
+  50%  { transform: translateY(3px) translateX(-5px) rotate(-3deg); }
+  75%  { transform: translateY(-8px) translateX(4px) rotate(2deg); }
+  100% { transform: translateY(0) translateX(0) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ul-login__page-icon {
+    animation: none;
+  }
+}
+
+/* ---------- centered content stack ---------- */
+.ul-login__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 420px;
+}
+
+.ul-login__brandmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: clamp(18px, 3.4vh, 28px);
+}
+.ul-login__logo-img {
+  display: block;
+  object-fit: contain;
+}
+
+.ul-login__wordmark {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: clamp(24px, 3.4vh, 30px);
+  font-weight: 800;
+  margin: 12px 0 6px;
+  letter-spacing: -0.01em;
+}
+.ul-login__wordmark-dark {
+  color: var(--color-text-primary);
+}
+.ul-login__wordmark-accent {
+  color: var(--color-accent-red);
+}
+
+.ul-login__subtitle {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ---------- card ---------- */
+.ul-login__card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: var(--color-card);
+  border-radius: 26px;
+  box-shadow: var(--shadow-elevated);
+  padding: clamp(24px, 4vh, 34px) clamp(22px, 4vw, 34px);
+}
+
+.ul-login__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.ul-login__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 7px;
+}
+.ul-login__label:not(:first-child) {
+  margin-top: 14px;
+}
+
+.ul-login__field-wrap {
+  position: relative;
+}
+
+.ul-login__field {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  font-size: 13.5px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  transition: box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+.ul-login__field::placeholder {
+  color: var(--color-text-muted);
+}
+.ul-login__field--icon {
+  padding-left: 44px;
+}
+.ul-login__field--password {
+  padding-right: 44px;
+}
+.ul-login__field:focus {
+  outline: none;
+  background: var(--color-card);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-ring);
+}
+
+.ul-login__field-icon {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.ul-login__field-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.ul-login__field-toggle:hover {
+  color: var(--color-text-secondary);
+}
+
+.ul-login__submit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-primary-dark);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: filter 120ms ease, transform 180ms ease;
+  box-shadow: var(--shadow-card);
+}
+.ul-login__submit:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.ul-login__error {
+  color: #b3261e;
+  font-size: 12px;
+  margin: 10px 0 0;
+  font-weight: 600;
+}
+
+/* ---------- loading stage ---------- */
+.ul-login__loading {
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.ul-login__loading-dots {
+  display: flex;
+  gap: 8px;
+}
+.ul-login__loading-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: 0.35;
+  animation: ul-login-dot-pulse 1.1s ease-out infinite;
+}
+.ul-login__loading-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ul-login__loading-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes ul-login-dot-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.15); }
+}
+
+.ul-login__loading-text {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ul-login__loading-dots span {
+    animation: none;
+  }
+}
+
+/* ---------- exit transition: plays right before navigating to the
+   dashboard, so the swap reads as one continuous slide instead of an
+   abrupt cut to a blank frame. ---------- */
+.ul-login--leaving {
+  animation: ul-login-exit 320ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes ul-login-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ul-login--leaving {
+    animation: none;
+  }
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 480px) {
+  .ul-login {
+    padding: 16px;
+  }
+  .ul-login__card {
+    padding: 22px 20px;
+  }
+}
+
+/* ---------- very short viewports (landscape phones, browser chrome eating
+   vertical space): keep the whole stack anchored and compact instead of
+   letting the outer fixed wrapper clip it. ---------- */
+@media (max-height: 600px) {
+  .ul-login {
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .ul-login__content {
+    margin: 0 auto;
+  }
+  .ul-login__brandmark {
+    margin-bottom: 14px;
+  }
+  .ul-login__wordmark {
+    font-size: 22px;
+    margin: 8px 0 4px;
+  }
+  .ul-login__label:not(:first-child) {
+    margin-top: 10px;
+  }
+}

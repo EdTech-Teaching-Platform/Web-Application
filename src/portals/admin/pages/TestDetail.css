@@ -1,0 +1,131 @@
+/* Test -> Questions (level 3). Reuses shared .ul-ts-* and .ul-tsd-* primitives
+   imported alongside this file, plus the shared .ul-set-* classes. */
+
+.ul-td-question-cell {
+  max-width: 320px;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.ul-td-type-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.ul-td-negative {
+  color: #b3261e;
+  font-size: 10.5px;
+}
+
+/* ---- Question type choice ---- */
+.ul-td-type-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ul-td-type-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  padding: 18px 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ul-td-type-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg-secondary);
+}
+.ul-td-type-card strong {
+  font-size: 13.5px;
+  color: var(--color-text-primary);
+}
+.ul-td-type-card span {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* ---- Correct answer toggle ---- */
+.ul-td-correct-toggle {
+  display: flex;
+  gap: 6px;
+}
+.ul-td-correct-toggle button {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+.ul-td-correct-toggle button.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* ---- Preview ---- */
+.ul-td-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ul-td-preview-item {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 14px;
+}
+.ul-td-preview-item strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--color-text-primary);
+}
+.ul-td-preview-options {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ul-td-preview-options li {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+.ul-td-preview-options li.is-correct {
+  border-color: #2f9e56;
+  color: #2f9e56;
+  font-weight: 700;
+  background: rgba(47, 158, 86, 0.08);
+}
+.ul-td-preview-answer-box {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin: 0 0 8px;
+}
+.ul-td-preview-marks {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .ul-td-type-choice {
+    grid-template-columns: 1fr;
+  }
+}

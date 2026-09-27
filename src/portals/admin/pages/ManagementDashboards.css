@@ -1,0 +1,431 @@
+/*
+ * Management Dashboards — Head Teacher / Regional Head scoped view
+ * (Day 7). Reuses the shared .ul-card / .ul-stats /
+ * .ul-bento / .ul-btn / .ul-status-badge / .ul-avatar-chip / .ul-org-bar /
+ * .ul-usr-select / .ul-quick-action primitives from AdminDashboard.css,
+ * EducatorVerification.css, RegionBranchHierarchy.css and UserManagement.css
+ * — only the pieces specific to this screen live here.
+ */
+
+.ul-mgmt-scopebar {
+  align-items: center;
+}
+
+.ul-mgmt-stats .ul-stat-card { padding: 12px 14px; gap: 4px; border-radius: var(--radius-sm); }
+.ul-mgmt-stats .ul-stat-card__label { font-size: 9.5px; }
+.ul-mgmt-stats .ul-stat-card__value { font-size: 17px; color: #b3261e; }
+.ul-mgmt-stats .ul-stat-card__trend { font-size: 10.5px; }
+
+.ul-mgmt-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-soft-pink);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.ul-mgmt-scope-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin-bottom: 18px;
+}
+.ul-mgmt-scope-note strong {
+  color: var(--color-text-primary);
+}
+.ul-mgmt-scope-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ---------- sub-unit roster rows ---------- */
+.ul-mgmt-unit-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.ul-mgmt-unit-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.ul-mgmt-unit-row__body {
+  flex: 1;
+  min-width: 0;
+}
+.ul-mgmt-unit-row__name {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-mgmt-unit-row__meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.ul-mgmt-unit-row__bar {
+  width: 108px;
+  flex-shrink: 0;
+}
+
+.ul-mgmt-type-tag {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-soft-pink);
+  color: var(--color-primary-dark);
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* ---------- course rows (plain card, not the dark variant) ---------- */
+.ul-mgmt-course-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.ul-mgmt-course-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.ul-mgmt-course-row__title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-mgmt-course-row__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.ul-mgmt-empty {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  padding: 10px 0 4px;
+}
+
+/* ---------- attendance bars on a light card (base .ul-bars/.ul-bars__labels
+   assume the dark card's white-on-dark palette; these overrides keep the
+   same layout on a regular light .ul-card) ---------- */
+.ul-mgmt-bars {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px 0;
+}
+.ul-mgmt-bars .ul-bars__fill {
+  opacity: 0.9;
+}
+.ul-mgmt-bars__labels span {
+  color: var(--color-text-muted);
+}
+
+/* ---------- welcome row: title + last-updated/refresh ---------- */
+.ul-mgmt-welcome {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ul-mgmt-updated {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  padding-top: 4px;
+}
+.ul-mgmt-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ul-mgmt-refresh-btn:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* ---------- identity strip: who + role + breadcrumb ---------- */
+.ul-mgmt-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ul-mgmt-identity__avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.ul-mgmt-identity__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.ul-mgmt-identity__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.ul-mgmt-identity__breadcrumb {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- alerts / pending items ---------- */
+.ul-mgmt-alert-card {
+  margin-bottom: 18px;
+}
+.ul-mgmt-alert-card.is-clear .ul-card__head h3 {
+  color: var(--color-text-secondary);
+}
+.ul-mgmt-alert-list {
+  display: flex;
+  flex-direction: column;
+}
+.ul-mgmt-alert-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.ul-mgmt-alert-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.ul-mgmt-alert-row__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-accent);
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.ul-mgmt-alert-row__label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+.ul-mgmt-alert-row__action {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* ---------- card header + inline control (date range select etc.) ---------- */
+.ul-mgmt-card-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ul-mgmt-range-select {
+  padding: 5px 10px;
+  font-size: 11.5px;
+}
+
+/* ---------- per sub-unit "Details" trigger ---------- */
+.ul-mgmt-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-primary-dark);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ul-mgmt-detail-btn:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* ---------- recent activity feed ---------- */
+.ul-mgmt-activity-list {
+  display: flex;
+  flex-direction: column;
+}
+.ul-mgmt-activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.ul-mgmt-activity-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.ul-mgmt-activity-row__dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+.ul-mgmt-activity-row__body {
+  min-width: 0;
+}
+.ul-mgmt-activity-row__text {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+.ul-mgmt-activity-row__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- quick actions: 4 tiles instead of the shared 3-col grid ---------- */
+.ul-mgmt-quick-actions {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 900px) {
+  .ul-mgmt-quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .ul-mgmt-quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- drill-down detail modal ---------- */
+.ul-mgmt-detail-modal {
+  max-width: 460px;
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  text-align: left;
+}
+.ul-mgmt-detail-modal .ul-confirm-modal__title,
+.ul-mgmt-detail-modal .ul-confirm-modal__desc {
+  text-align: left;
+}
+.ul-mgmt-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+.ul-mgmt-detail-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+}
+.ul-mgmt-detail-stats > div span {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.ul-mgmt-detail-subhead {
+  display: block;
+  margin: 16px 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.ul-mgmt-detail-list {
+  display: flex;
+  flex-direction: column;
+}
+.ul-mgmt-detail-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+}
+.ul-mgmt-detail-list__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .ul-mgmt-unit-row {
+    flex-wrap: wrap;
+  }
+  .ul-mgmt-unit-row__bar {
+    width: 100%;
+  }
+  .ul-mgmt-identity {
+    align-items: flex-start;
+  }
+  .ul-mgmt-identity__name {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .ul-mgmt-detail-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ul-mgmt-detail-modal {
+    max-width: calc(100vw - 40px);
+  }
+}
