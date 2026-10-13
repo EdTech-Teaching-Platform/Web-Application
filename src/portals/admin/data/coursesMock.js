@@ -595,3 +595,8 @@ export function useCourse(id) {
   const all = useCourses();
   return all.find((c) => c.id === id) || null;
 }
+
+// plain (non-hook) read access for non-React code such as the discount engine
+export function getCoursesSnapshot() {
+  return _courses;
+}

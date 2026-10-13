@@ -1,0 +1,199 @@
+/*
+ * Assign Educators — reuses .ul-edu-header / .ul-edu-toolbar / .ul-edu-table
+ * / .ul-edu-pagination / .ul-edu-row-menu (EducatorVerification.css),
+ * .ul-card / .ul-status-badge / .ul-progress-* (AdminDashboard.css),
+ * .ul-set-drawer* (SettingsPermissions.css), .ul-ts-form* (TestSeries.css),
+ * .ul-confirm-modal / .ul-mgmt-detail-* (ConfirmModal.css /
+ * ManagementDashboards.css), .ul-edp-tabs (EducatorProfile.css),
+ * .ul-txn-id-chip / toast (TransactionHistory.css pattern, reused by class
+ * name only — this page defines its own copies below to avoid depending on
+ * that page's CSS file).
+ */
+
+.ul-asg-ellipsis {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ul-txn-id-chip {
+  display: inline-block;
+  font-family: "Courier New", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: rgba(74, 14, 14, 0.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+
+.ul-asg-toast {
+  position: fixed;
+  top: auto;
+  bottom: 24px;
+  right: 24px;
+  left: auto;
+  width: max-content;
+  max-width: 360px;
+  background: var(--color-text-primary);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+  z-index: 300;
+}
+
+/* ---- progress column ---- */
+.ul-asg-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ul-asg-progress-track {
+  width: 64px;
+}
+.ul-asg-progress span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  min-width: 30px;
+}
+
+/* ---- filter popover (same approach as Transaction History's) ---- */
+.ul-asg-filter-popover-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.ul-asg-filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ul-asg-filters-toggle svg {
+  transition: transform 0.15s ease;
+}
+.ul-asg-filters-toggle.is-open svg {
+  transform: rotate(180deg);
+}
+.ul-asg-filter-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(11, 11, 15, 0.14);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 220px;
+}
+.ul-asg-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+}
+.ul-asg-filter-field input,
+.ul-asg-filter-field select {
+  font-size: 12.5px;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-text-primary);
+}
+.ul-asg-filter-popover__clear {
+  align-self: flex-end;
+  margin-top: 2px;
+}
+
+/* ---- Review & Approval tab ---- */
+.ul-asg-review-toolbar {
+  margin-bottom: 14px;
+}
+.ul-asg-review-pills {
+  flex-wrap: wrap;
+  height: auto;
+}
+.ul-asg-review-btn {
+  padding: 6px 12px;
+  font-size: 11.5px;
+}
+.ul-asg-review-note {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 6px 0 10px;
+  line-height: 1.5;
+}
+.ul-asg-review-modal {
+  max-width: 560px;
+}
+.ul-asg-decision-pills {
+  margin-bottom: 10px;
+}
+
+/* ---- create/edit form: multi-select educator list ---- */
+.ul-asg-educator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+}
+.ul-asg-educator-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ul-asg-educator-option:hover {
+  background: var(--color-bg-secondary);
+}
+.ul-asg-educator-option input {
+  flex-shrink: 0;
+}
+.ul-asg-educator-option span {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.ul-asg-educator-option small {
+  color: var(--color-text-muted);
+  margin-left: auto;
+  font-size: 10.5px;
+  text-align: right;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .ul-asg-filter-popover { right: auto; left: 0; min-width: 200px; }
+}
+
+/* Keep the row's three-dot button right next to the Status badge instead of
+   pinned to the far-right edge, so there's no wide empty gap between them. */
+.ul-asg-table .ul-edu-actions-inner {
+  justify-content: flex-start;
+}
+
+.ul-asg-req-actions { display: flex; gap: 6px; }
+.ul-asg-req-outcome { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ul-asg-req-note { color: var(--color-text-muted); font-size: 12px; max-width: 150px; }

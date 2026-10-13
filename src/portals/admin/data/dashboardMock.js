@@ -100,7 +100,7 @@ export const dashboardQuote = "Empowering educators. Enabling learners. Building
 export const dashboardStatCards = [
   { key: "students", label: "Total Students", value: "5,548", trend: "+12%", note: "from last month", icon: "users", accent: "rose", spark: [4, 6, 5, 7, 6, 8, 7, 9, 10] },
   { key: "educators", label: "Total Educators", value: "224", trend: "+8%", note: "from last month", icon: "teach", accent: "amber", spark: [5, 4, 6, 5, 7, 6, 8, 7, 9] },
-  { key: "courses", label: "Total Courses", value: "186", trend: "+15%", note: "from last month", icon: "course", accent: "violet", spark: [3, 5, 4, 6, 5, 8, 6, 9, 8] },
+  { key: "courses", hidden: true, label: "Total Courses", value: "186", trend: "+15%", note: "from last month", icon: "course", accent: "violet", spark: [3, 5, 4, 6, 5, 8, 6, 9, 8] },
   { key: "testseries", label: "Total Test Series", value: "48", trend: "+10%", note: "from last month", icon: "report", accent: "sky", spark: [2, 4, 3, 5, 6, 5, 7, 6, 8] },
 ];
 

@@ -10,13 +10,15 @@
 
 import { useSyncExternalStore } from "react";
 
-export const SERIES_STATUS = { DRAFT: "draft", PUBLISHED: "published" };
+export const SERIES_STATUS = { DRAFT: "draft", SCHEDULED: "scheduled", PUBLISHED: "published" };
 export const SERIES_STATUS_LABEL = {
   [SERIES_STATUS.DRAFT]: "Draft",
+  [SERIES_STATUS.SCHEDULED]: "Scheduled",
   [SERIES_STATUS.PUBLISHED]: "Published",
 };
 export const SERIES_STATUS_BADGE_CLASS = {
   [SERIES_STATUS.DRAFT]: "is-pending",
+  [SERIES_STATUS.SCHEDULED]: "is-verified",
   [SERIES_STATUS.PUBLISHED]: "is-approved",
 };
 
@@ -70,7 +72,7 @@ function nextId(prefix) {
   return `${prefix}-${idCounter}`;
 }
 
-function objectiveQuestion({ text, optionA, optionB, optionC, optionD, correctAnswer, marks, negativeMarks, difficulty, subject, explanation }) {
+function objectiveQuestion({ text, optionA, optionB, optionC, optionD, correctAnswer, marks, negativeMarks, difficulty, subject, explanation, topic, image }) {
   return {
     id: nextId("Q"),
     type: QUESTION_TYPE.OBJECTIVE,
@@ -79,11 +81,13 @@ function objectiveQuestion({ text, optionA, optionB, optionC, optionD, correctAn
     negativeMarks: negativeMarks ?? 1,
     difficulty: difficulty || DIFFICULTY.MEDIUM,
     subject: subject || "",
+    topic: topic || "",
     explanation: explanation || "",
+    image: image || "",
   };
 }
 
-function subjectiveQuestion({ text, answerInstructions, marks, difficulty, subject, rubric }) {
+function subjectiveQuestion({ text, answerInstructions, marks, difficulty, subject, rubric, topic, image }) {
   return {
     id: nextId("Q"),
     type: QUESTION_TYPE.SUBJECTIVE,
@@ -92,13 +96,16 @@ function subjectiveQuestion({ text, answerInstructions, marks, difficulty, subje
     marks: marks ?? 5,
     difficulty: difficulty || DIFFICULTY.MEDIUM,
     subject: subject || "",
+    topic: topic || "",
     rubric: rubric || "",
+    image: image || "",
   };
 }
 
-function buildTest({ name, instructions, duration, totalMarks, passingMarks, attemptLimit, scheduledAt, status, questions }) {
+function buildTest({ name, instructions, duration, totalMarks, passingMarks, attemptLimit, scheduledAt, status, questions, shuffleQuestions, shuffleOptions, attempts, avgScore, avgTimeTakenMinutes, window }) {
   return {
     id: nextId("TEST"),
+    window: window || { mode: "inherit", openAt: "", closeAt: "" },
     name,
     instructions: instructions || "",
     duration,
@@ -108,11 +115,20 @@ function buildTest({ name, instructions, duration, totalMarks, passingMarks, att
     scheduledAt,
     status: status || TEST_STATUS.DRAFT,
     questions: questions || [],
+    shuffleQuestions: !!shuffleQuestions,
+    shuffleOptions: !!shuffleOptions,
+    // Learner-attempt aggregates — only ever set on already-published
+    // tests in the seed data below (an unpublished test has no
+    // attempts yet, honestly reflected as 0 rather than invented).
+    attempts: attempts ?? 0,
+    avgScore: avgScore ?? 0,
+    avgTimeTakenMinutes: avgTimeTakenMinutes ?? 0,
   };
 }
 
-function buildSeries({ name, description, subject, audience, pricing, price, status, startDate, endDate, enrollment, attempts, avgPerformance, tests }) {
+function buildSeries({ name, description, subject, audience, pricing, price, status, startDate, endDate, enrollment, attempts, avgPerformance, tests, ...extra }) {
   return {
+    ...extra, // optional wizard fields: type, courseId, classification, availability, lateSubmissions, ...
     id: nextId("TS"),
     name,
     description: description || "",
@@ -145,6 +161,7 @@ const SEED_TEST_SERIES = [
         instructions: "60 minutes, 40 marks. Calculator not allowed.",
         duration: 60, totalMarks: 40, passingMarks: 16, attemptLimit: 2,
         scheduledAt: "2026-10-05T09:00", status: TEST_STATUS.PUBLISHED,
+        attempts: 3120, avgScore: 64, avgTimeTakenMinutes: 52,
         questions: [
           objectiveQuestion({ text: "A body moving with uniform velocity has:", optionA: "Zero acceleration", optionB: "Uniform acceleration", optionC: "Increasing acceleration", optionD: "Decreasing acceleration", correctAnswer: "A", subject: "Mechanics" }),
           objectiveQuestion({ text: "The SI unit of frequency is:", optionA: "Second", optionB: "Hertz", optionC: "Newton", optionD: "Joule", correctAnswer: "B", subject: "Waves" }),
@@ -166,6 +183,7 @@ const SEED_TEST_SERIES = [
         name: "Weekly Test 1 — Real Numbers & Polynomials",
         duration: 45, totalMarks: 30, passingMarks: 12, attemptLimit: 3,
         scheduledAt: "2026-08-17T10:00", status: TEST_STATUS.PUBLISHED,
+        attempts: 5480, avgScore: 73, avgTimeTakenMinutes: 38,
         questions: [
           objectiveQuestion({ text: "HCF of 12 and 18 is:", optionA: "2", optionB: "6", optionC: "12", optionD: "18", correctAnswer: "B", marks: 3, negativeMarks: 0, subject: "Real Numbers" }),
           objectiveQuestion({ text: "The degree of the polynomial 3x^2 + 5x + 2 is:", optionA: "0", optionB: "1", optionC: "2", optionD: "3", correctAnswer: "C", marks: 3, negativeMarks: 0, subject: "Polynomials" }),
@@ -211,6 +229,7 @@ const SEED_TEST_SERIES = [
         name: "Practice Set 12 — Puzzles & Seating Arrangement",
         duration: 30, totalMarks: 25, passingMarks: 10, attemptLimit: 5,
         scheduledAt: "2026-09-20T08:00", status: TEST_STATUS.PUBLISHED,
+        attempts: 8120, avgScore: 57, avgTimeTakenMinutes: 24,
         questions: [
           objectiveQuestion({ text: "In a row of 20 students, A is 7th from the left. What is A's position from the right?", optionA: "12th", optionB: "13th", optionC: "14th", optionD: "15th", correctAnswer: "C", marks: 2, negativeMarks: 0.5, subject: "Puzzles" }),
           subjectiveQuestion({ text: "Explain the approach you would use to solve a circular seating arrangement puzzle.", marks: 5, subject: "Puzzles", rubric: "Award marks for a clear, step-by-step strategy." }),
@@ -231,6 +250,7 @@ const SEED_TEST_SERIES = [
         name: "Grammar & Vocabulary Test 1",
         duration: 40, totalMarks: 35, passingMarks: 14, attemptLimit: 2,
         scheduledAt: "2026-08-12T11:00", status: TEST_STATUS.PUBLISHED,
+        attempts: 3640, avgScore: 66, avgTimeTakenMinutes: 33,
         questions: [
           objectiveQuestion({ text: "Choose the correctly spelled word.", optionA: "Recieve", optionB: "Receive", optionC: "Receeve", optionD: "Receve", correctAnswer: "B", marks: 1, negativeMarks: 0.25, subject: "Vocabulary" }),
         ],
@@ -290,6 +310,22 @@ export function createTestSeries(data) {
   return series;
 }
 
+// Creates a series together with its tests and questions in one step (used by
+// the Test Series creation wizard). Ids are generated here so the wizard never
+// has to know about the store's id scheme.
+export function createSeriesFromWizard(data) {
+  const { tests = [], ...rest } = data;
+  const builtTests = tests.map((t) => buildTest({
+    ...t,
+    status: t.status || TEST_STATUS.DRAFT,
+    questions: (t.questions || []).map((q) => (q.type === QUESTION_TYPE.SUBJECTIVE ? subjectiveQuestion(q) : objectiveQuestion(q))),
+  }));
+  const series = buildSeries({ ...rest, tests: builtTests });
+  _seriesList = [series, ..._seriesList];
+  emit();
+  return series;
+}
+
 export function updateTestSeries(id, data) {
   _seriesList = _seriesList.map((s) => (s.id === id ? { ...s, ...data, price: data.pricing === PRICING_TYPE.PAID ? (data.price ?? s.price) : 0 } : s));
   emit();
@@ -323,6 +359,18 @@ export function duplicateTestSeries(id) {
   return clone;
 }
 
+// Scheduled series go live once their go-live moment has passed (there is no
+// background scheduler in this mock app, so this runs whenever the list opens).
+export function promoteDueSeries() {
+  const now = Date.now();
+  let changed = false;
+  _seriesList = _seriesList.map((s) => {
+    if (s.status === SERIES_STATUS.SCHEDULED && s.goLiveAt && new Date(s.goLiveAt).getTime() <= now) { changed = true; return { ...s, status: SERIES_STATUS.PUBLISHED }; }
+    return s;
+  });
+  if (changed) emit();
+}
+
 export function setSeriesStatus(id, status) {
   _seriesList = _seriesList.map((s) => (s.id === id ? { ...s, status } : s));
   emit();
@@ -333,7 +381,8 @@ export function validateSeriesForPublish(series) {
   if (!series.name || !series.name.trim()) errors.push("Test Series name is required.");
   if (!series.subject) errors.push("Subject / Category is required.");
   if (!series.audience) errors.push("Target audience is required.");
-  if (!series.startDate || !series.endDate) errors.push("Start and end dates are required.");
+  const alwaysOpen = series.availability && series.availability.mode === "always";
+  if (!alwaysOpen && (!series.startDate || !series.endDate)) errors.push("Start and end dates are required.");
   if (series.startDate && series.endDate && series.startDate > series.endDate) errors.push("Start date must be before end date.");
   if (series.pricing === PRICING_TYPE.PAID && (!series.price || Number(series.price) <= 0)) errors.push("A valid price is required for a paid Test Series.");
   return { valid: errors.length === 0, errors };
@@ -423,4 +472,9 @@ export function deleteQuestion(seriesId, testId, questionId) {
     tests: s.tests.map((t) => (t.id !== testId ? t : { ...t, questions: t.questions.filter((q) => q.id !== questionId) })),
   }));
   emit();
+}
+
+// plain (non-hook) read access for non-React code such as the discount engine
+export function getTestSeriesSnapshot() {
+  return _seriesList;
 }

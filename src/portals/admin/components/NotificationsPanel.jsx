@@ -7,6 +7,7 @@
 // either way, backed by the shared store in ../data/notificationsMock.js
 // so the topbar's unread dot always matches what's actually been read.
 
+import { useNavigate } from "react-router-dom";
 import {
   useNotifications,
   markAllNotificationsRead,
@@ -25,8 +26,19 @@ const TYPE_META = {
   system: { icon: IconGear, bg: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" },
 };
 
+function relativeTime(n) {
+  if (!n.createdAt) return n.time;
+  const mins = Math.floor((Date.now() - new Date(n.createdAt).getTime()) / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  return new Date(n.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+}
+
 export default function NotificationsPanel({ variant = "page" }) {
   const items = useNotifications();
+  const navigate = useNavigate();
   const unreadCount = items.filter((n) => !n.read).length;
 
   return (
@@ -85,7 +97,28 @@ export default function NotificationsPanel({ variant = "page" }) {
                       {!n.read && <span className="ul-notifpanel__dot" />}
                     </span>
                     <p className="ul-notifpanel__message">{n.message}</p>
-                    <p className="ul-notifpanel__time">{n.time}</p>
+                    <p className="ul-notifpanel__time">{relativeTime(n)}</p>
+                    {n.link && (
+                      <span
+                        role="link"
+                        tabIndex={0}
+                        className="ul-notifpanel__view"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          if (!n.read) toggleNotificationRead(n.id);
+                          navigate(n.link);
+                        }}
+                        onKeyDown={(ev) => {
+                          if (ev.key === "Enter") {
+                            ev.stopPropagation();
+                            if (!n.read) toggleNotificationRead(n.id);
+                            navigate(n.link);
+                          }
+                        }}
+                      >
+                        View details
+                      </span>
+                    )}
                   </span>
                 </button>
                 <button

@@ -104,3 +104,9 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* compact variant */
+.ul-confirm-modal.is-compact { padding: 14px 16px; max-width: 340px; }
+.ul-confirm-modal.is-compact .ul-confirm-modal__header { margin-bottom: 6px; }
+.ul-confirm-modal.is-compact .ul-confirm-modal__icon { width: 22px; height: 22px; border-radius: 7px; }
+.ul-confirm-modal.is-compact .ul-confirm-modal__icon svg { width: 12px; height: 12px; }

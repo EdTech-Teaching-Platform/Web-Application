@@ -26,7 +26,11 @@ import ConfirmModal from "../components/ConfirmModal";
 import BulkImportTeachers from "../components/BulkImportTeachers";
 import { IconSearch, IconStar, IconMore, IconClose, IconPlus, IconChevronLeft } from "../components/icons";
 import "./AdminDashboard.css";
+import "./discounts/Discounts.css";
+import { RowMenu } from "./discounts/DiscountsShared";
 import "./EducatorVerification.css";
+import "./EducatorProfile.css";
+import "./TestSeries.css";
 
 const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
 const VERIFICATION_LABEL = { pending: "Pending", under_review: "Pending", verified: "Verified", rejected: "Rejected" };
@@ -79,7 +83,6 @@ function VerificationBadge({ status }) {
 export default function EducatorVerification() {
   const educators = useEducators();
   const navigate = useNavigate();
-
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState("all");
   const [verificationFilter, setVerificationFilter] = useState("all");
@@ -226,7 +229,11 @@ export default function EducatorVerification() {
       return;
     }
     const rect = e.currentTarget.getBoundingClientRect();
-    setMenuAnchor({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    // open to the LEFT of the kebab button, vertically centred on it (clamped to the viewport)
+    const MENU_H = 200;
+    const centre = rect.top + rect.height / 2;
+    const top = Math.max(8, Math.min(centre - MENU_H / 2, window.innerHeight - MENU_H - 8));
+    setMenuAnchor({ top, right: window.innerWidth - rect.left + 8 });
     setOpenMenuId(id);
   };
 
@@ -260,10 +267,12 @@ export default function EducatorVerification() {
             Review, verify and manage every educator on the platform. An educator cannot teach or publish courses until their application is approved.
           </p>
         </div>
-        <button type="button" className="ul-btn ul-btn--primary ul-edu-add-btn" onClick={openAddForm}>
-          <IconPlus size={13} />
-          <span>Add Teacher</span>
-        </button>
+        <div className="ul-rh-header-actions">
+          <button type="button" className="ul-btn ul-btn--primary ul-edu-add-btn" onClick={openAddForm}>
+            <IconPlus size={13} />
+            <span>Add Teacher</span>
+          </button>
+        </div>
       </div>
 
       <div className="ul-edu-summary">
@@ -416,74 +425,16 @@ export default function EducatorVerification() {
                     <td><AccountBadge status={e.accountStatus} /></td>
                     <td>{e.joinedDate}</td>
                     <td className="ul-edu-actions-cell" onClick={(ev) => ev.stopPropagation()}>
-                      <div className="ul-edu-actions-inner" ref={openMenuId === e.id ? menuRef : null}>
-                        <button
-                          type="button"
-                          className="ul-edu-more-btn"
-                          onClick={(ev) => toggleRowMenu(e.id, ev)}
-                          aria-haspopup="menu"
-                          aria-expanded={openMenuId === e.id}
-                          aria-label="More actions"
-                        >
-                          <IconMore size={15} />
-                        </button>
-                        {openMenuId === e.id && menuAnchor && (
-                        <div
-                          className="ul-edu-row-menu"
-                          role="menu"
-                          style={{ top: `${menuAnchor.top}px`, right: `${menuAnchor.right}px` }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              navigate(`/admin/educatorverification/${e.id}`);
-                            }}
-                          >
-                            View Details
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              navigate(`/admin/educatorverification/${e.id}`, { state: { tab: "performance" } });
-                            }}
-                          >
-                            View Courses
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              navigate(`/admin/educatorverification/${e.id}`, { state: { tab: "documents" } });
-                            }}
-                          >
-                            Verification Details
-                          </button>
-                          {e.accountStatus === "suspended" ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                updateEducator(e.id, { accountStatus: "active" });
-                              }}
-                            >
-                              Activate
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                setConfirmAction({ type: "suspend", educator: e });
-                              }}
-                            >
-                              Suspend
-                            </button>
-                          )}
-                        </div>
-                        )}
-                      </div>
+                      <RowMenu
+                        items={[
+                          { label: "View Details", onClick: () => navigate(`/admin/educatorverification/${e.id}`) },
+                          // "View Courses" (Performance tab) hidden for now
+                          { label: "Verification Details", onClick: () => navigate(`/admin/educatorverification/${e.id}`, { state: { tab: "documents" } }) },
+                          e.accountStatus === "suspended"
+                            ? { label: "Activate", onClick: () => updateEducator(e.id, { accountStatus: "active" }) }
+                            : { label: "Suspend", onClick: () => setConfirmAction({ type: "suspend", educator: e }) },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

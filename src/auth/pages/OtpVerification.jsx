@@ -18,6 +18,7 @@ import OtpInput from "../../components/ui/OtpInput";
 import { identifierKind, maskDestination } from "../utils/validators";
 import { verifyAccountOtp, verifyLoginOtp, resendOtp } from "../services/authApi";
 import { useAuth } from "../../hooks/useAuth";
+import { startEducatorSessionForIdentifier } from "../../portals/teacher/data/educatorAccountStore";
 
 const RESEND_SECONDS = 60;
 
@@ -53,9 +54,11 @@ export default function OtpVerification() {
     try {
       if (isLogin) {
         await verifyLoginOtp({ identifier: destination, code });
+        const educator = role === "teacher" ? startEducatorSessionForIdentifier(destination) : null;
+        if (role === "teacher" && !educator) throw new Error("educator_account_not_found");
         setUser({
-          id: destination.toLowerCase(),
-          name: destination.includes("@") ? destination.split("@")[0] : destination,
+          id: educator?.id ?? destination.toLowerCase(),
+          name: educator?.profile.fullName ?? (destination.includes("@") ? destination.split("@")[0] : destination),
           identifier: destination,
           role,
           onboardingComplete: true,
@@ -68,7 +71,11 @@ export default function OtpVerification() {
           && !requestedRedirect.includes("\\")
           ? requestedRedirect
           : "";
-        navigate(role === "admin" || role === "super_admin" ? "/admin" : safeStudentRedirect || "/student/dashboard");
+        navigate(role === "admin" || role === "super_admin"
+          ? "/admin"
+          : role === "teacher"
+            ? "/teacher/dashboard"
+            : safeStudentRedirect || "/student/dashboard");
       } else {
         await verifyAccountOtp({ identifier: destination, code });
         setUser({

@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAssignments, getDisplayStatus, ASSIGNMENT_STATUS_LABEL, ASSIGNMENT_STATUS_BADGE_CLASS } from "../data/testAssignmentsMock";
 import { useAuth } from "../../../hooks/useAuth";
 import {
   dashboardQuote,
@@ -20,7 +21,7 @@ import {
   dashboardNotepadSeed,
   pendingApprovals,
 } from "../data/dashboardMock";
-import { TOP_PERFORMING_COURSES } from "../data/financialAnalyticsMock";
+import { useTestSeriesList, SERIES_STATUS } from "../data/testSeriesMock";
 import { REGIONS } from "../data/regionalAnalyticsMock";
 import { IconUsers, IconTeach, IconCourse, IconReport, IconGraduationCap, IconClose, IconSend } from "../components/icons";
 import dashboardHeroImg from "../../../assets/illustrations/dashboard-hero.png";
@@ -201,8 +202,27 @@ function NotepadCard() {
 
 export default function LoginDashboard() {
   const { user } = useAuth();
+  const assignments = useAssignments();
+  // series awaiting review first, then in-flight work; cancelled/rejected excluded
+  const tsApprovals = useMemo(() => {
+    const rank = { submitted: 0, under_review: 0, revision_requested: 1, in_progress: 2, assigned: 3, overdue: 1, approved: 4, completed: 5 };
+    return assignments
+      .filter((a) => a.status !== "cancelled" && a.status !== "rejected")
+      .sort((x, y) => (rank[getDisplayStatus(x)] ?? 9) - (rank[getDisplayStatus(y)] ?? 9))
+      .slice(0, 3);
+  }, [assignments]);
   const firstName = user?.name?.split(" ")[0] || "Admin";
-  const topCourses = useMemo(() => TOP_PERFORMING_COURSES.slice(0, 5), []);
+  const seriesList = useTestSeriesList();
+  // published series ranked by enrolments; revenue = enrolments x price (free series earn 0)
+  const topSeries = useMemo(
+    () =>
+      seriesList
+        .filter((x) => x.status === SERIES_STATUS.PUBLISHED)
+        .map((x) => ({ id: x.id, name: x.name, enrollments: x.enrollment || 0, revenue: (x.enrollment || 0) * (x.price || 0), score: x.avgPerformance || 0 }))
+        .sort((a, b) => b.enrollments - a.enrollments)
+        .slice(0, 5),
+    [seriesList]
+  );
   const topRegions = useMemo(() => [...REGIONS].sort((a, b) => b.students - a.students).slice(0, 6), []);
   const regionTotal = useMemo(() => REGIONS.reduce((sum, r) => sum + r.students, 0), []);
 
@@ -225,7 +245,7 @@ export default function LoginDashboard() {
 
       {/* ---- stat row ---- */}
       <div className="ul-stats ul-stats--dash">
-        {dashboardStatCards.map((s) => {
+        {dashboardStatCards.filter((s) => !s.hidden).map((s) => {
           const Icon = STAT_ICONS[s.icon] || IconGraduationCap;
           return (
             <div className={`ul-stat-card ul-stat-card--dash ul-stat-card--${s.accent}`} key={s.key}>
@@ -245,7 +265,7 @@ export default function LoginDashboard() {
           <div className="ul-dash2-chart-head">
             <div>
               <div className="ul-card__head"><span className="ul-card__eyebrow">Platform Revenue</span></div>
-              <p className="ul-card__body-text">Total revenue generated across courses, test series and other products.</p>
+              <p className="ul-card__body-text">Revenue generated across all test series.</p>
             </div>
             <div className="ul-dash2-chart-summary">
               <span className="ul-dash2-net-value">{dashboardNetRevenue.value}</span>
@@ -281,43 +301,42 @@ export default function LoginDashboard() {
           </div>
 
           <div className="ul-card__group-head">
-            <span className="ul-card__group-label">COURSE APPROVALS</span>
-            <Link className="ul-card__see-all" to="/admin/courseapproval">See all</Link>
+            <span className="ul-card__group-label">TEST SERIES APPROVALS</span>
+            <Link className="ul-card__see-all" to="/admin/testseries/tracker">See all</Link>
           </div>
           <div className="ul-approval-list">
-            {pendingApprovals.courses.map((cItem) => (
-              <div className="ul-approval-row ul-approval-row--course" key={cItem.id}>
-                <div className="ul-approval-row__body">
-                  <span className="ul-approval-row__name">{cItem.title}</span>
-                  <span className="ul-approval-row__meta">by {cItem.author}</span>
+            {tsApprovals.length === 0 && <div className="ul-approval-row__meta">No test series awaiting educator work.</div>}
+            {tsApprovals.map((a) => {
+              const st = getDisplayStatus(a);
+              return (
+                <div className="ul-approval-row ul-approval-row--course" key={a.id}>
+                  <div className="ul-approval-row__body">
+                    <span className="ul-approval-row__name">{a.seriesName || a.testName}</span>
+                    <span className="ul-approval-row__meta">Educator: {a.educatorName || "Unassigned"}</span>
+                  </div>
+                  <span className={`ul-status-badge ${ASSIGNMENT_STATUS_BADGE_CLASS[st] || "is-pending"}`}>{ASSIGNMENT_STATUS_LABEL[st] || st}</span>
                 </div>
-                <div className="ul-approval-row__actions">
-                  <button className="ul-btn ul-btn--primary" type="button">Approve</button>
-                  <button className="ul-btn ul-btn--danger" type="button">Reject</button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* ---- courses + region + notepad ---- */}
       <div className="ul-dash2-row ul-dash2-row--triple">
-        <div className="ul-card">
+        <div className="ul-card ul-dash2-tscard">
           <div className="ul-card__head">
-            <span className="ul-card__eyebrow"><span className="ul-dash2-trophy" aria-hidden="true">🏆</span>Top Performing Courses</span>
-            <Link className="ul-card__see-all" to="/admin/financialanalytics">View all</Link>
+            <span className="ul-card__eyebrow"><span className="ul-dash2-trophy" aria-hidden="true">🏆</span>Top Performing Test Series</span>
+            <Link className="ul-card__see-all" to="/admin/testseries/performance-analytics">View all</Link>
           </div>
-          <div className="ul-edu-table-scroll">
+          <div className="ul-dash2-ts">
             <table className="ul-edu-table ul-dash2-courses-table">
-              <thead><tr><th>Course Name</th><th>Enrollments</th><th>Revenue</th><th>Growth</th></tr></thead>
+              <thead><tr><th>Test Series</th><th>Avg Score</th></tr></thead>
               <tbody>
-                {topCourses.map((c) => (
-                  <tr key={c.name}>
-                    <td><strong>{c.name}</strong></td>
-                    <td>{c.enrollments.toLocaleString("en-IN")}</td>
-                    <td>{money(c.revenue)}</td>
-                    <td><span className="ul-status-badge is-approved">↑ {c.performance}%</span></td>
+                {topSeries.map((c, i) => (
+                  <tr key={c.id}>
+                    <td><strong>{i < 4 ? "🏆 " : ""}{c.name}</strong></td>
+                    <td><span className="ul-status-badge is-approved">{c.score}%</span></td>
                   </tr>
                 ))}
               </tbody>

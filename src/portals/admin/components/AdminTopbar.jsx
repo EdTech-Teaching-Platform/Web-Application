@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUnreadNotificationCount } from "../data/notificationsMock";
+import { startRegionalHeadSync } from "../data/regionalHeadsMock";
 import NotificationsPanel from "./NotificationsPanel";
 import { IconSearch, IconBell, IconLock, IconMenu } from "./icons";
 import "./AdminChrome.css";
@@ -28,6 +29,11 @@ export default function AdminTopbar({ onMenuClick }) {
   const unreadCount = useUnreadNotificationCount();
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
+
+  // Regional Head invitations are answered on a separate page/tab; this
+  // keeps the admin chrome listening so an accepted/declined invitation
+  // shows up in the notification popup live, on any admin page.
+  useEffect(() => startRegionalHeadSync(), []);
 
   useEffect(() => {
     if (!notifOpen) return undefined;

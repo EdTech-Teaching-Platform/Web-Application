@@ -1,0 +1,349 @@
+/* Test Performance Analytics — page-specific styles.
+   Reuses .ul-edu-header/.ul-edu-toolbar/.ul-edu-table/.ul-edu-empty (EducatorVerification.css),
+   .ul-card/.ul-card__head/.ul-card__eyebrow (AdminDashboard.css), .ul-report-bars family (ReportsBuilder.css).
+   This file only adds what those don't already cover. */
+
+.ul-asg-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.ul-tpa-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.ul-tpa-filters select,
+.ul-tpa-date-field input {
+  background: #fff;
+  border: 1px solid #e4d9d2;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #1a1a1a;
+  min-width: 160px;
+}
+
+.ul-tpa-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ul-tpa-date-field label {
+  font-size: 12px;
+  color: #7a6a63;
+  font-weight: 600;
+}
+
+.ul-tpa-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1100px) {
+  .ul-tpa-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .ul-tpa-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ul-tpa-metric {
+  background: #fff;
+  border: 1px solid #efe3db;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.ul-tpa-metric__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fbeee7;
+  color: #a0442c;
+  flex-shrink: 0;
+}
+
+.ul-tpa-metric__label {
+  font-size: 12px;
+  color: #7a6a63;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.ul-tpa-metric__value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.ul-tpa-empty-note {
+  font-size: 13px;
+  color: #8a7a72;
+  background: #fbf6f2;
+  border: 1px dashed #e4d9d2;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+}
+
+.ul-tpa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1050px) {
+  .ul-tpa-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Chart sits beside the engagement table (half width); the wider test-wise
+   table drops to its own full-width row below. */
+.ul-tpa-chart-card {
+  order: 1;
+}
+.ul-tpa-wide {
+  grid-column: 1 / -1;
+  order: 3;
+}
+
+.ul-tpa-bars {
+  margin-top: 10px;
+}
+
+.ul-tpa-table-card {
+  min-width: 0;
+}
+
+.ul-tpa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ul-tpa-table th,
+.ul-tpa-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1e7e0;
+}
+
+.ul-tpa-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9a8a81;
+  font-weight: 600;
+}
+
+.ul-tpa-empty-card {
+  padding: 20px;
+}
+
+.ul-tpa-empty-card__text {
+  font-size: 13px;
+  color: #8a7a72;
+  line-height: 1.6;
+}
+
+/* Tables scroll horizontally inside their card instead of spilling out of it */
+.ul-tpa-table-card {
+  overflow: hidden;
+}
+.ul-tpa-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.ul-tpa-table {
+  min-width: 560px;
+}
+.ul-tpa-table td,
+.ul-tpa-table th {
+  white-space: nowrap;
+}
+
+/* Compact filters: selects keep a fixed width (long option text no longer
+   stretches them) and From/To always stay together on one line. */
+.ul-tpa-filters select {
+  width: 160px;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+.ul-tpa-dates {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.ul-tpa-date-field input {
+  min-width: 0;
+  width: 150px;
+}
+
+.ul-tpa-bars {
+  height: 220px;
+  gap: 10px;
+}
+.ul-tpa-bars .ul-report-bar-track {
+  height: 150px;
+  width: min(44px, 100%);
+}
+.ul-tpa-bars .ul-report-bar-group span:last-child {
+  text-align: center;
+}
+
+/* Compact metric tiles: fixed narrow width in one row instead of 4 stretched columns */
+.ul-tpa-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ul-tpa-metric {
+  flex: 0 1 190px;
+  min-width: 0;
+  padding: 10px 12px;
+  gap: 10px;
+  border-radius: 12px;
+}
+.ul-tpa-metric__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+.ul-tpa-metric__icon svg {
+  width: 15px;
+  height: 15px;
+}
+.ul-tpa-metric__label {
+  font-size: 11px;
+}
+.ul-tpa-metric__value {
+  font-size: 17px;
+}
+
+.ul-tpa-sample-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a0442c;
+  background: #fbeee7;
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+.ul-tpa-table-card .ul-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ul-tpa-table-card .ul-asg-progress-track { width: 70px; }
+.ul-tpa-table-card .ul-asg-progress span { font-size: 11px; font-weight: 700; }
+.ul-tpa-table td.ul-asg-ellipsis { white-space: nowrap; max-width: 320px; }
+.ul-asg-progress { display: flex; align-items: center; gap: 8px; }
+
+/* full names, wrapping instead of clipping */
+.ul-tpa-table.ul-tpa-full { min-width: 0; table-layout: auto; }
+.ul-tpa-table.ul-tpa-full td, .ul-tpa-table.ul-tpa-full th { white-space: normal; overflow: visible; text-overflow: clip; max-width: none; vertical-align: top; }
+.ul-tpa-table.ul-tpa-full th { white-space: nowrap; }
+
+/* Subject-wise chart: compact card, shorter bars, no stretching to the neighbour's height */
+.ul-tpa-chart-card { align-self: start; padding-bottom: 14px; }
+.ul-tpa-chart-card .ul-tpa-bars { height: auto; margin-top: 4px; padding: 6px 8px 0; gap: 12px; }
+.ul-tpa-chart-card .ul-tpa-bars .ul-report-bar-track { height: 100px; width: min(36px, 100%); }
+.ul-tpa-chart-card .ul-report-bar-value { font-size: 10px; margin-bottom: 3px; }
+.ul-tpa-chart-card .ul-report-bar-group span { font-size: 10.5px; margin-top: 5px; }
+
+/* Make the subject bars sit close together instead of spreading across the card */
+.ul-tpa-chart-card .ul-tpa-bars { justify-content: flex-start; gap: 6px; }
+.ul-tpa-chart-card .ul-tpa-bars .ul-report-bar-group { flex: 0 0 auto; min-width: 56px; }
+
+/* Right column: chart + leaderboard stacked */
+.ul-tpa-col { order: 1; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.ul-tpa-lb { padding-bottom: 14px; }
+.ul-tpa-lb__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ul-tpa-lb__select { margin: 8px 0 10px; max-width: 100%; }
+.ul-tpa-lb__top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.ul-tpa-lb__podium { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; border-radius: 12px; background: var(--color-bg-secondary); min-width: 0; }
+.ul-tpa-lb__podium.is-1 { background: #f2c94c33; }
+.ul-tpa-lb__medal { font-size: 11px; font-weight: 800; color: var(--color-primary); }
+.ul-tpa-lb__pname { font-size: 12px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ul-tpa-lb__pscore { font-size: 12px; color: var(--color-text-secondary); }
+.ul-tpa-lb__skeleton { display: flex; flex-direction: column; gap: 8px; padding: 6px 0; }
+.ul-tpa-lb__skrow { height: 26px; border-radius: 8px; background: var(--color-bg-secondary); animation: ul-tpa-pulse 1s ease-out infinite alternate; }
+@keyframes ul-tpa-pulse { from { opacity: 0.45; } to { opacity: 1; } }
+.ul-tpa-lb__empty { margin-top: 6px; }
+.ul-tpa-lb__note { margin: 8px 0 0; font-size: 11px; color: var(--color-text-muted); }
+
+/* Leaderboard dropdown: size to its text with the arrow right beside it */
+.ul-tpa-lb__select {
+  -webkit-appearance: none;
+  appearance: none;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  padding: 7px 28px 7px 12px;
+  font-size: 13px;
+  color: #1a1a1a;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231a1a1a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid #e4d9d2;
+  border-radius: 10px;
+  text-overflow: ellipsis;
+}
+.ul-tpa-lb__select { width: 140px; padding: 6px 24px 6px 10px; font-size: 12.5px; background-position: right 8px center; }
+
+/* Left column = chart + engagement; right = leaderboard (stretches to match) */
+.ul-tpa-col { order: 1; }
+.ul-tpa-lb { order: 2; align-self: stretch; display: flex; flex-direction: column; }
+.ul-tpa-lb .ul-tpa-scroll { flex: 1; }
+.ul-tpa-col .ul-tpa-table-card { order: 0; }
+.ul-tpa-col .ul-tpa-chart-card { order: 0; align-self: stretch; }
+.ul-tpa-col .ul-tpa-table-card { order: 1; }
+
+/* Line chart */
+.ul-tpa-line { padding: 4px 4px 0; }
+.ul-tpa-line svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ul-tpa-line__grid { stroke: #eadfd8; stroke-width: 1; stroke-dasharray: 3 4; }
+.ul-tpa-line__tick { font-size: 10px; fill: var(--color-text-muted); }
+.ul-tpa-line__path { fill: none; stroke: var(--color-primary); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.ul-tpa-line__guide { stroke: var(--color-primary); stroke-opacity: 0.25; stroke-width: 1; }
+.ul-tpa-line__dot { fill: #fff; stroke: var(--color-primary); stroke-width: 2.5; transition: r 0.15s ease-out; }
+.ul-tpa-line__val { font-size: 10.5px; fill: var(--color-text-secondary); font-weight: 600; }
+.ul-tpa-line__val.is-active { fill: var(--color-primary); font-weight: 800; }
+.ul-tpa-line__label { font-size: 10.5px; fill: var(--color-text-muted); }
+.ul-tpa-line__tip { margin-top: 4px; font-size: 11.5px; color: var(--color-text-secondary); text-align: center; min-height: 16px; }
+
+/* Leaderboard fills its card: rows share the available height, note sits at the bottom */
+.ul-tpa-lb .ul-tpa-scroll { display: flex; flex-direction: column; }
+.ul-tpa-lb .ul-tpa-scroll table { flex: 1; height: 100%; }
+.ul-tpa-lb .ul-tpa-lb__podium { padding: 14px 6px; }
+.ul-tpa-lb .ul-tpa-lb__note { margin-top: auto; padding-top: 8px; }
+
+/* Highlighted card headings (text only) */
+.ul-tpa-grid .ul-card__eyebrow {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-primary);
+}

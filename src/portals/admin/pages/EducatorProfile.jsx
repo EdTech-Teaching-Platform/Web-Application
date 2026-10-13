@@ -42,12 +42,28 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "personal", label: "Personal & Professional" },
   { key: "students", label: "Students" },
-  { key: "performance", label: "Performance" },
+  { key: "performance", label: "Performance", hidden: true }, // hidden for now — remove `hidden: true` to show
   { key: "communication", label: "Communication" },
   { key: "documents", label: "Documents" },
   { key: "account", label: "Account & Access" },
   { key: "payments", label: "Payments" },
 ];
+
+const SHOW_CONTACT_BUTTON = false; // header "Contact" button hidden for now — set true to show
+
+// Display-only: the student table shows test series names in place of course titles.
+const SERIES_NAMES = [
+  "JEE Main Physics Test Series 2026",
+  "Class 10 Mathematics Weekly Series",
+  "NEET Biology Crash Course Series",
+  "Banking & SSC Reasoning Practice Series",
+  "English Proficiency Test Series",
+];
+function seriesForCourse(title) {
+  let h = 0;
+  for (const ch of String(title || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return SERIES_NAMES[h % SERIES_NAMES.length];
+}
 
 function AccountBadge({ status }) {
   return <span className={`ul-status-badge is-account-${status}`}>{ACCOUNT_LABEL[status]}</span>;
@@ -107,7 +123,7 @@ export default function EducatorProfile() {
   const location = useLocation();
   const educator = useEducator(educatorId);
 
-  const initialTab = location.state?.tab && TABS.some((t) => t.key === location.state.tab) ? location.state.tab : "overview";
+  const initialTab = location.state?.tab && TABS.some((t) => !t.hidden && t.key === location.state.tab) ? location.state.tab : "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
   const [confirmAction, setConfirmAction] = useState(null); // { type, payload }
   const [reasonText, setReasonText] = useState("");
@@ -128,7 +144,7 @@ export default function EducatorProfile() {
     if (!educator) return [];
     const q = studentSearch.trim().toLowerCase();
     return educator.students.filter((s) => {
-      if (q && !`${s.name} ${s.email} ${s.course}`.toLowerCase().includes(q)) return false;
+      if (q && !`${s.name} ${s.email} ${seriesForCourse(s.course)}`.toLowerCase().includes(q)) return false;
       if (studentStatusFilter !== "all" && s.status !== studentStatusFilter) return false;
       return true;
     });
@@ -230,14 +246,16 @@ export default function EducatorProfile() {
           {educator.accountStatus !== "suspended" && (
             <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "suspend" })}>Suspend</button>
           )}
-          <button type="button" className="ul-btn ul-btn--primary" onClick={() => { setActiveTab("communication"); setMessageOpen(true); }}>
-            <IconSend size={13} /> Contact
-          </button>
+          {SHOW_CONTACT_BUTTON && (
+            <button type="button" className="ul-btn ul-btn--primary" onClick={() => { setActiveTab("communication"); setMessageOpen(true); }}>
+              <IconSend size={13} /> Contact
+            </button>
+          )}
         </div>
       </div>
 
       <div className="ul-edp-tabs" role="tablist">
-        {TABS.map((t) => (
+        {TABS.filter((t) => !t.hidden).map((t) => (
           <button
             key={t.key}
             type="button"
@@ -261,6 +279,16 @@ export default function EducatorProfile() {
                 <StatBlock label="Avg. rating" value={educator.rating > 0 ? educator.rating.toFixed(1) : "—"} />
                 <StatBlock label="Completion rate" value={p.avgCompletionRate ? `${p.avgCompletionRate}%` : "—"} />
               </div>
+              {educator.courses.length > 0 && (
+                <div className="ul-edp-course-names">
+                  <span className="ul-edp-course-names__label">Teaching</span>
+                  <div className="ul-edp-course-names__chips">
+                    {educator.courses.map((c) => (
+                      <span className="ul-edp-course-names__chip" key={c.id}>{c.title}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Section>
 
             <Section title="Professional summary">
@@ -363,7 +391,7 @@ export default function EducatorProfile() {
           <div className="ul-edu-toolbar">
             <label className="ul-edu-search">
               <IconSearch size={14} color="var(--color-text-muted)" />
-              <input type="text" placeholder="Search students by name, email or course…" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
+              <input type="text" placeholder="Search students by name, email or test series…" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
             </label>
             <select className="ul-edu-select" value={studentStatusFilter} onChange={(e) => setStudentStatusFilter(e.target.value)}>
               <option value="all">Status: All</option>
@@ -381,7 +409,7 @@ export default function EducatorProfile() {
                 <table className="ul-edu-table">
                   <thead>
                     <tr>
-                      <th>Student</th><th>Course</th><th>Enrolled</th><th>Progress</th><th>Last active</th><th>Status</th>
+                      <th>Student</th><th>Test Series Enrolled</th><th>Enrolled</th><th>Progress</th><th>Last active</th><th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -396,7 +424,7 @@ export default function EducatorProfile() {
                             </div>
                           </div>
                         </td>
-                        <td>{s.course}</td>
+                        <td>{seriesForCourse(s.course)}</td>
                         <td>{s.enrolledDate}</td>
                         <td>
                           <div className="ul-edp-progress">
@@ -541,7 +569,7 @@ export default function EducatorProfile() {
       )}
 
       {activeTab === "account" && (
-        <div className="ul-edp-grid">
+        <div className="ul-edp-grid ul-edp-grid--narrow">
           <div className="ul-edp-col">
             <Section title="Account & access">
               <div className="ul-edp-review">

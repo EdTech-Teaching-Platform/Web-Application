@@ -1,4 +1,5 @@
 import apiClient from "../../services/apiClient";
+import { verifyEducatorCredentials } from "../../portals/teacher/data/educatorAccountStore";
 
 // Auth API layer, built on the shared apiClient — proposed per the build
 // spec (Section 6, open question 3): the LMS doc is functional, not the
@@ -38,6 +39,11 @@ export async function register(payload) {
 export async function login(payload) {
   if (DEMO_MODE) {
     await demoDelay();
+    if (payload.role === "teacher") {
+      const educator = verifyEducatorCredentials(payload.identifier, payload.password);
+      if (!educator) throw new Error("invalid_credentials");
+      return { data: { ok: true, role: "teacher", name: educator.profile.fullName } };
+    }
     const id = payload.identifier.toLowerCase();
     const role = id.includes("superadmin") ? "super_admin" : id.includes("admin") ? "admin" : "student";
     return { data: { ok: true, role } };

@@ -29,6 +29,7 @@ import {
 } from "../data/testSeriesMock";
 import { IconClose, IconPlus, IconEdit, IconChevronLeft, IconEye } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
+import QuestionImageField from "../components/QuestionImageField";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./SettingsPermissions.css";
@@ -38,11 +39,11 @@ import "./TestSeriesDetail.css";
 import "./TestDetail.css";
 
 const EMPTY_OBJECTIVE = {
-  text: "", optionA: "", optionB: "", optionC: "", optionD: "", correctAnswer: "A",
+  text: "", image: "", optionA: "", optionB: "", optionC: "", optionD: "", correctAnswer: "A",
   marks: 4, negativeMarks: 1, difficulty: DIFFICULTY.MEDIUM, subject: "", explanation: "",
 };
 const EMPTY_SUBJECTIVE = {
-  text: "", answerInstructions: "", marks: 5, difficulty: DIFFICULTY.MEDIUM, subject: "", rubric: "",
+  text: "", image: "", answerInstructions: "", marks: 5, difficulty: DIFFICULTY.MEDIUM, subject: "", rubric: "",
 };
 
 export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp, onBack, onSeriesPublished } = {}) {
@@ -104,8 +105,8 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
     setEditingQuestionId(q.id);
     setFormErrors([]);
     setForm(q.type === QUESTION_TYPE.OBJECTIVE
-      ? { text: q.text, optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD, correctAnswer: q.correctAnswer, marks: q.marks, negativeMarks: q.negativeMarks, difficulty: q.difficulty, subject: q.subject, explanation: q.explanation || "" }
-      : { text: q.text, answerInstructions: q.answerInstructions, marks: q.marks, difficulty: q.difficulty, subject: q.subject, rubric: q.rubric || "" });
+      ? { text: q.text, image: q.image || "", optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD, correctAnswer: q.correctAnswer, marks: q.marks, negativeMarks: q.negativeMarks, difficulty: q.difficulty, subject: q.subject, explanation: q.explanation || "" }
+      : { text: q.text, image: q.image || "", answerInstructions: q.answerInstructions, marks: q.marks, difficulty: q.difficulty, subject: q.subject, rubric: q.rubric || "" });
     setBuilderStep("form");
     setBuilderOpen(true);
   };
@@ -315,6 +316,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                     <label>Question</label>
                     <textarea value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} placeholder="Type the question here…" />
                   </div>
+                  <QuestionImageField value={form.image} onChange={(image) => setForm({ ...form, image })} />
 
                   {questionType === QUESTION_TYPE.OBJECTIVE ? (
                     <>
@@ -435,6 +437,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                   {test.questions.map((q, i) => (
                     <div className="ul-td-preview-item" key={q.id}>
                       <strong>Q{i + 1}. {q.text}</strong>
+                      {q.image && <img className="ul-qimg-view" src={q.image} alt={`Question ${i + 1} attachment`} />}
                       {q.type === QUESTION_TYPE.OBJECTIVE ? (
                         <ul className="ul-td-preview-options">
                           <li className={q.correctAnswer === "A" ? "is-correct" : ""}>A. {q.optionA}</li>

@@ -86,6 +86,44 @@ function pickFrom(pool, i) {
   return pool[((i % pool.length) + pool.length) % pool.length];
 }
 
+// ---------- gateway reference + status history (derived, deterministic) ----------
+const GATEWAY_BY_METHOD = {
+  "UPI": "Razorpay",
+  "Bank Transfer": "RazorpayX",
+  "PayPal": "PayPal",
+  "Wire Transfer": "SWIFT Wire Transfer",
+};
+function hashStr(str) {
+  let h = 0;
+  const s = String(str);
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+function buildGatewayRef(id, method) {
+  const gatewayName = GATEWAY_BY_METHOD[method] || "Razorpay";
+  const token = hashStr(`${id}-${method}`).toString(36);
+  return { gatewayName, gatewayRef: `pay_${token}`.toUpperCase() };
+}
+// A believable initiated -> processing -> final-status timeline, built off
+// the transaction's own date so it stays consistent across reloads.
+function buildStatusHistory(status, dateStr) {
+  const base = Date.parse(dateStr) || Date.now();
+  const at = (minutes) => new Date(base + minutes * 60000).toISOString();
+  const seq = [{ status: "initiated", at: at(0) }];
+  if (status === TRANSACTION_STATUS.FAILED) {
+    seq.push({ status: "processing", at: at(2) });
+    seq.push({ status: TRANSACTION_STATUS.FAILED, at: at(5) });
+  } else if (status === TRANSACTION_STATUS.PENDING) {
+    seq.push({ status: TRANSACTION_STATUS.PENDING, at: at(2) });
+  } else if (status === TRANSACTION_STATUS.PROCESSING) {
+    seq.push({ status: TRANSACTION_STATUS.PROCESSING, at: at(2) });
+  } else {
+    seq.push({ status: TRANSACTION_STATUS.PROCESSING, at: at(2) });
+    seq.push({ status: TRANSACTION_STATUS.PAID, at: at(7) });
+  }
+  return seq;
+}
+
 function nowISO() {
   return new Date().toISOString();
 }
@@ -102,6 +140,7 @@ function buildTransactions() {
     history.forEach((h, i) => {
       const course = e.courses && e.courses.length ? e.courses[i % e.courses.length] : null;
       const student = e.students && e.students.length ? e.students[i % e.students.length] : null;
+      const { gatewayName, gatewayRef } = buildGatewayRef(h.id, h.method);
       rows.push({
         id: h.id,
         educatorId: e.id,
@@ -109,6 +148,8 @@ function buildTransactions() {
         educatorInitials: e.initials,
         educatorAvatarColor: e.avatarColor,
         courseTitle: (course && course.title) || "General",
+        // shown in Transaction History instead of the course (course title kept above)
+        seriesTitle: pickFrom(TEST_SERIES_NAME_POOL, rows.length),
         studentName: (student && student.name) || "—",
         date: h.date,
         amount: h.amount,
@@ -117,6 +158,9 @@ function buildTransactions() {
         net: h.net,
         status: h.status,
         method: h.method,
+        gatewayName,
+        gatewayRef,
+        statusHistory: buildStatusHistory(h.status, h.date),
       });
     });
   });
@@ -212,7 +256,12 @@ let refundRequests = buildRefundSeed();
 // transaction reads REFUNDED, not still PAID).
 transactions = transactions.map((t) => {
   const approved = refundRequests.find((r) => r.transactionId === t.id && r.status === REFUND_STATUS.APPROVED);
-  return approved ? { ...t, status: TRANSACTION_STATUS.REFUNDED } : t;
+  if (!approved) return t;
+  return {
+    ...t,
+    status: TRANSACTION_STATUS.REFUNDED,
+    statusHistory: [...(t.statusHistory || []), { status: TRANSACTION_STATUS.REFUNDED, at: approved.decidedAt || nowISO() }],
+  };
 });
 
 const listeners = new Set();
@@ -277,7 +326,11 @@ export function approveRefund(requestId, performedBy, note) {
       ? { ...r, status: REFUND_STATUS.APPROVED, decidedBy: performedBy || "Admin", decidedAt: nowISO(), decisionNote: note || "" }
       : r
   );
-  transactions = transactions.map((t) => (t.id === req.transactionId ? { ...t, status: TRANSACTION_STATUS.REFUNDED } : t));
+  transactions = transactions.map((t) =>
+    t.id === req.transactionId
+      ? { ...t, status: TRANSACTION_STATUS.REFUNDED, statusHistory: [...(t.statusHistory || []), { status: TRANSACTION_STATUS.REFUNDED, at: nowISO() }] }
+      : t
+  );
   emit();
   return { success: true };
 }
@@ -316,6 +369,60 @@ export function getMethodBreakdown(txns) {
     map.set(t.method, (map.get(t.method) || 0) + t.amount);
   });
   return Array.from(map.entries()).map(([method, amount]) => ({ method, amount }));
+}
+
+// ---------- Transaction History analytics (success rate, failed/pending
+// counts, average value, revenue trend) — computed over whatever list is
+// passed in; callers decide if that's the full ledger or a filtered view. ----------
+export function getTransactionAnalytics(txns) {
+  const list = txns || transactions;
+  const total = list.length;
+  const paidList = list.filter((t) => t.status === TRANSACTION_STATUS.PAID);
+  const failedCount = list.filter((t) => t.status === TRANSACTION_STATUS.FAILED).length;
+  const pendingCount = list.filter((t) => t.status === TRANSACTION_STATUS.PENDING || t.status === TRANSACTION_STATUS.PROCESSING).length;
+  const processingCount = list.filter((t) => t.status === TRANSACTION_STATUS.PROCESSING).length;
+  const refundedCount = list.filter((t) => t.status === TRANSACTION_STATUS.REFUNDED).length;
+  const successRate = total ? Math.round((paidList.length / total) * 1000) / 10 : 0;
+  const totalRevenue = paidList.reduce((s, t) => s + t.amount, 0);
+  const avgTransactionValue = paidList.length ? Math.round(totalRevenue / paidList.length) : 0;
+  return { total, paidCount: paidList.length, failedCount, pendingCount, processingCount, refundedCount, successRate, avgTransactionValue, totalRevenue };
+}
+
+// The most-used payment method among paid transactions, with its share of
+// the paid total — e.g. { method: "UPI", count: 42, percent: 38 }. Returns
+// null when there's nothing paid yet to tally.
+export function getTopPaymentMethod(txns) {
+  const list = (txns || transactions).filter((t) => t.status === TRANSACTION_STATUS.PAID);
+  if (!list.length) return null;
+  const counts = new Map();
+  list.forEach((t) => counts.set(t.method, (counts.get(t.method) || 0) + 1));
+  let topMethod = null;
+  let topCount = 0;
+  counts.forEach((count, method) => {
+    if (count > topCount) {
+      topCount = count;
+      topMethod = method;
+    }
+  });
+  return { method: topMethod, count: topCount, percent: Math.round((topCount / list.length) * 100) };
+}
+
+// Daily revenue (paid transactions only) for the last N days, oldest first —
+// zero-filled so every day in the window has a bucket even with no activity.
+export function getRevenueTrend(txns, days = 14) {
+  const list = (txns || transactions).filter((t) => t.status === TRANSACTION_STATUS.PAID);
+  const buckets = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000);
+    buckets.push({ date: d.toISOString().slice(0, 10), amount: 0 });
+  }
+  const byDate = new Map(buckets.map((b) => [b.date, b]));
+  list.forEach((t) => {
+    const bucket = byDate.get(String(t.date || "").slice(0, 10));
+    if (bucket) bucket.amount += t.amount;
+  });
+  return buckets;
 }
 
 // Educators ranked by commission generated (for the Commission Tracking card).

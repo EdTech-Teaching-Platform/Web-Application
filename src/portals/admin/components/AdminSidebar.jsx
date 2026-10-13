@@ -19,6 +19,7 @@ import {
   IconGraduationCap,
   IconBook,
   IconLayers,
+  IconPercent,
 } from "./icons";
 import ConfirmModal from "./ConfirmModal";
 import "./AdminChrome.css";
@@ -33,12 +34,22 @@ const NAV_SECTIONS = [
     items: [{ to: "/admin/logindashboard", label: "Dashboard", icon: IconDashboard, end: true }],
   },
   {
+    heading: "Test Series",
+    items: [
+      { to: "/admin/testseries", label: "Create Test Series", icon: IconBook, end: true },
+      { to: "/admin/testseries/assign-educators", label: "Assign Educators", icon: IconTeach },
+      { to: "/admin/testseries/tracker", label: "Test Series Tracker", icon: IconLayers },
+      { to: "/admin/testseries/performance-analytics", label: "Test Performance Analytics", icon: IconChart },
+    ],
+  },
+  {
     heading: "Management",
     items: [
-      { to: "/admin/testseries", label: "Test Series", icon: IconBook },
       { to: "/admin/usermanagement", label: "Student Management", icon: IconUsers },
       { to: "/admin/educatorverification", label: "Educator Management", icon: IconTeach },
-      { to: "/admin/courseapproval", label: "Course Management", icon: IconCourse },
+      { to: "/admin/regionalheads", label: "Manage Regional Heads", icon: IconGlobe, hidden: true },
+      { to: "/admin/courseapproval", label: "Course Management", icon: IconCourse, hidden: true },
+      { to: "/admin/discounts", label: "Discount Management", icon: IconPercent },
     ],
   },
   {
@@ -132,7 +143,7 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
           {NAV_SECTIONS.map((section) => (
             <div key={section.heading} className="ul-sidebar__section">
               <span className="ul-sidebar__heading">{section.heading}</span>
-              {section.items.map((item) => (
+              {section.items.filter((item) => !item.hidden).map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}

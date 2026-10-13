@@ -95,6 +95,8 @@ function TrendChart({ points }) {
   );
 }
 
+const SHOW_TOP_COURSES = false; // Top Performing Courses hidden for now — set true to show again
+
 export default function FinancialAnalytics() {
   const transactions = financialAnalyticsTransactions;
   const [range, setRange] = useState("30");
@@ -136,7 +138,7 @@ export default function FinancialAnalytics() {
         </section>
       </div>
 
-      <section className="ul-card ul-fin-top-courses"><div className="ul-card__head"><span className="ul-card__eyebrow"><IconChart size={14} /> Best sellers</span><h3>Top Performing Courses</h3></div><div className="ul-edu-table-scroll"><table className="ul-edu-table ul-fin-top-courses-table"><thead><tr><th>Course</th><th>Category</th><th>Enrollments</th><th>Revenue</th><th>Performance</th></tr></thead><tbody>{TOP_PERFORMING_COURSES.map((course, index) => <tr key={course.name}><td><span className="ul-fin-course-rank">{index + 1}</span><strong>{course.name}</strong></td><td><span className="ul-fin-course-category">{course.category}</span></td><td>{course.enrollments.toLocaleString("en-IN")}</td><td className="ul-fin-course-revenue">{money(course.revenue)}</td><td><div className="ul-fin-course-perf"><div className="ul-progress-track ul-fin-course-perf-track"><div className="ul-progress-fill" style={{ width: `${course.performance}%` }} /></div><span>{course.performance}%</span></div></td></tr>)}</tbody></table></div></section>
+      {SHOW_TOP_COURSES && <section className="ul-card ul-fin-top-courses"><div className="ul-card__head"><span className="ul-card__eyebrow"><IconChart size={14} /> Best sellers</span><h3>Top Performing Courses</h3></div><div className="ul-edu-table-scroll"><table className="ul-edu-table ul-fin-top-courses-table"><thead><tr><th>Course</th><th>Category</th><th>Enrollments</th><th>Revenue</th><th>Performance</th></tr></thead><tbody>{TOP_PERFORMING_COURSES.map((course, index) => <tr key={course.name}><td><span className="ul-fin-course-rank">{index + 1}</span><strong>{course.name}</strong></td><td><span className="ul-fin-course-category">{course.category}</span></td><td>{course.enrollments.toLocaleString("en-IN")}</td><td className="ul-fin-course-revenue">{money(course.revenue)}</td><td><div className="ul-fin-course-perf"><div className="ul-progress-track ul-fin-course-perf-track"><div className="ul-progress-fill" style={{ width: `${course.performance}%` }} /></div><span>{course.performance}%</span></div></td></tr>)}</tbody></table></div></section>}
     </div>
   );
 }

@@ -5,17 +5,24 @@ import PublicLayout from "../layouts/PublicLayout";
 import StudentLayout from "../layouts/StudentLayout";
 import TeacherLayout from "../layouts/TeacherLayout";
 import AdminLayout from "../layouts/AdminLayout";
+import RegionalHeadLayout from "../layouts/RegionalHeadLayout";
 import NotFound from "../components/common/NotFound";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 import ScrollToTop from "../components/common/ScrollToTop";
 
 
+
 import authRoutes from "../auth/routes";
 import publicRoutes from "../public/routes";
 import studentRoutes, { studentOnboardingRoutes } from "../portals/student/routes";
-import teacherRoutes from "../portals/teacher/routes";
+import teacherRoutes, { teacherRegistrationRoutes } from "../portals/teacher/routes";
 import adminRoutes from "../portals/admin/routes";
+import regionalHeadRoutes from "../portals/regionalhead/routes";
+import RegionalHeadLogin from "../portals/regionalhead/pages/RegionalHeadLogin";
 import AdminLogin from "../portals/admin/pages/AdminLogin";
+import RegionalHeadInvite from "../portals/admin/pages/RegionalHeadInvite";
+
+import { SessionRequestsProvider } from "../portals/teacher/context/SessionRequestsContext";
 
 // This is the ONLY file that wires all three portals together.
 // Each portal owner should only need to touch their own routes.jsx —
@@ -40,6 +47,7 @@ export default function AppRoutes() {
         {/* Onboarding is mounted as its own sibling, deliberately OUTSIDE
             StudentLayout, so it renders full-bleed with no sidebar/top-nav. */}
         {studentOnboardingRoutes}
+        {teacherRegistrationRoutes}
 
         <Route element={<ProtectedRoute role="student" />}>
           <Route path="/student" element={<StudentLayout />}>
@@ -47,8 +55,10 @@ export default function AppRoutes() {
           </Route>
         </Route>
 
-        <Route path="/teacher" element={<TeacherLayout />}>
-          {teacherRoutes}
+        <Route element={<SessionRequestsProvider />}>
+          <Route path="/teacher" element={<TeacherLayout />}>
+            {teacherRoutes}
+          </Route>
         </Route>
 
         <Route path="/admin" element={<AdminLayout />}>

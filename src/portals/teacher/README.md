@@ -16,12 +16,15 @@ unless it's the portal you own — shared UI belongs in `src/components`.
 
 ## Screens (from Jira sprint import)
 
-- **Day 1** — Educator registration & verification  
+- **Day 1 + Day 2 (merged)** — Unified educator registration (account + profile + verification docs, one upfront flow)  
   Doc ref: Sec 5.1  
-  File: `src/portals/teacher/pages/Registration.jsx`
-- **Day 2** — Profile setup + digital ID card  
+  File: `src/portals/teacher/pages/Registration.jsx` (field lists/options in `data/educatorRegistrationData.js`)  
+  Educators log in immediately after registering; the portal shell shows with content locked until an admin approves
+  (`status` on the educator record in `data/educatorAccountStore.js`: pending / approved / changes_requested / rejected;
+  lock + banner applied once in `src/layouts/TeacherLayout.jsx`, admin review in `admin/pages/EducatorVerification.jsx`).
+- **Digital ID Card** (formerly "Profile setup")  
   Doc ref: Sec 5.1  
-  File: `src/portals/teacher/pages/ProfileSetup.jsx`
+  File: `src/portals/teacher/pages/ProfileSetup.jsx` — provisional "Pending Verification" card until approved, then Verified
 - **Day 3** — Educator dashboard (home)  
   Doc ref: Sec 15  
   File: `src/portals/teacher/pages/Dashboard.jsx`
@@ -43,12 +46,9 @@ unless it's the portal you own — shared UI belongs in `src/components`.
 - **Day 9** — Scheduled call booking + reschedule/cancel  
   Doc ref: Sec 5.6  
   File: `src/portals/teacher/pages/BookingManage.jsx`
-- **Day 10** — Schedule/host live class + whiteboard  
+- **Day 10-11** — Schedule live class (video calling and recording are handled by an external meeting provider; Join opens the meeting link)  
   Doc ref: Sec 5.7  
-  File: `src/portals/teacher/pages/LiveClassHost.jsx`
-- **Day 11** — In-class tools: chat, hand-raise, polls  
-  Doc ref: Sec 5.7  
-  File: `src/portals/teacher/pages/LiveClassTools.jsx`
+  File: `src/portals/teacher/pages/LiveClasses.jsx`
 - **Day 12** — Grading UI + homework/marksheet upload  
   Doc ref: Sec 5.8  
   File: `src/portals/teacher/pages/Grading.jsx`

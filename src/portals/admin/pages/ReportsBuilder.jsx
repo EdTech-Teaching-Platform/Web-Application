@@ -123,7 +123,7 @@ export default function ReportsBuilder() {
 
       <section className="ul-card ul-report-builder"><div className="ul-card__head"><span className="ul-card__eyebrow"><IconReport size={14} /> Custom report builder</span><h3>Configure your report</h3></div>
         <div className="ul-report-controls">
-          <label>Report type<select value={reportType} onChange={(event) => handleReportTypeChange(event.target.value)}>{REPORT_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          <label>Report type<select value={reportType} onChange={(event) => handleReportTypeChange(event.target.value)}>{REPORT_TYPE_OPTIONS.filter((option) => !option.hidden).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           <label>Date range<select value={range} onChange={(event) => setRange(event.target.value)}>{RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           {FIELD_DEFS.filter((field) => visibleFieldKeys.includes(field.key)).map((field) => (
             <label key={field.key}>

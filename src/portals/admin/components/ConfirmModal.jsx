@@ -25,12 +25,13 @@ export default function ConfirmModal({
   onCancel,
   children,
   confirmDisabled = false,
+  compact = false, // smaller icon/padding for light-weight confirmations
 }) {
   if (!open) return null;
 
   return (
     <div className="ul-confirm-backdrop" onClick={onCancel}>
-      <div className="ul-confirm-modal" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true">
+      <div className={`ul-confirm-modal${compact ? " is-compact" : ""}`} onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true">
         <div className="ul-confirm-modal__header">
           <span className={`ul-confirm-modal__icon${tone === "danger" ? " is-danger" : ""}`}>
             <IconAlert size={16} color={tone === "danger" ? "#b3261e" : "var(--color-warning-accent)"} />

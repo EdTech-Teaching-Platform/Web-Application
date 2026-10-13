@@ -1,6 +1,8 @@
 // Small inline icon set for auth screens — no icon library dependency.
 // Keep additions here generic (usable by any portal), not auth-specific.
 
+export * from "./icons copy";
+
 export function EyeIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...props}>

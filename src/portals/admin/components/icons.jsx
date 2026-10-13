@@ -184,6 +184,7 @@ export const IconLock = (p) =>
     p
   );
 
+export const IconPercent = (p) => base(<><path d="M19 5 5 19" /><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" /></>, p);
 export const IconCheck = (p) => base(<path d="M20 6 9 17l-5-5" />, p);
 
 export const IconAlert = (p) =>
@@ -374,6 +375,15 @@ export const IconSun = (p) =>
     <>
       <circle cx="12" cy="12" r="4.2" />
       <path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7" />
+    </>,
+    p
+  );
+
+export const IconSparkle = (p) =>
+  base(
+    <>
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
+      <path d="M12 7l1.8 3.2L17 12l-3.2 1.8L12 17l-1.8-3.2L7 12l3.2-1.8L12 7Z" />
     </>,
     p
   );

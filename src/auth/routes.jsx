@@ -22,6 +22,7 @@ import Privacy from "./pages/legal/Privacy";
 const authRoutes = (
   <>
     <Route path="/login" element={<Login />} />
+    <Route path="/teacher/login" element={<Login role="teacher" />} />
     <Route path="/register" element={<Register />} />
     <Route path="/verify-otp" element={<OtpVerification />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />

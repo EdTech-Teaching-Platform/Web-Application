@@ -44,6 +44,8 @@ const EMPTY_TEST_FORM = {
   passingMarks: "",
   attemptLimit: "",
   scheduledAt: "",
+  shuffleQuestions: false,
+  shuffleOptions: false,
 };
 
 export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onManageQuestions } = {}) {
@@ -105,6 +107,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
       name: t.name, instructions: t.instructions, duration: String(t.duration || ""),
       totalMarks: String(t.totalMarks || ""), passingMarks: String(t.passingMarks || ""),
       attemptLimit: String(t.attemptLimit || ""), scheduledAt: t.scheduledAt || "",
+      shuffleQuestions: !!t.shuffleQuestions, shuffleOptions: !!t.shuffleOptions,
     });
     setEditingId(t.id);
     setFormErrors([]);
@@ -124,6 +127,8 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     passingMarks: Number(form.passingMarks) || 0,
     attemptLimit: Number(form.attemptLimit) || 1,
     scheduledAt: form.scheduledAt,
+    shuffleQuestions: !!form.shuffleQuestions,
+    shuffleOptions: !!form.shuffleOptions,
   });
 
   const saveAsDraft = () => {
@@ -339,6 +344,23 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                   <label>Scheduled Date &amp; Time</label>
                   <input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} />
                 </div>
+
+                <div className="ul-ts-form-grid-2">
+                  <div className="ul-ts-form-row">
+                    <label>Shuffle Questions</label>
+                    <div className="ul-ts-pill-toggle">
+                      <button type="button" className={!form.shuffleQuestions ? "is-active" : ""} onClick={() => setForm({ ...form, shuffleQuestions: false })}>Off</button>
+                      <button type="button" className={form.shuffleQuestions ? "is-active" : ""} onClick={() => setForm({ ...form, shuffleQuestions: true })}>On</button>
+                    </div>
+                  </div>
+                  <div className="ul-ts-form-row">
+                    <label>Shuffle Options</label>
+                    <div className="ul-ts-pill-toggle">
+                      <button type="button" className={!form.shuffleOptions ? "is-active" : ""} onClick={() => setForm({ ...form, shuffleOptions: false })}>Off</button>
+                      <button type="button" className={form.shuffleOptions ? "is-active" : ""} onClick={() => setForm({ ...form, shuffleOptions: true })}>On</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="ul-set-drawer__actions ul-ts-drawer-actions">
@@ -376,6 +398,8 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Passing Marks</p><p className="ul-set-kv__value">{viewTarget.passingMarks}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Attempt Limit</p><p className="ul-set-kv__value">{viewTarget.attemptLimit}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Scheduled</p><p className="ul-set-kv__value">{viewTarget.scheduledAt ? new Date(viewTarget.scheduledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
+                <div className="ul-set-kv__item"><p className="ul-set-kv__label">Shuffle Questions</p><p className="ul-set-kv__value">{viewTarget.shuffleQuestions ? "On" : "Off"}</p></div>
+                <div className="ul-set-kv__item"><p className="ul-set-kv__label">Shuffle Options</p><p className="ul-set-kv__value">{viewTarget.shuffleOptions ? "On" : "Off"}</p></div>
               </div>
             </div>
             <div className="ul-set-drawer__actions ul-ts-drawer-actions">

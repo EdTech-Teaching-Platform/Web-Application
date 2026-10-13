@@ -1222,3 +1222,14 @@
     padding-left: 0;
   }
 }
+
+/* Top Performing Test Series: no scrollbar — names wrap, rows share the card height */
+.ul-dash2-ts { flex: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; }
+.ul-dash2-ts table { table-layout: fixed; width: 100%; height: 100%; }
+.ul-dash2-ts th:last-child, .ul-dash2-ts td:last-child { width: 92px; text-align: right; }
+.ul-dash2-ts td { white-space: normal; word-break: break-word; vertical-align: middle; }
+.ul-dash2-row--triple > .ul-dash2-tscard { align-self: stretch; display: flex; flex-direction: column; }
+.ul-dash2-ts th { font-size: 10px; padding: 6px 8px; }
+.ul-dash2-ts td { font-size: 11.5px; padding: 6px 8px; line-height: 1.3; }
+.ul-dash2-ts td strong { font-weight: 600; }
+.ul-dash2-ts .ul-status-badge { font-size: 10.5px; padding: 2px 8px; }

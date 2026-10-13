@@ -204,6 +204,37 @@ export function unblockStudent(id) {
   _notify();
 }
 
+// Creates a new student account (used when an acquisition is marked
+// onboarded in Student Acquisition). Emails are unique — returns
+// { ok:false, error } instead of creating a duplicate.
+let _nextStudentSeq = SEED_STUDENTS.reduce((m, s) => Math.max(m, parseInt(s.id.split("-")[1], 10) || 0), 0) + 1;
+export function addStudent(input) {
+  const email = String(input.email || "").trim().toLowerCase();
+  if (!email) return { ok: false, error: "Email is required." };
+  if (_students.some((s) => s.email.toLowerCase() === email)) return { ok: false, error: "A student with this email already exists." };
+  const name = String(input.name || "").trim();
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "ST";
+  const student = {
+    id: `STU-${_nextStudentSeq}`,
+    name,
+    initials,
+    email,
+    phone: input.phone || "",
+    grade: input.grade || "",
+    city: input.city || "",
+    registeredDate: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    lastActive: "Today",
+    status: STUDENT_STATUS.ACTIVE,
+    enrolledCourses: [],
+    blockedReason: null,
+    blockedDate: null,
+  };
+  _nextStudentSeq += 1;
+  _students = [student, ..._students];
+  _notify();
+  return { ok: true, student };
+}
+
 export function useStudents() {
   return useSyncExternalStore(_subscribe, _snapshot);
 }
@@ -211,4 +242,9 @@ export function useStudents() {
 export function useStudent(id) {
   const all = useStudents();
   return all.find((s) => s.id === id) || null;
+}
+
+// plain (non-hook) read access for non-React code such as the discount engine
+export function getStudentsSnapshot() {
+  return _students;
 }

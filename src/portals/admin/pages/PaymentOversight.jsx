@@ -126,9 +126,16 @@ function RefundBadge({ status }) {
   return <span className={`ul-status-badge ${REFUND_STATUS_BADGE_CLASS[status] || "is-pending"}`}>{REFUND_STATUS_LABEL[status] || status}</span>;
 }
 
+const HIDE_COURSE_REFUNDS = true; // set to false to show course refunds again
+
 export default function PaymentOversight() {
   const transactions = useTransactions();
-  const refundRequests = useRefundRequests();
+  const allRefundRequests = useRefundRequests();
+  // Course-related refunds are hidden for now (data kept) — only test-series refunds show.
+  const refundRequests = useMemo(
+    () => (HIDE_COURSE_REFUNDS ? allRefundRequests.filter((r) => r.requestFor !== "course") : allRefundRequests),
+    [allRefundRequests]
+  );
 
   // ---- transaction table state ----
   const [search, setSearch] = useState("");

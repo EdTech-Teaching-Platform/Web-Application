@@ -44,7 +44,7 @@ export const REPORT_TYPE_OPTIONS = [
   { value: "none", label: "None" },
   { value: "revenue", label: "Revenue" },
   { value: "enrollment", label: "Enrollment" },
-  { value: "course_performance", label: "Course Performance" },
+  { value: "course_performance", label: "Course Performance", hidden: true },
   { value: "test_series_performance", label: "Test Series Performance" },
   { value: "educator_performance", label: "Educator Performance" },
   { value: "student_activity", label: "Student Activity" },

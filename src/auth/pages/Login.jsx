@@ -53,11 +53,13 @@ export default function Login({ role = "student" }) {
     setFormError("");
     try {
       const trimmed = identifier.trim();
-      const { data } = await login({ identifier: trimmed, password });
+      const { data } = await login({ identifier: trimmed, password, role: isEducator ? "teacher" : "student" });
+      const role = data.role === "educator" ? "teacher" : data.role;
+      if (isEducator && role !== "teacher") throw new Error("wrong_role");
       // Password verified — now send the mandatory one-time code and hold
       // off on dashboard access until OtpVerification confirms it.
       await requestLoginOtp({ identifier: trimmed });
-      const otpParams = new URLSearchParams({ mode: "login", destination: trimmed, role: data.role });
+      const otpParams = new URLSearchParams({ mode: "login", destination: trimmed, role });
       if (redirect?.startsWith("/") && !redirect.startsWith("//")) otpParams.set("redirect", redirect);
       navigate(`/verify-otp?${otpParams.toString()}`);
     } catch {
@@ -118,7 +120,12 @@ export default function Login({ role = "student" }) {
           </h1>
           <p className="mt-2 text-center text-sm text-text/60">
             {isEducator ? (
-              "Sign in to manage your courses and learners."
+              <>
+                Sign in to manage your courses and learners. New here?{" "}
+                <Link to="/teacher/registration" className="font-medium text-primary hover:underline">
+                  Create an educator account
+                </Link>
+              </>
             ) : (
               <>
                 New to Universal Learning?{" "}

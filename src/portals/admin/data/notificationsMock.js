@@ -23,6 +23,7 @@ const SEED_NOTIFICATIONS = [
     id: "n2",
     type: "course",
     title: "Course pending approval",
+    hidden: true, // hidden for now — remove this line to show again
     message: '"Advanced Data Structures" by Prof. Alan Turing is waiting on your review.',
     time: "48 minutes ago",
     read: false,
@@ -78,7 +79,7 @@ const SEED_NOTIFICATIONS = [
 ];
 
 // ---------- tiny mock "store" ----------
-let _notifications = [...SEED_NOTIFICATIONS];
+let _notifications = SEED_NOTIFICATIONS.filter((n) => !n.hidden);
 const _listeners = new Set();
 function _notify() {
   _listeners.forEach((fn) => fn());
@@ -94,6 +95,27 @@ export function useNotifications() {
 
 export function useUnreadNotificationCount() {
   return useNotifications().filter((n) => !n.read).length;
+}
+
+// Push a new notification to the top of the shared list. Every subscriber
+// (bell dot in the topbar, dropdown popup, Notifications page) re-renders
+// immediately. `link` (optional) is an in-app route the popup can open.
+let _notifSeq = 1000;
+export function addNotification({ type = "system", title, message, link = null }) {
+  _notifSeq += 1;
+  const n = {
+    id: `n${_notifSeq}`,
+    type,
+    title,
+    message,
+    link,
+    time: "Just now",
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+  _notifications = [n, ..._notifications];
+  _notify();
+  return n;
 }
 
 export function markAllNotificationsRead() {

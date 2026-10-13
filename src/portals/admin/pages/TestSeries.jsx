@@ -16,6 +16,7 @@
 // pagination control. Page-specific layout lives in TestSeries.css.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   SERIES_STATUS,
   SERIES_STATUS_LABEL,
@@ -32,12 +33,13 @@ import {
   duplicateTestSeries,
   setSeriesStatus,
   validateSeriesForPublish,
+  promoteDueSeries,
 } from "../data/testSeriesMock";
 import {
   IconSearch, IconClose, IconPlus, IconEdit, IconBook, IconLayers,
   IconUsers, IconReport, IconChart, IconAtom, IconCalculator,
   IconGraduationCap, IconInstitution, IconLightbulb, IconMore, IconEye,
-  IconEyeOff, IconCheck, IconChevronLeft, IconChevronRight,
+  IconEyeOff, IconCheck, IconChevronLeft, IconChevronRight, IconSparkle,
 } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import TestSeriesDetail from "./TestSeriesDetail";
@@ -86,11 +88,13 @@ function currency(n) {
 function timelineOf(s) {
   const today = new Date().toISOString().slice(0, 10);
   if (s.startDate > today) return "upcoming";
-  if (s.endDate < today) return "ended";
+  if (s.endDate && s.endDate < today) return "ended";
   return "ongoing";
 }
 
 export default function TestSeries() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const seriesList = useTestSeriesList();
 
   const [tab, setTab] = useState("series");
@@ -112,6 +116,16 @@ export default function TestSeries() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  useEffect(() => {
+    promoteDueSeries();
+    if (location.state && location.state.toast) {
+      setToast(location.state.toast);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -300,11 +314,18 @@ export default function TestSeries() {
           ))}
         </div>
         {tab === "series" && (
-          <button type="button" className="ul-btn ul-btn--primary" onClick={openCreate}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <IconPlus size={14} /> Create Test Series
-            </span>
-          </button>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <button type="button" className="ul-btn ul-btn--ghost" onClick={() => navigate("/admin/testseries/ai-builder")}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <IconSparkle size={14} /> AI Test Builder
+              </span>
+            </button>
+            <button type="button" className="ul-btn ul-btn--primary" onClick={() => navigate("/admin/testseries/new")}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <IconPlus size={14} /> Create Test Series
+              </span>
+            </button>
+          </span>
         )}
       </div>
 
@@ -419,7 +440,7 @@ export default function TestSeries() {
                               <span className="ul-ts-perf-bar"><span style={{ width: `${s.avgPerformance}%` }} /></span>
                             </div>
                           </td>
-                          <td className="ul-ts-dates-cell" data-label="Date Range">{s.startDate}<br />to {s.endDate}</td>
+                          <td className="ul-ts-dates-cell" data-label="Date Range">{s.availability && s.availability.mode === "always" ? <>{s.startDate}<br />always open</> : <>{s.startDate}<br />to {s.endDate}</>}</td>
                           <td data-label="Actions">
                             <div className="ul-ts-actions-cell">
                               <button type="button" className="ul-btn ul-btn--ghost ul-set-btn-sm ul-ts-manage-btn" onClick={() => manageTests(s)}>Manage Tests</button>

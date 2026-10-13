@@ -23,6 +23,7 @@
 // modal-specific layout lives in UserManagement.css.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useOnboardedBy } from "../data/regionalOnboardingMock";
 import {
   useStudents,
   blockStudent,
@@ -42,6 +43,27 @@ const PAGE_SIZE = 8;
 
 function StatusBadge({ status }) {
   return <span className={`ul-status-badge ${STUDENT_STATUS_BADGE_CLASS[status]}`}>{STUDENT_STATUS_LABEL[status]}</span>;
+}
+
+// Which Regional Head onboarded this student (from Manage Regional Heads).
+function AcquiredVia({ studentId }) {
+  const a = useOnboardedBy(studentId);
+  if (!a) return "Direct sign-up";
+  return `${a.headName} — Regional Head${a.region ? `, ${a.region}` : ""}`;
+}
+
+// Sample test-series names shown in place of course titles in the student details modal.
+const SERIES_NAMES = [
+  "JEE Main Physics Test Series 2026",
+  "Class 10 Mathematics Weekly Series",
+  "NEET Biology Crash Course Series",
+  "Banking & SSC Reasoning Practice Series",
+  "English Proficiency Test Series",
+];
+function seriesNameFor(studentId, i) {
+  let h = 0;
+  for (const ch of String(studentId)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return SERIES_NAMES[(h + i) % SERIES_NAMES.length];
 }
 
 export default function UserManagement() {
@@ -334,6 +356,10 @@ export default function UserManagement() {
                     <p className="ul-usr-review-meta__value">{detailsStudent.registeredDate}</p>
                   </div>
                   <div className="ul-usr-review-meta__item">
+                    <p className="ul-usr-review-meta__label">Onboarded by</p>
+                    <p className="ul-usr-review-meta__value"><AcquiredVia studentId={detailsStudent.id} /></p>
+                  </div>
+                  <div className="ul-usr-review-meta__item">
                     <p className="ul-usr-review-meta__label">Last active</p>
                     <p className="ul-usr-review-meta__value">{detailsStudent.lastActive}</p>
                   </div>
@@ -353,16 +379,16 @@ export default function UserManagement() {
                 )}
               </div>
 
-              {/* 3. Enrolled courses */}
+              {/* 3. Enrolled test series (display names; the underlying enrolment records are unchanged) */}
               <div className="ul-usr-review-section">
-                <p className="ul-usr-review-section__title">Enrolled Courses</p>
+                <p className="ul-usr-review-section__title">Enrolled Test Series</p>
                 {detailsStudent.enrolledCourses.length === 0 ? (
-                  <p className="ul-usr-review-meta__value ul-usr-review-meta__value--muted">Not enrolled in any course yet.</p>
+                  <p className="ul-usr-review-meta__value ul-usr-review-meta__value--muted">Not enrolled in any test series yet.</p>
                 ) : (
                   <div className="ul-usr-course-list">
-                    {detailsStudent.enrolledCourses.map((c) => (
+                    {detailsStudent.enrolledCourses.map((c, i) => (
                       <div key={c.title} className="ul-usr-course-row">
-                        <span className="ul-usr-course-row__title">{c.title}</span>
+                        <span className="ul-usr-course-row__title">{seriesNameFor(detailsStudent.id, i)}</span>
                         <div className="ul-usr-course-row__progress">
                           <div className="ul-usr-course-row__bar">
                             <div className="ul-usr-course-row__bar-fill" style={{ width: `${c.progress}%` }} />

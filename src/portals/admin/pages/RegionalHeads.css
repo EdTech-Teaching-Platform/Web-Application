@@ -1,0 +1,325 @@
+/* Regional Heads — page styles + the shared Regional Head badge/region chip
+   (also imported by EducatorVerification.jsx / EducatorProfile.jsx so the
+   label looks identical everywhere). Tables, toolbar, tabs and modals reuse
+   the Educator Management / Educator Profile / Test Series classes. */
+
+/* ---- shared label ---- */
+.ul-rh-badge {
+  display: inline;
+  margin-left: 6px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  white-space: nowrap;
+}
+.ul-rh-region-chip {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-soft-pink);
+  white-space: nowrap;
+}
+
+/* ---- header ---- */
+.ul-rh-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+.ul-rh-back:hover {
+  color: var(--color-primary);
+}
+.ul-rh-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ---- tables ---- */
+.ul-rh-table {
+  min-width: 760px;
+}
+.ul-rh-ellipsis {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ul-rh-strong {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.ul-rh-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+small.ul-rh-sub {
+  display: inline;
+}
+.ul-rh-vacant {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.ul-rh-row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+.ul-rh-row-actions .ul-rh-btn + .ul-rh-btn {
+  margin-left: 6px;
+}
+.ul-rh-btn {
+  padding: 6px 12px;
+  font-size: 11.5px;
+}
+.ul-rh-pills {
+  flex-wrap: wrap;
+}
+
+/* ---- modal bits ---- */
+.ul-rh-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.ul-rh-error {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b3261e;
+  background: #fdecec;
+}
+.ul-rh-mock {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.ul-rh-email {
+  max-width: 460px;
+}
+.ul-rh-email__meta {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+.ul-rh-email__link {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-family: inherit;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+/* ---- standalone invitation page ---- */
+.ul-rhi-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--color-bg, #fcf9f8);
+  font-family: inherit;
+}
+.ul-rhi-card {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e6dcd5);
+  border-radius: 18px;
+  box-shadow: 0 18px 50px -20px rgba(74, 14, 14, 0.25);
+  padding: 26px 26px 22px;
+}
+.ul-rhi-brand {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary, #4a0e0e);
+  margin-bottom: 14px;
+}
+.ul-rhi-title {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text-primary, #1a1a1a);
+}
+.ul-rhi-text {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-secondary, #5b4a45);
+}
+.ul-rhi-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-bg-secondary, #f6ebe6);
+  font-size: 12.5px;
+}
+.ul-rhi-facts dt {
+  color: var(--color-text-muted, #8a7a72);
+  font-weight: 600;
+}
+.ul-rhi-facts dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a1a1a);
+}
+.ul-rhi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ul-rhi-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ul-rhi-field label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-secondary, #5b4a45);
+}
+.ul-rhi-field input {
+  padding: 9px 12px;
+  border: 1px solid var(--color-border, #e6dcd5);
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--color-bg, #fcf9f8);
+}
+.ul-rhi-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.ul-rhi-state {
+  text-align: center;
+  padding: 6px 0 4px;
+}
+.ul-rhi-state__icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+}
+.ul-rhi-state__icon.is-ok {
+  background: #e6f4ea;
+  color: #2f9e56;
+}
+.ul-rhi-state__icon.is-bad {
+  background: #fdecec;
+  color: #b3261e;
+}
+.ul-rhi-state__icon.is-warn {
+  background: #fff4d6;
+  color: #b8860b;
+}
+.ul-rhi-mock {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted, #8a7a72);
+  text-align: center;
+}
+
+/* kebab column: pull the three dots in from the card edge */
+.ul-rh-table thead th:last-child,
+.ul-rh-table tbody td:last-child {
+  width: 72px;
+  padding-right: 40px;
+}
+
+/* Region Overview: nudge the action buttons in from the card edge */
+.ul-rh-table td.ul-rh-row-actions {
+  padding-right: 36px;
+}
+
+.ul-rh-revoke-btn { border: 1px solid #e6b8b0; background: #fdf1ee; color: #b3261e; font: inherit; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 999px; cursor: pointer; }
+.ul-rh-revoke-btn:hover { background: #fae3de; }
+
+/* Revoke button must show in full */
+.ul-rh-table tbody td.ul-rh-revoke-cell { width: 120px; min-width: 120px; padding-right: 28px; white-space: nowrap; }
+.ul-rh-revoke-btn { white-space: nowrap; }
+
+/* Region Overview: Reassign / Invite buttons fully inside the card, one tab further left */
+.ul-rh-table tbody td.ul-rh-row-actions:last-child { width: auto; white-space: nowrap; padding-right: 64px; }
+
+/* Region Overview: Reassign / Invite buttons sit fully inside the card, one tab further left */
+.ul-rh-table tbody td.ul-rh-row-actions:last-child { width: auto; padding-right: 160px; white-space: nowrap; }
+
+/* Small Revoke button, full word visible */
+.ul-rh-table tbody td.ul-rh-revoke-cell { width: 110px; min-width: 110px; padding-right: 24px; overflow: visible; }
+.ul-rh-table td.ul-rh-revoke-cell .ul-edu-actions-inner { justify-content: flex-start; overflow: visible; }
+.ul-rh-revoke-btn { font-size: 11px; padding: 3px 10px; line-height: 1.4; flex: none; min-width: max-content; }
+
+/* Reassign + Revoke side by side in the Invitations table */
+.ul-rh-reassign-btn { border: 1px solid var(--color-border); background: #fbf1ee; color: #7a1f16; font: inherit; font-size: 11px; font-weight: 700; padding: 3px 10px; line-height: 1.4; border-radius: 999px; cursor: pointer; white-space: nowrap; flex: none; }
+.ul-rh-reassign-btn:hover { background: #f6e3de; }
+.ul-rh-table tbody td.ul-rh-revoke-cell { width: 190px; min-width: 190px; }
+.ul-rh-table td.ul-rh-revoke-cell .ul-edu-actions-inner { gap: 8px; }
+
+/* students onboarded per head */
+.ul-rh-studentsbtn { border: 0; background: transparent; padding: 0; font: inherit; color: var(--color-primary-dark); cursor: pointer; text-align: left; }
+.ul-rh-studentsbtn:hover strong { text-decoration: underline; }
+.ul-rh-studentsum { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12.5px; color: var(--color-text-secondary); }
+.ul-rh-studentsum strong { font-size: 18px; color: #c0392b; margin-right: 4px; }
+.ul-rh-acqstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.ul-rh-acqstat { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ul-rh-acqstat .ul-stat-card__label { font-size: 10px; letter-spacing: 0.04em; }
+.ul-rh-acqstat .ul-stat-card__value { font-size: 22px; color: #c0392b; line-height: 1.2; }
+.ul-rh-acqstat .ul-stat-card__trend { font-size: 11px; }
+
+.ul-rh-warn { color: #b3261e; font-weight: 700; }
+.ul-rh-studentsum .is-warn strong { color: #b3261e; }
+.ul-rh-onbform { border: 1px solid var(--color-border); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--color-bg-secondary); }
+.ul-rh-onbform__actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+.ul-rh-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 18px; margin-bottom: 14px; }
+.ul-rh-fact { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ul-rh-fact__label { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--color-text-muted); }
+.ul-rh-fact__value { font-size: 12.5px; color: var(--color-text-primary); overflow-wrap: anywhere; }
+.ul-rh-h4 { margin: 16px 0 8px; font-size: 13px; color: var(--color-text-primary); }
+@media (max-width: 760px) { .ul-rh-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Activity Tracking table: auto layout (no 1100px fixed grid) so every column hugs its content */
+.ul-rh-acttable { width: 100%; min-width: 0; table-layout: auto; }
+.ul-rh-acttable thead th { padding: 10px 10px; white-space: nowrap; }
+.ul-rh-acttable tbody td { padding: 10px 10px; vertical-align: middle; }
+.ul-rh-acttable thead th:first-child, .ul-rh-acttable tbody td:first-child { padding-left: 16px; }
+.ul-rh-acttable thead th:last-child,
+.ul-rh-acttable tbody td:last-child { width: 1%; white-space: nowrap; text-align: right; padding: 10px 16px 10px 6px; }
+.ul-rh-acttable tbody td:last-child .ul-btn { white-space: nowrap; padding: 6px 14px; font-size: 13px; }
+.ul-rh-acttable tbody td:nth-last-child(2) { white-space: normal; max-width: 190px; }
+.ul-rh-acttable tbody td:nth-last-child(2) .ul-rh-sub { white-space: normal; }
