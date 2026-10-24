@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { passwordInfo } from "../data/securityMock";
+import { securityApi } from "../services/securityApi";
 import { IconChevronLeft, IconShield, IconEye, IconEyeOff } from "../components/icons";
 import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
@@ -18,6 +18,7 @@ export default function ChangePassword() {
   const [visible, setVisible] = useState({ current: false, next: false, confirm: false });
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(false);
   const toastTimer = useRef(null);
 
   useEffect(() => {
@@ -48,9 +49,10 @@ export default function ChangePassword() {
       setError("New password and confirmation don't match.");
       return;
     }
-    setError("");
-    setForm({ current: "", next: "", confirm: "" });
-    setToast("Password updated successfully.");
+    setError(""); setLoading(true);
+    securityApi.updatePassword(form.next).then(() => {
+      setForm({ current: "", next: "", confirm: "" }); setToast("Password updated successfully.");
+    }).catch((err) => setError(err.message)).finally(() => setLoading(false));
   };
 
   return (
@@ -67,9 +69,9 @@ export default function ChangePassword() {
       <div className="ul-card ul-cpw-card">
         <div className="ul-card__head">
           <span className="ul-card__eyebrow"><IconShield size={12} color="var(--color-primary)" /> current password</span>
-          <h3>Password strength: {passwordInfo.strength}</h3>
+          <h3>Update your password securely</h3>
         </div>
-        <p className="ul-cpw-meta">Last changed {passwordInfo.lastChanged} ({passwordInfo.daysSinceChange} days ago).</p>
+          <p className="ul-cpw-meta">Use a unique password with at least 8 characters.</p>
 
         <form onSubmit={handleSubmit} className="ul-cpw-form">
           <label className="ul-cpw-field">
@@ -139,8 +141,8 @@ export default function ChangePassword() {
             <button type="button" className="ul-btn ul-btn--ghost" onClick={() => navigate("/admin/security")}>
               Cancel
             </button>
-            <button type="submit" className="ul-btn ul-btn--primary">
-              Update password
+            <button type="submit" className="ul-btn ul-btn--primary" disabled={loading}>
+              {loading ? "Updating…" : "Update password"}
             </button>
           </div>
         </form>

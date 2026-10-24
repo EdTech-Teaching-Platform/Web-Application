@@ -19,6 +19,7 @@
 import { useMemo, useRef, useState } from "react";
 import { addEducator } from "../data/educatorsMock";
 import { IconUpload, IconDownload, IconCheck, IconSend } from "./icons";
+import { buildCsv } from "../utils/csv";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+]?[\d\s\-().]{7,}$/;
@@ -139,18 +140,9 @@ export default function BulkImportTeachers({ onClose, setToast }) {
   // accepts an admin's own .csv OR .xlsx upload (parsed via SheetJS,
   // below), but the sample we hand them is always the plain, dependency-
   // free format.
-  const csvEscape = (value) => {
-    const str = String(value ?? "");
-    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-  };
-
   const downloadTemplate = () => {
     const headers = ["Name", "Phone Number", "Email"];
-    const lines = [
-      headers.join(","),
-      ...SAMPLE_ROWS.map((row) => headers.map((h) => csvEscape(row[h])).join(",")),
-    ];
-    const csv = lines.join("\r\n");
+    const csv = buildCsv(headers, SAMPLE_ROWS.map((row) => headers.map((h) => row[h])));
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

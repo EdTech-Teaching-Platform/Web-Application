@@ -61,7 +61,11 @@ export const educatorsApi = {
   },
   setAccountStatus: (id, status, reason) => callRpc("set_educator_account_status", { p_id: id, p_status: status, p_reason: reason || null }),
   delete: (id) => callRpc("delete_educator", { p_id: id }),
-  createInvites: (rows) => callRpc("create_educator_invites", { p_rows: rows }),
+  createInvites: async (rows) => {
+    const { data, error } = await supabase.functions.invoke("create-educator-invites", { body: { rows } });
+    if (error) throw normalizeRpcError(error);
+    return data;
+  },
   signedDocumentUrl: async (path) => {
     const { data, error } = await supabase.storage.from("educator-documents").createSignedUrl(path, 300);
     if (error) throw error;

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUnreadNotificationCount } from "../data/notificationsMock";
 import { startRegionalHeadSync } from "../data/regionalHeadsMock";
 import NotificationsPanel from "./NotificationsPanel";
 import { dashboardApi } from "../services/adminApi";
+import { notificationsApi } from "../services/notificationsApi";
 import { IconSearch, IconBell, IconLock, IconMenu } from "./icons";
 import "./AdminChrome.css";
 
@@ -27,7 +27,7 @@ import "./AdminChrome.css";
 // only renders below the 900px breakpoint (see AdminChrome.css).
 export default function AdminTopbar({ onMenuClick }) {
   const navigate = useNavigate();
-  const unreadCount = useUnreadNotificationCount();
+  const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState(null);
@@ -37,6 +37,9 @@ export default function AdminTopbar({ onMenuClick }) {
   // keeps the admin chrome listening so an accepted/declined invitation
   // shows up in the notification popup live, on any admin page.
   useEffect(() => startRegionalHeadSync(), []);
+  useEffect(() => {
+    notificationsApi.myUnreadCount().then(setUnreadCount).catch(() => setUnreadCount(0));
+  }, [notifOpen]);
 
   useEffect(() => {
     if (search.trim().length < 2) {
