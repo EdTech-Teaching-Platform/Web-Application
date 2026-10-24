@@ -9,24 +9,13 @@
 // .ul-confirm-modal / .ul-mgmt-detail-* (ConfirmModal.css /
 // ManagementDashboards.css), .ul-stat-card (AdminDashboard.css).
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTestSeriesList, SERIES_STATUS, SUBJECT_OPTIONS } from "../data/testSeriesMock";
+import { SUBJECT_OPTIONS } from "../data/testSeriesMock";
+import { ASSIGNMENT_STATUS_LABEL } from "../data/testAssignmentsMock";
+import { useRpc } from "../hooks/useRpc";
+import { trackerApi } from "../services/trackerApi";
 import {
-  useAssignments,
-  computeTrackerStats,
-  groupAssignmentsBySeries,
-  getDisplayStatus,
-  getAssignmentProgress,
-  ASSIGNMENT_STATUS_LABEL,
-} from "../data/testAssignmentsMock";
-import {
-  computeRepeatedQuestionMatches,
-  withReviewStatus,
-  useMatchReviewState,
-  markMatchReviewed,
-  dismissMatch,
-  flagMatchConfirmed,
   MATCH_TYPE,
   MATCH_TYPE_LABEL,
   MATCH_TYPE_BADGE_CLASS,
@@ -59,37 +48,11 @@ const OVERALL_STATUS_BADGE = {
   "Overdue": "is-rejected",
   "No Assignments Yet": "is-pending",
 };
+const getDisplayStatus = (a) => a.displayStatus || a.display_status || a.status;
+const getAssignmentProgress = (a) => Number(a.progress || 0);
 
 export default function TestSeriesTracker() {
   const navigate = useNavigate();
-  const seriesList = useTestSeriesList();
-  const assignments = useAssignments();
-
-  const trackerStats = useMemo(() => computeTrackerStats(assignments), [assignments]);
-  const totalSeries = seriesList.length;
-  const activeSeries = seriesList.filter((s) => s.status === SERIES_STATUS.PUBLISHED).length;
-
-  const grouped = useMemo(() => {
-    const g = groupAssignmentsBySeries(assignments);
-    const covered = new Set(g.map((x) => x.seriesId).filter(Boolean));
-    const zeros = seriesList
-      .filter((s) => !covered.has(s.id))
-      .map((s) => ({
-        seriesId: s.id,
-        seriesName: s.name,
-        subject: s.subject,
-        educators: [],
-        totalTestsRequired: 0,
-        testsCreated: 0,
-        testsSubmitted: 0,
-        testsApproved: 0,
-        completionPct: 0,
-        deadline: null,
-        overallStatus: "No Assignments Yet",
-        assignments: [],
-      }));
-    return [...g, ...zeros];
-  }, [assignments, seriesList]);
 
   // ---- tracker table: search / filters / sort / pagination ----
   const [search, setSearch] = useState("");
@@ -100,6 +63,32 @@ export default function TestSeriesTracker() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("deadline_asc");
   const [page, setPage] = useState(1);
+  const listRequest = useCallback(() => trackerApi.list({
+    p_search: search.trim() || null,
+    p_sort: sortBy,
+    p_subject: subjectFilter === "all" ? null : subjectFilter,
+    p_educator: educatorFilter === "all" ? null : educatorFilter,
+    p_status: statusFilter === "all" ? null : statusFilter,
+    p_page: page,
+    p_size: 8,
+  }), [search, sortBy, subjectFilter, educatorFilter, statusFilter, page]);
+  const listState = useRpc(listRequest);
+  const statsState = useRpc(useCallback(() => trackerApi.stats(), []));
+  const grouped = (listState.data?.rows || []).map((g) => ({
+    ...g,
+    totalTestsRequired: g.total_required,
+    testsCreated: g.tests_created,
+    testsSubmitted: g.tests_submitted,
+    testsApproved: g.tests_approved,
+    completionPct: Number(g.completion_pct || 0),
+    seriesName: g.series_name,
+    overallStatus: g.overall_status,
+    educators: g.educators || [],
+  }));
+  const trackerStats = statsState.data || {};
+  const totalSeries = Number(trackerStats.total_series || 0);
+  const activeSeries = Number(trackerStats.active_series || 0);
+  const totalRows = Number(listState.data?.total || 0);
 
   useEffect(() => {
     if (!filtersOpen) return undefined;
@@ -110,10 +99,7 @@ export default function TestSeriesTracker() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [filtersOpen]);
 
-  const educatorOptions = useMemo(
-    () => ["all", ...Array.from(new Set(grouped.flatMap((g) => g.educators))).sort()],
-    [grouped]
-  );
+  const educatorOptions = useMemo(() => ["all", ...Array.from(new Set(grouped.flatMap((g) => g.educators))).sort()], [grouped]);
   const activeFilterCount = [subjectFilter !== "all", educatorFilter !== "all", statusFilter !== "all"].filter(Boolean).length;
   const clearFilters = () => {
     setSubjectFilter("all");
@@ -122,58 +108,40 @@ export default function TestSeriesTracker() {
     setPage(1);
   };
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let r = grouped.filter((g) => {
-      if (q && !`${g.seriesName} ${g.subject}`.toLowerCase().includes(q)) return false;
-      if (subjectFilter !== "all" && g.subject !== subjectFilter) return false;
-      if (educatorFilter !== "all" && !g.educators.includes(educatorFilter)) return false;
-      if (statusFilter !== "all" && g.overallStatus !== statusFilter) return false;
-      return true;
-    });
-    r = [...r];
-    if (sortBy === "deadline_asc") r.sort((a, b) => (a.deadline || "9999").localeCompare(b.deadline || "9999"));
-    else if (sortBy === "completion_desc") r.sort((a, b) => b.completionPct - a.completionPct);
-    else if (sortBy === "name_asc") r.sort((a, b) => a.seriesName.localeCompare(b.seriesName));
-    return r;
-  }, [grouped, search, subjectFilter, educatorFilter, statusFilter, sortBy]);
-
   const PAGE_SIZE = 8;
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const pageItems = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageItems = grouped;
 
   const [detailSeriesId, setDetailSeriesId] = useState(null);
   const detailGroup = grouped.find((g) => (g.seriesId || g.seriesName) === detailSeriesId) || null;
+  const detailState = useRpc(useCallback(() => detailSeriesId ? trackerApi.detail(detailSeriesId) : Promise.resolve(null), [detailSeriesId]), { immediate: !!detailSeriesId });
+  const detailData = detailState.data || {};
+  const detailAssignments = detailData.assignments || [];
 
   // ---------- Repeated Questions Detection (5.1) ----------
-  const reviewState = useMatchReviewState();
-  const rawMatches = useMemo(() => computeRepeatedQuestionMatches(seriesList), [seriesList]);
-  const matches = useMemo(() => withReviewStatus(rawMatches, reviewState), [rawMatches, reviewState]);
-
-  const testEducatorMap = useMemo(() => {
-    const map = new Map();
-    assignments.forEach((a) => {
-      if (a.seriesId && a.testName) map.set(`${a.seriesId}::${a.testName}`, a.educatorName);
-    });
-    return map;
-  }, [assignments]);
-  const lookupEducator = (q) => testEducatorMap.get(`${q.seriesId}::${q.testName}`) || "—";
-
   const [matchTypeFilter, setMatchTypeFilter] = useState("all");
   const [matchSubjectFilter, setMatchSubjectFilter] = useState("all");
   const [matchSeriesFilter, setMatchSeriesFilter] = useState("all");
   const [matchReviewFilter, setMatchReviewFilter] = useState("all");
 
-  const filteredMatches = useMemo(() => {
-    return matches.filter((m) => {
-      if (matchTypeFilter !== "all" && m.matchType !== matchTypeFilter) return false;
-      if (matchSubjectFilter !== "all" && m.original.subject !== matchSubjectFilter && m.matching.subject !== matchSubjectFilter) return false;
-      if (matchSeriesFilter !== "all" && m.original.seriesId !== matchSeriesFilter && m.matching.seriesId !== matchSeriesFilter) return false;
-      if (matchReviewFilter !== "all" && m.reviewStatus !== matchReviewFilter) return false;
-      return true;
-    });
-  }, [matches, matchTypeFilter, matchSubjectFilter, matchSeriesFilter, matchReviewFilter]);
+  const matchesRequest = useCallback(() => trackerApi.matches({
+    p_type: matchTypeFilter === "all" ? null : matchTypeFilter,
+    p_subject: matchSubjectFilter === "all" ? null : matchSubjectFilter,
+    p_series: matchSeriesFilter === "all" ? null : matchSeriesFilter,
+    p_review: matchReviewFilter === "all" ? null : matchReviewFilter,
+    p_page: 1,
+    p_size: 100,
+  }), [matchTypeFilter, matchSubjectFilter, matchSeriesFilter, matchReviewFilter]);
+  const matchesState = useRpc(matchesRequest);
+  const matches = (matchesState.data?.rows || []).map((m) => ({
+    ...m,
+    matchType: m.match_type,
+    reviewStatus: m.review_status,
+    original: { id: m.original_question_id, text: m.original_text, subject: m.original_subject, seriesId: m.original_series_id, seriesName: m.original_series_name, testName: m.original_test_name },
+    matching: { id: m.matching_question_id, text: m.matching_text, subject: m.matching_subject, seriesId: m.matching_series_id, seriesName: m.matching_series_name, testName: m.matching_test_name },
+  }));
+  const filteredMatches = matches;
 
   const [sideBySide, setSideBySide] = useState(null); // match object
 
@@ -193,6 +161,8 @@ export default function TestSeriesTracker() {
         <div className="ul-trk-stat"><span className="ul-trk-stat__icon"><IconCheck size={14} /></span><strong>{activeSeries}</strong><small>Active Test Series</small></div>
         <div className="ul-trk-stat"><span className="ul-trk-stat__icon"><IconWallet size={14} /></span><strong>{trackerStats.totalAssignments}</strong><small>Total Assignments</small></div>
       </div>
+      {(listState.loading || statsState.loading) && <div className="ul-edu-empty">Loading tracker data…</div>}
+      {(listState.error || statsState.error) && <div className="ul-edu-empty" role="alert"><p>{listState.error?.message || statsState.error?.message}</p><button type="button" className="ul-btn ul-btn--ghost" onClick={() => { listState.refetch(); statsState.refetch(); }}>Retry</button></div>}
 
       <div className="ul-edu-toolbar">
         <label className="ul-edu-search">
@@ -306,7 +276,7 @@ export default function TestSeriesTracker() {
         {pageItems.length > 0 && (
           <div className="ul-edu-pagination">
             <span className="ul-edu-pagination__info">
-              Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, rows.length)} of {rows.length}
+              Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, totalRows)} of {totalRows}
             </span>
             <div className="ul-edu-pagination__controls">
               <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
@@ -336,11 +306,11 @@ export default function TestSeriesTracker() {
             </div>
 
             <span className="ul-mgmt-detail-subhead">Assignments in this series</span>
-            {detailGroup.assignments.length === 0 ? (
+            {detailAssignments.length === 0 ? (
               <p className="ul-mgmt-empty">No assignments created for this series yet.</p>
             ) : (
               <div className="ul-mgmt-activity-list">
-                {detailGroup.assignments.map((a) => (
+                {detailAssignments.map((a) => (
                   <div key={a.id} className="ul-mgmt-activity-row">
                     <span className="ul-mgmt-activity-row__dot" />
                     <div className="ul-mgmt-activity-row__body">
@@ -389,13 +359,13 @@ export default function TestSeriesTracker() {
             </div>
 
             <div className="ul-confirm-modal__actions ul-trk-rqd-modal-actions">
-              <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { markMatchReviewed(sideBySide.id); setSideBySide(null); }}>
+              <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { trackerApi.markReviewed(sideBySide.id).then(() => matchesState.refetch()); setSideBySide(null); }}>
                 Mark Reviewed
               </button>
-              <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { dismissMatch(sideBySide.id, "Reviewed and judged not a real duplicate."); setSideBySide(null); }}>
+              <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { trackerApi.dismissMatch(sideBySide.id, "Reviewed and judged not a real duplicate.").then(() => matchesState.refetch()); setSideBySide(null); }}>
                 Dismiss (False Positive)
               </button>
-              <button type="button" className="ul-btn ul-btn--danger" onClick={() => { flagMatchConfirmed(sideBySide.id, "Confirmed duplicate — needs correction."); setSideBySide(null); }}>
+              <button type="button" className="ul-btn ul-btn--danger" onClick={() => { trackerApi.confirmMatch(sideBySide.id, "Confirmed duplicate — needs correction.").then(() => matchesState.refetch()); setSideBySide(null); }}>
                 Flag Confirmed Duplicate
               </button>
             </div>

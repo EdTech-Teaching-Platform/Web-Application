@@ -12,36 +12,22 @@
 // (ConfirmModal.css), .ul-mgmt-detail-* (ManagementDashboards.css),
 // .ul-edp-tabs (EducatorProfile.css).
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  useAssignments,
-  createAssignment,
-  updateAssignmentRequirements,
-  reassignEducator,
-  extendDeadline,
-  cancelAssignment,
-  startReview,
-  reviewSubmission,
   ASSIGNMENT_STATUS,
   ASSIGNMENT_STATUS_LABEL,
   ASSIGNMENT_STATUS_BADGE_CLASS,
   QUESTION_TYPE_MIX,
   QUESTION_TYPE_MIX_LABEL,
   DIFFICULTY_OPTIONS,
-  getDisplayStatus,
-  getAssignmentProgress,
-  useAssignmentNotifications,
-  MOCK_NOTICE,
-  useSeriesRequests,
-  assignRequest,
-  rejectRequest,
   REQUEST_STATUS,
   REQUEST_STATUS_LABEL,
   REQUEST_STATUS_BADGE_CLASS,
 } from "../data/testAssignmentsMock";
-import { useTestSeriesList, SUBJECT_OPTIONS } from "../data/testSeriesMock";
-import { useEducators } from "../data/educatorsMock";
+import { SUBJECT_OPTIONS } from "../data/testSeriesMock";
+import { useRpc } from "../hooks/useRpc";
+import { assignmentsApi } from "../services/assignmentsApi";
 import { IconSearch, IconClose, IconChevronDown, IconMore, IconPlus, IconBell } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import "../components/AdminChrome.css";
@@ -55,6 +41,8 @@ import "./EducatorProfile.css";
 import "./AssignEducators.css";
 
 const money = () => ""; // placeholder kept out — no currency on this page
+const getDisplayStatus = (a) => a.displayStatus || a.status;
+const getAssignmentProgress = (a) => Number(a.progress || 0);
 
 function StatusBadge({ status }) {
   return <span className={`ul-status-badge ${ASSIGNMENT_STATUS_BADGE_CLASS[status] || "is-pending"}`}>{ASSIGNMENT_STATUS_LABEL[status] || status}</span>;
@@ -92,14 +80,6 @@ const EMPTY_FORM = {
 };
 
 export default function AssignEducators() {
-  const assignments = useAssignments();
-  const seriesList = useTestSeriesList();
-  const educators = useEducators();
-  const eligibleEducators = useMemo(
-    () => educators.filter((e) => e.accountStatus === "active" && e.verificationStatus === "verified"),
-    [educators]
-  );
-
   const [tab, setTab] = useState("management"); // "management" | "review"
   const [toast, setToast] = useState("");
 
@@ -154,6 +134,24 @@ export default function AssignEducators() {
   const [deadlineBefore, setDeadlineBefore] = useState("");
   const [sortBy, setSortBy] = useState("deadline_asc");
   const [page, setPage] = useState(1);
+  const listRequest = useCallback(() => assignmentsApi.list({
+    p_search: search.trim() || null,
+    p_sort: sortBy,
+    p_subject: subjectFilter === "all" ? null : subjectFilter,
+    p_educator: educatorFilter === "all" ? null : educatorFilter,
+    p_status: statusFilter === "all" ? null : statusFilter,
+    p_deadline_before: deadlineBefore || null,
+    p_page: page,
+    p_size: 8,
+  }), [search, sortBy, subjectFilter, educatorFilter, statusFilter, deadlineBefore, page]);
+  const assignmentsState = useRpc(listRequest);
+  const assignments = assignmentsState.data?.rows || [];
+  const assignmentTotal = Number(assignmentsState.data?.total || 0);
+  const seriesState = useRpc(useCallback(() => assignmentsApi.series(), []));
+  const eligibleState = useRpc(useCallback(() => assignmentsApi.eligibleEducators(), []));
+  const requestState = useRpc(useCallback(() => assignmentsApi.requests(), []));
+  const seriesList = seriesState.data || [];
+  const eligibleEducators = eligibleState.data || [];
 
   useEffect(() => {
     if (!filtersOpen) return undefined;
@@ -164,10 +162,7 @@ export default function AssignEducators() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [filtersOpen]);
 
-  const educatorOptions = useMemo(
-    () => ["all", ...Array.from(new Set(assignments.map((a) => a.educatorName))).sort()],
-    [assignments]
-  );
+  const educatorOptions = useMemo(() => ["all", ...eligibleEducators.map((e) => e.full_name || e.name).filter(Boolean)], [eligibleEducators]);
 
   const activeFilterCount = [subjectFilter !== "all", educatorFilter !== "all", statusFilter !== "all", deadlineBefore !== ""].filter(Boolean).length;
   const clearFilters = () => {
@@ -178,35 +173,14 @@ export default function AssignEducators() {
     setPage(1);
   };
 
-  const managementRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let rows = assignments.filter((a) => {
-      if (q && !`${a.id} ${a.testName} ${a.seriesName} ${a.educatorName} ${a.subject}`.toLowerCase().includes(q)) return false;
-      if (subjectFilter !== "all" && a.subject !== subjectFilter) return false;
-      if (educatorFilter !== "all" && a.educatorName !== educatorFilter) return false;
-      if (statusFilter !== "all" && getDisplayStatus(a) !== statusFilter) return false;
-      if (deadlineBefore && a.deadline > deadlineBefore) return false;
-      return true;
-    });
-    rows = [...rows];
-    if (sortBy === "deadline_asc") rows.sort((a, b) => (a.deadline || "").localeCompare(b.deadline || ""));
-    else if (sortBy === "deadline_desc") rows.sort((a, b) => (b.deadline || "").localeCompare(a.deadline || ""));
-    else if (sortBy === "assigned_desc") rows.sort((a, b) => (b.assignedDate || "").localeCompare(a.assignedDate || ""));
-    else if (sortBy === "progress_desc") rows.sort((a, b) => getAssignmentProgress(b) - getAssignmentProgress(a));
-    return rows;
-  }, [assignments, search, subjectFilter, educatorFilter, statusFilter, deadlineBefore, sortBy]);
-
   const PAGE_SIZE = 8;
-  const pageCount = Math.max(1, Math.ceil(managementRows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(assignmentTotal / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const pageItems = managementRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageItems = assignments;
 
   // ---- Review & Approval: incoming test series requests ----
-  const requests = useSeriesRequests();
-  const reviewRows = useMemo(
-    () => [...requests].sort((a, b) => (b.sentDate || "").localeCompare(a.sentDate || "")),
-    [requests]
-  );
+  const requests = requestState.data || [];
+  const reviewRows = requests;
   const pendingRequestCount = requests.filter((r) => r.status === REQUEST_STATUS.PENDING).length;
 
   const [assignReqTarget, setAssignReqTarget] = useState(null);
@@ -225,7 +199,8 @@ export default function AssignEducators() {
 
   // ---- detail / form state ----
   const [detailId, setDetailId] = useState(null);
-  const detailAssignment = assignments.find((a) => a.id === detailId) || null;
+  const detailState = useRpc(useCallback(() => detailId ? assignmentsApi.detail(detailId) : Promise.resolve(null), [detailId]), { immediate: !!detailId });
+  const detailAssignment = detailState.data?.assignment ? { ...detailState.data.assignment, ...assignments.find((a) => a.id === detailId) } : assignments.find((a) => a.id === detailId) || null;
 
   const [formMode, setFormMode] = useState(null); // null | "create" | "edit"
   const [form, setForm] = useState(EMPTY_FORM);
@@ -288,7 +263,7 @@ export default function AssignEducators() {
     const seriesName = form.seriesMode === "existing" ? selectedSeries?.name : form.newSeriesName.trim();
 
     if (editingId) {
-      updateAssignmentRequirements(editingId, {
+      assignmentsApi.updateRequirements(editingId, {
         seriesId,
         seriesName,
         subject: form.subject,
@@ -304,25 +279,25 @@ export default function AssignEducators() {
       });
       setToast("Assignment requirements updated. The educator has been notified.");
     } else {
-      form.educatorIds.forEach((educatorId) => {
-        createAssignment({
-          seriesId,
-          seriesName,
-          subject: form.subject,
-          topics,
-          educatorId,
-          testName: form.testName.trim(),
-          questionCount: Number(form.questionCount),
-          questionTypeMix: form.questionTypeMix,
-          difficulty: form.difficulty,
-          totalMarks: Number(form.totalMarks),
-          duration: Number(form.duration),
-          instructions: form.instructions,
-          deadline: form.deadline,
-        });
-      });
+      assignmentsApi.create({
+        seriesMode: form.seriesMode,
+        seriesId,
+        newSeriesName: form.newSeriesName.trim(),
+        subject: form.subject,
+        topics,
+        educatorIds: form.educatorIds,
+        testName: form.testName.trim(),
+        questionCount: Number(form.questionCount),
+        questionTypeMix: form.questionTypeMix,
+        difficulty: form.difficulty,
+        totalMarks: Number(form.totalMarks),
+        duration: Number(form.duration),
+        instructions: form.instructions,
+        deadline: form.deadline,
+      }).catch((error) => setFormErrors([error.message]));
       setToast(`${form.educatorIds.length} assignment${form.educatorIds.length === 1 ? "" : "s"} created.`);
     }
+    assignmentsState.refetch();
     setFormMode(null);
   };
 
@@ -343,7 +318,7 @@ export default function AssignEducators() {
 
   const openReview = (a) => {
     setOpenMenuId(null);
-    if (a.status === ASSIGNMENT_STATUS.SUBMITTED) startReview(a.id);
+    if (a.status === ASSIGNMENT_STATUS.SUBMITTED) assignmentsApi.startReview(a.id).then(() => assignmentsState.refetch()).catch((error) => setToast(error.message));
     setReviewTarget(a.id);
     setReviewDecision("approved");
     setReviewFeedback("");
@@ -355,12 +330,8 @@ export default function AssignEducators() {
   const submitReview = () => {
     if (!reviewAssignment) return;
     const questionComments = reviewQComment.trim() ? [{ questionRef: "General", comment: reviewQComment.trim() }] : [];
-    reviewSubmission(reviewAssignment.id, {
-      decision: reviewDecision,
-      overallFeedback: reviewFeedback,
-      questionComments,
-      decisionReason: reviewReason,
-    });
+    assignmentsApi.review(reviewAssignment.id, reviewDecision, reviewFeedback, questionComments, reviewReason)
+      .then(() => assignmentsState.refetch()).catch((error) => setToast(error.message));
     setToast(
       reviewDecision === "approved"
         ? "Submission approved. Educator notified (mock)."
@@ -371,7 +342,7 @@ export default function AssignEducators() {
     setReviewTarget(null);
   };
 
-  const detailNotifications = useAssignmentNotifications(detailId || "");
+  const detailNotifications = (detailState.data?.notifications || []).map((n) => ({ ...n, createdAt: n.created_at, educatorName: detailAssignment?.educatorName }));
 
   return (
     <>
@@ -384,6 +355,13 @@ export default function AssignEducators() {
             Create and track educator assignments.
           </p>
         </div>
+        {(assignmentsState.loading || seriesState.loading || eligibleState.loading || requestState.loading) && <div className="ul-edu-empty">Loading assignment data…</div>}
+        {(assignmentsState.error || seriesState.error || eligibleState.error || requestState.error) && (
+          <div className="ul-edu-empty" role="alert">
+            <p>{assignmentsState.error?.message || seriesState.error?.message || eligibleState.error?.message || requestState.error?.message}</p>
+            <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { assignmentsState.refetch(); seriesState.refetch(); eligibleState.refetch(); requestState.refetch(); }}>Retry</button>
+          </div>
+        )}
         {tab === "management" && (
           <button type="button" className="ul-btn ul-btn--primary ul-edu-add-btn" onClick={openCreateForm}>
             <IconPlus size={13} />
@@ -565,7 +543,7 @@ export default function AssignEducators() {
             {pageItems.length > 0 && (
               <div className="ul-edu-pagination">
                 <span className="ul-edu-pagination__info">
-                  Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, managementRows.length)} of {managementRows.length}
+                  Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, assignmentTotal)} of {assignmentTotal}
                 </span>
                 <div className="ul-edu-pagination__controls">
                   <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
@@ -731,10 +709,9 @@ export default function AssignEducators() {
         confirmLabel="Assign & Notify"
         compact
         onConfirm={() => {
-          const created = assignRequest(assignReqTarget, { educatorId: assignReqEducatorId, deadline: assignReqDeadline, note: assignReqNote.trim() });
-          const who = eligibleEducators.find((e) => e.id === assignReqEducatorId)?.name || "the educator";
-          if (created) setToast(`Assigned to ${who} as ${created.id}. Notification sent (mock).`);
-          setAssignReqTarget(null);
+          assignmentsApi.assignRequest(assignReqTarget, assignReqEducatorId, assignReqDeadline, assignReqNote.trim())
+            .then(() => { const who = eligibleEducators.find((e) => e.id === assignReqEducatorId)?.name || "the educator"; setToast(`Assigned to ${who}.`); setAssignReqTarget(null); requestState.refetch(); assignmentsState.refetch(); })
+            .catch((error) => setToast(error.message));
         }}
         onCancel={() => setAssignReqTarget(null)}
         confirmDisabled={!assignReqEducatorId || !assignReqDeadline}
@@ -765,9 +742,9 @@ export default function AssignEducators() {
         tone="danger"
         compact
         onConfirm={() => {
-          rejectRequest(rejectReqTarget, rejectReqReason.trim());
-          setToast("Request rejected.");
-          setRejectReqTarget(null);
+          assignmentsApi.rejectRequest(rejectReqTarget, rejectReqReason.trim())
+            .then(() => { setToast("Request rejected."); setRejectReqTarget(null); requestState.refetch(); })
+            .catch((error) => setToast(error.message));
         }}
         onCancel={() => setRejectReqTarget(null)}
         confirmDisabled={!rejectReqReason.trim()}
@@ -785,9 +762,9 @@ export default function AssignEducators() {
         description={'This resets the assignment back to "Assigned" and clears any existing submission. The new educator will be notified (mock).'}
         confirmLabel="Reassign"
         onConfirm={() => {
-          reassignEducator(reassignTarget, reassignEducatorId);
-          setToast("Educator reassigned. They've been notified (mock).");
-          setReassignTarget(null);
+          assignmentsApi.reassign(reassignTarget, reassignEducatorId)
+            .then(() => { setToast("Educator reassigned."); setReassignTarget(null); assignmentsState.refetch(); })
+            .catch((error) => setToast(error.message));
         }}
         onCancel={() => setReassignTarget(null)}
         confirmDisabled={!reassignEducatorId}
@@ -808,9 +785,9 @@ export default function AssignEducators() {
         description="The educator will be notified of the new deadline (mock)."
         confirmLabel="Save New Deadline"
         onConfirm={() => {
-          extendDeadline(extendTarget, extendDate);
-          setToast("Deadline updated. Educator notified (mock).");
-          setExtendTarget(null);
+          assignmentsApi.extend(extendTarget, extendDate)
+            .then(() => { setToast("Deadline updated."); setExtendTarget(null); assignmentsState.refetch(); })
+            .catch((error) => setToast(error.message));
         }}
         onCancel={() => setExtendTarget(null)}
         confirmDisabled={!extendDate}
@@ -829,9 +806,9 @@ export default function AssignEducators() {
         confirmLabel="Cancel Assignment"
         tone="danger"
         onConfirm={() => {
-          cancelAssignment(cancelTarget, cancelReason);
-          setToast("Assignment cancelled.");
-          setCancelTarget(null);
+          assignmentsApi.cancel(cancelTarget, cancelReason)
+            .then(() => { setToast("Assignment cancelled."); setCancelTarget(null); assignmentsState.refetch(); })
+            .catch((error) => setToast(error.message));
         }}
         onCancel={() => setCancelTarget(null)}
       >
@@ -958,7 +935,7 @@ export default function AssignEducators() {
 
             {detailNotifications.length > 0 && (
               <>
-                <span className="ul-mgmt-detail-subhead">Educator Notifications ({MOCK_NOTICE})</span>
+                <span className="ul-mgmt-detail-subhead">Educator Notifications</span>
                 <div className="ul-mgmt-activity-list">
                   {detailNotifications.map((n) => (
                     <div key={n.id} className="ul-mgmt-activity-row">

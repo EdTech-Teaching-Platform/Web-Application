@@ -11,10 +11,9 @@
 // .ul-card / .ul-card__head / .ul-card__eyebrow (AdminDashboard.css),
 // .ul-report-bars family (ReportsBuilder.css).
 
-import { useEffect, useMemo, useState } from "react";
-import { useTestSeriesList, SUBJECT_OPTIONS, TEST_STATUS } from "../data/testSeriesMock";
-import { useAssignments } from "../data/testAssignmentsMock";
-import { buildAttempts, buildLeaderboard } from "../data/testLeaderboardMock";
+import { useCallback, useState } from "react";
+import { useRpc } from "../hooks/useRpc";
+import { performanceApi } from "../services/performanceApi";
 import { IconChart, IconDownload, IconHistory, IconLayers } from "../components/icons";
 import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
@@ -84,7 +83,7 @@ function flattenPublishedTests(seriesList, assignments) {
   const rows = [];
   for (const series of seriesList) {
     for (const test of series.tests || []) {
-      if (test.status !== TEST_STATUS.PUBLISHED) continue;
+      if (test.status !== "published") continue;
       const exact = educatorMap.get(`${series.id}::${test.name}`);
       const educators = exact ? [exact] : Array.from(seriesEducators.get(series.id) || []).sort();
       rows.push({
@@ -203,120 +202,51 @@ function LineChart({ points }) {
 }
 
 export default function TestPerformanceAnalytics() {
-  const seriesList = useTestSeriesList();
-  const assignments = useAssignments();
-
-  const allPublishedTests = useMemo(
-    () => flattenPublishedTests(seriesList, assignments),
-    [seriesList, assignments]
-  );
-
-  const educatorOptions = useMemo(() => {
-    const set = new Set();
-    for (const t of allPublishedTests) (t.educators.length ? t.educators : ["Unassigned"]).forEach((n) => set.add(n));
-    return Array.from(set).sort();
-  }, [allPublishedTests]);
-
   const [seriesFilter, setSeriesFilter] = useState("all");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [testFilter, setTestFilter] = useState("all");
   const [educatorFilter, setEducatorFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-
-  const seriesOptions = useMemo(() => {
-    const map = new Map();
-    for (const t of allPublishedTests) map.set(t.seriesId, t.seriesName);
-    return Array.from(map.entries());
-  }, [allPublishedTests]);
-
-  const testOptions = useMemo(() => {
-    return allPublishedTests.filter(
-      (t) =>
-        (seriesFilter === "all" || t.seriesId === seriesFilter) &&
-        (subjectFilter === "all" || t.subject === subjectFilter)
-    );
-  }, [allPublishedTests, seriesFilter, subjectFilter]);
-
-  const filteredTests = useMemo(() => {
-    return allPublishedTests.filter((t) => {
-      if (seriesFilter !== "all" && t.seriesId !== seriesFilter) return false;
-      if (subjectFilter !== "all" && t.subject !== subjectFilter) return false;
-      if (testFilter !== "all" && t.testId !== testFilter) return false;
-      if (educatorFilter !== "all" && !(t.educators.length ? t.educators.includes(educatorFilter) : educatorFilter === "Unassigned")) return false;
-      if (dateFrom && t.scheduledAt && new Date(t.scheduledAt) < new Date(dateFrom)) return false;
-      if (dateTo && t.scheduledAt && new Date(t.scheduledAt) > new Date(dateTo)) return false;
-      return true;
-    });
-  }, [allPublishedTests, seriesFilter, subjectFilter, testFilter, educatorFilter, dateFrom, dateTo]);
-
-  const withAttempts = useMemo(() => filteredTests.filter((t) => t.attempts > 0), [filteredTests]);
-  const hasAnyAttemptData = withAttempts.length > 0;
-
-  const totalAttempts = withAttempts.reduce((sum, t) => sum + t.attempts, 0);
-  const avgScore = weightedAvg(withAttempts, "avgScore", "attempts");
-  const avgTimeTaken = weightedAvg(withAttempts, "avgTimeTakenMinutes", "attempts");
-  const totalPublishedTests = filteredTests.length;
-
-  const bySubject = useMemo(() => {
-    const map = new Map();
-    for (const t of withAttempts) {
-      if (!map.has(t.subject)) map.set(t.subject, []);
-      map.get(t.subject).push(t);
-    }
-    const rows = Array.from(map.entries()).map(([subject, rows]) => ({
-      subject,
-      avgScore: weightedAvg(rows, "avgScore", "attempts"),
-      attempts: rows.reduce((s, r) => s + r.attempts, 0),
-    }));
-    return rows.sort((a, b) => b.avgScore - a.avgScore);
-  }, [withAttempts]);
-
-  const seriesEngagement = useMemo(() => {
-    const map = new Map();
-    for (const t of withAttempts) {
-      if (!map.has(t.seriesId)) {
-        map.set(t.seriesId, { seriesId: t.seriesId, seriesName: t.seriesName, subject: t.subject, tests: [] });
-      }
-      map.get(t.seriesId).tests.push(t);
-    }
-    return Array.from(map.values()).map((s) => ({
-      ...s,
-      attempts: s.tests.reduce((sum, t) => sum + t.attempts, 0),
-      avgPerformance: weightedAvg(s.tests, "avgScore", "attempts"),
-      educators: Array.from(new Set(s.tests.flatMap((t) => t.educators))).sort(),
-    }));
-  }, [withAttempts]);
+  const filters = { series: seriesFilter, subject: subjectFilter, test: testFilter, educator: educatorFilter, from: dateFrom, to: dateTo };
+  const filterState = useRpc(useCallback(() => performanceApi.filterOptions(seriesFilter), [seriesFilter]));
+  const summaryState = useRpc(useCallback(() => performanceApi.summary(filters), [seriesFilter, subjectFilter, testFilter, educatorFilter, dateFrom, dateTo]));
+  const subjectState = useRpc(useCallback(() => performanceApi.subjectScores(filters), [seriesFilter, subjectFilter, testFilter, educatorFilter, dateFrom, dateTo]));
+  const engagementState = useRpc(useCallback(() => performanceApi.engagement(filters), [seriesFilter, subjectFilter, testFilter, educatorFilter, dateFrom, dateTo]));
+  const comparisonState = useRpc(useCallback(() => performanceApi.comparison(filters), [seriesFilter, subjectFilter, testFilter, educatorFilter, dateFrom, dateTo]));
+  const lbState = useRpc(useCallback(() => performanceApi.leaderboard(lbSeries, dateFrom, dateTo), [lbSeries, dateFrom, dateTo]));
+  const options = filterState.data || { series: [], subjects: [], tests: [], educators: [] };
+  const seriesOptions = (options.series || []).map((s) => [s.id, s.title]);
+  const lbSeriesOptions = seriesOptions;
+  const testOptions = (options.tests || []).map((t) => ({ testId: t.id, testName: t.title }));
+  const educatorOptions = (options.educators || []).map((e) => e.name);
+  const filteredTests = (comparisonState.data || []).map((t) => ({ testId: t.test_id, testName: t.test_title, seriesName: t.series_title, educators: t.educators ? t.educators.split(", ") : [], subject: "", attempts: Number(t.attempts || 0), avgScore: Number(t.avg_score || 0), avgTimeTakenMinutes: Number(t.avg_time_minutes || 0) }));
+  const summary = summaryState.data || {};
+  const totalAttempts = Number(summary.total_attempts || 0);
+  const avgScore = Number(summary.avg_score || 0);
+  const avgTimeTaken = Number(summary.avg_time_minutes || 0);
+  const totalPublishedTests = Number(summary.published_tests || 0);
+  const hasAnyAttemptData = totalAttempts > 0;
+  const bySubject = (subjectState.data || []).map((r) => ({ subject: r.subject, avgScore: Number(r.avg_score || 0), attempts: Number(r.attempts || 0) }));
+  const seriesEngagement = (engagementState.data || []).map((r) => ({ seriesId: r.series_id, seriesName: r.series_title, subject: r.subject, attempts: Number(r.attempts || 0), avgPerformance: Number(r.avg_performance || 0), educators: r.educators && r.educators !== "Unassigned" ? r.educators.split(", ") : [] }));
 
   // ---- Leaderboard & Ranking ----
   const [lbSeries, setLbSeries] = useState("all");
-  const [lbLoading, setLbLoading] = useState(true);
-  const lbAttempts = useMemo(() => buildAttempts(withAttempts), [withAttempts]);
-  const lbSeriesOptions = useMemo(() => {
-    const ids = new Set(lbAttempts.map((a) => a.seriesId));
-    return seriesOptions.filter(([id]) => ids.has(id));
-  }, [lbAttempts, seriesOptions]);
-  const lbSeriesValid = lbSeries === "all" || lbSeriesOptions.some(([id]) => id === lbSeries);
-  const lbSeriesId = lbSeriesValid ? lbSeries : "all";
-
-  useEffect(() => {
-    setLbLoading(true);
-    const t = setTimeout(() => setLbLoading(false), 450);
-    return () => clearTimeout(t);
-  }, [lbSeriesId, lbAttempts]);
-
-  const lbRows = useMemo(() => buildLeaderboard(lbAttempts, lbSeriesId), [lbAttempts, lbSeriesId]);
+  const lbLoading = lbState.loading;
+  const lbSeriesId = lbSeries;
+  const lbRows = (lbState.data || []).map((r) => ({ rank: r.rank_no, name: r.learner, score: Number(r.score || 0), percentile: Number(r.percentile || 0), attempts: Number(r.attempts || 0) }));
+  const withAttempts = filteredTests.filter((t) => t.attempts > 0);
   const lbTop = lbRows.slice(0, 3);
   const lbShown = lbRows.slice(0, 10);
   const lbName = (r) => r.name;
   const lbScore = (r) => pct(r.score);
 
-  function exportCSV() {
+  async function exportCSV() {
+    const rows = await performanceApi.exportRows(filters);
     const header = csvRow(["Test", "Test Series", "Subject", "Educator", "Attempts", "Avg Score", "Avg Time Taken (min)"]);
-    const rows = filteredTests.map((t) =>
-      csvRow([t.testName, t.seriesName, t.subject, t.educatorName, t.attempts, t.avgScore ? `${t.avgScore}%` : "—", t.avgTimeTakenMinutes || "—"])
-    );
-    downloadCSV("test-performance-analytics.csv", [header, ...rows].join("\n"));
+    const csvRows = rows.map((t) => csvRow([t.test, t.series, t.subject, t.educators, t.attempts, t.avg_score_pct ? `${t.avg_score_pct}%` : "—", t.avg_time_min || "—"]));
+    downloadCSV("test-performance-analytics.csv", [header, ...csvRows].join("\n"));
+    performanceApi.logExport(filters, rows.length).catch((error) => console.error("Failed to log analytics export.", error));
   }
 
   const subjectMax = Math.max(1, ...bySubject.map((s) => s.avgScore));
@@ -344,7 +274,7 @@ export default function TestPerformanceAnalytics() {
         </select>
         <select value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setTestFilter("all"); }}>
           <option value="all">All Subjects</option>
-          {SUBJECT_OPTIONS.map((s) => (
+          {options.subjects.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
@@ -365,6 +295,10 @@ export default function TestPerformanceAnalytics() {
           <label htmlFor="tpa-from">From</label>
           <input id="tpa-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
         </div>
+        {(summaryState.loading || subjectState.loading || engagementState.loading || comparisonState.loading) && <div className="ul-edu-empty">Loading analytics…</div>}
+        {(summaryState.error || subjectState.error || engagementState.error || comparisonState.error) && (
+          <div className="ul-edu-empty" role="alert"><p>{summaryState.error?.message || subjectState.error?.message || engagementState.error?.message || comparisonState.error?.message}</p><button type="button" className="ul-btn ul-btn--ghost" onClick={() => { summaryState.refetch(); subjectState.refetch(); engagementState.refetch(); comparisonState.refetch(); }}>Retry</button></div>
+        )}
         <div className="ul-tpa-date-field">
           <label htmlFor="tpa-to">To</label>
           <input id="tpa-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
@@ -500,7 +434,7 @@ export default function TestPerformanceAnalytics() {
                   </table>
                 </div>
                 <p className="ul-tpa-lb__note">
-                  Top {lbShown.length} of {lbRows.length} learners. Demo data derived from each series' real average score
+                  Top {lbShown.length} of {lbRows.length} learners.
                   {lbSeriesId === "all" ? "; overall = attempt-weighted average across series" : ""}.
                 </p>
               </>
