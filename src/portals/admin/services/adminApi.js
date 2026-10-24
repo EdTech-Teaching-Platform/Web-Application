@@ -24,7 +24,7 @@ export const dashboardApi = {
   search: (query, limit = 5) => callRpc("global_search", { p_q: query, p_limit: limit }),
   listNotes: () => callRpc("list_my_notes"),
   addNote: (text) => callRpc("add_admin_note", { p_text: text }),
-  toggleNote: (id, isDone) => callRpc("toggle_admin_note", { p_id: id, p_is_done: isDone }),
+  toggleNote: (id, isDone) => callRpc("toggle_admin_note", { p_id: id, p_done: isDone }),
   updateNote: (id, text) => callRpc("update_admin_note", { p_id: id, p_text: text }),
   deleteNote: (id) => callRpc("delete_admin_note", { p_id: id }),
   clearDoneNotes: () => callRpc("clear_done_notes"),

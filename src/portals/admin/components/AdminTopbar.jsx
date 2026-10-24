@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useUnreadNotificationCount } from "../data/notificationsMock";
 import { startRegionalHeadSync } from "../data/regionalHeadsMock";
 import NotificationsPanel from "./NotificationsPanel";
+import { dashboardApi } from "../services/adminApi";
 import { IconSearch, IconBell, IconLock, IconMenu } from "./icons";
 import "./AdminChrome.css";
 
@@ -28,12 +29,25 @@ export default function AdminTopbar({ onMenuClick }) {
   const navigate = useNavigate();
   const unreadCount = useUnreadNotificationCount();
   const [notifOpen, setNotifOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
   const notifRef = useRef(null);
 
   // Regional Head invitations are answered on a separate page/tab; this
   // keeps the admin chrome listening so an accepted/declined invitation
   // shows up in the notification popup live, on any admin page.
   useEffect(() => startRegionalHeadSync(), []);
+
+  useEffect(() => {
+    if (search.trim().length < 2) {
+      setSearchResults(null);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      dashboardApi.search(search.trim()).then(setSearchResults).catch(() => setSearchResults(null));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     if (!notifOpen) return undefined;
@@ -58,7 +72,26 @@ export default function AdminTopbar({ onMenuClick }) {
       <div className="ul-topbar__actions">
         <div className="ul-topbar__search">
           <IconSearch size={15} color="var(--color-text-muted)" />
-          <input type="text" placeholder="Search learners, educators, courses…" />
+          <input
+            type="text"
+            placeholder="Search learners, educators, courses…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label="Search learners, educators, courses"
+          />
+          {searchResults && (
+            <div className="ul-topbar__search-results">
+              {["students", "educators", "series"].flatMap((key) => searchResults[key] || []).map((result) => (
+                <span key={`${result.id}-${result.label}`} className="ul-topbar__search-result">
+                  <strong>{result.label}</strong>
+                  <small>{result.sublabel}</small>
+                </span>
+              ))}
+              {["students", "educators", "series"].every((key) => !(searchResults[key] || []).length) && (
+                <span className="ul-topbar__search-result">No results found.</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="ul-notifpanel-anchor" ref={notifRef}>

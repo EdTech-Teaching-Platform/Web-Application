@@ -9,20 +9,11 @@
 // from the existing mock modules (financialAnalyticsMock / regionalAnalyticsMock)
 // or from dashboardMock.js — no routes, permissions or other pages change.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAssignments, getDisplayStatus, ASSIGNMENT_STATUS_LABEL, ASSIGNMENT_STATUS_BADGE_CLASS } from "../data/testAssignmentsMock";
 import { useAuth } from "../../../hooks/useAuth";
-import {
-  dashboardQuote,
-  dashboardStatCards,
-  dashboardRevenuePoints,
-  dashboardNetRevenue,
-  dashboardNotepadSeed,
-  pendingApprovals,
-} from "../data/dashboardMock";
-import { useTestSeriesList, SERIES_STATUS } from "../data/testSeriesMock";
-import { REGIONS } from "../data/regionalAnalyticsMock";
+import { dashboardApi } from "../services/adminApi";
+import { useRpc } from "../hooks/useRpc";
 import { IconUsers, IconTeach, IconCourse, IconReport, IconGraduationCap, IconClose, IconSend } from "../components/icons";
 import dashboardHeroImg from "../../../assets/illustrations/dashboard-hero.png";
 import dashboardMapImg from "../../../assets/illustrations/dashboard-map.png";
@@ -130,39 +121,15 @@ function RevenueChart({ points }) {
   );
 }
 
-const NOTEPAD_STORAGE_KEY = "ul-admin-notepad-v2";
-
-function NotepadCard() {
-  const [items, setItems] = useState(() => {
-    try {
-      const stored = window.localStorage.getItem(NOTEPAD_STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // ignore — fall back to the seed list below
-    }
-    return dashboardNotepadSeed.map((label, i) => ({ id: `seed-${i}`, label, done: false }));
-  });
+function NotepadCard({ notes, onRefresh }) {
   const [draft, setDraft] = useState("");
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(NOTEPAD_STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // best-effort persistence only
-    }
-  }, [items]);
-
-  const toggleItem = (id) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, done: !item.done } : item)));
-  };
-  const removeItem = (id) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
-  const addNote = () => {
+  const addNote = async () => {
     const value = draft.trim();
     if (!value) return;
-    setItems((prev) => [...prev, { id: `note-${Date.now()}`, label: value, done: false }]);
+    await dashboardApi.addNote(value);
     setDraft("");
+    onRefresh();
   };
 
   return (
@@ -172,11 +139,11 @@ function NotepadCard() {
         <h3>My Notepad</h3>
       </div>
       <div className="ul-dash2-notepad-list">
-        {items.map((item) => (
+        {notes.map((item) => (
           <label className="ul-dash2-notepad-item" key={item.id}>
-            <input type="checkbox" checked={item.done} onChange={() => toggleItem(item.id)} />
-            <span className={item.done ? "is-done" : ""}>{item.label}</span>
-            <button type="button" className="ul-dash2-notepad-remove" onClick={() => removeItem(item.id)} aria-label="Remove note">
+            <input type="checkbox" checked={item.is_done} onChange={() => dashboardApi.toggleNote(item.id, !item.is_done).then(onRefresh)} />
+            <span className={item.is_done ? "is-done" : ""}>{item.text}</span>
+            <button type="button" className="ul-dash2-notepad-remove" onClick={() => dashboardApi.deleteNote(item.id).then(onRefresh)} aria-label="Remove note">
               <IconClose size={11} />
             </button>
           </label>
@@ -202,29 +169,30 @@ function NotepadCard() {
 
 export default function LoginDashboard() {
   const { user } = useAuth();
-  const assignments = useAssignments();
-  // series awaiting review first, then in-flight work; cancelled/rejected excluded
-  const tsApprovals = useMemo(() => {
-    const rank = { submitted: 0, under_review: 0, revision_requested: 1, in_progress: 2, assigned: 3, overdue: 1, approved: 4, completed: 5 };
-    return assignments
-      .filter((a) => a.status !== "cancelled" && a.status !== "rejected")
-      .sort((x, y) => (rank[getDisplayStatus(x)] ?? 9) - (rank[getDisplayStatus(y)] ?? 9))
-      .slice(0, 3);
-  }, [assignments]);
-  const firstName = user?.name?.split(" ")[0] || "Admin";
-  const seriesList = useTestSeriesList();
-  // published series ranked by enrolments; revenue = enrolments x price (free series earn 0)
-  const topSeries = useMemo(
-    () =>
-      seriesList
-        .filter((x) => x.status === SERIES_STATUS.PUBLISHED)
-        .map((x) => ({ id: x.id, name: x.name, enrollments: x.enrollment || 0, revenue: (x.enrollment || 0) * (x.price || 0), score: x.avgPerformance || 0 }))
-        .sort((a, b) => b.enrollments - a.enrollments)
-        .slice(0, 5),
-    [seriesList]
-  );
-  const topRegions = useMemo(() => [...REGIONS].sort((a, b) => b.students - a.students).slice(0, 6), []);
-  const regionTotal = useMemo(() => REGIONS.reduce((sum, r) => sum + r.students, 0), []);
+  const dashboardRequest = useCallback(() => dashboardApi.getDashboard(), []);
+  const dashboard = useRpc(dashboardRequest);
+  const notesRequest = useCallback(() => dashboardApi.listNotes(), []);
+  const notes = useRpc(notesRequest);
+  const firstName = dashboard.data?.header?.name || user?.name?.split(" ")[0] || "Admin";
+  const stats = dashboard.data?.stats || {};
+  const revenue = dashboard.data?.revenue || { series: [] };
+  const educators = dashboard.data?.educator_verifications?.items || [];
+  const seriesApprovals = dashboard.data?.series_approvals?.items || [];
+  const topSeries = dashboard.data?.top_series || [];
+  const regionData = dashboard.data?.students_by_region || { regions: [] };
+  const dashboardRevenuePoints = (revenue.series || []).map((point) => ({
+    label: new Date(point.bucket).toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+    value: Number(point.revenue_inr) || 0,
+  }));
+  if (dashboardRevenuePoints.length === 0) dashboardRevenuePoints.push({ label: "Today", value: 0 });
+  const statCards = [
+    { key: "students", label: "Total Students", data: stats.students, icon: "users", accent: "rose" },
+    { key: "educators", label: "Total Educators", data: stats.educators, icon: "teach", accent: "amber" },
+    { key: "test_series", label: "Total Test Series", data: stats.test_series, icon: "report", accent: "sky" },
+  ];
+  if (dashboard.loading) return <div className="ul-card"><p className="ul-card__body-text">Loading dashboard…</p></div>;
+  if (dashboard.error) return <div className="ul-card"><p className="ul-card__body-text">Unable to load the dashboard.</p><button type="button" className="ul-btn ul-btn--ghost" onClick={() => dashboard.refetch()}>Retry</button></div>;
+  if (!dashboard.data) return <div className="ul-card"><p className="ul-card__body-text">No dashboard data is available.</p><button type="button" className="ul-btn ul-btn--ghost" onClick={() => dashboard.refetch()}>Retry</button></div>;
 
   return (
     <>
@@ -236,24 +204,26 @@ export default function LoginDashboard() {
           <p className="ul-dash-welcome__subtitle">Here&rsquo;s what&rsquo;s happening on your Universal Learning platform today.</p>
         </div>
         <HeroIllustration />
-        <p className="ul-dash2-hero-quote">&ldquo;{dashboardQuote}&rdquo;</p>
+        <p className="ul-dash2-hero-quote">&ldquo;{dashboard.data.header?.quote || "Empowering educators. Enabling learners. Building brighter futures."}&rdquo;</p>
         <div className="ul-dash2-hero-date">
           <span>Today</span>
-          <strong>{today}</strong>
+          <strong>{dashboard.data.header?.today ? new Date(dashboard.data.header.today).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : today}</strong>
         </div>
       </div>
 
       {/* ---- stat row ---- */}
       <div className="ul-stats ul-stats--dash">
-        {dashboardStatCards.filter((s) => !s.hidden).map((s) => {
+        {statCards.map((s) => {
           const Icon = STAT_ICONS[s.icon] || IconGraduationCap;
+          const value = s.data?.total || 0;
+          const growth = s.data?.growth_pct;
           return (
             <div className={`ul-stat-card ul-stat-card--dash ul-stat-card--${s.accent}`} key={s.key}>
               <span className="ul-dash2-stat-icon"><Icon size={17} /></span>
               <span className="ul-stat-card__label">{s.label}</span>
-              <span className="ul-stat-card__value">{s.value}</span>
-              <span className="ul-stat-card__trend is-up">{s.trend} <em>{s.note}</em></span>
-              <Sparkline values={s.spark} color="var(--color-primary)" />
+              <span className="ul-stat-card__value">{Number(value).toLocaleString("en-IN")}</span>
+              <span className={`ul-stat-card__trend ${growth >= 0 ? "is-up" : ""}`}>{growth == null ? "—" : `${growth >= 0 ? "+" : ""}${growth}%`} <em>from last month</em></span>
+              <Sparkline values={s.data?.sparkline || [0]} color="var(--color-primary)" />
             </div>
           );
         })}
@@ -268,8 +238,8 @@ export default function LoginDashboard() {
               <p className="ul-card__body-text">Revenue generated across all test series.</p>
             </div>
             <div className="ul-dash2-chart-summary">
-              <span className="ul-dash2-net-value">{dashboardNetRevenue.value}</span>
-              <span className="ul-stat-card__trend is-up">{dashboardNetRevenue.trend}</span>
+              <span className="ul-dash2-net-value">{money(revenue.total_inr)}</span>
+              <span className="ul-stat-card__trend is-up">{revenue.change_pct == null ? "—" : `${revenue.change_pct >= 0 ? "+" : ""}${revenue.change_pct}%`}</span>
             </div>
           </div>
           <RevenueChart points={dashboardRevenuePoints} />
@@ -286,12 +256,13 @@ export default function LoginDashboard() {
             <Link className="ul-card__see-all" to="/admin/educatorverification">See all</Link>
           </div>
           <div className="ul-approval-list">
-            {pendingApprovals.educators.map((e) => (
+            {educators.length === 0 && <div className="ul-approval-row__meta">No educator verifications awaiting review.</div>}
+            {educators.map((e) => (
               <div className="ul-approval-row" key={e.id}>
                 <div className="ul-avatar-chip">{e.initials}</div>
                 <div className="ul-approval-row__body">
                   <span className="ul-approval-row__name">{e.name}</span>
-                  <span className="ul-approval-row__meta">Submitted {e.submitted}</span>
+                  <span className="ul-approval-row__meta">{e.submitted_label}</span>
                 </div>
                 <Link className="ul-btn ul-btn--ghost" to="/admin/educatorverification">
                   Review
@@ -305,16 +276,16 @@ export default function LoginDashboard() {
             <Link className="ul-card__see-all" to="/admin/testseries/tracker">See all</Link>
           </div>
           <div className="ul-approval-list">
-            {tsApprovals.length === 0 && <div className="ul-approval-row__meta">No test series awaiting educator work.</div>}
-            {tsApprovals.map((a) => {
-              const st = getDisplayStatus(a);
+            {seriesApprovals.length === 0 && <div className="ul-approval-row__meta">No test series awaiting educator work.</div>}
+            {seriesApprovals.map((a) => {
+              const st = a.is_overdue ? "Overdue" : a.status;
               return (
                 <div className="ul-approval-row ul-approval-row--course" key={a.id}>
                   <div className="ul-approval-row__body">
                     <span className="ul-approval-row__name">{a.seriesName || a.testName}</span>
                     <span className="ul-approval-row__meta">Educator: {a.educatorName || "Unassigned"}</span>
                   </div>
-                  <span className={`ul-status-badge ${ASSIGNMENT_STATUS_BADGE_CLASS[st] || "is-pending"}`}>{ASSIGNMENT_STATUS_LABEL[st] || st}</span>
+                  <span className="ul-status-badge is-pending">{st}</span>
                 </div>
               );
             })}
@@ -333,10 +304,11 @@ export default function LoginDashboard() {
             <table className="ul-edu-table ul-dash2-courses-table">
               <thead><tr><th>Test Series</th><th>Avg Score</th></tr></thead>
               <tbody>
+                {topSeries.length === 0 && <tr><td colSpan="2">No performance data yet.</td></tr>}
                 {topSeries.map((c, i) => (
                   <tr key={c.id}>
-                    <td><strong>{i < 4 ? "🏆 " : ""}{c.name}</strong></td>
-                    <td><span className="ul-status-badge is-approved">{c.score}%</span></td>
+                    <td><strong>{i < 4 ? "🏆 " : ""}{c.title}</strong></td>
+                    <td><span className="ul-status-badge is-approved">{c.avg_score}%</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -352,10 +324,11 @@ export default function LoginDashboard() {
           <div className="ul-dash2-region-body">
             <img className="ul-dash2-region-map" src={dashboardMapImg} alt="" aria-hidden="true" />
             <div className="ul-dash2-region-list">
-              {topRegions.map((r) => (
+              {regionData.regions.length === 0 && <div className="ul-dash2-region-row">No regional data yet.</div>}
+              {regionData.regions.map((r) => (
                 <div className="ul-dash2-region-row" key={r.id}>
-                  <span>{r.state}</span>
-                  <strong>{r.students.toLocaleString("en-IN")}</strong>
+                  <span>{r.name}</span>
+                  <strong>{Number(r.students).toLocaleString("en-IN")}</strong>
                 </div>
               ))}
             </div>
@@ -366,10 +339,10 @@ export default function LoginDashboard() {
             <span><i className="is-low" /> 100-500</span>
             <span><i className="is-min" /> &lt;100</span>
           </div>
-          <p className="ul-dash2-region-total">{regionTotal.toLocaleString("en-IN")} students across {REGIONS.length} regions</p>
+          <p className="ul-dash2-region-total">{Number(regionData.total_students || 0).toLocaleString("en-IN")} students across {regionData.regions_count || 0} regions</p>
         </div>
 
-        <NotepadCard />
+        <NotepadCard notes={notes.data || []} onRefresh={() => notes.refetch()} />
       </div>
     </>
   );

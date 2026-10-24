@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
+import { dashboardApi } from "../services/adminApi";
+import { useRpc } from "../hooks/useRpc";
 import sidebarBooksImg from "../../../assets/illustrations/sidebar-books.png";
 import {
   IconDashboard,
@@ -91,6 +93,7 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
   }, [menuOpen]);
 
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const navigation = useRpc(dashboardApi.getNavigation);
 
   const handleLogout = () => {
     setMenuOpen(false);
@@ -155,6 +158,9 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
                 >
                   <item.icon size={17} />
                   <span>{item.label}</span>
+                  {navigation.data?.find((navItem) => navItem.route === item.to)?.badge > 0 && (
+                    <span className="ul-sidebar__badge">{navigation.data.find((navItem) => navItem.route === item.to).badge}</span>
+                  )}
                 </NavLink>
               ))}
             </div>
