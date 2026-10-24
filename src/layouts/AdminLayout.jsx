@@ -51,7 +51,7 @@ function DashboardFloatingIcons() {
 // don't need to touch AppRoutes.jsx / portals/admin/routes.jsx (per the
 // project README, portal work shouldn't require editing those files).
 export default function AdminLayout() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   // Mobile-only slide-in drawer state for AdminSidebar (see AdminChrome.css
   // — hidden off-canvas below 900px, opened via the hamburger in AdminTopbar).
@@ -66,8 +66,11 @@ export default function AdminLayout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  if (loading) {
+    return null;
+  }
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
   if (user.role !== "admin") {
     return <Navigate to="/" replace />;

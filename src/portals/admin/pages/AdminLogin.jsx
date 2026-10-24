@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "../../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../../../services/supabaseClient";
 import {
   IconEye,
   IconEyeOff,
@@ -75,20 +75,13 @@ function IconArrowRight({ size = 16, color = "currentColor" }) {
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
   const [stage, setStage] = useState("credentials"); // "credentials" | "loading"
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [sessionActive, setSessionActive] = useState(false);
 
   useEffect(() => {
-    if (stage === "loading") {
-      const timer = setTimeout(() => {
-        setUser({ name: "Admin User", email: form.email.trim(), role: "admin" });
-        setStage("leaving");
-      }, 700);
-      return () => clearTimeout(timer);
-    }
     if (stage === "leaving") {
       // Let the exit animation (see .ul-login--leaving in AdminAuth.css)
       // play out before the route swap, so the dashboard's own slide-in
@@ -99,9 +92,18 @@ export default function AdminLogin() {
       }, 220);
       return () => clearTimeout(timer);
     }
-  }, [stage, form.email, navigate, setUser]);
+  }, [stage, navigate]);
 
-  const handleCredentialsSubmit = (event) => {
+  useEffect(() => {
+    if (!sessionActive) return undefined;
+    supabase.rpc("touch_session").catch(() => {});
+    const interval = window.setInterval(() => {
+      supabase.rpc("touch_session").catch(() => {});
+    }, 5 * 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, [sessionActive]);
+
+  const handleCredentialsSubmit = async (event) => {
     event.preventDefault();
     const email = form.email.trim();
 
@@ -112,6 +114,32 @@ export default function AdminLogin() {
 
     setError("");
     setStage("loading");
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: form.password });
+    if (signInError) {
+      setError(signInError.message);
+      setStage("credentials");
+      return;
+    }
+
+    const { data: admin, error: adminError } = await supabase.rpc("get_admin_me");
+    if (adminError || !admin) {
+      await supabase.auth.signOut();
+      setError("Not authorized");
+      setStage("credentials");
+      return;
+    }
+
+    const { error: loginError } = await supabase.rpc("record_login", {
+      p_user_agent: navigator.userAgent,
+    });
+    if (loginError) {
+      await supabase.auth.signOut();
+      setError(loginError.message);
+      setStage("credentials");
+      return;
+    }
+    setSessionActive(true);
+    setStage("leaving");
   };
 
   return (

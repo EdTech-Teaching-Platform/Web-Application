@@ -9,9 +9,16 @@ dev only needs to work inside their own portal folder.
 
 ```bash
 npm install
-cp .env.example .env   # set VITE_API_BASE_URL to your backend
+# On Windows, copy .env.example to .env manually or use Copy-Item.
+# Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for the Supabase project.
 npm run dev
 ```
+
+Admin authentication is provided by Supabase Auth and the `profiles` table.
+Apply the migrations in `supabase/migrations/` after the core schema, then use
+the Supabase CLI (`supabase start` and `supabase db reset`) when Docker is
+available. The browser must only receive the anon key; never put a service-role
+key in `src/` or a Vite-exposed environment variable.
 
 ## Who works where
 
