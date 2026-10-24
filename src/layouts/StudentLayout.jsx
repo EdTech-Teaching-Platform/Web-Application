@@ -8,7 +8,6 @@ import SectionShapes from "../components/common/SectionShapes";
 const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
   { href: "/student/explore", label: "Explore" },
-  { href: "/student/my-learning", label: "My Learning" },
   {
     label: "Test Series",
     items: [
@@ -16,19 +15,6 @@ const navEntries = [
       { href: "/student/assessments/my-results", label: "My Results" },
     ],
   },
-  {
-    label: "Classes",
-    items: [
-      { href: "/student/live-classes", label: "Live Classes" },
-      { href: "/student/learninghistory", label: "Learning History" },
-    ],
-  },
-  { href: "/student/assessments/course-quizzes", label: "Assignments" },
-  { label: "Engage", items: [
-    { href: "/student/calendar", label: "Calendar" },
-    { href: "/student/messages", label: "Discussions" },
-  ] },
-  { href: "/student/certificates", label: "Achievements" },
   {
     label: "Account",
     items: [
@@ -45,7 +31,7 @@ function MobileNav() {
   const items = [
     { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
     { href: "/student/explore", label: "Explore", icon: CompassIcon },
-    { href: "/student/my-learning", label: "My Learning", icon: HomeIcon },
+    { href: "/student/test-series", label: "Test Series", icon: HomeIcon },
     { href: "/student/help-complaints", label: "Help", icon: HelpCircleIcon },
     { href: "/student/profile", label: "Account", icon: HomeIcon },
   ];
