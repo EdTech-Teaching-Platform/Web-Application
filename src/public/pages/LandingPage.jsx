@@ -10,16 +10,13 @@
 // renders and is reviewable without a backend.
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
-import Chip from "../../components/ui/Chip";
-import ColorBlockCard from "../../components/ui/ColorBlockCard";
 import StatCard from "../../components/ui/StatCard";
 import Marquee from "../../components/ui/Marquee";
 import Accordion from "../../components/ui/Accordion";
-import { imageForCategory, imageForPerson, avatarFor, imgFallback, heroPhoto } from "../../utils/stockImages";
+import { imageForPerson, avatarFor, imgFallback, heroPhoto } from "../../utils/stockImages";
 import { COURSE_CATEGORIES, CATEGORY_META } from "../../utils/constants";
 import { useEffect, useState } from "react";
-import { COURSES, EDUCATORS } from "../../data/catalogMock";
-import { SearchIcon, ShieldCheckIcon, VideoIcon, WalletIcon, UsersIcon, FileTextIcon, BookOpenIcon, TrendingUpIcon, CheckCircleIcon, PlayCircleIcon, GoogleIcon, AppleIcon, AwardIcon, PencilIcon, TargetIcon, BriefcaseIcon, HeartIcon, ClockIcon } from "../../components/ui/icons";
+import { SearchIcon, ShieldCheckIcon, VideoIcon, WalletIcon, UsersIcon, FileTextIcon, BookOpenIcon, TrendingUpIcon, CheckCircleIcon, GoogleIcon, AppleIcon, AwardIcon, PencilIcon, TargetIcon, BriefcaseIcon, HeartIcon, ClockIcon } from "../../components/ui/icons";
 
 import SiteFooter from "../components/SiteFooter";
 import SectionShapes from "../../components/common/SectionShapes";
@@ -57,8 +54,6 @@ const EDUCATOR_BENEFITS = [
   },
 ];
 
-const COURSE_FILTERS = ["All", "Programming", "Design", "Business", "Math"];
-
 // Same "Explore by goal" copy already used on ExplorePage.jsx, reused
 // here rather than invented — just given the reference layout's 4
 // distinct pastel-card treatment instead of ExplorePage's plain grid.
@@ -67,21 +62,6 @@ const LANDING_GOALS = [
   { icon: BriefcaseIcon, tint: "bg-accent-teal/15", title: "Build career-ready skills", description: "In-demand, job-focused tracks in tech, design and business." },
   { icon: FileTextIcon, tint: "bg-accent-lilac/15", title: "Prepare for exams", description: "Structured practice for board, competitive and language exams.", to: "/student/assessments/test-series" },
   { icon: HeartIcon, tint: "bg-accent-sky/15", title: "Learn for personal interest", description: "Music, languages, wellness and creative courses to enjoy." },
-];
-
-const ALL_POPULAR_COURSES = [
-  COURSES.find((course) => course.id === "c1"),
-  COURSES.find((course) => course.id === "c6"),
-  COURSES.find((course) => course.id === "c2"),
-  COURSES.find((course) => course.id === "c5"),
-  COURSES.find((course) => course.id === "c9"),
-];
-
-const TOP_INSTRUCTORS = [
-  EDUCATORS.find((educator) => educator.id === "ed1"),
-  EDUCATORS.find((educator) => educator.id === "ed5"),
-  EDUCATORS.find((educator) => educator.id === "ed2"),
-  EDUCATORS.find((educator) => educator.id === "ed3"),
 ];
 
 // `avatar` is filled via avatarFor() below rather than hardcoded here, so
@@ -133,7 +113,6 @@ const FAQ_ITEMS = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState("All");
   const boardExamTarget = new Date("2027-02-15T00:00:00+05:30").getTime();
   const [timeUntilBoards, setTimeUntilBoards] = useState(() => Math.max(0, boardExamTarget - Date.now()));
 
@@ -151,11 +130,6 @@ export default function LandingPage() {
     { label: "Minutes", value: Math.floor((countdownSeconds % 3600) / 60) },
     { label: "Seconds", value: countdownSeconds % 60 },
   ];
-
-  const popularCourses =
-    activeFilter === "All"
-      ? ALL_POPULAR_COURSES.slice(0, 5)
-      : ALL_POPULAR_COURSES.filter((c) => c.category === activeFilter).slice(0, 5);
 
   return (
     <div>
@@ -425,59 +399,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Our most popular courses */}
-      <section id="courses" className="relative isolate bg-white py-16">
-        <SectionShapes visible variant="courses" />
-        <div className="relative z-10 mx-auto max-w-6xl px-6">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
-              Most Popular
-            </p>
-            <h2 className="font-display text-2xl font-bold text-text">
-              Our most popular courses.
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate("/explore")}
-            className="text-sm font-semibold text-primary hover:underline"
-          >
-            View all courses
-          </button>
-        </div>
-
-        <div className="mb-6 flex flex-wrap gap-3">
-          {COURSE_FILTERS.map((filter) => (
-            <Chip key={filter} active={activeFilter === filter} onClick={() => setActiveFilter(filter)}>
-              {filter}
-            </Chip>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
-          {popularCourses.map((course, i) => (
-            <ColorBlockCard
-              key={course.id}
-              rotationIndex={i}
-              image={imageForCategory(course.category)}
-              badge={course.category}
-              title={course.title}
-              subtitle={course.subtitle}
-              description={course.description}
-              price={course.price}
-              rating={course.rating}
-              reviewCount={course.reviewCount}
-              actionLabel="Enroll"
-              className="w-full"
-              onClick={() => navigate(`/course/${course.id}`)}
-              onAction={() => navigate(`/course/${course.id}`)}
-            />
-          ))}
-        </div>
-        </div>
-      </section>
-
       {/* Learning paths — pulled out of the assessment box above into its
           own full-width lavender band, matching the reference layout's
           "learning paths" pattern: heading + CTA on the left, path cards
@@ -513,121 +434,6 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Learn Live -- real Live Classes feature (see /student/live-classes,
-          courseType === "Live" in catalogMock), adapted from a competitor
-          reference layout but grounded in what this platform actually
-          offers, not an invented English-teaching pitch. */}
-      <section className="relative isolate bg-white py-16">
-        <SectionShapes visible variant="why" />
-        <div className="relative z-10 mx-auto max-w-6xl px-6">
-        <div className="grid gap-8 rounded-3xl bg-primary p-6 text-white md:grid-cols-2 md:p-10">
-          <div className="flex flex-col items-start">
-            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white">
-              <VideoIcon className="h-3.5 w-3.5" />
-              Live Classes
-            </span>
-            <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">
-              Learn Live with Real Educators
-            </h2>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
-              Book scheduled sessions with verified educators and join through a
-              single-use link generated fresh at join time -- real-time teaching,
-              not just recorded video.
-            </p>
-            <Button
-              fullWidth={false}
-              variant="inverse"
-              className="mt-6 px-6"
-              onClick={() => navigate("/live-classes")}
-            >
-              Explore Live Classes
-            </Button>
-            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              {[
-                "Expert educators",
-                "Live weekly sessions",
-                "Sync across all devices",
-                "Interactive Q&A",
-                "Small cohort sizes",
-                "Topic-based classes",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-2 text-sm text-white/90">
-                  <CheckCircleIcon className="h-4 w-4 shrink-0 text-accent-peach" />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="relative mx-auto w-full max-w-sm md:max-w-none">
-            <img
-              src={imageForPerson("live-classes-hero", { w: 480, h: 420 })}
-              onError={(e) => imgFallback(e, "live-classes-hero", 480, 420)}
-              alt="Educator teaching a live class"
-              className="h-full w-full rounded-2xl object-cover"
-            />
-            {/* Decorative play-button overlay only -- there is no video
-                backend/recording behind this image, so it is not wired to
-                any click handler or player. */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 flex items-center justify-center"
-            >
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                <PlayCircleIcon className="h-9 w-9 text-primary" />
-              </span>
-            </span>
-          </div>
-        </div>
-        </div>
-      </section>
-
-
-      {/* Learn from the best — Instructor Grid (same ColorBlockCard,
-          different meta row — never a separate InstructorCard) */}
-      <section id="instructors" className="relative isolate bg-white py-16">
-        <SectionShapes visible variant="educators" />
-        <div className="relative z-10 mx-auto max-w-6xl px-6">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
-              Top Rated
-            </p>
-            <h2 className="font-display text-2xl font-bold text-text">Learn from the best.</h2>
-          </div>
-          <a
-            href="/instructors"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/instructors");
-            }}
-            className="text-sm font-semibold text-primary hover:underline"
-          >
-            View all instructors
-          </a>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {TOP_INSTRUCTORS.map((instructor, i) => (
-            <ColorBlockCard
-              key={instructor.id}
-              rotationIndex={i}
-              image={imageForPerson(instructor.name)}
-              badge="Top Rated Instructor"
-              title={instructor.name}
-              subtitle={instructor.headline}
-              description={`${instructor.subjects.slice(0, 2).join(", ")} · ${instructor.experienceYears}+ yrs experience`}
-              rating={instructor.rating}
-              reviewCount={instructor.reviewCount}
-              actionLabel="View Profile"
-              className="w-full"
-              onClick={() => navigate(`/educator?educator=${instructor.id}`)}
-              onAction={() => navigate(`/educator?educator=${instructor.id}`)}
-            />
-          ))}
-        </div>
         </div>
       </section>
 
