@@ -22,17 +22,16 @@
 // EducatorVerification.css) so the look matches exactly — table/toolbar/
 // modal-specific layout lives in UserManagement.css.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useOnboardedBy } from "../data/regionalOnboardingMock";
 import {
-  useStudents,
-  blockStudent,
-  unblockStudent,
   STUDENT_STATUS,
   STUDENT_STATUS_LABEL,
   STUDENT_STATUS_BADGE_CLASS,
   GRADE_OPTIONS,
 } from "../data/studentsMock";
+import { useRpc } from "../hooks/useRpc";
+import { studentsApi } from "../services/studentsApi";
 import ConfirmModal from "../components/ConfirmModal";
 import { IconSearch, IconClose } from "../components/icons";
 import "./AdminDashboard.css";
@@ -67,8 +66,6 @@ function seriesNameFor(studentId, i) {
 }
 
 export default function UserManagement() {
-  const students = useStudents();
-
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [gradeFilter, setGradeFilter] = useState("all");
@@ -78,6 +75,12 @@ export default function UserManagement() {
   const [blockReason, setBlockReason] = useState("");
   const [unblockTarget, setUnblockTarget] = useState(null); // student pending an Unblock confirmation
   const [toast, setToast] = useState("");
+  const listRequest = useCallback(() => studentsApi.list({ search, status: statusFilter, grade: gradeFilter, page, size: PAGE_SIZE }), [search, statusFilter, gradeFilter, page]);
+  const studentsState = useRpc(listRequest);
+  const statsState = useRpc(() => studentsApi.stats());
+  const students = studentsState.data?.rows || [];
+  const total = Number(studentsState.data?.total || 0);
+  const detailState = useRpc(useCallback(() => detailsStudent ? studentsApi.detail(detailsStudent.id) : Promise.resolve(null), [detailsStudent]), { immediate: !!detailsStudent });
   const toastTimer = useRef(null);
 
   useEffect(() => {
@@ -87,10 +90,8 @@ export default function UserManagement() {
   // Keep Student Details in sync with the live store (e.g. blocking the
   // student currently open in Details should update its badge in place).
   useEffect(() => {
-    if (!detailsStudent) return;
-    const fresh = students.find((s) => s.id === detailsStudent.id);
-    if (fresh && fresh !== detailsStudent) setDetailsStudent(fresh);
-  }, [students, detailsStudent]);
+    if (detailState.data) setDetailsStudent(detailState.data);
+  }, [detailState.data]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -98,28 +99,10 @@ export default function UserManagement() {
     return () => clearTimeout(toastTimer.current);
   }, [toast]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return students.filter((s) => {
-      if (q && !`${s.name} ${s.email} ${s.id}`.toLowerCase().includes(q)) return false;
-      if (statusFilter !== "all" && s.status !== statusFilter) return false;
-      if (gradeFilter !== "all" && s.grade !== gradeFilter) return false;
-      return true;
-    });
-  }, [students, search, statusFilter, gradeFilter]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  const counts = useMemo(
-    () => ({
-      total: students.length,
-      active: students.filter((s) => s.status === STUDENT_STATUS.ACTIVE).length,
-      blocked: students.filter((s) => s.status === STUDENT_STATUS.BLOCKED).length,
-    }),
-    [students]
-  );
+  const pageItems = students;
+  const counts = statsState.data || { total, active: "—", blocked: "—" };
 
   // Opens ONLY the small Block confirmation for the given student —
   // deliberately does not touch detailsStudent/Student Details.
@@ -135,17 +118,12 @@ export default function UserManagement() {
 
   const confirmBlock = () => {
     if (!blockTarget || !blockReason.trim()) return;
-    blockStudent(blockTarget.id, blockReason.trim());
-    setToast(`"${blockTarget.name}" has been blocked.`);
-    setBlockTarget(null);
-    setBlockReason("");
+    studentsApi.setStatus(blockTarget.id, STUDENT_STATUS.BLOCKED, blockReason.trim()).then(() => { setToast(`"${blockTarget.name}" has been blocked.`); setBlockTarget(null); setBlockReason(""); studentsState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const confirmUnblock = () => {
     if (!unblockTarget) return;
-    unblockStudent(unblockTarget.id);
-    setToast(`"${unblockTarget.name}" has been unblocked.`);
-    setUnblockTarget(null);
+    studentsApi.setStatus(unblockTarget.id, STUDENT_STATUS.ACTIVE).then(() => { setToast(`"${unblockTarget.name}" has been unblocked.`); setUnblockTarget(null); studentsState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   return (
@@ -157,6 +135,8 @@ export default function UserManagement() {
           the student loses access regardless of valid credentials, until an Admin unblocks it.
         </p>
       </div>
+      {studentsState.loading && <div className="ul-edu-empty">Loading students…</div>}
+      {studentsState.error && <div className="ul-edu-empty" role="alert"><p>{studentsState.error.message}</p><button type="button" className="ul-btn ul-btn--ghost" onClick={() => studentsState.refetch()}>Retry</button></div>}
 
       <div className="ul-usr-summary">
         <div className="ul-usr-summary__card">
@@ -274,10 +254,10 @@ export default function UserManagement() {
           </div>
         )}
 
-        {filtered.length > 0 && (
+        {pageItems.length > 0 && (
           <div className="ul-usr-pagination">
             <span className="ul-usr-pagination__info">
-              Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+              Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)} of {total}
             </span>
             <div className="ul-usr-pagination__controls">
               <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>

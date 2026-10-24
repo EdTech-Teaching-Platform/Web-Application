@@ -17,13 +17,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import {
-  useEducator,
-  updateEducator,
-  updateEducatorDocument,
-  addEducatorMessage,
-  deleteEducator,
-} from "../data/educatorsMock";
+import { useRpc } from "../hooks/useRpc";
+import { educatorsApi } from "../services/educatorsApi";
 import ConfirmModal from "../components/ConfirmModal";
 import {
   IconChevronLeft, IconStar, IconMail, IconPhone, IconSend, IconDownload,
@@ -34,7 +29,7 @@ import "./EducatorVerification.css";
 import "./EducatorProfile.css";
 
 const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
-const VERIFICATION_LABEL = { pending: "Pending", under_review: "Pending", verified: "Verified", rejected: "Rejected" };
+const VERIFICATION_LABEL = { pending: "Pending", under_review: "Under review", verified: "Verified", rejected: "Rejected" };
 const DOC_STATUS_LABEL = { pending: "Pending", verified: "Verified", rejected: "Rejected" };
 const STUDENT_STATUS_LABEL = { active: "Active", completed: "Completed", at_risk: "At risk", inactive: "Inactive" };
 
@@ -68,8 +63,9 @@ function seriesForCourse(title) {
 function AccountBadge({ status }) {
   return <span className={`ul-status-badge is-account-${status}`}>{ACCOUNT_LABEL[status]}</span>;
 }
-function VerificationBadge({ status }) {
-  return <span className={`ul-status-badge is-${status === "under_review" ? "pending" : status}`}>{VERIFICATION_LABEL[status]}</span>;
+function VerificationBadge({ status, note }) {
+  const label = status === "under_review" && note ? "Changes requested" : VERIFICATION_LABEL[status];
+  return <span className={`ul-status-badge is-${status === "under_review" ? "pending" : status}`}>{label}</span>;
 }
 function DocStatusBadge({ status }) {
   return <span className={`ul-status-badge is-${status}`}>{DOC_STATUS_LABEL[status]}</span>;
@@ -121,7 +117,8 @@ export default function EducatorProfile() {
   const { educatorId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const educator = useEducator(educatorId);
+  const detailState = useRpc(() => educatorsApi.detail(educatorId), { immediate: !!educatorId });
+  const educator = detailState.data;
 
   const initialTab = location.state?.tab && TABS.some((t) => !t.hidden && t.key === location.state.tab) ? location.state.tab : "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -150,6 +147,8 @@ export default function EducatorProfile() {
     });
   }, [educator, studentSearch, studentStatusFilter]);
 
+  if (detailState.loading) return <div className="ul-edp-notfound">Loading educator…</div>;
+  if (detailState.error) return <div className="ul-edp-notfound"><p role="alert">{detailState.error.message}</p><button type="button" className="ul-btn ul-btn--primary" onClick={() => detailState.refetch()}>Retry</button></div>;
   if (!educator) {
     return (
       <div className="ul-edp-notfound">
@@ -164,17 +163,22 @@ export default function EducatorProfile() {
   const runConfirmed = () => {
     if (!confirmAction) return;
     const { type } = confirmAction;
-    if (type === "deactivate") { updateEducator(educator.id, { accountStatus: "inactive" }); setToast("Educator deactivated."); }
-    if (type === "suspend") { updateEducator(educator.id, { accountStatus: "suspended" }); setToast("Educator suspended."); }
-    if (type === "delete") { deleteEducator(educator.id); navigate("/admin/educatorverification"); return; }
-    if (type === "approve") { updateEducator(educator.id, { verificationStatus: "verified" }); setToast("Educator verified & approved."); }
-    if (type === "reject") { updateEducator(educator.id, { verificationStatus: "rejected" }); setToast("Application rejected."); }
-    if (type === "request_info") { updateEducator(educator.id, { verificationStatus: "under_review" }); setToast("Requested additional information."); }
+    const actions = {
+      deactivate: educatorsApi.setAccountStatus(educator.id, "inactive"),
+      suspend: educatorsApi.setAccountStatus(educator.id, "suspended"),
+      delete: educatorsApi.delete(educator.id),
+      approve: educatorsApi.setVerification(educator.id, "verified"),
+      reject: educatorsApi.setVerification(educator.id, "rejected", reasonText),
+      request_info: educatorsApi.setVerification(educator.id, "under_review", reasonText),
+    };
+    if (actions[type]) {
+      actions[type].then(() => { if (type === "delete") navigate("/admin/educatorverification"); else { setToast("Educator updated."); detailState.refetch(); } }).catch((error) => setToast(error.message));
+    }
     if (type === "reset_password") { setToast("Password reset link sent to " + educator.email + "."); }
     if (type === "force_logout") { setToast("Educator has been force-logged-out of all sessions."); }
-    if (type === "reject_document") { updateEducatorDocument(educator.id, confirmAction.docId, { status: "rejected", rejectionReason: reasonText || "Document did not meet verification requirements." }); setToast("Document rejected."); }
-    if (type === "verify_document") { updateEducatorDocument(educator.id, confirmAction.docId, { status: "verified", rejectionReason: null }); setToast("Document verified."); }
-    if (type === "request_replacement") { updateEducatorDocument(educator.id, confirmAction.docId, { status: "pending", rejectionReason: null }); setToast("Replacement requested."); }
+    if (type === "reject_document") educatorsApi.updateDocument(educator.id, confirmAction.docId, "rejected", reasonText || "Document did not meet verification requirements.").then(() => { setToast("Document rejected."); detailState.refetch(); }).catch((error) => setToast(error.message));
+    if (type === "verify_document") educatorsApi.updateDocument(educator.id, confirmAction.docId, "approved", null).then(() => { setToast("Document approved."); detailState.refetch(); }).catch((error) => setToast(error.message));
+    if (type === "request_replacement") educatorsApi.updateDocument(educator.id, confirmAction.docId, "pending", reasonText || "Replacement requested.").then(() => { setToast("Replacement requested."); detailState.refetch(); }).catch((error) => setToast(error.message));
     setConfirmAction(null);
     setReasonText("");
   };
@@ -195,12 +199,7 @@ export default function EducatorProfile() {
 
   const sendMessage = () => {
     if (!messageForm.subject.trim() || !messageForm.body.trim()) return;
-    addEducatorMessage(educator.id, {
-      direction: "sent",
-      subject: messageForm.subject,
-      body: messageForm.body,
-      date: "Just now",
-    });
+    setToast("Messaging is not exposed by the current migration.");
     setMessageForm({ subject: "", body: "" });
     setMessageOpen(false);
     setToast("Message sent to " + educator.name + ".");
@@ -227,7 +226,7 @@ export default function EducatorProfile() {
             <div className="ul-edp-header__nameRow">
               <h2>{educator.name}</h2>
               <AccountBadge status={educator.accountStatus} />
-              <VerificationBadge status={educator.verificationStatus} />
+              <VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} />
             </div>
             <p className="ul-edp-header__meta">
               {educator.subjects.join(", ")} &middot; {educator.yearsExperience} yrs experience
@@ -314,7 +313,7 @@ export default function EducatorProfile() {
                   <div className="ul-edp-review__row"><span>Subjects</span><strong>{educator.subjects.join(", ")}</strong></div>
                   <div className="ul-edp-review__row"><span>Documents submitted</span><strong>{educator.documents.length}</strong></div>
                   <div className="ul-edp-review__row"><span>Documents verified</span><strong>{educator.documents.filter((d) => d.status === "verified").length} / {educator.documents.length}</strong></div>
-                  <div className="ul-edp-review__row"><span>Current status</span><VerificationBadge status={educator.verificationStatus} /></div>
+                  <div className="ul-edp-review__row"><span>Current status</span><VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} /></div>
                 </div>
                 <div className="ul-edp-review__actions">
                   <button type="button" className="ul-btn ul-btn--primary" onClick={() => setConfirmAction({ type: "approve" })}>
@@ -334,7 +333,7 @@ export default function EducatorProfile() {
               <div className="ul-edp-review">
                 <div className="ul-edp-review__row"><span>Joining date</span><strong>{educator.joinedDate}</strong></div>
                 <div className="ul-edp-review__row"><span>Account status</span><AccountBadge status={educator.accountStatus} /></div>
-                <div className="ul-edp-review__row"><span>Verification status</span><VerificationBadge status={educator.verificationStatus} /></div>
+                <div className="ul-edp-review__row"><span>Verification status</span><VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} /></div>
                 <div className="ul-edp-review__row"><span>Last login</span><strong>{educator.lastActive}</strong></div>
               </div>
             </Section>
@@ -549,8 +548,8 @@ export default function EducatorProfile() {
                     </td>
                     <td className="ul-edu-actions-cell">
                       <div className="ul-edu-doc-actions">
-                        <button type="button" className="ul-btn ul-btn--ghost ul-edu-view-btn" onClick={() => setToast(`Previewing ${d.fileName} (mock)`)}>View</button>
-                        <button type="button" className="ul-edu-more-btn" title="Download" onClick={() => setToast(`Downloading ${d.fileName} (mock)`)}><IconDownload size={13} /></button>
+                        <button type="button" className="ul-btn ul-btn--ghost ul-edu-view-btn" onClick={() => educatorsApi.signedDocumentUrl(d.file_path).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setToast(error.message))}>View</button>
+                        <button type="button" className="ul-edu-more-btn" title="Download" onClick={() => educatorsApi.signedDocumentUrl(d.file_path).then((url) => { window.location.href = url; }).catch((error) => setToast(error.message))}><IconDownload size={13} /></button>
                         {d.status !== "verified" && (
                           <button type="button" className="ul-edu-more-btn" title="Verify" onClick={() => setConfirmAction({ type: "verify_document", docId: d.id })}><IconCheck size={13} /></button>
                         )}
@@ -574,7 +573,7 @@ export default function EducatorProfile() {
             <Section title="Account & access">
               <div className="ul-edp-review">
                 <div className="ul-edp-review__row"><span>Account status</span><AccountBadge status={educator.accountStatus} /></div>
-                <div className="ul-edp-review__row"><span>Verification status</span><VerificationBadge status={educator.verificationStatus} /></div>
+                <div className="ul-edp-review__row"><span>Verification status</span><VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} /></div>
                 <div className="ul-edp-review__row"><span>Last login</span><strong>{educator.lastActive}</strong></div>
                 <div className="ul-edp-review__row"><span>Account created</span><strong>{educator.joinedDate}</strong></div>
                 <div className="ul-edp-review__row"><span>Assigned role</span><strong><IconShield size={12} /> {educator.role}</strong></div>

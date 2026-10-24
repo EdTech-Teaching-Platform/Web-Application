@@ -19,9 +19,11 @@
 // exactly — table/filter/pagination-specific layout lives in
 // EducatorVerification.css.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEducators, addEducator, updateEducator, deleteEducator, SUBJECT_OPTIONS } from "../data/educatorsMock";
+import { SUBJECT_OPTIONS } from "../data/educatorsMock";
+import { useRpc } from "../hooks/useRpc";
+import { educatorsApi } from "../services/educatorsApi";
 import ConfirmModal from "../components/ConfirmModal";
 import BulkImportTeachers from "../components/BulkImportTeachers";
 import { IconSearch, IconStar, IconMore, IconClose, IconPlus, IconChevronLeft } from "../components/icons";
@@ -81,7 +83,6 @@ function VerificationBadge({ status }) {
 }
 
 export default function EducatorVerification() {
-  const educators = useEducators();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState("all");
@@ -101,6 +102,20 @@ export default function EducatorVerification() {
   const [addTouched, setAddTouched] = useState({});
   const [toast, setToast] = useState("");
   const toastTimer = useRef(null);
+  const listRequest = useCallback(() => educatorsApi.list({
+    p_search: search || null,
+    p_account: accountFilter === "all" ? null : accountFilter,
+    p_verification: verificationFilter === "all" ? null : verificationFilter,
+    p_subject: subjectFilter === "all" ? null : subjectFilter,
+    p_experience: experienceFilter === "all" ? null : experienceFilter,
+    p_sort: sortBy,
+    p_page: page,
+    p_size: PAGE_SIZE,
+  }), [search, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy, page]);
+  const listState = useRpc(listRequest);
+  const educators = listState.data?.rows || [];
+  const total = Number(listState.data?.total || 0);
+  const statsState = useRpc(() => educatorsApi.stats());
 
   useEffect(() => {
     if (!openMenuId) return undefined;
@@ -139,48 +154,29 @@ export default function EducatorVerification() {
     return () => clearTimeout(toastTimer.current);
   }, [toast]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const band = EXPERIENCE_BANDS.find((b) => b.key === experienceFilter);
-    let list = educators.filter((e) => {
-      if (q && !`${e.name} ${e.email} ${e.id}`.toLowerCase().includes(q)) return false;
-      if (accountFilter !== "all" && e.accountStatus !== accountFilter) return false;
-      if (verificationFilter !== "all" && e.verificationStatus !== verificationFilter) return false;
-      if (subjectFilter !== "all" && !e.subjects.includes(subjectFilter)) return false;
-      if (band && band.test && !band.test(e.yearsExperience)) return false;
-      return true;
-    });
-    list = [...list].sort((a, b) => {
-      if (sortBy === "newest") return b.joinedDate.localeCompare(a.joinedDate);
-      if (sortBy === "oldest") return a.joinedDate.localeCompare(b.joinedDate);
-      if (sortBy === "rating") return b.rating - a.rating;
-      if (sortBy === "students") return b.studentsCount - a.studentsCount;
-      return 0;
-    });
-    return list;
-  }, [educators, search, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy]);
+  const filtered = educators;
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageItems = filtered;
 
   const counts = useMemo(
     () => ({
-      total: educators.length,
-      active: educators.filter((e) => e.accountStatus === "active").length,
-      pendingVerification: educators.filter((e) => e.verificationStatus === "pending" || e.verificationStatus === "under_review").length,
-      suspended: educators.filter((e) => e.accountStatus === "suspended").length,
+      total: statsState.data?.total_educators ?? total,
+      active: statsState.data?.active_educators ?? "—",
+      pendingVerification: statsState.data?.pending_verification ?? "—",
+      suspended: statsState.data?.suspended_educators ?? "—",
     }),
-    [educators]
+    [statsState.data, total]
   );
 
   const runConfirmed = () => {
     if (!confirmAction) return;
     const { type, educator } = confirmAction;
-    if (type === "deactivate") updateEducator(educator.id, { accountStatus: "inactive" });
-    if (type === "suspend") updateEducator(educator.id, { accountStatus: "suspended" });
-    if (type === "delete") deleteEducator(educator.id);
-    setConfirmAction(null);
+    const action = type === "delete"
+      ? educatorsApi.delete(educator.id)
+      : educatorsApi.setAccountStatus(educator.id, type === "suspend" ? "suspended" : "inactive");
+    action.then(() => { setConfirmAction(null); listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const addErrors = useMemo(() => validateAddForm(addForm), [addForm]);
@@ -217,9 +213,9 @@ export default function EducatorVerification() {
     e.preventDefault();
     setAddTouched({ firstName: true, lastName: true, email: true, phone: true, qualification: true, years: true, subjects: true });
     if (!isAddFormValid) return;
-    addEducator(addForm);
-    setToast(`${addForm.firstName.trim()} ${addForm.lastName.trim()} has been added as a teacher.`);
-    closeAddForm();
+    educatorsApi.createInvites([{ name: `${addForm.firstName.trim()} ${addForm.lastName.trim()}`, email: addForm.email.trim(), phone: addForm.phone.trim() }])
+      .then(() => { setToast("Invite queued. TODO: invoke the create-educator-invites Edge Function to create the Auth user and send the invite."); closeAddForm(); listState.refetch(); })
+      .catch((error) => setToast(error.message));
   };
 
   const toggleRowMenu = (id, e) => {
@@ -276,6 +272,8 @@ export default function EducatorVerification() {
       </div>
 
       <div className="ul-edu-summary">
+        {listState.loading && <p>Loading educators…</p>}
+        {listState.error && <p role="alert">{listState.error.message} <button type="button" onClick={() => listState.refetch()}>Retry</button></p>}
         <div className="ul-edu-summary__card">
           <p className="ul-edu-summary__label">Total educators</p>
           <p className="ul-edu-summary__value">{counts.total}</p>
@@ -431,7 +429,7 @@ export default function EducatorVerification() {
                           // "View Courses" (Performance tab) hidden for now
                           { label: "Verification Details", onClick: () => navigate(`/admin/educatorverification/${e.id}`, { state: { tab: "documents" } }) },
                           e.accountStatus === "suspended"
-                            ? { label: "Activate", onClick: () => updateEducator(e.id, { accountStatus: "active" }) }
+                            ? { label: "Activate", onClick: () => educatorsApi.setAccountStatus(e.id, "active").then(() => { listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error.message)) }
                             : { label: "Suspend", onClick: () => setConfirmAction({ type: "suspend", educator: e }) },
                         ]}
                       />
