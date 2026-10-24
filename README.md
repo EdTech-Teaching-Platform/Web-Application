@@ -20,6 +20,47 @@ the Supabase CLI (`supabase start` and `supabase db reset`) when Docker is
 available. The browser must only receive the anon key; never put a service-role
 key in `src/` or a Vite-exposed environment variable.
 
+## Supabase and admin development
+
+Copy `.env.example` to `.env` and set:
+
+```dotenv
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<publishable-anon-key>
+```
+
+Link and push the database from the repository root (`supabase login` is
+required once):
+
+```bash
+supabase link --project-ref <project-ref>
+supabase db push
+supabase db seed
+```
+
+For a local database, `supabase start` followed by `supabase db reset` applies
+all migrations and `supabase/seed_dev.sql`. Create the first administrator
+after signing up by running this in the Supabase SQL editor (replace the id):
+
+```sql
+update public.profiles set role = 'admin' where id = '<auth-user-uuid>';
+```
+
+Admin RPCs are defined in migrations and are called through the service
+modules under `src/portals/admin/services/`. Functions that require gateway
+credentials (for example refund processing and invitation delivery) belong in
+Supabase Edge Functions; never expose those credentials in Vite variables.
+
+Run the focused unit tests and production build with:
+
+```bash
+npm test
+npm run build
+```
+
+The SQL RPC smoke tests are in `supabase/tests/admin_rpcs.sql`; they use a
+transaction and roll back all changes.
+
 ## Who works where
 
 | Dev | Folder | Routes |
