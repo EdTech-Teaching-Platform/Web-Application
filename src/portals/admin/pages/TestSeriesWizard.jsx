@@ -5,21 +5,23 @@
 // the result is an ordinary Test Series that the existing list/detail/edit
 // pages already handle.
 
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
-  IconPencil, IconLayers, IconUpload, IconBook, IconSparkle,
+  IconPencil, IconLayers, IconUpload, IconSparkle,
   IconCheck, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconAlert, IconEdit,
 } from "../components/icons";
 import {
-  useTestSeriesList, createSeriesFromWizard, PRICING_TYPE, PRICING_TYPE_LABEL, AUDIENCE_OPTIONS,
-  QUESTION_TYPE, QUESTION_TYPE_LABEL, DIFFICULTY_LABEL,
+  PRICING_TYPE, PRICING_TYPE_LABEL, AUDIENCE_OPTIONS,
+  QUESTION_TYPE, DIFFICULTY_LABEL,
 } from "../data/testSeriesMock";
 import {
   START_METHOD, GRADE_OPTIONS, CLASS_SUBJECT_OPTIONS, EXAM_OPTIONS, LEVEL_OPTIONS, BASE_LANGUAGES,
   initialWizardState, emptyTest, cloneQuestion, questionKey, testTotalMarks, derivedTestType,
   stepErrors, applicableSteps, validateWizard, buildSeriesPayload, stripHtml, wid,
 } from "../data/testSeriesWizard";
+import { useRpc } from "../hooks/useRpc";
+import { testSeriesApi } from "../services/testSeriesApi";
 import { WizModal, RichText, QuestionEditor, CsvImporter, OutlineBuilder, sanitizeHtml } from "./TestSeriesWizardParts";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
@@ -81,7 +83,10 @@ function Errors({ list }) {
 
 export default function TestSeriesWizard() {
   const navigate = useNavigate();
-  const seriesList = useTestSeriesList();
+  const location = useLocation();
+  const listRequest = useCallback(() => testSeriesApi.list({ p_page: 1, p_size: 100 }), []);
+  const seriesListState = useRpc(listRequest);
+  const seriesList = seriesListState.data?.rows || [];
   const [st, setSt] = useState(initialWizardState);
   const [step, setStep] = useState("method");
   const [reached, setReached] = useState(() => new Set(["method"]));
@@ -93,6 +98,27 @@ export default function TestSeriesWizard() {
   const [showWindows, setShowWindows] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [nameExists, setNameExists] = useState(false);
+  const [requestError, setRequestError] = useState("");
+
+  useEffect(() => {
+    const id = location.state?.seriesId;
+    if (!id) return;
+    testSeriesApi.get(id).then((series) => {
+      if (series?.wizard_state) setSt({ ...initialWizardState(), ...series.wizard_state, id });
+    }).catch((error) => setRequestError(error.message));
+  }, [location.state]);
+
+  useEffect(() => {
+    if (!st.name.trim()) {
+      setNameExists(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      testSeriesApi.nameExists(st.name.trim(), st.id).then(setNameExists).catch((error) => setRequestError(error.message));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [st.name, st.id]);
 
   const ctx = useMemo(() => ({ existingSeries: seriesList }), [seriesList]);
   const steps = applicableSteps(st);
@@ -190,12 +216,66 @@ export default function TestSeriesWizard() {
     if (saving) return;
     setSaving(true);
     const payload = buildSeriesPayload(st, ctx, publish);
-    createSeriesFromWizard(payload);
-    const msg = !publish ? "Test series saved as draft." : payload.status === "scheduled" ? "Test series scheduled for go-live." : "Test series published.";
-    navigate("/admin/testseries", { state: { toast: msg } });
+    const rpcPayload = {
+      id: st.id || null,
+      name: payload.name,
+      about: payload.about,
+      whoFor: payload.whoFor,
+      audience: payload.audience,
+      syllabus: payload.syllabus,
+      startMethod: payload.startMethod,
+      pricing: payload.pricing,
+      price: String(payload.price ?? 0),
+      buildDeadline: payload.buildDeadline,
+      wizardState: st,
+      classification: payload.classification,
+      availability: {
+        goLive: st.availability.goLive,
+        goLiveAt: st.availability.goLiveAt,
+        mode: st.availability.mode,
+        openAt: st.availability.openAt,
+        closeAt: st.availability.closeAt,
+        monthlyLimited: st.availability.monthlyLimited,
+        monthlyLimit: st.availability.monthlyLimit,
+        accessLimited: st.availability.accessLimited,
+        accessDays: st.availability.accessDays,
+      },
+      lateSubmissions: payload.lateSubmissions,
+      tests: payload.tests.map((t) => ({
+        name: t.name,
+        instructions: t.instructions,
+        duration: String(t.duration),
+        passingPercent: String(t.passingPercent || 40),
+        attemptLimit: String(t.attemptLimit || 1),
+        window: t.window,
+        plannedQuestions: String(t.plannedQuestions || t.questions.length),
+        topics: t.topics || [],
+        sections: [],
+        questions: t.questions.map((q, index) => ({
+          ...q,
+          sectionPosition: "",
+          options: ["A", "B", "C", "D"].map((key) => ({ key, text: q[`option${key}`] || "" })),
+          correctAnswers: q.correctAnswer ? [q.correctAnswer] : [],
+          position: index + 1,
+        })),
+      })),
+    };
+    const saveRequest = !publish && st.id
+      ? testSeriesApi.saveDraft(st.id, st)
+      : testSeriesApi.saveWizard(rpcPayload, publish);
+    saveRequest
+      .then((id) => {
+        const msg = !publish ? "Test series saved as draft." : st.availability.goLive === "schedule" ? "Test series scheduled for go-live." : "Test series published.";
+        navigate("/admin/testseries", { state: { toast: msg, seriesId: id } });
+      })
+      .catch((error) => setRequestError(error.message))
+      .finally(() => setSaving(false));
   };
   // Discard everything entered and go back to the wizard's Start step.
   const discardAndRestart = () => {
+    if (st.id) {
+      testSeriesApi.discardDraft(st.id).catch((error) => setRequestError(error.message));
+    }
     setSt(initialWizardState());
     setStep("method");
     setReached(new Set(["method"]));
@@ -244,6 +324,8 @@ export default function TestSeriesWizard() {
 
       <div className="ul-card ul-tsw-panel">
         <span className="ul-tsw-eyebrow">Step {stepIdx + 1} of {steps.length}</span>
+        {requestError && <div className="ul-tsw-note" role="alert">{requestError}</div>}
+        {nameExists && <div className="ul-tsw-note" role="alert">A test series with this name already exists.</div>}
 
         {step === "method" && (
           <>

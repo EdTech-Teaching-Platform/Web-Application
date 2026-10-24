@@ -8,7 +8,7 @@
 // file's header comment) plus .ul-ts-* from TestSeries.css and
 // .ul-tsd-* from TestSeriesDetail.css.
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   SERIES_STATUS_LABEL,
@@ -16,14 +16,10 @@ import {
   TEST_STATUS,
   TEST_STATUS_LABEL,
   TEST_STATUS_BADGE_CLASS,
-  useTestSeriesById,
-  createTest,
-  updateTest,
-  deleteTest,
-  duplicateTest,
-  setTestStatus,
   validateTestForPublish,
 } from "../data/testSeriesMock";
+import { useRpc } from "../hooks/useRpc";
+import { testSeriesApi } from "../services/testSeriesApi";
 import {
   IconClose, IconPlus, IconEdit, IconChevronLeft, IconMore, IconCheck,
   IconEyeOff, IconEye, IconReport,
@@ -53,7 +49,9 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const seriesId = seriesIdProp ?? routeParams.seriesId;
   const navigate = useNavigate();
   const goBack = () => (onBack ? onBack() : navigate("/admin/testseries"));
-  const series = useTestSeriesById(seriesId);
+  const loadSeries = useCallback(() => testSeriesApi.get(seriesId), [seriesId]);
+  const seriesState = useRpc(loadSeries);
+  const series = seriesState.data;
 
   const [toast, setToast] = useState("");
   const toastTimer = useRef(null);
@@ -86,11 +84,18 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     };
   }, [series]);
 
-  if (!series) {
+  if (seriesState.loading) {
+    return <div className="ul-ts-page"><button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back to Test Series</button><div className="ul-set-empty">Loading test series…</div></div>;
+  }
+
+  if (seriesState.error || !series) {
     return (
       <div className="ul-ts-page">
         <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back to Test Series</button>
-        <div className="ul-set-empty">This Test Series could not be found.</div>
+        <div className="ul-set-empty" role="alert">
+          <p>{seriesState.error?.message || "This Test Series could not be found."}</p>
+          {seriesState.error && <button type="button" className="ul-btn ul-btn--ghost" onClick={() => seriesState.refetch()}>Retry</button>}
+        </div>
       </div>
     );
   }
@@ -134,23 +139,21 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const saveAsDraft = () => {
     const payload = { ...buildPayload(), status: TEST_STATUS.DRAFT };
     if (formOpen === "edit") {
-      updateTest(series.id, editingId, payload);
-      setToast(`"${payload.name || "Test"}" saved as draft.`);
+      testSeriesApi.updateTest(editingId, payload).then(() => { setToast(`"${payload.name || "Test"}" saved as draft.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
     } else {
-      const existing = series.tests.find((t) => t.id === editingId);
-      createTest(series.id, { ...payload, questions: existing ? existing.questions : [] });
-      setToast(`"${payload.name || "Test"}" created as draft.`);
+      testSeriesApi.createTest(series.id, payload).then(() => { setToast(`"${payload.name || "Test"}" created as draft.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
     }
-    closeForm();
   };
 
   const saveAndManageQuestions = () => {
     const payload = { ...buildPayload(), status: TEST_STATUS.DRAFT, questions: [] };
-    const created = createTest(series.id, payload);
-    setToast(`"${payload.name || "Test"}" created as draft. Now add Questions.`);
-    closeForm();
-    if (onManageQuestions) onManageQuestions(created.id);
-    else navigate(`/admin/testseries/${series.id}/tests/${created.id}`);
+    testSeriesApi.createTest(series.id, payload).then((created) => {
+      setToast(`"${payload.name || "Test"}" created as draft. Now add Questions.`);
+      closeForm();
+      if (onManageQuestions) onManageQuestions(created.id);
+      else navigate(`/admin/testseries/${series.id}/tests/${created.id}`);
+      seriesState.refetch();
+    }).catch((error) => setFormErrors([error.message]));
   };
 
   const saveAndPublish = () => {
@@ -162,13 +165,10 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
       return;
     }
     if (formOpen === "edit") {
-      updateTest(series.id, editingId, payload);
-      setToast(`"${payload.name}" updated and published.`);
+      testSeriesApi.updateTest(editingId, payload).then(() => { setToast(`"${payload.name}" updated and published.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
     } else {
-      createTest(series.id, payload);
-      setToast(`"${payload.name}" created and published.`);
+      testSeriesApi.createTest(series.id, payload).then((created) => testSeriesApi.setTestStatus(created.id, TEST_STATUS.PUBLISHED)).then(() => { setToast(`"${payload.name}" created and published.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
     }
-    closeForm();
   };
 
   const handlePublish = (t) => {
@@ -178,26 +178,21 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
       setToast(errors[0]);
       return;
     }
-    setTestStatus(series.id, t.id, TEST_STATUS.PUBLISHED);
-    setToast(`"${t.name}" published.`);
+    testSeriesApi.setTestStatus(t.id, TEST_STATUS.PUBLISHED).then(() => { setToast(`"${t.name}" published.`); seriesState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const handleUnpublish = (t) => {
     if (t.status !== TEST_STATUS.PUBLISHED) return;
-    setTestStatus(series.id, t.id, TEST_STATUS.DRAFT);
-    setToast(`"${t.name}" unpublished.`);
+    testSeriesApi.setTestStatus(t.id, TEST_STATUS.DRAFT).then(() => { setToast(`"${t.name}" unpublished.`); seriesState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const handleDuplicateTest = (t) => {
-    duplicateTest(series.id, t.id);
-    setToast(`"${t.name}" duplicated.`);
+    testSeriesApi.createTest(series.id, { ...t, name: `${t.name} (Copy)`, status: TEST_STATUS.DRAFT }).then(() => { setToast(`"${t.name}" duplicated.`); seriesState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    deleteTest(series.id, deleteTarget.id);
-    setToast(`"${deleteTarget.name}" deleted.`);
-    setDeleteTarget(null);
+    testSeriesApi.deleteTest(deleteTarget.id).then(() => { setToast(`"${deleteTarget.name}" deleted.`); setDeleteTarget(null); seriesState.refetch(); }).catch((error) => setToast(error.message));
   };
 
 

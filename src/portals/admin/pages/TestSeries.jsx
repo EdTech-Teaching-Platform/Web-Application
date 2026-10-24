@@ -15,7 +15,7 @@
 // .ul-ts-pagination-* classes in TestSeries.css to match the redesigned
 // pagination control. Page-specific layout lives in TestSeries.css.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   SERIES_STATUS,
@@ -25,16 +25,10 @@ import {
   PRICING_TYPE_LABEL,
   SUBJECT_OPTIONS,
   AUDIENCE_OPTIONS,
-  useTestSeriesList,
-  computeOverviewStats,
-  createTestSeries,
-  updateTestSeries,
-  deleteTestSeries,
-  duplicateTestSeries,
-  setSeriesStatus,
   validateSeriesForPublish,
-  promoteDueSeries,
 } from "../data/testSeriesMock";
+import { useRpc } from "../hooks/useRpc";
+import { testSeriesApi } from "../services/testSeriesApi";
 import {
   IconSearch, IconClose, IconPlus, IconEdit, IconBook, IconLayers,
   IconUsers, IconReport, IconChart, IconAtom, IconCalculator,
@@ -85,18 +79,9 @@ function currency(n) {
   return `₹${Number(n || 0).toLocaleString("en-IN")}`;
 }
 
-function timelineOf(s) {
-  const today = new Date().toISOString().slice(0, 10);
-  if (s.startDate > today) return "upcoming";
-  if (s.endDate && s.endDate < today) return "ended";
-  return "ongoing";
-}
-
 export default function TestSeries() {
   const navigate = useNavigate();
   const location = useLocation();
-  const seriesList = useTestSeriesList();
-
   const [tab, setTab] = useState("series");
   const [selectedSeriesId, setSelectedSeriesId] = useState(null);
   const [selectedTestId, setSelectedTestId] = useState(null);
@@ -117,15 +102,26 @@ export default function TestSeries() {
   const [viewTarget, setViewTarget] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
+  const listRequest = useCallback(() => testSeriesApi.list({
+    p_search: search.trim() || null,
+    p_status: statusFilter === "all" ? null : statusFilter,
+    p_pricing: pricingFilter === "all" ? null : pricingFilter,
+    p_timeline: timelineFilter === "all" ? null : timelineFilter,
+    p_page: page,
+    p_size: PAGE_SIZE,
+  }), [search, statusFilter, pricingFilter, timelineFilter, page]);
+  const statsRequest = useCallback(() => testSeriesApi.stats(), []);
+  const listState = useRpc(listRequest);
+  const statsState = useRpc(statsRequest);
+  const seriesList = listState.data?.rows || [];
+  const total = Number(listState.data?.total || 0);
+
   useEffect(() => {
-    promoteDueSeries();
     if (location.state && location.state.toast) {
       setToast(location.state.toast);
       navigate(location.pathname, { replace: true, state: null });
     }
-    // run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location, navigate]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -142,22 +138,10 @@ export default function TestSeries() {
     return () => window.removeEventListener("click", close);
   }, [openMenuId]);
 
-  const stats = useMemo(() => computeOverviewStats(seriesList), [seriesList]);
-
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return seriesList.filter((s) => {
-      const matchesSearch = !query || [s.name, s.subject, s.audience, s.id].some((v) => (v || "").toLowerCase().includes(query));
-      const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-      const matchesPricing = pricingFilter === "all" || s.pricing === pricingFilter;
-      const matchesTimeline = timelineFilter === "all" || timelineOf(s) === timelineFilter;
-      return matchesSearch && matchesStatus && matchesPricing && matchesTimeline;
-    });
-  }, [seriesList, search, statusFilter, pricingFilter, timelineFilter]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const stats = statsState.data || { total_series: 0, total_enrolled: 0, total_attempts: 0, avg_performance: 0 };
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageItems = seriesList;
 
   const resetFilters = () => {
     setSearch("");
@@ -203,16 +187,9 @@ export default function TestSeries() {
   const saveAsDraft = () => {
     const payload = { ...buildPayload(), status: SERIES_STATUS.DRAFT };
     if (formOpen === "edit") {
-      updateTestSeries(editingId, payload);
-      setToast(`"${payload.name || "Test Series"}" saved as draft.`);
-      closeForm();
+      testSeriesApi.updateSeries(editingId, payload).then(() => { setToast(`"${payload.name || "Test Series"}" saved as draft.`); closeForm(); listState.refetch(); }).catch((error) => setFormErrors([error.message]));
     } else {
-      const created = createTestSeries(payload);
-      setToast(`"${payload.name || "Test Series"}" created as draft. Now add Tests and Questions.`);
-      closeForm();
-      setSelectedSeriesId(created.id);
-      setSelectedTestId(null);
-      setTab("tests");
+      testSeriesApi.createSeries(payload).then((created) => { setToast(`"${payload.name || "Test Series"}" created as draft. Now add Tests and Questions.`); closeForm(); setSelectedSeriesId(created.id); setSelectedTestId(null); setTab("tests"); listState.refetch(); }).catch((error) => setFormErrors([error.message]));
     }
   };
 
@@ -225,14 +202,10 @@ export default function TestSeries() {
     }
     let publishedId = editingId;
     if (formOpen === "edit") {
-      updateTestSeries(editingId, payload);
-      setToast(`"${payload.name}" updated and published.`);
+      testSeriesApi.updateSeries(editingId, payload).then(() => testSeriesApi.publishSeries(editingId)).then(() => { setToast(`"${payload.name}" updated and published.`); closeForm(); setSelectedSeriesId(editingId); setSelectedTestId(null); setTab("tests"); listState.refetch(); }).catch((error) => setFormErrors([error.message]));
     } else {
-      const created = createTestSeries(payload);
-      publishedId = created.id;
-      setToast(`"${payload.name}" created and published.`);
+      testSeriesApi.createSeries(payload).then((created) => testSeriesApi.publishSeries(created.id).then(() => created)).then((created) => { setToast(`"${payload.name}" created and published.`); closeForm(); setSelectedSeriesId(created.id); setSelectedTestId(null); setTab("tests"); listState.refetch(); }).catch((error) => setFormErrors([error.message]));
     }
-    closeForm();
     // Jump straight to this series' Test & Question Structure page instead
     // of leaving the admin sitting on the edit drawer / series list —
     // publishing means the questions are already in place, so the next
@@ -244,31 +217,21 @@ export default function TestSeries() {
 
   const handlePublish = (s) => {
     if (s.status === SERIES_STATUS.PUBLISHED) return;
-    const { valid, errors } = validateSeriesForPublish(s);
-    if (!valid) {
-      setToast(errors[0]);
-      return;
-    }
-    setSeriesStatus(s.id, SERIES_STATUS.PUBLISHED);
-    setToast(`"${s.name}" published.`);
+    testSeriesApi.publishSeries(s.id).then(() => { setToast(`"${s.name}" published.`); listState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const handleUnpublish = (s) => {
     if (s.status !== SERIES_STATUS.PUBLISHED) return;
-    setSeriesStatus(s.id, SERIES_STATUS.DRAFT);
-    setToast(`"${s.name}" unpublished.`);
+    testSeriesApi.updateSeries(s.id, { ...s, name: s.name, description: s.description, price: s.price, startDate: s.startDate, endDate: s.endDate, status: SERIES_STATUS.DRAFT }).then(() => { setToast(`"${s.name}" unpublished.`); listState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const handleDuplicate = (s) => {
-    duplicateTestSeries(s.id);
-    setToast(`"${s.name}" duplicated.`);
+    testSeriesApi.duplicateSeries(s.id).then(() => { setToast(`"${s.name}" duplicated.`); listState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    deleteTestSeries(deleteTarget.id);
-    setToast(`"${deleteTarget.name}" deleted.`);
-    setDeleteTarget(null);
+    testSeriesApi.deleteSeries(deleteTarget.id).then(() => { setToast(`"${deleteTarget.name}" deleted.`); setDeleteTarget(null); listState.refetch(); }).catch((error) => setToast(error.message));
   };
 
   const manageTests = (s) => {
@@ -328,6 +291,13 @@ export default function TestSeries() {
           </span>
         )}
       </div>
+      {(listState.loading || statsState.loading) && <div className="ul-set-empty">Loading test series…</div>}
+      {(listState.error || statsState.error) && (
+        <div className="ul-set-empty" role="alert">
+          <p>{listState.error?.message || statsState.error?.message}</p>
+          <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { listState.refetch(); statsState.refetch(); }}>Retry</button>
+        </div>
+      )}
 
       {tab === "series" && (
         <>
@@ -335,25 +305,25 @@ export default function TestSeries() {
             <div className="ul-stat-card ul-ts-stat-card">
               <span className="ul-ts-stat-icon" style={{ background: "#fdece0", color: "#d9822b" }}><IconLayers size={17} /></span>
               <span className="ul-stat-card__label">TOTAL TEST SERIES</span>
-              <span className="ul-stat-card__value ul-ts-stat-value--neutral">{stats.totalSeries}</span>
+              <span className="ul-stat-card__value ul-ts-stat-value--neutral">{stats.total_series}</span>
               <span className="ul-stat-card__trend">Across all subjects</span>
             </div>
             <div className="ul-stat-card ul-ts-stat-card">
               <span className="ul-ts-stat-icon" style={{ background: "#e6f4ea", color: "#2f9e56" }}><IconUsers size={17} /></span>
               <span className="ul-stat-card__label">TOTAL ENROLLED STUDENTS</span>
-              <span className="ul-stat-card__value">{stats.totalEnrolled.toLocaleString("en-IN")}</span>
+              <span className="ul-stat-card__value">{Number(stats.total_enrolled).toLocaleString("en-IN")}</span>
               <span className="ul-stat-card__trend">Across all series</span>
             </div>
             <div className="ul-stat-card ul-ts-stat-card">
               <span className="ul-ts-stat-icon" style={{ background: "#fde4ef", color: "#d1478a" }}><IconReport size={17} /></span>
               <span className="ul-stat-card__label">TOTAL ATTEMPTS</span>
-              <span className="ul-stat-card__value">{stats.totalAttempts.toLocaleString("en-IN")}</span>
+              <span className="ul-stat-card__value">{Number(stats.total_attempts).toLocaleString("en-IN")}</span>
               <span className="ul-stat-card__trend">All tests, all series</span>
             </div>
             <div className="ul-stat-card ul-ts-stat-card">
               <span className="ul-ts-stat-icon" style={{ background: "#fdeceb", color: "#b3261e" }}><IconChart size={17} /></span>
               <span className="ul-stat-card__label">AVERAGE PERFORMANCE</span>
-              <span className="ul-stat-card__value">{stats.avgPerformance}%</span>
+              <span className="ul-stat-card__value">{stats.avg_performance}%</span>
               <span className="ul-stat-card__trend">Across series with attempts</span>
             </div>
           </div>
@@ -469,7 +439,7 @@ export default function TestSeries() {
           </div>
 
           <div className="ul-ts-pagination">
-            <span className="ul-ts-pagination__info">Showing {filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length} test series</span>
+            <span className="ul-ts-pagination__info">Showing {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)} of {total} test series</span>
             <div className="ul-ts-pagination__controls">
               <button type="button" className="ul-ts-page-btn" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page"><IconChevronLeft size={13} /></button>
               <span className="ul-ts-page-current">{currentPage}</span>
