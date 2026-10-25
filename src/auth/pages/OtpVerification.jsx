@@ -130,7 +130,7 @@ export default function OtpVerification() {
         <OtpInput length={6} value={code} onChange={setCode} error={Boolean(error)} disabled={submitting} />
         {error && <p className="text-center text-sm text-danger">{error}</p>}
 
-        <Button type="submit" disabled={code.length !== 6 || submitting}>
+        <Button type="submit" variant="ink" disabled={code.length !== 6 || submitting}>
           {submitting ? "Verifying…" : "Verify"}
         </Button>
 

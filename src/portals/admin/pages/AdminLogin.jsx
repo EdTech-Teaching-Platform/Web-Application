@@ -15,7 +15,8 @@ import {
   IconChart,
   IconGraduationCap,
 } from "../components/icons";
-import brandLogo from "../../../assets/brand-logo.png";
+import { BrandMark } from "../../../auth/components/AuthKit";
+import { LANDING_THEME_VARS } from "../../../public/landingTheme";
 import "../adminTheme.css";
 import "../../../auth/pages/AdminAuth.css";
 
@@ -59,10 +60,10 @@ function PageBackdrop() {
   );
 }
 
-// Brand logomark — the real Universal Learning mark (open book + leaf),
-// not a hand-drawn approximation.
+// Brand logomark — shared with the other auth screens (see
+// auth/components/AuthKit.jsx).
 function LogoMark({ size = 56 }) {
-  return <img src={brandLogo} alt="Universal Learning" width={size} height={size} className="ul-login__logo-img" />;
+  return <BrandMark className="" style={{ width: size, height: size }} />;
 }
 
 function IconArrowRight({ size = 16, color = "currentColor" }) {
@@ -143,7 +144,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className={`ul-login${stage === "leaving" ? " ul-login--leaving" : ""}`}>
+    <div style={LANDING_THEME_VARS} className={`ul-login${stage === "leaving" ? " ul-login--leaving" : ""}`}>
       <PageBackdrop />
 
       <div className="ul-login__content">

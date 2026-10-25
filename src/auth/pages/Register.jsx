@@ -20,8 +20,7 @@ import Checkbox from "../../components/ui/Checkbox";
 import { GoogleIcon, AppleIcon } from "../../components/ui/icons";
 import { isEmail, isStrongPassword } from "../utils/validators";
 import { PENDING_SIGNUP_STORAGE_KEY } from "../../portals/student/context/OnboardingContext";
-import loginStudentsImg from "../../assets/illustrations/login-students.png";
-import AuthBackdrop from "../../components/ui/AuthBackdrop";
+import { AuthSplitLayout } from "../components/AuthKit";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -90,55 +89,9 @@ export default function Register() {
   };
 
   return (
-    <div className="relative grid min-h-screen bg-bg lg:grid-cols-[1.9fr_1fr]">
-      {/* Same decorative doodle backdrop used behind the onboarding wizard
-          (see OnboardingLayout.jsx), added here per request so Sign Up
-          matches Onboarding's background treatment. It's absolutely
-          positioned, aria-hidden and pointer-events-none, so it sits
-          behind both panels' real content without overlapping the form
-          fields or the illustration image. */}
-      <AuthBackdrop />
-      {/* Left panel — same treatment as Login.jsx: text upper-left, a
-          grounded illustration as the dominant visual element. */}
-      <div className="relative z-10 hidden flex-col border-r border-[#e5ded9] p-10 lg:flex lg:p-14">
-        <Link to="/" className="self-start text-left font-display text-sm font-semibold tracking-tight text-primary">
-          Universal Learning
-        </Link>
-
-        <div className="flex flex-1 flex-col items-start justify-between">
-          <div className="max-w-xs -translate-x-1 pt-2">
-            <h2 className="font-display text-3xl leading-tight tracking-tight text-text">
-              Learn anything.
-              <br />
-              From anyone.
-            </h2>
-            <p className="mt-3 text-sm text-text/60">
-              Courses, live classes and mentors — all in one place, right where you left off.
-            </p>
-          </div>
-
-          <img
-            src={loginStudentsImg}
-            alt=""
-            aria-hidden="true"
-            className="h-[50vh] max-h-[520px] min-h-[300px] w-full object-contain object-bottom"
-          />
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
-        <div className="mx-auto w-full max-w-sm">
-          <Link to="/" className="mb-6 block w-full text-center font-display text-lg tracking-tight text-primary lg:hidden">
-            Universal Learning
-          </Link>
-
-          <div className="mx-auto mb-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary font-display text-sm font-bold text-white">
-            UL
-          </div>
-
-          <h1 className="text-center font-display text-2xl text-text">Create your account</h1>
-          <p className="mt-2 text-center text-sm text-text/60">
+    <AuthSplitLayout variant="signup">
+          <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-text sm:text-4xl">Create your account</h1>
+          <p className="mt-3 text-sm leading-relaxed text-text/60">
             Join Universal Learning and start learning today.
           </p>
 
@@ -198,7 +151,7 @@ export default function Register() {
               )}
             </div>
 
-            <Button type="submit" disabled={!isValid || submitting}>
+            <Button type="submit" variant="ink" disabled={!isValid || submitting}>
               {submitting ? "Creating account…" : "Sign Up"}
             </Button>
 
@@ -227,8 +180,6 @@ export default function Register() {
               Log in
             </Link>
           </p>
-        </div>
-      </div>
-    </div>
+    </AuthSplitLayout>
   );
 }

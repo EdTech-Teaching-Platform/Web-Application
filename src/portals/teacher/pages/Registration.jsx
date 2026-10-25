@@ -41,7 +41,7 @@ import FileDropzone from "../../../components/ui/FileDropzone";
 import Button from "../../../components/ui/Button";
 import Chip from "../../../components/ui/Chip";
 import ProgressSteps from "../../../components/ui/ProgressSteps";
-import AuthBackdrop from "../../../components/ui/AuthBackdrop";
+import { AUTH_THEME_VARS, AuthShapes, BrandMark } from "../../../auth/components/AuthKit";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import Select from "../../../components/ui/Select";
 import { InfoIcon, PlusIcon, XIcon, AlertTriangleIcon, ClockIcon } from "../../../components/ui/icons";
@@ -336,10 +336,10 @@ function RegistrationFlow({ resubmitAccount }) {
   if (completed) {
     const meta = EDUCATOR_STATUS_META[completed.status];
     return (
-      <div className="relative min-h-screen w-full">
-        <AuthBackdrop />
+      <div style={AUTH_THEME_VARS} className="relative isolate min-h-screen w-full overflow-hidden bg-white font-body text-text">
+        <AuthShapes />
         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
-          <div className="w-full max-w-3xl rounded-3xl bg-white px-5 py-7 shadow-soft sm:px-8">
+          <div className="w-full max-w-3xl rounded-[36px] bg-white px-5 py-7 shadow-[0_30px_80px_rgba(37,87,214,0.18)] ring-1 ring-(--lp-line) sm:px-8">
             <div className="grid gap-7 sm:grid-cols-[260px_1fr] sm:items-center">
               <DigitalIDCard profile={toIdCardProfile(completed)} maxWidthClass="max-w-[260px]" />
               <div>
@@ -359,7 +359,7 @@ function RegistrationFlow({ resubmitAccount }) {
                   </span>
                 </div>
                 <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <Button shape="rect" fullWidth={false} className="px-6" onClick={() => navigate("/teacher")}>
+                  <Button variant="ink" shape="rect" fullWidth={false} className="px-6" onClick={() => navigate("/teacher")}>
                     Go to my portal
                   </Button>
                   <Link to="/teacher/profilesetup" className="text-sm font-semibold text-primary hover:underline">
@@ -375,12 +375,13 @@ function RegistrationFlow({ resubmitAccount }) {
   }
 
   return (
-    <div className="relative min-h-screen w-full">
-      <AuthBackdrop />
+    <div style={AUTH_THEME_VARS} className="relative isolate min-h-screen w-full overflow-hidden bg-white font-body text-text">
+      <AuthShapes />
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
         <div className="w-full max-w-3xl">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <Link to={isResubmit ? "/teacher" : "/teacher/login"} className="font-display text-lg tracking-tight text-primary">
+            <Link to={isResubmit ? "/teacher" : "/teacher/login"} className="inline-flex items-center gap-2.5 font-display text-base font-bold tracking-tight text-(--lp-ink)">
+              <BrandMark className="h-9 w-9" />
               Universal Learning
             </Link>
             <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
@@ -389,13 +390,13 @@ function RegistrationFlow({ resubmitAccount }) {
                   Already have an account? Sign in
                 </Link>
               )}
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+              <span className="rounded-full bg-(--lp-yellow) px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-(--lp-ink)">
                 {isResubmit ? "Update Your Profile" : "Educator Registration"}
               </span>
             </div>
           </div>
 
-          <div className="rounded-3xl bg-white px-5 py-6 shadow-soft sm:px-10">
+          <div className="rounded-[36px] bg-white px-5 py-7 shadow-[0_30px_80px_rgba(37,87,214,0.18)] ring-1 ring-(--lp-line) sm:px-10">
             {isResubmit && resubmitAccount.adminFeedback && (
               <div className="mb-4 flex items-start gap-2.5 rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger">
                 <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
@@ -408,10 +409,10 @@ function RegistrationFlow({ resubmitAccount }) {
 
             <div className="mb-3 flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-xl font-semibold text-text">{STEP_META[stepIndex].title}</h1>
+                <h1 className="font-display text-2xl font-bold tracking-tight text-(--lp-ink)">{STEP_META[stepIndex].title}</h1>
                 <p className="mt-1 text-sm text-muted">{STEP_META[stepIndex].subtitle}</p>
               </div>
-              <span className="shrink-0 rounded-full border border-text/15 px-3 py-1 text-xs font-semibold text-muted">
+              <span className="shrink-0 rounded-full bg-(--lp-blue-soft) px-3 py-1 text-xs font-bold text-(--lp-blue-deep)">
                 Step {stepIndex + 1} of {STEPS.length}
               </span>
             </div>
@@ -1186,6 +1187,7 @@ function RegistrationFlow({ resubmitAccount }) {
                   <span className="text-xs font-medium text-danger">Please fill in all required fields to continue.</span>
                 )}
                 <Button
+                  variant="ink"
                   shape="rect"
                   fullWidth={false}
                   className={`px-7 ${!isStepValid ? "opacity-50" : ""}`}

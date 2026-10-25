@@ -2,6 +2,8 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import Button from "../components/ui/Button";
 import SectionShapes from "../components/common/SectionShapes";
 import { useAuth } from "../hooks/useAuth";
+import { LANDING_THEME_VARS } from "../public/landingTheme";
+import LandingHeader from "../public/components/landing/LandingHeader";
 
 // New top-level layout — public/marketing chrome, no sidebar. Added per
 // the Discovery build spec: Landing + Explore render for visitors who
@@ -12,30 +14,42 @@ import { useAuth } from "../hooks/useAuth";
 // layout, not a new screen inside an existing portal.
 //
 // Nav center links per the Landing Page build spec (Courses/Instructors/
-// FAQ) are in-page scroll anchors to that page's own sections — real
-// destinations, not decorative, satisfying the Interactivity Rule, since
-// this layout only ever wraps LandingPage/ExplorePage today. "How It
-// Works" and "Community" have no dedicated section or page yet — Community
-// in particular is explicitly Future Scope per the LMS doc, not a current
-// module — so both point at the FAQ section for now rather than a dead
-// link. Flag: replace with real destinations once those exist.
+// FAQ/How It Works) are in-page scroll anchors to that page's own
+// sections — real destinations, not decorative. "Community" is explicitly
+// Future Scope per the LMS doc, so it routes to the student messages
+// area (registering first when logged out).
 //
-// Auth links keep one neutral login entry point for all supported roles,
-// plus the student/educator registration action.
+// Landing redesign (2026): on "/" the header uses the new landing theme
+// (floating glass bar, ink pill CTA with arrow). Every other public page
+// (Explore, Instructors, Course details…) keeps its existing header
+// styling untouched, so nothing there changes.
 const NAV_LINKS = [
   { href: "#courses", label: "Courses" },
-  { href: "#instructors", label: "Instructors" },
+  { href: "/instructors", label: "Instructors" },
   { href: "#faq", label: "FAQ" },
-  { href: "#faq", label: "How It Works" },
+  { href: "#how-it-works", label: "How It Works" },
   { href: "#faq", label: "Community" },
 ];
 
 export default function PublicLayout() {
   const location = useLocation();
   const { user } = useAuth();
+  const isHome = location.pathname === "/";
   const communityHref = user
     ? "/student/messages"
     : `/register?redirect=${encodeURIComponent("/student/messages")}`;
+
+  if (isHome) {
+    return (
+      <div style={LANDING_THEME_VARS} className="relative min-h-screen bg-white font-body text-text">
+        <LandingHeader links={NAV_LINKS} communityHref={communityHref} />
+        <main className="public-page-content relative z-10">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-white font-body text-text">
       <header className="relative z-10 flex h-16 items-center justify-between gap-4 px-6 md:px-10">

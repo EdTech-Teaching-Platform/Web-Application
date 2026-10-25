@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import OnboardingStepper from "./OnboardingStepper";
-import AuthBackdrop from "../../../components/ui/AuthBackdrop";
+import { AuthFrame, BrandMark } from "../../../auth/components/AuthKit";
 
 // Shared chrome for the 4 numbered onboarding steps (Basics…Review) — one
 // bounded outer card (logo row, heading, stepper, the step's own blush
@@ -23,39 +23,34 @@ export default function OnboardingLayout({
   const navigate = useNavigate();
   const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate("/"));
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
-      <AuthBackdrop />
-      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-text/10 bg-bg px-8 py-10 sm:px-10">
-        {/* "Back to home" removed per request — no back-navigation
-            control anywhere in the onboarding flow now, only the brand
-            mark (still links home, per item 1's "logo always links to /"
-            rule, but it's a brand mark, not a back button). */}
-        <div className="mb-8">
-          <button type="button" onClick={goBack} className="font-display text-lg tracking-tight text-primary">
+    <AuthFrame top>
+      <div className="relative w-full max-w-2xl rounded-[36px] bg-white px-6 py-8 shadow-[0_30px_80px_rgba(37,87,214,0.18)] ring-1 ring-(--lp-line) sm:px-10 sm:py-10">
+        {/* Brand mark still links home (same rule as before); no back
+            control anywhere in the flow. */}
+        <div className="mb-7 flex items-center justify-between gap-3">
+          <button type="button" onClick={goBack} className="inline-flex items-center gap-2.5 font-display text-base font-bold tracking-tight text-(--lp-ink)">
+            <BrandMark className="h-9 w-9" />
             Universal Learning
           </button>
+          <span className="rounded-full bg-(--lp-yellow) px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-(--lp-ink)">Student setup</span>
         </div>
 
-        {title && <h1 className="font-display text-2xl text-text">{title}</h1>}
+        {title && <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-(--lp-ink)">{title}</h1>}
 
-        <div className="mt-6">
+        <div className="mt-6 rounded-3xl bg-(--lp-grey) px-4 py-4 sm:px-6">
           <OnboardingStepper currentIndex={stepIndex} />
         </div>
 
-        <div className="mt-8 rounded-2xl p-6 sm:p-8" style={{ background: "var(--color-blush)" }}>
+        <div className="mt-6 rounded-3xl bg-(--lp-blue-tint) p-6 ring-1 ring-(--lp-blue-soft) sm:p-8" style={{ "--color-blush": "var(--lp-blue-tint)" }}>
           {children}
         </div>
 
         {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
-        {/* The per-step "Back" (previous step) control has been removed
-            from the onboarding flow per request — steps only move
-            forward now. OnboardingStepper above is left untouched: it's
-            just a progress indicator, not a navigation control. `onBack`
-            is still accepted as a prop (harmless no-op) so step files
-            don't need to be touched individually. */}
+        {/* Steps only move forward; `onBack` stays accepted as a no-op prop. */}
         <div className="mt-8 flex items-center justify-end">
           <Button
+            variant="ink"
             fullWidth={false}
             className="px-8"
             disabled={continueDisabled || submitting}
@@ -65,6 +60,6 @@ export default function OnboardingLayout({
           </Button>
         </div>
       </div>
-    </div>
+    </AuthFrame>
   );
 }

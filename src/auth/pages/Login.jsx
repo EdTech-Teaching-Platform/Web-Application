@@ -15,8 +15,32 @@ import Checkbox from "../../components/ui/Checkbox";
 import { GoogleIcon, AppleIcon } from "../../components/ui/icons";
 import { isEmailOrPhone } from "../utils/validators";
 import { login, requestLoginOtp } from "../services/authApi";
-import loginStudentsImg from "../../assets/illustrations/login-students.png";
-import AuthBackdrop from "../../components/ui/AuthBackdrop";
+import { AuthSplitLayout } from "../components/AuthKit";
+
+// Student / Educator switch — plain links between the two existing login
+// routes (the `redirect` param is carried across).
+function RoleSwitch({ isEducator, redirect }) {
+  const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+  const base = "rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-150";
+  return (
+    <nav aria-label="Sign in as" className="inline-flex rounded-full bg-(--lp-grey) p-1">
+      <Link
+        to={`/login${query}`}
+        aria-current={isEducator ? undefined : "page"}
+        className={`${base} ${isEducator ? "text-(--lp-muted) hover:text-(--lp-ink)" : "bg-(--lp-ink) text-white"}`}
+      >
+        Student
+      </Link>
+      <Link
+        to={`/teacher/login${query}`}
+        aria-current={isEducator ? "page" : undefined}
+        className={`${base} ${isEducator ? "bg-(--lp-ink) text-white" : "text-(--lp-muted) hover:text-(--lp-ink)"}`}
+      >
+        Educator
+      </Link>
+    </nav>
+  );
+}
 
 export default function Login({ role = "student" }) {
   const navigate = useNavigate();
@@ -70,55 +94,13 @@ export default function Login({ role = "student" }) {
   };
 
   return (
-    <div className="relative grid min-h-screen bg-bg lg:grid-cols-[1.9fr_1fr]">
-      {/* Same decorative doodle backdrop as Onboarding/Register, added for
-          visual consistency across all three auth-style screens. */}
-      <AuthBackdrop />
-      {/* Left panel — text sits upper-left, the illustration is grounded on a
-          baseline near the bottom and sized to be the dominant visual element
-          (roughly half the panel's height, spanning most of its width). */}
-      <div className="relative z-10 hidden flex-col border-r border-[#e5ded9] p-10 lg:flex lg:p-14">
-        <Link to="/" className="self-start text-left font-display text-sm font-semibold tracking-tight text-primary">
-          Universal Learning
-        </Link>
+    <AuthSplitLayout variant={isEducator ? "educator" : "student"}>
+          <RoleSwitch isEducator={isEducator} redirect={redirect} />
 
-        <div className="flex flex-1 flex-col items-start justify-between">
-          <div className="max-w-xs -translate-x-1 pt-2">
-            <h2 className="font-display text-3xl leading-tight tracking-tight text-text">
-              Learn anything.
-              <br />
-              From anyone.
-            </h2>
-            <p className="mt-3 text-sm text-text/60">
-              Courses, live classes and mentors — all in one place, right where you left off.
-            </p>
-          </div>
-
-          {/* Reference-image illustration — static, no animation. */}
-          <img
-            src={loginStudentsImg}
-            alt=""
-            aria-hidden="true"
-            className="h-[50vh] max-h-[520px] min-h-[300px] w-full object-contain object-bottom"
-          />
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
-        <div className="mx-auto w-full max-w-sm">
-          <Link to="/" className="mb-6 block w-full text-center font-display text-lg tracking-tight text-primary lg:hidden">
-            Universal Learning
-          </Link>
-
-          <div className="mx-auto mb-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary font-display text-sm font-bold text-white">
-            UL
-          </div>
-
-          <h1 className="text-center font-display text-2xl text-text">
+          <h1 className="mt-8 font-display text-3xl font-bold leading-tight tracking-tight text-text sm:text-4xl">
             {isEducator ? "Welcome back, Educator." : "Hi, welcome back."}
           </h1>
-          <p className="mt-2 text-center text-sm text-text/60">
+          <p className="mt-3 text-sm leading-relaxed text-text/60">
             {isEducator ? (
               <>
                 Sign in to manage your courses and learners. New here?{" "}
@@ -175,7 +157,7 @@ export default function Login({ role = "student" }) {
               </Link>
             </div>
 
-            <Button type="submit" disabled={!isValid || submitting}>
+            <Button type="submit" variant="ink" disabled={!isValid || submitting}>
               {submitting ? "Logging in…" : "Log In"}
             </Button>
 
@@ -206,8 +188,6 @@ export default function Login({ role = "student" }) {
             </Link>
             .
           </p>
-        </div>
-      </div>
-    </div>
+    </AuthSplitLayout>
   );
 }

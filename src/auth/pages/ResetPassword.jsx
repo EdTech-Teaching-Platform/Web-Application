@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
+import { AuthFrame } from "../components/AuthKit";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import ConfirmationCard from "../../components/ui/ConfirmationCard";
@@ -52,7 +53,7 @@ export default function ResetPassword() {
 
   if (status === "expired") {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-10">
+      <AuthFrame>
         <ConfirmationCard
           state="failure"
           heading="This link has expired"
@@ -63,13 +64,13 @@ export default function ResetPassword() {
             </Link>
           }
         />
-      </div>
+      </AuthFrame>
     );
   }
 
   if (status === "success") {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-10">
+      <AuthFrame>
         <ConfirmationCard
           state="success"
           heading="Password updated"
@@ -80,7 +81,7 @@ export default function ResetPassword() {
             </Link>
           }
         />
-      </div>
+      </AuthFrame>
     );
   }
 
@@ -112,7 +113,7 @@ export default function ResetPassword() {
           error={shown("confirmPassword")}
           autoComplete="new-password"
         />
-        <Button type="submit" disabled={!isValid || submitting}>
+        <Button type="submit" variant="ink" disabled={!isValid || submitting}>
           {submitting ? "Resetting…" : "Reset Password"}
         </Button>
       </form>

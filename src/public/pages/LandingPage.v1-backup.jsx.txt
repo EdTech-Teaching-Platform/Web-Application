@@ -1,0 +1,1000 @@
+// Public Landing Page — doc ref LMS Section 5.3 (Discovery — Landing/Home
+// Page). Route: "/" (see src/public/routes.jsx).
+//
+// 2026 visual redesign: new theme (electric blue / ink / sunshine yellow on
+// white, rounded "bubble" components) scoped to this page through the
+// --lp-* variables in ../landingTheme.js. Behaviour is unchanged from the
+// previous version — same routes, search + category navigation, board-exam
+// countdown, mock data shape, and the same shared components (StatCard,
+// Marquee, Accordion) — only presentation changed.
+//
+// Data below is mock/placeholder shaped to match discoveryApi's response
+// contract (see src/services/discoveryApi.js) — wire up the real fetches
+// once those endpoints exist.
+import { useNavigate } from "react-router-dom";
+import StatCard from "../../components/ui/StatCard";
+import Marquee from "../../components/ui/Marquee";
+import Accordion from "../../components/ui/Accordion";
+import { imageForPerson, avatarFor, imgFallback, heroPhoto } from "../../utils/stockImages";
+import { COURSE_CATEGORIES, CATEGORY_META } from "../../utils/constants";
+import { useEffect, useState } from "react";
+import {
+  SearchIcon,
+  ShieldCheckIcon,
+  VideoIcon,
+  WalletIcon,
+  UsersIcon,
+  FileTextIcon,
+  BookOpenIcon,
+  TrendingUpIcon,
+  CheckCircleIcon,
+  GoogleIcon,
+  AppleIcon,
+  AwardIcon,
+  PencilIcon,
+  TargetIcon,
+  BriefcaseIcon,
+  HeartIcon,
+  ClockIcon,
+  StarIcon,
+  MailIcon,
+} from "../../components/ui/icons";
+
+import SiteFooter from "../components/SiteFooter";
+import { LANDING_THEME_VARS } from "../landingTheme";
+import { Reveal, PillButton, SectionHead, ArrowUpRight, Squiggle, CurlArrow, Hatch, Sparkle, Tape, Sticker } from "../components/landing/LandingUI";
+
+// No course/educator preview video is speced for this page today. If one
+// is added later: design.md bans auto-play everywhere — render a static
+// thumbnail + PlayIcon (see components/ui/icons) and start playback only
+// on click, never on mount/scroll/hover.
+
+// "Become an Educator" section — Section 5.1 (educator registration &
+// verification) + Section 5.11 (Educator Earnings & Payouts). Grounded in
+// what those modules actually promise rather than invented perks.
+const EDUCATOR_BENEFITS = [
+  {
+    icon: ShieldCheckIcon,
+    title: "Verified educator profile",
+    description: "Complete identity verification once and get a public profile students can trust before booking or enrolling.",
+  },
+  {
+    icon: VideoIcon,
+    title: "Teach your way",
+    description: "Publish self-paced courses, host live 1-on-1 or group classes, or do both — you choose the format per course.",
+  },
+  {
+    icon: WalletIcon,
+    title: "Transparent earnings",
+    description: "Every credit lands in a permanent, append-only ledger. Request a payout anytime up to your available balance.",
+  },
+  {
+    icon: UsersIcon,
+    title: "Reach more students",
+    description: "Get discovered in Explore and category search by learners already looking for your subject.",
+  },
+];
+
+// Same "Explore by goal" copy already used on ExplorePage.jsx. `tone`
+// drives the card color in this redesign (blue / yellow / ink / light).
+const LANDING_GOALS = [
+  { icon: TargetIcon, tone: "blue", title: "Start a new skill", description: "Beginner-friendly courses to get moving on something brand new." },
+  { icon: BriefcaseIcon, tone: "yellow", title: "Build career-ready skills", description: "In-demand, job-focused tracks in tech, design and business." },
+  { icon: FileTextIcon, tone: "ink", title: "Prepare for exams", description: "Structured practice for board, competitive and language exams.", to: "/student/assessments/test-series" },
+  { icon: HeartIcon, tone: "soft", title: "Learn for personal interest", description: "Music, languages, wellness and creative courses to enjoy." },
+];
+
+const GOAL_TONES = {
+  blue: { card: "bg-(--lp-blue) text-white", sub: "text-white/80", chip: "bg-white text-(--lp-blue)", arrow: "bg-white text-(--lp-blue)" },
+  yellow: { card: "bg-(--lp-yellow) text-(--lp-ink)", sub: "text-(--lp-ink)/70", chip: "bg-white text-(--lp-ink)", arrow: "bg-(--lp-ink) text-white" },
+  ink: { card: "bg-(--lp-ink) text-white", sub: "text-white/70", chip: "bg-(--lp-yellow) text-(--lp-ink)", arrow: "bg-(--lp-yellow) text-(--lp-ink)" },
+  soft: { card: "bg-(--lp-blue-soft) text-(--lp-ink)", sub: "text-(--lp-ink)/65", chip: "bg-white text-(--lp-blue-deep)", arrow: "bg-(--lp-ink) text-white" },
+};
+
+// Subject tiles cycle through the palette in a fixed order (never random).
+const SUBJECT_TILES = [
+  "bg-(--lp-yellow)",
+  "bg-(--lp-blue-soft)",
+  "bg-(--lp-grey)",
+  "bg-(--lp-yellow-soft)",
+];
+
+const PRACTICE_POINTS = [
+  { icon: BookOpenIcon, title: "Practice by subject", description: "Focused tests for the topics you need.", tone: "bg-(--lp-blue) text-white", tilt: "md:-rotate-2 md:hover:rotate-0", ghost: "text-white/15", chip: "bg-white/20 text-white" },
+  { icon: CheckCircleIcon, title: "Learn from mistakes", description: "Review answers with clear explanations.", tone: "bg-(--lp-yellow) text-(--lp-ink)", tilt: "md:translate-y-4 md:rotate-1 md:hover:rotate-0", ghost: "text-(--lp-ink)/10", chip: "bg-(--lp-ink) text-(--lp-yellow)" },
+  { icon: TrendingUpIcon, title: "Track your progress", description: "See what to strengthen before exam day.", tone: "bg-(--lp-ink) text-white", tilt: "md:-rotate-1 md:hover:rotate-0", ghost: "text-white/10", chip: "bg-(--lp-yellow) text-(--lp-ink)" },
+];
+
+// `avatar` is filled via avatarFor() below rather than hardcoded here, so
+// the mapping lives in one place (stockImages.js) instead of being
+// repeated per testimonial.
+const TESTIMONIAL_TONES = ["bg-(--lp-yellow-soft)", "bg-(--lp-blue-soft)", "bg-(--lp-grey)"];
+const TESTIMONIALS_ROW_1 = [
+  { id: "t1", quote: "The live classes completely changed how I study for exams.", name: "Ananya", role: "Grade 11 student", rating: 5 },
+  { id: "t2", quote: "Found an educator who actually explains things clearly.", name: "Karan", role: "Parent", rating: 5 },
+  { id: "t3", quote: "Certificates helped me land a freelance gig.", name: "Meera", role: "Learner", rating: 4 },
+].map((t, i) => ({ ...t, cardClassName: TESTIMONIAL_TONES[i % 3], avatar: avatarFor(t.id) }));
+const TESTIMONIALS_ROW_2 = [
+  { id: "t4", quote: "Booking a session takes seconds — no back and forth.", name: "Farhan", role: "Learner", rating: 5 },
+  { id: "t5", quote: "My daughter looks forward to her classes now.", name: "Sunita", role: "Parent", rating: 5 },
+  { id: "t6", quote: "Progress tracking keeps me honest about my goals.", name: "Devika", role: "Learner", rating: 4 },
+].map((t, i) => ({ ...t, cardClassName: TESTIMONIAL_TONES[(i + 1) % 3], avatar: avatarFor(t.id) }));
+
+const FAQ_ITEMS = [
+  {
+    id: "f1",
+    question: "How do online courses and live classes work?",
+    answer:
+      "Courses are self-paced video/PDF/text lessons you complete on your own schedule. Live classes are scheduled sessions you book with an educator and join through a single-use link generated fresh at join time.",
+  },
+  {
+    id: "f2",
+    question: "Can I get a refund if the course isn't right for me?",
+    answer:
+      "Yes — refunds are handled through Orders in your dashboard, subject to the platform's refund policy and any limits set for the specific course.",
+  },
+  {
+    id: "f3",
+    question: "Are the certificates accredited and recognized?",
+    answer:
+      "Certificates confirm course completion on Universal Learning with a unique certificate number. Accreditation varies by course — check the specific course's details page for accreditation status before enrolling.",
+  },
+  {
+    id: "f4",
+    question: "How do 1-on-1 mentor sessions work?",
+    answer:
+      "You book an available slot directly with an educator; the platform prevents double-booking at the database level, and you can reschedule or cancel from Manage Booking.",
+  },
+  {
+    id: "f5",
+    question: "Can I access the materials on mobile or offline?",
+    answer:
+      "The web platform works on mobile browsers today. A dedicated mobile app with offline access is on the roadmap but not part of the current build.",
+  },
+];
+
+const LEARNING_STEPS = [
+  { n: "01", title: "Learn", text: "Take courses from expert educators.", icon: BookOpenIcon, tone: "bg-(--lp-blue) text-white" },
+  { n: "02", title: "Practice", text: "Apply what you learned through exercises and quizzes.", icon: CheckCircleIcon, tone: "bg-(--lp-yellow) text-(--lp-ink)" },
+  { n: "03", title: "Test Series", text: "Take structured tests and course assessments.", icon: FileTextIcon, tone: "bg-(--lp-ink) text-white" },
+  { n: "04", title: "Improve", text: "Understand weak areas and continue learning.", icon: TrendingUpIcon, tone: "bg-(--lp-blue-soft) text-(--lp-blue-deep)" },
+];
+
+const SHELL = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
+
+export default function LandingPage() {
+  const navigate = useNavigate();
+  const boardExamTarget = new Date("2027-02-15T00:00:00+05:30").getTime();
+  const [timeUntilBoards, setTimeUntilBoards] = useState(() => Math.max(0, boardExamTarget - Date.now()));
+
+  useEffect(() => {
+    const updateCountdown = () => setTimeUntilBoards(Math.max(0, boardExamTarget - Date.now()));
+    updateCountdown();
+    const intervalId = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [boardExamTarget]);
+
+  const countdownSeconds = Math.floor(timeUntilBoards / 1000);
+  const countdown = [
+    { label: "Days", value: Math.floor(countdownSeconds / 86400) },
+    { label: "Hours", value: Math.floor((countdownSeconds % 86400) / 3600) },
+    { label: "Minutes", value: Math.floor((countdownSeconds % 3600) / 60) },
+    { label: "Seconds", value: countdownSeconds % 60 },
+  ];
+
+  return (
+    <div style={LANDING_THEME_VARS} className="overflow-x-clip bg-white font-body text-(--lp-ink)">
+      {/* ───────────────────────────── HERO ───────────────────────────── */}
+      <section className="relative isolate overflow-hidden pb-10 pt-6 md:pb-16 md:pt-10">
+        {/* soft blue wash + dotted grid, static */}
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+          <div className="absolute -right-40 -top-40 h-[620px] w-[620px] rounded-full bg-(--lp-blue-soft) opacity-70 blur-3xl" />
+          <div className="absolute -left-32 top-[6%] h-[440px] w-[440px] rounded-full bg-(--lp-yellow) opacity-30 blur-3xl" />
+          <div
+            className="absolute inset-0 opacity-[0.55]"
+            style={{
+              backgroundImage: "radial-gradient(rgba(15,17,21,0.09) 1px, transparent 1.2px)",
+              backgroundSize: "26px 26px",
+              maskImage: "radial-gradient(ellipse at 30% 30%, black 0%, transparent 65%)",
+              WebkitMaskImage: "radial-gradient(ellipse at 30% 30%, black 0%, transparent 65%)",
+            }}
+          />
+        </div>
+
+        <div className={`${SHELL} grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10`}>
+          <div className="flex min-w-0 flex-col items-start">
+            <Reveal>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold tracking-wide text-(--lp-ink) shadow-[0_6px_24px_rgba(61,123,247,0.15)] ring-1 ring-(--lp-line)">
+                <span className="h-2 w-2 rounded-full bg-(--lp-blue)" />
+                Learn without limits
+              </span>
+            </Reveal>
+
+            <Reveal delay={80}>
+              <h1 className="mt-6 font-(family-name:--lp-font) text-[2.4rem] font-bold leading-[1.04] tracking-[-0.03em] sm:text-6xl lg:text-[4rem]">
+                Build skills that{" "}
+                <span className="relative inline-block">
+                  <span className="absolute -inset-x-2 bottom-[0.04em] top-[0.14em] -rotate-1 rounded-2xl bg-(--lp-yellow)" aria-hidden="true" />
+                  <span className="relative">move</span>
+                </span>{" "}
+                you{" "}
+                <span className="relative inline-block">
+                  <span className="relative z-10">forward.</span>
+                  <Squiggle className="absolute -bottom-3 left-0 -z-0 h-4 w-full text-(--lp-blue)" />
+                </span>
+              </h1>
+            </Reveal>
+
+            <Reveal delay={160}>
+              <p className="mt-7 max-w-xl text-base leading-relaxed text-(--lp-muted) md:text-lg">
+                Learn from experienced educators through structured courses, live classes, practice, and projects designed for real progress.
+              </p>
+            </Reveal>
+
+            <Reveal delay={220} className="w-full max-w-xl">
+              <form
+                className="mt-8 flex w-full items-center gap-2 rounded-full bg-white p-2 pl-5 shadow-[0_18px_50px_rgba(15,17,21,0.10)] ring-1 ring-(--lp-line) transition-shadow focus-within:ring-2 focus-within:ring-(--lp-blue)"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const query = new FormData(event.currentTarget).get("query");
+                  // #browse scrolls straight to ExplorePage's filtered results
+                  // (same fix as the category chips below), so a search
+                  // actually looks like it did something instead of landing
+                  // above the fold with the match buried off-screen.
+                  navigate(`/explore${query ? `?q=${encodeURIComponent(query)}#browse` : ""}`);
+                }}
+              >
+                <SearchIcon className="h-5 w-5 shrink-0 text-(--lp-muted)" />
+                <input
+                  name="query"
+                  placeholder="What do you want to learn?"
+                  className="min-w-0 flex-1 bg-transparent px-1 py-3 text-sm text-(--lp-ink) outline-none placeholder:text-(--lp-muted)/70 sm:text-base"
+                  aria-label="Search courses"
+                />
+                <button
+                  type="submit"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full bg-(--lp-ink) px-6 py-3.5 text-sm font-semibold text-white transition-transform duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--lp-blue)/40"
+                >
+                  Search
+                  <ArrowUpRight className="h-4 w-4" />
+                </button>
+              </form>
+            </Reveal>
+
+            <Reveal delay={260}>
+              <div className="mt-5 flex flex-wrap items-center gap-2.5 text-sm">
+                <span className="text-(--lp-muted)">Popular:</span>
+                {["Programming", "Design", "Languages"].map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => navigate(`/explore?category=${encodeURIComponent(category)}#browse`)}
+                    className="rounded-full bg-(--lp-blue-soft) px-3.5 py-1.5 text-xs font-semibold text-(--lp-blue-deep) transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-(--lp-blue) hover:text-white"
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </Reveal>
+
+            <Reveal delay={320}>
+              <div className="mt-9 flex flex-wrap items-center gap-x-4 gap-y-3">
+                <PillButton tone="ink" onClick={() => navigate("/register")}>
+                  I'm a Student
+                </PillButton>
+                <PillButton tone="outline" onClick={() => navigate("/teacher/registration")}>
+                  I'm an Educator
+                </PillButton>
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin/login")}
+                  className="rounded-full px-4 py-3 text-sm font-semibold text-(--lp-muted) underline decoration-(--lp-line) decoration-2 underline-offset-4 transition-colors hover:text-(--lp-ink) hover:decoration-(--lp-blue)"
+                >
+                  Admin Login
+                </button>
+              </div>
+            </Reveal>
+          </div>
+
+          {/* Hero visual: photo in an arch, yellow sun behind it, floating
+              info bubbles. Real photo + same fallback mechanism as before. */}
+          <Reveal delay={140} className="relative mx-auto w-full max-w-[520px]">
+            <div className="relative aspect-[1/1.08] rounded-[44px] bg-(--lp-blue-soft)">
+              {/* doodles */}
+              <Squiggle className="absolute left-6 top-6 h-8 w-16 text-(--lp-blue)" />
+              <CurlArrow className="absolute -right-3 bottom-[38%] hidden h-24 w-20 rotate-[8deg] text-(--lp-blue) sm:block" />
+              <Hatch className="absolute left-5 top-[38%] h-12 w-12 text-(--lp-blue)/70" />
+              <Sparkle className="absolute right-10 top-6 h-7 w-7 text-(--lp-yellow)" />
+
+              {/* sun disc + arch photo */}
+              <div className="absolute inset-x-[10%] bottom-0 top-[9%]">
+                <div className="absolute inset-x-[-5%] bottom-[-1px] aspect-square rounded-full bg-(--lp-yellow)" />
+                <div className="absolute inset-x-[9%] bottom-0 top-0 overflow-hidden rounded-t-[999px] rounded-b-[36px] bg-white shadow-[0_30px_60px_rgba(37,87,214,0.28)] ring-[6px] ring-white">
+                  <img
+                    src={heroPhoto({ w: 640, h: 760 })}
+                    onError={(e) => imgFallback(e, "landing-hero", 640, 760)}
+                    alt="Student in a live online class"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              </div>
+
+              {/* Bubble: learners */}
+              <div className="absolute -left-3 top-[14%] flex items-center gap-3 rounded-2xl bg-(--lp-blue) px-3.5 py-3 text-white shadow-[0_18px_40px_rgba(37,87,214,0.4)] sm:-left-8">
+                <span className="flex -space-x-2">
+                  {["l1", "l2", "l3"].map((seed) => (
+                    <img key={seed} src={avatarFor(seed)} alt="" className="h-8 w-8 rounded-full object-cover ring-2 ring-(--lp-blue)" />
+                  ))}
+                </span>
+                <span className="leading-tight">
+                  <span className="block font-(family-name:--lp-font) text-sm font-bold">50,000+</span>
+                  <span className="block text-[11px] text-white/80">learners</span>
+                </span>
+              </div>
+
+              {/* Bubble: award */}
+              <span className="absolute -right-2 top-[26%] grid h-14 w-14 place-items-center rounded-full bg-white text-(--lp-blue) shadow-[0_14px_30px_rgba(15,17,21,0.15)] sm:-right-5" aria-hidden="true">
+                <AwardIcon className="h-7 w-7" />
+              </span>
+
+              {/* Bubble: live classes */}
+              <div className="absolute -right-2 top-[46%] hidden items-center gap-2.5 rounded-2xl bg-(--lp-ink) px-3.5 py-3 text-white shadow-[0_18px_40px_rgba(15,17,21,0.3)] sm:flex sm:-right-8">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink)"><VideoIcon className="h-4 w-4" /></span>
+                <span className="text-xs font-semibold leading-tight">Live classes<span className="block font-normal text-white/60">1-on-1 &amp; group</span></span>
+              </div>
+
+              {/* Bubble: pencil */}
+              <span className="absolute -left-2 bottom-[30%] grid h-11 w-11 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink) shadow-[0_10px_24px_rgba(15,17,21,0.15)]" aria-hidden="true">
+                <PencilIcon className="h-5 w-5" />
+              </span>
+
+              {/* Sticker */}
+              <Sticker className="absolute -bottom-9 -right-3 h-28 w-28 rotate-12 bg-(--lp-yellow) text-(--lp-ink) shadow-[0_14px_30px_rgba(15,17,21,0.18)] ring-4 ring-white sm:-right-6 sm:h-32 sm:w-32">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-(--lp-ink) text-white"><ArrowUpRight className="h-5 w-5" /></span>
+              </Sticker>
+
+              {/* Bubble: course completed */}
+              <div className="absolute -bottom-6 left-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_20px_50px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) sm:-left-6">
+                <span
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full"
+                  style={{ background: "conic-gradient(var(--lp-blue) 0 92%, var(--lp-blue-soft) 92% 100%)" }}
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white font-(family-name:--lp-font) text-[11px] font-bold text-(--lp-ink)">92%</span>
+                </span>
+                <span className="leading-tight">
+                  <span className="block font-(family-name:--lp-font) text-sm font-bold">Course completed</span>
+                  <span className="mt-0.5 flex items-center gap-1 text-xs text-(--lp-muted)">
+                    4.9 <StarIcon className="h-3 w-3 fill-(--lp-yellow) text-(--lp-yellow)" /> average rating
+                  </span>
+                </span>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─────────────────────────── TAPE BANDS ─────────────────────────── */}
+      <section aria-hidden="true" className="relative h-36 overflow-hidden sm:h-40">
+        <Tape
+          className="absolute inset-x-[-6%] top-5 -rotate-2 bg-(--lp-yellow) text-(--lp-ink) shadow-[0_8px_24px_rgba(15,17,21,0.10)]"
+          items={["Programming", "Design", "Languages", "Math", "Science", "Music", "Business"]}
+          duration={50}
+        />
+        <Tape
+          reverse
+          className="absolute inset-x-[-6%] top-14 rotate-[1.5deg] bg-(--lp-ink) text-white sm:top-16"
+          items={["Live classes", "Test series", "1-on-1 mentors", "Certificates", "Practice", "Projects"]}
+          duration={55}
+        />
+      </section>
+
+      {/* ───────────────────────── STATS BENTO ───────────────────────── */}
+      <section className="py-10 md:py-14">
+        <div className={SHELL}>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
+            {/* Learners — big blue tile with a rising line */}
+            <Reveal className="col-span-2 md:row-span-2">
+              <div className="relative flex h-full min-h-[340px] flex-col justify-between overflow-hidden rounded-[36px] bg-(--lp-blue) p-7 text-white sm:p-9">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-(--lp-blue-deep)/60" aria-hidden="true" />
+                <Hatch className="pointer-events-none absolute right-8 top-8 h-12 w-12 text-white/40" />
+                <div className="relative flex items-center gap-3">
+                  <span className="flex -space-x-2.5">
+                    {["s1", "s2", "s3", "s4", "s5"].map((seed) => (
+                      <img key={seed} src={avatarFor(seed)} alt="" className="h-10 w-10 rounded-full object-cover ring-[3px] ring-(--lp-blue)" />
+                    ))}
+                  </span>
+                  <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">Learners worldwide</span>
+                </div>
+                <div className="relative pb-20">
+                  <StatCard
+                    value={50000}
+                    suffix="+"
+                    label="Total Students"
+                    className="items-start gap-2"
+                    valueClassName="font-(family-name:--lp-font) text-6xl font-extrabold leading-none tracking-tight sm:text-7xl lg:text-[5.5rem]"
+                    labelClassName="text-base font-medium normal-case tracking-normal text-white/80"
+                  />
+                </div>
+                <svg viewBox="0 0 400 120" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 bottom-0 h-28 w-full" aria-hidden="true">
+                  <path d="M0 108C60 100 92 82 140 80S232 62 282 42 360 22 400 10V120H0Z" fill="rgba(255,255,255,0.14)" />
+                  <path d="M0 108C60 100 92 82 140 80S232 62 282 42 360 22 400 10" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+                </svg>
+                <span className="absolute bottom-5 right-6 grid h-11 w-11 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink) shadow-lg" aria-hidden="true">
+                  <TrendingUpIcon className="h-5 w-5" />
+                </span>
+              </div>
+            </Reveal>
+
+            {/* Satisfaction — yellow ring */}
+            <Reveal delay={80} className="col-span-1">
+              <div className="relative flex h-full min-h-[200px] flex-col items-center justify-center overflow-hidden rounded-[36px] bg-(--lp-yellow) p-5 text-center text-(--lp-ink)">
+                <div className="grid h-36 w-36 place-items-center rounded-full" style={{ background: "conic-gradient(var(--lp-ink) 0 92%, rgba(15,17,21,0.12) 92% 100%)" }}>
+                  <div className="grid h-[7.6rem] w-[7.6rem] place-items-center rounded-full bg-(--lp-yellow)">
+                    <StatCard value={92} suffix="%" label="" className="items-center gap-0" valueClassName="font-(family-name:--lp-font) text-4xl font-extrabold tracking-tight" labelClassName="hidden" />
+                  </div>
+                </div>
+                <p className="mt-3 text-sm font-semibold">Student Satisfaction</p>
+              </div>
+            </Reveal>
+
+            {/* Mentors — ink */}
+            <Reveal delay={140} className="col-span-1">
+              <div className="relative flex h-full min-h-[200px] flex-col justify-between overflow-hidden rounded-[36px] bg-(--lp-ink) p-6 text-white">
+                <div className="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full border-[14px] border-(--lp-blue)/50" aria-hidden="true" />
+                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-(--lp-yellow) text-(--lp-ink)">
+                  <ShieldCheckIcon className="h-5 w-5" />
+                </span>
+                <div className="relative">
+                  <StatCard
+                    value={250}
+                    suffix="+"
+                    label="Expert Mentors"
+                    className="items-start gap-1"
+                    valueClassName="font-(family-name:--lp-font) text-5xl font-extrabold leading-none tracking-tight"
+                    labelClassName="text-sm font-medium normal-case tracking-normal text-white/70"
+                  />
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Years — soft tile with a bar chart motif */}
+            <Reveal delay={200} className="col-span-2">
+              <div className="relative flex h-full min-h-[170px] items-end justify-between gap-6 overflow-hidden rounded-[36px] bg-(--lp-blue-soft) p-7 text-(--lp-ink)">
+                <StatCard
+                  value={8}
+                  suffix="+"
+                  label="Years Experience"
+                  className="items-start gap-1 self-center"
+                  valueClassName="font-(family-name:--lp-font) text-6xl font-extrabold leading-none tracking-tight"
+                  labelClassName="text-sm font-medium normal-case tracking-normal text-(--lp-ink)/70"
+                />
+                <div className="flex h-24 items-end gap-1.5 sm:gap-2" aria-hidden="true">
+                  {[28, 38, 46, 56, 66, 78, 90, 100].map((h, i) => (
+                    <span
+                      key={h}
+                      style={{ height: `${h}%` }}
+                      className={`w-3 rounded-full sm:w-4 ${i === 7 ? "bg-(--lp-yellow)" : i > 3 ? "bg-(--lp-blue)" : "bg-(--lp-blue)/45"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────── BOARD EXAM COUNTDOWN ───────────────────── */}
+      {/* Ticket-style banner with a flip-clock countdown. */}
+      <section className="py-10 md:py-14">
+        <div className={SHELL}>
+          <Reveal className="relative">
+            <div className="relative overflow-hidden rounded-[40px] bg-(--lp-ink) px-6 py-12 text-white sm:px-12 sm:py-14">
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                <div className="absolute -right-32 -top-32 h-[26rem] w-[26rem] rounded-full border border-white/10" />
+                <div className="absolute -right-16 -top-16 h-[18rem] w-[18rem] rounded-full border border-white/10" />
+                <div className="absolute -right-4 -top-4 h-[10rem] w-[10rem] rounded-full bg-(--lp-blue)/80" />
+                <div className="absolute -bottom-40 left-[22%] h-80 w-80 rounded-full bg-(--lp-blue)/20" />
+                <div
+                  className="absolute inset-0 opacity-40"
+                  style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1.2px)", backgroundSize: "24px 24px", maskImage: "linear-gradient(to right, black, transparent 60%)", WebkitMaskImage: "linear-gradient(to right, black, transparent 60%)" }}
+                />
+              </div>
+
+              <div className="relative grid items-center gap-10 lg:grid-cols-[1fr_auto_1.15fr] lg:gap-12">
+                <div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-(--lp-yellow) px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-(--lp-ink)">
+                    <ClockIcon className="h-3.5 w-3.5" />
+                    Board exams are coming up
+                  </span>
+                  <h2 className="mt-5 max-w-md text-balance font-(family-name:--lp-font) text-3xl font-bold leading-[1.08] tracking-tight sm:text-4xl">
+                    Get exam ready with <span className="text-(--lp-yellow)">focused</span> test series practice
+                  </h2>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {["Chapter-wise tests", "Full-length mocks", "Per-question reports"].map((perk) => (
+                      <span key={perk} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/85 ring-1 ring-white/10">
+                        <CheckCircleIcon className="h-3.5 w-3.5 text-(--lp-yellow)" />
+                        {perk}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-8">
+                    <PillButton tone="yellow" onClick={() => navigate("/test-series")}>
+                      Explore Test Series
+                    </PillButton>
+                  </div>
+                </div>
+
+                {/* ticket perforation */}
+                <div className="hidden h-full min-h-[200px] border-l-2 border-dashed border-white/20 lg:block" aria-hidden="true" />
+
+                <div>
+                  <div className="flex items-start gap-2.5 sm:gap-4" aria-label="Countdown to expected CBSE board exam season">
+                    {countdown.map(({ label, value }, i) => {
+                      const tone =
+                        i === 0
+                          ? "bg-(--lp-yellow) text-(--lp-ink)"
+                          : i === 3
+                            ? "bg-(--lp-blue) text-white"
+                            : "bg-(--lp-ink-soft) text-white ring-1 ring-white/10";
+                      return (
+                        <div key={label} className={i === 0 ? "flex-[1.55]" : "flex-1"}>
+                          <div className={`relative overflow-hidden rounded-2xl sm:rounded-3xl ${tone}`}>
+                            <div className="relative z-10 grid place-items-center py-6 font-(family-name:--lp-font) text-3xl font-extrabold leading-none tabular-nums tracking-tight sm:py-10 sm:text-5xl lg:text-6xl">
+                              {String(value).padStart(2, "0")}
+                            </div>
+                            {/* flip-card details: lighter top half, hinge line, side pins */}
+                            <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/[0.10]" aria-hidden="true" />
+                            <span className="pointer-events-none absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 bg-black/35" aria-hidden="true" />
+                            <span className="pointer-events-none absolute -left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink)" aria-hidden="true" />
+                            <span className="pointer-events-none absolute -right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink)" aria-hidden="true" />
+                          </div>
+                          <p className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-xs">{label}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-5 text-xs leading-5 text-white/55">Expected CBSE exam season start: 15 Feb 2027; official dates may change.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* ticket notches */}
+            <span className="pointer-events-none absolute -left-5 top-1/2 hidden h-10 w-10 -translate-y-1/2 rounded-full bg-white sm:block" aria-hidden="true" />
+            <span className="pointer-events-none absolute -right-5 top-1/2 hidden h-10 w-10 -translate-y-1/2 rounded-full bg-white sm:block" aria-hidden="true" />
+            <Sticker
+              text="PRACTICE • EVERY • DAY • "
+              className="absolute -top-7 right-10 hidden h-24 w-24 -rotate-12 bg-(--lp-blue) text-white shadow-[0_14px_30px_rgba(15,17,21,0.3)] ring-4 ring-white md:grid"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink)"><ArrowUpRight className="h-4 w-4" /></span>
+            </Sticker>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─────────────────── MAKE EVERY PRACTICE COUNT ────────────────── */}
+      <section className="py-14 md:py-20">
+        <div className={SHELL}>
+          <Reveal>
+            <SectionHead eyebrow="Make every practice count" title="Practice that actually moves your score." />
+          </Reveal>
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            {PRACTICE_POINTS.map((item, i) => (
+              <Reveal key={item.title} delay={i * 90}>
+                <article className={`relative h-full overflow-hidden rounded-[32px] p-7 transition-transform duration-300 ease-out hover:-translate-y-1.5 ${item.tone} ${item.tilt}`}>
+                  <span className={`pointer-events-none absolute right-3 top-1 font-(family-name:--lp-font) text-[7rem] font-extrabold leading-none ${item.ghost}`} aria-hidden="true">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className={`relative grid h-12 w-12 place-items-center rounded-2xl ${item.chip}`}>
+                    <item.icon className="h-6 w-6" />
+                  </span>
+                  <h3 className="relative mt-12 font-(family-name:--lp-font) text-2xl font-bold tracking-tight">{item.title}</h3>
+                  <p className="relative mt-2 max-w-[16rem] text-sm leading-relaxed opacity-80">{item.description}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────── EXPLORE BY GOAL ─────────────────────── */}
+      <section className="py-14 md:py-20">
+        <div className={SHELL}>
+          <Reveal>
+            <SectionHead eyebrow="Explore by goal" title="Not sure where to start? Pick what you're trying to do." />
+          </Reveal>
+          <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {LANDING_GOALS.map((goal, i) => {
+              const Icon = goal.icon;
+              const tone = GOAL_TONES[goal.tone];
+              return (
+                <Reveal key={goal.title} delay={i * 80} className="h-full">
+                  <button
+                    type="button"
+                    onClick={() => (goal.to ? navigate(goal.to) : navigate("/explore"))}
+                    className={`group relative flex h-full min-h-[300px] w-full flex-col items-start rounded-[32px] p-6 text-left outline-none transition-transform duration-300 ease-out hover:-translate-y-1.5 focus-visible:ring-4 focus-visible:ring-(--lp-blue)/40 ${tone.card}`}
+                  >
+                    <span className={`grid h-14 w-14 place-items-center rounded-2xl ${tone.chip}`}>
+                      <Icon className="h-7 w-7" />
+                    </span>
+                    <span className="mt-auto font-(family-name:--lp-font) text-2xl font-bold leading-tight tracking-tight">{goal.title}</span>
+                    <span className={`mt-3 text-sm leading-relaxed ${tone.sub}`}>{goal.description}</span>
+                    <span className={`absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 ${tone.arrow}`}>
+                      <ArrowUpRight />
+                    </span>
+                  </button>
+                </Reveal>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────────── SUBJECTS ("Courses" anchor) ───────────────── */}
+      <section id="courses" className="scroll-mt-24 py-14 md:py-20">
+        <div className={SHELL}>
+          <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+            <SectionHead align="left" eyebrow="Start with a subject" title="What would you like to learn?" />
+            <PillButton tone="ink" size="sm" onClick={() => navigate("/explore")}>
+              Explore all courses
+            </PillButton>
+          </Reveal>
+          <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {COURSE_CATEGORIES.map((category, i) => {
+              const meta = CATEGORY_META[category];
+              const Icon = meta.icon;
+              return (
+                <Reveal key={category} delay={(i % 4) * 70} className="h-full">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/explore?category=${encodeURIComponent(category)}#browse`)}
+                    className={`group relative flex h-full min-h-[150px] w-full flex-col items-start justify-between overflow-hidden rounded-[28px] p-5 text-left outline-none transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:-rotate-1 focus-visible:ring-4 focus-visible:ring-(--lp-blue)/40 ${SUBJECT_TILES[(i + Math.floor(i / 4)) % SUBJECT_TILES.length]}`}
+                  >
+                    {/* hover wash: opacity only */}
+                    <span className="pointer-events-none absolute inset-0 bg-(--lp-blue) opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100" aria-hidden="true" />
+                    <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-white text-(--lp-blue-deep) shadow-sm">
+                      <Icon className="h-6 w-6" />
+                    </span>
+                    <span className="relative flex w-full items-end justify-between gap-2">
+                      <span className="font-(family-name:--lp-font) text-base font-bold tracking-tight transition-colors duration-300 group-hover:text-white sm:text-lg">{category}</span>
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-(--lp-ink) text-white transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:bg-white group-hover:text-(--lp-blue)">
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </span>
+                    </span>
+                  </button>
+                </Reveal>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────────────── TEST SERIES ───────────────────────── */}
+      {/* A main Phase-1 product, not a small feature card: full-width
+          section with an exam-mockup preview and a primary CTA into the
+          /test-series marketplace. */}
+      <section className="py-10 md:py-14">
+        <div className={SHELL}>
+          <div className="relative overflow-hidden rounded-[44px] bg-(--lp-yellow-soft) p-6 ring-1 ring-(--lp-yellow) sm:p-10 lg:p-14">
+            <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-(--lp-yellow)/60" aria-hidden="true" />
+            <div className="relative grid items-center gap-12 lg:grid-cols-[1fr_0.95fr]">
+              <Reveal>
+                <span className="inline-flex rounded-full bg-(--lp-ink) px-3.5 py-1.5 text-xs font-semibold tracking-wide text-white">Test Series</span>
+                <h2 className="mt-5 max-w-lg font-(family-name:--lp-font) text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+                  Prepare. Practice.{" "}
+                  <span className="relative inline-block text-white">
+                    <span className="absolute -inset-x-2 bottom-[0.02em] top-[0.12em] -rotate-1 rounded-2xl bg-(--lp-blue)" aria-hidden="true" />
+                    <span className="relative">Perform.</span>
+                  </span>
+                </h2>
+                <p className="mt-5 max-w-lg text-base leading-relaxed text-(--lp-muted)">
+                  Practice with topic-wise, subject-wise and full-length test series designed to help you understand your preparation, improve your speed and identify areas that need more work.
+                </p>
+                <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                  {[
+                    { n: "01", title: "Structured Test Series", text: "Chapter, subject and full-length mock exams, timed just like the real thing.", icon: FileTextIcon, tint: "bg-(--lp-yellow) text-(--lp-ink)" },
+                    { n: "02", title: "Per-Question Reporting", text: "Detailed breakdowns of time spent and accuracy per question, so you know exactly where to improve.", icon: BookOpenIcon, tint: "bg-(--lp-blue) text-white" },
+                  ].map((item) => (
+                    <article key={item.title} className="rounded-3xl bg-white p-5 shadow-[0_10px_30px_rgba(37,87,214,0.08)]">
+                      <div className="flex items-center justify-between">
+                        <span className={`grid h-10 w-10 place-items-center rounded-xl ${item.tint}`}>
+                          <item.icon className="h-5 w-5" />
+                        </span>
+                        <span className="font-(family-name:--lp-font) text-sm font-bold text-(--lp-muted)/60">{item.n}</span>
+                      </div>
+                      <h3 className="mt-4 font-(family-name:--lp-font) text-base font-bold">{item.title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-(--lp-muted)">{item.text}</p>
+                    </article>
+                  ))}
+                </div>
+                <div className="mt-8">
+                  <PillButton tone="ink" onClick={() => navigate("/test-series")}>
+                    Explore Test Series
+                  </PillButton>
+                </div>
+              </Reveal>
+
+              <Reveal delay={120} className="relative md:rotate-[1.5deg]">
+                {/* Static exam-UI mockup — illustrative preview, not a real
+                    live test (this is a marketing page, not the exam shell). */}
+                <div className="rounded-[32px] bg-white p-5 shadow-[0_30px_70px_rgba(37,87,214,0.18)] ring-1 ring-(--lp-line) sm:p-7">
+                  <div className="flex items-center justify-between text-sm font-semibold">
+                    <span>Question 12 / 50</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-3 py-1 text-xs text-white">
+                      <ClockIcon className="h-3.5 w-3.5" />
+                      34:28
+                    </span>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-(--lp-blue-soft)">
+                    <div className="h-full w-[24%] rounded-full bg-(--lp-blue)" />
+                  </div>
+                  <p className="mt-5 text-[11px] font-bold uppercase tracking-wider text-(--lp-muted)">Question palette</p>
+                  <div className="mt-3 grid grid-cols-6 gap-2 sm:grid-cols-8">
+                    {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => {
+                      const state = n <= 8 ? "answered" : n === 12 ? "current" : n === 9 || n === 15 ? "flagged" : n === 6 || n === 13 ? "unanswered" : "unvisited";
+                      const tone =
+                        state === "answered"
+                          ? "bg-(--lp-blue) text-white"
+                          : state === "current"
+                            ? "bg-(--lp-ink) text-white ring-2 ring-(--lp-ink) ring-offset-2"
+                            : state === "flagged"
+                              ? "bg-(--lp-yellow) text-(--lp-ink)"
+                              : state === "unanswered"
+                                ? "bg-(--lp-blue-soft) text-(--lp-blue-deep)"
+                                : "bg-(--lp-grey) text-(--lp-muted)";
+                      return (
+                        <span key={n} className={`grid aspect-square place-items-center rounded-xl text-xs font-bold ${tone}`}>
+                          {n}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-(--lp-muted)">
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-(--lp-blue)" />Answered</span>
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-(--lp-blue-soft)" />Unanswered</span>
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-(--lp-yellow)" />Marked</span>
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-(--lp-grey) ring-1 ring-(--lp-line)" />Not visited</span>
+                  </div>
+                </div>
+
+                <div className="relative z-10 -mt-3 ml-auto w-[92%] rounded-[28px] bg-(--lp-ink) p-5 text-white shadow-[0_24px_60px_rgba(15,17,21,0.35)] sm:p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-white/55">Python Programming</p>
+                      <h3 className="mt-1 font-(family-name:--lp-font) text-lg font-bold">Final Assessment</h3>
+                    </div>
+                    <span className="rounded-full bg-(--lp-yellow) px-3 py-1 text-[11px] font-bold text-(--lp-ink)">PASSED</span>
+                  </div>
+                  <div className="mt-5 flex items-center gap-5">
+                    <div
+                      className="grid h-20 w-20 shrink-0 place-items-center rounded-full"
+                      style={{ background: "conic-gradient(var(--lp-yellow) 0 82%, rgba(255,255,255,0.15) 82% 100%)" }}
+                    >
+                      <div className="grid h-[62px] w-[62px] place-items-center rounded-full bg-(--lp-ink) text-center">
+                        <strong className="font-(family-name:--lp-font) text-lg leading-none">82%</strong>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">33 / 40 correct</p>
+                      <p className="mt-1 text-xs text-white/55">Performance breakdown</p>
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── LEARNING CYCLE ("How it works") ────────────── */}
+      <section id="how-it-works" className="scroll-mt-24 py-14 md:py-24">
+        <div className={SHELL}>
+          <Reveal>
+            <SectionHead
+              maxW="max-w-4xl"
+              eyebrow="A complete learning cycle"
+              title="Learn → Practice → Assess → Improve"
+              subtitle="Every course pairs with practice and structured assessment, so progress is something you can prove."
+            />
+          </Reveal>
+          <div className="relative mt-14">
+            {/* connector line (desktop) */}
+            <div className="pointer-events-none absolute left-[12%] right-[12%] top-8 hidden border-t-2 border-dashed border-(--lp-blue)/35 lg:block" aria-hidden="true" />
+            <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {LEARNING_STEPS.map((step, i) => (
+                <Reveal as="li" key={step.title} delay={i * 90} className="relative text-center">
+                  <span className={`relative z-10 mx-auto grid h-16 w-16 place-items-center rounded-full shadow-[0_14px_30px_rgba(15,17,21,0.12)] ring-8 ring-white ${step.tone}`}>
+                    <step.icon className="h-7 w-7" />
+                  </span>
+                  <div className="mt-6 rounded-[28px] bg-(--lp-grey) p-6">
+                    <span className="text-[11px] font-bold tracking-[0.16em] text-(--lp-blue-deep)">STEP {step.n}</span>
+                    <h3 className="mt-1 font-(family-name:--lp-font) text-xl font-bold tracking-tight">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-(--lp-muted)">{step.text}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+          <Reveal className="mt-12 flex justify-center">
+            <PillButton tone="blue" onClick={() => navigate("/explore")}>
+              Explore all courses
+            </PillButton>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ───────────────── BECOME AN EDUCATOR ("Instructors") ─────────── */}
+      <section id="educators" className="scroll-mt-24 py-10 md:py-14">
+        <div id="instructors" className={`${SHELL} scroll-mt-24`}>
+          <div className="relative overflow-hidden rounded-[44px] bg-(--lp-blue) px-6 py-12 text-white sm:px-12 sm:py-16">
+            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+              <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-(--lp-blue-deep)/60" />
+              <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-white/10" />
+              <div className="absolute -left-12 top-24 h-32 w-32 rounded-full bg-(--lp-yellow)" />
+              <Sparkle className="absolute left-[46%] top-10 hidden h-7 w-7 text-(--lp-yellow) lg:block" />
+              <Hatch className="absolute bottom-8 right-10 hidden h-14 w-14 text-white/40 lg:block" />
+            </div>
+            <div className="relative grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+              <Reveal className="flex flex-col items-start">
+                <span className="inline-flex rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold tracking-wide">For Educators</span>
+                <h2 className="mt-5 text-balance font-(family-name:--lp-font) text-4xl font-bold leading-[1.05] tracking-tight lg:text-[2.75rem]">
+                  Teach what you know. Get paid for it.
+                </h2>
+                <p className="mt-5 max-w-md text-base leading-relaxed text-white/80">
+                  Join 250+ verified educators building courses and hosting live classes for learners around the world, with transparent earnings and payouts you can track anytime.
+                </p>
+                <div className="mt-6 flex items-center gap-3">
+                  <span className="flex -space-x-2.5">
+                    {["e1", "e2", "e3", "e4"].map((seed) => (
+                      <img key={seed} src={avatarFor(seed)} alt="" className="h-10 w-10 rounded-full object-cover ring-[3px] ring-(--lp-blue)" />
+                    ))}
+                  </span>
+                  <span className="text-sm font-medium text-white/85">250+ expert mentors</span>
+                </div>
+                <div className="mt-8">
+                  <PillButton tone="yellow" onClick={() => navigate("/teacher/registration")}>
+                    Become an Educator
+                  </PillButton>
+                </div>
+              </Reveal>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {EDUCATOR_BENEFITS.map((benefit, i) => (
+                  <Reveal key={benefit.title} delay={i * 80}>
+                    <div className="h-full rounded-[28px] bg-white p-6 text-(--lp-ink) shadow-[0_20px_50px_rgba(15,17,21,0.18)] transition-transform duration-300 ease-out hover:-translate-y-1.5">
+                      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-(--lp-yellow) text-(--lp-ink)">
+                        <benefit.icon className="h-5 w-5" />
+                      </span>
+                      <p className="mt-5 font-(family-name:--lp-font) text-lg font-bold leading-snug tracking-tight">{benefit.title}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-(--lp-muted)">{benefit.description}</p>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────── TESTIMONIALS ───────────────────────── */}
+      <section id="testimonials" className="scroll-mt-24 py-14 md:py-24">
+        <div className={SHELL}>
+          <Reveal>
+            <SectionHead eyebrow="Testimonial" title="Stories from our learning journey." />
+          </Reveal>
+        </div>
+        <Reveal className="mt-12">
+          <Marquee
+            rows={[TESTIMONIALS_ROW_1, TESTIMONIALS_ROW_2]}
+            cardClassName="bg-(--lp-grey)"
+            starClassName="text-(--lp-blue)"
+            avatarClassName="bg-(--lp-blue)"
+          />
+        </Reveal>
+      </section>
+
+      {/* ─────────────────────────── FAQ ─────────────────────────────── */}
+      <section id="faq" className="scroll-mt-24 py-14 md:py-20">
+        <div className={`${SHELL} grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16`}>
+          <Reveal className="lg:sticky lg:top-28 lg:self-start">
+            <SectionHead align="left" eyebrow="Frequently Asked Questions" title="Answers to your most common questions." />
+            <div className="mt-8 flex -rotate-1 items-center gap-4 rounded-[28px] bg-(--lp-yellow) p-5">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-(--lp-ink) text-white">
+                <MailIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-(family-name:--lp-font) text-base font-bold">Still curious?</p>
+                <a href="mailto:support@universallearning.app" className="text-sm font-semibold text-(--lp-ink) underline decoration-2 underline-offset-4">
+                  support@universallearning.app
+                </a>
+              </div>
+            </div>
+          </Reveal>
+          <Reveal delay={100}>
+            <Accordion
+              items={FAQ_ITEMS}
+              className="space-y-3"
+              itemClassName="rounded-3xl bg-(--lp-grey) px-6 transition-transform duration-200 ease-out hover:-translate-y-0.5"
+              buttonClassName="py-5"
+              questionClassName="font-(family-name:--lp-font) text-base font-bold text-(--lp-ink) sm:text-lg"
+              iconClassName="grid h-8 w-8 rounded-full bg-(--lp-yellow) p-1.5 text-(--lp-ink)"
+              answerClassName="text-sm leading-relaxed text-(--lp-muted)"
+            />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ───────────────────── LEARN ANYWHERE / CTA ───────────────────── */}
+      {/* The platform is responsive today; the app-store badges below are
+          presentational placeholders (no real mobile app exists yet),
+          flagged rather than linked to fabricated store URLs. */}
+      <section className="pb-20 pt-10 md:pb-28 md:pt-14">
+        <div className={SHELL}>
+          <div className="relative overflow-hidden rounded-[44px] bg-(--lp-ink) p-6 text-white sm:p-10 lg:p-14">
+            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+              <div className="absolute -left-20 -top-24 h-80 w-80 rounded-full bg-(--lp-blue)/80 blur-2xl" />
+              <div className="absolute -bottom-28 right-10 h-72 w-72 rounded-full bg-(--lp-yellow)/45 blur-2xl" />
+            </div>
+            <div className="relative grid items-center gap-10 md:grid-cols-2">
+              <Reveal className="relative order-2 mx-auto w-full max-w-sm md:order-1 md:max-w-none">
+                <div className="absolute -bottom-4 -left-4 h-full w-full rounded-[36px] bg-(--lp-yellow)" aria-hidden="true" />
+                <img
+                  src={imageForPerson("mobile-app-hero", { w: 560, h: 480 })}
+                  onError={(e) => imgFallback(e, "mobile-app-hero", 560, 480)}
+                  alt="Learner studying from a phone"
+                  className="relative aspect-[7/6] w-full rounded-[36px] object-cover ring-4 ring-(--lp-ink)"
+                />
+              </Reveal>
+              <Reveal delay={100} className="order-1 flex flex-col items-start md:order-2">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide">
+                  <UsersIcon className="h-3.5 w-3.5" />
+                  Any Device
+                </span>
+                <h2 className="mt-5 font-(family-name:--lp-font) text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+                  Learn anytime, <span className="text-(--lp-yellow)">anywhere.</span>
+                </h2>
+                <p className="mt-5 max-w-md text-base leading-relaxed text-white/70">
+                  The web platform works across desktop and mobile browsers today, so you can pick up a course or join a live class from whatever device is in front of you.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  {/* Presentational only -- no dedicated mobile app exists yet
+                      (see FAQ_ITEMS f5 above). Not links: no real store URLs to
+                      point at, so these render as static badges. */}
+                  <span className="inline-flex min-w-[150px] items-center gap-3 rounded-2xl bg-white/10 px-4 py-2.5 ring-1 ring-white/15" title="Coming soon -- no mobile app yet">
+                    <GoogleIcon className="h-5 w-5 shrink-0" />
+                    <span className="text-left leading-tight"><span className="block text-[9px] font-medium uppercase tracking-wide text-white/65">Coming soon on</span><span className="block text-sm font-semibold">Google Play</span></span>
+                  </span>
+                  <span className="inline-flex min-w-[150px] items-center gap-3 rounded-2xl bg-white/10 px-4 py-2.5 ring-1 ring-white/15" title="Coming soon -- no mobile app yet">
+                    <AppleIcon className="h-5 w-5 shrink-0" />
+                    <span className="text-left leading-tight"><span className="block text-[9px] font-medium uppercase tracking-wide text-white/65">Coming soon on</span><span className="block text-sm font-semibold">App Store</span></span>
+                  </span>
+                </div>
+                <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                  {[
+                    "Sync across devices",
+                    "Continue where you left off",
+                    "Downloadable resources",
+                    "Topic-based learning",
+                    "Live class access",
+                    "Daily learning goals",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-2.5 text-sm text-white/90">
+                      <CheckCircleIcon className="h-5 w-5 shrink-0 text-(--lp-yellow)" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-9">
+                  <PillButton tone="yellow" onClick={() => navigate("/register")}>
+                    Join Universal Learning
+                  </PillButton>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <SiteFooter />
+    </div>
+  );
+}

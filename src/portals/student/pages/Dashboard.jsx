@@ -35,12 +35,9 @@
 // without a backend.
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ColorBlockCard from "../../../components/ui/ColorBlockCard";
-import ListRow from "../../../components/ui/ListRow";
-import Button from "../../../components/ui/Button";
-import StreakRow from "../components/StreakRow";
-import { AwardIcon, CheckIcon, ClockIcon, FileTextIcon, FlameIcon, PlayIcon } from "../../../components/ui/icons";
-import { imageForCategory } from "../../../utils/stockImages";
+import { Hatch, Sparkle, ArrowUpRight, PillButton } from "../../../public/components/landing/LandingUI";
+import { AwardIcon, CheckIcon, ClockIcon, FileTextIcon, FlameIcon, HeartIcon, PlayIcon, StarIcon } from "../../../components/ui/icons";
+import { imageForCategory, imgFallback } from "../../../utils/stockImages";
 import { useAuth } from "../../../hooks/useAuth";
 import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
@@ -80,10 +77,10 @@ const LIVE_CLASSES = [
 ];
 
 const LEARNING_ACTIVITY = [
-  { icon: CheckIcon, title: "Completed “Loops & Functions”", course: "Complete Python Bootcamp", time: "2 hours ago", tone: "bg-[#e7f1ef] text-[#28756f]" },
-  { icon: CheckIcon, title: "Finished “Python Variables”", course: "Complete Python Bootcamp", time: "Yesterday", tone: "bg-[#fff0eb] text-primary" },
-  { icon: FileTextIcon, title: "Submitted project assignment", course: "Algebra Foundations", time: "2 days ago", tone: "bg-[#fff8df] text-[#9b7510]" },
-  { icon: AwardIcon, title: "Earned a course certificate", course: "Guitar for Beginners", time: "4 days ago", tone: "bg-[#f1eefb] text-[#6a54a3]" },
+  { icon: CheckIcon, title: "Completed “Loops & Functions”", course: "Complete Python Bootcamp", time: "2 hours ago", tone: "bg-(--lp-blue-soft) text-(--lp-blue-deep)" },
+  { icon: CheckIcon, title: "Finished “Python Variables”", course: "Complete Python Bootcamp", time: "Yesterday", tone: "bg-(--lp-yellow-soft) text-(--lp-ink)" },
+  { icon: FileTextIcon, title: "Submitted project assignment", course: "Algebra Foundations", time: "2 days ago", tone: "bg-(--lp-ink) text-white" },
+  { icon: AwardIcon, title: "Earned a course certificate", course: "Guitar for Beginners", time: "4 days ago", tone: "bg-(--lp-yellow) text-(--lp-ink)" },
 ];
 
 const COMING_UP = [
@@ -136,179 +133,384 @@ export default function Dashboard() {
     })
     .sort((a, b) => b.activityAt - a.activityAt)[0];
 
+  const weekDone = [0, 1, 2, 3, 4, 5];
+  const liveClasses = LIVE_CLASSES.concat({ id: "l3", courseId: "c3", educator: "Anaya Kapoor", subject: "IELTS — Speaking Practice" });
+  const progressStats = [
+    { label: "Courses", value: "3 / 5", pct: 60, tile: "bg-white text-(--lp-ink) ring-1 ring-(--lp-line)", bar: "bg-(--lp-blue)", track: "bg-(--lp-grey)", sub: "text-(--lp-muted)" },
+    { label: "Assessments", value: "2 / 4", pct: 50, tile: "bg-(--lp-ink) text-white", bar: "bg-(--lp-yellow)", track: "bg-white/15", sub: "text-white/60" },
+    { label: "Assignments", value: "1 / 3", pct: 33, tile: "bg-(--lp-blue-soft) text-(--lp-ink)", bar: "bg-(--lp-blue)", track: "bg-white", sub: "text-(--lp-muted)" },
+    { label: "Live classes", value: "4 / 8", pct: 50, tile: "bg-(--lp-yellow-soft) text-(--lp-ink)", bar: "bg-(--lp-ink)", track: "bg-white", sub: "text-(--lp-muted)" },
+  ];
+
   return (
-    <div className="mx-auto max-w-[1320px] px-4 py-7 sm:px-7 lg:px-10">
-      <section className="mb-6 flex flex-col justify-between gap-6 rounded-2xl border border-text/10 bg-white p-5 shadow-sm sm:p-6 lg:flex-row lg:items-center">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary/70">Student home</p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-[#17324d] sm:text-3xl">
-            Welcome back, {firstName} <span aria-hidden="true">👋</span>
+    <div className="mx-auto max-w-[1320px] space-y-4 px-4 py-5 sm:px-7 sm:py-7 lg:px-10">
+      {/* ------------------------------------------------------------ Hero */}
+      <section className="grid gap-4 lg:grid-cols-[1.7fr_1fr]">
+        <div className="relative isolate min-w-0 overflow-hidden rounded-[36px] bg-(--lp-blue) p-6 text-white sm:p-9">
+          <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+            <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-(--lp-yellow)" />
+            <div className="absolute -right-6 -top-10 h-44 w-44 rounded-full border border-(--lp-ink)/10" />
+            <div className="absolute -bottom-28 -left-20 h-64 w-64 rounded-full border-[26px] border-white/10" />
+            <Hatch className="absolute bottom-8 right-8 hidden h-14 w-14 text-white/40 sm:block" />
+            <Sparkle className="absolute right-[38%] top-8 hidden h-6 w-6 text-white/80 sm:block" />
+          </div>
+
+          <span className="inline-flex rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold">Student home</span>
+          <h1 className="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+            Welcome back,
+            <br />
+            <span className="relative inline-block">
+              <span className="absolute -inset-x-1.5 bottom-[0.04em] top-[0.14em] -rotate-1 rounded-xl bg-(--lp-yellow)" aria-hidden="true" />
+              <span className="relative text-(--lp-ink)">{firstName}</span>
+            </span>{" "}
+            <span aria-hidden="true">👋</span>
           </h1>
-          <p className="mt-2 text-sm text-text/55">You're on a 7-day streak — keep it going!</p>
+          <p className="mt-3 text-sm text-white/80">You're on a 7-day streak — keep it going!</p>
+
           {currentCourse && (
-            <p className="mt-3 text-sm text-text/70">
-              Continue: <strong>{currentCourse.title}</strong>
-              <span className="text-text/45"> · Lesson: {currentCourse.currentLesson}</span>
-            </p>
+            <div className="mt-6 flex flex-col gap-4 rounded-3xl bg-white p-4 text-(--lp-ink) shadow-[0_24px_50px_rgba(15,17,21,0.2)] sm:flex-row sm:items-center">
+              <img
+                src={imageForCategory(currentCourse.category)}
+                alt=""
+                className="h-24 w-full rounded-2xl object-cover sm:h-20 sm:w-28 sm:shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-(--lp-blue-deep)">Continue</p>
+                <p className="truncate font-display text-base font-bold">{currentCourse.title}</p>
+                <p className="truncate text-xs text-(--lp-muted)">Lesson: {currentCourse.currentLesson}</p>
+                <div className="mt-2 flex items-center gap-2.5">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-(--lp-grey)">
+                    <div className="h-full rounded-full bg-(--lp-blue)" style={{ width: `${currentCourse.progress}%` }} />
+                  </div>
+                  <span className="text-xs font-bold text-(--lp-blue-deep)">{currentCourse.progress}%</span>
+                </div>
+              </div>
+              <PillButton
+                tone="ink"
+                size="sm"
+                disabled={!currentCourse}
+                onClick={() => currentCourse && navigate(`/student/courseplayer?course=${currentCourse.id}`)}
+                className="shrink-0 self-start sm:self-center"
+              >
+                Continue Learning
+              </PillButton>
+            </div>
           )}
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button
-              fullWidth={false}
-              disabled={!currentCourse}
-              onClick={() => currentCourse && navigate(`/student/courseplayer?course=${currentCourse.id}`)}
-              className="rounded-full px-5"
+
+          <div className="mt-5 flex items-center gap-2" aria-label="This week">
+            {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => {
+              const done = weekDone.includes(i);
+              return (
+                <span
+                  key={i}
+                  title={done ? "Lesson completed" : "No lesson yet"}
+                  className={`grid h-9 w-9 place-items-center rounded-full text-xs font-bold ${done ? "bg-(--lp-yellow) text-(--lp-ink)" : "bg-white/15 text-white/70"}`}
+                >
+                  {d}
+                </span>
+              );
+            })}
+            <span className="ml-2 text-xs font-semibold text-white/80">{weekDone.length}/7 this week</span>
+          </div>
+        </div>
+
+        <div className="relative isolate flex min-w-0 flex-col justify-between overflow-hidden rounded-[36px] bg-(--lp-yellow) p-6 text-(--lp-ink) sm:p-8">
+          <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+            <div className="absolute -bottom-24 -right-16 h-60 w-60 rounded-full bg-white/45" />
+            <div className="absolute -left-10 -top-10 h-36 w-36 rounded-full border-[18px] border-white/40" />
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-3.5 py-2 text-xs font-semibold text-white">
+              <FlameIcon className="h-3.5 w-3.5 text-(--lp-yellow)" /> {streakDays} <span className="font-normal text-white/70">day streak</span>
+            </span>
+            <Sparkle className="h-7 w-7 text-(--lp-ink)" />
+          </div>
+          <div className="my-6 flex items-center gap-5">
+            <div
+              role="img"
+              aria-label={`${overallProgress}% overall progress`}
+              className="grid h-36 w-36 shrink-0 place-items-center rounded-full"
+              style={{ background: `conic-gradient(var(--lp-ink) ${overallProgress}%, rgba(255,255,255,0.7) 0)` }}
             >
-              ◉&nbsp; Continue Learning
-            </Button>
-            <StreakRow completedDays={[0, 1, 2, 3, 4, 5]} />
+              <div className="grid h-[104px] w-[104px] place-items-center rounded-full bg-white">
+                <div className="text-center leading-none">
+                  <strong className="font-display text-3xl font-bold">{overallProgress}%</strong>
+                  <span className="mt-1 block text-[10px] font-semibold text-(--lp-muted)">overall</span>
+                </div>
+              </div>
+            </div>
+            <p className="font-display text-xl font-bold leading-tight">Great pace — you're ahead of last week.</p>
           </div>
-        </div>
-        <div className="flex items-start gap-3">
-          <span
-            className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold ${
-              streakDays > 0
-                ? "border-[#f2994a]/25 bg-[#f2994a]/10 text-[#e7743a]"
-                : "border-text/10 bg-white text-text/40"
-            }`}
-          >
-            <FlameIcon /> {streakDays} <span className="font-normal">Day streak</span>
-          </span>
+          <PillButton tone="ink" size="sm" onClick={() => navigate("/student/learninghistory")} className="self-start">
+            View progress
+          </PillButton>
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-[#eadbd3] bg-[#fbf0ea] p-5 sm:p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-display text-lg font-bold text-[#17324d]">Continue Learning</h2>
-            <p className="mt-1 text-xs text-text/50">Pick up where you left off</p>
+      {/* ----------------------------------------------------- Progress strip */}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Your progress">
+        {progressStats.map((s) => (
+          <div key={s.label} className={`rounded-[28px] p-5 ${s.tile}`}>
+            <p className={`text-xs font-semibold ${s.sub}`}>{s.label}</p>
+            <p className="mt-1 font-display text-3xl font-bold tracking-tight">{s.value}</p>
+            <div className={`mt-3 h-2 overflow-hidden rounded-full ${s.track}`}>
+              <div className={`h-full rounded-full ${s.bar}`} style={{ width: `${s.pct}%` }} />
+            </div>
           </div>
-          <button type="button" onClick={() => navigate("/student/my-learning")} className="text-xs font-semibold text-primary">View all →</button>
-        </div>
-        <div className="flex gap-2.5 overflow-x-auto pb-2">
-          {IN_PROGRESS_COURSES.map((c, i) => (
-            <ColorBlockCard key={c.id} rotationIndex={i} size="sm" image={imageForCategory(c.category)} badge={c.id === currentCourse?.id ? "In Progress" : undefined} title={c.title} subtitle={c.subtitle} meta={`${c.category} · Self-paced`} progress={c.progress} compact onClick={() => navigate(`/student/courseplayer?course=${c.id}`)} onResume={() => navigate(`/student/courseplayer?course=${c.id}`)} />
-          ))}
+        ))}
+      </section>
+
+      {/* ------------------------------------------------ Continue learning */}
+      <section className="min-w-0 rounded-[36px] bg-white p-5 ring-1 ring-(--lp-line) sm:p-7">
+        <SectionHeader eyebrow="Pick up where you left off" title="Continue Learning" action="View all" onAction={() => navigate("/student/my-learning")} />
+        <div className="-mx-1 mt-5 flex snap-x gap-4 overflow-x-auto px-1 pb-3">
+          {IN_PROGRESS_COURSES.map((c, i) => {
+            const tone = TILE_TONES[i % TILE_TONES.length];
+            const open = () => navigate(`/student/courseplayer?course=${c.id}`);
+            return (
+              <article
+                key={c.id}
+                role="button"
+                tabIndex={0}
+                onClick={open}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") open(); }}
+                className={`group relative w-[250px] shrink-0 snap-start cursor-pointer rounded-[28px] p-3 outline-none transition-transform duration-200 ease-out hover:-translate-y-1 focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35 ${tone.card}`}
+              >
+                <div className="relative overflow-hidden rounded-[20px]">
+                  <img src={imageForCategory(c.category)} alt="" onError={(e) => imgFallback(e, c.title, 480, 360)} className="aspect-[16/10] w-full object-cover" />
+                  {c.id === currentCourse?.id && (
+                    <span className="absolute left-2.5 top-2.5 rounded-full bg-(--lp-ink) px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">In progress</span>
+                  )}
+                </div>
+                <div className="px-1.5 pb-1 pt-3">
+                  <p className={`text-[11px] font-semibold ${tone.sub}`}>{c.category} · Self-paced</p>
+                  <h3 className="mt-1 line-clamp-2 min-h-[2.5rem] font-display text-[15px] font-bold leading-snug">{c.title}</h3>
+                  <p className={`mt-0.5 truncate text-xs ${tone.sub}`}>{c.subtitle}</p>
+                  <div className="mt-3 flex items-center gap-2.5">
+                    <div className={`h-2 flex-1 overflow-hidden rounded-full ${tone.track}`}>
+                      <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${c.progress}%` }} />
+                    </div>
+                    <span className="text-xs font-bold">{c.progress}%</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); open(); }}
+                    className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold transition-transform duration-200 ease-out group-hover:-translate-y-0.5 ${tone.btn}`}
+                  >
+                    Resume <ArrowUpRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
-        <section className="rounded-2xl border border-text/10 bg-white p-4 shadow-[0_8px_24px_rgba(23,50,77,0.04)] sm:p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-base font-bold text-[#17324d]">Upcoming Live Classes</h2>
-            <button type="button" onClick={() => navigate("/student/managebooking")} className="text-xs font-semibold text-primary">View all →</button>
-          </div>
-          <div className="space-y-2">
-            {LIVE_CLASSES.concat({ id: "l3", courseId: "c3", educator: "Anaya Kapoor", subject: "IELTS — Speaking Practice" }).map((s) => {
+      {/* ------------------------------------------ Live classes + coming up */}
+      <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
+        <section className="relative isolate min-w-0 overflow-hidden rounded-[36px] bg-(--lp-ink) p-5 text-white sm:p-7">
+          <div className="pointer-events-none absolute -right-16 -top-16 -z-10 h-56 w-56 rounded-full bg-(--lp-blue)/40" aria-hidden="true" />
+          <SectionHeader dark eyebrow="Join from anywhere" title="Upcoming Live Classes" action="View all" onAction={() => navigate("/student/managebooking")} />
+          <div className="mt-5 space-y-3">
+            {liveClasses.map((s) => {
               const schedule = getLiveCourseSchedule(s.courseId);
               const liveNow = schedule?.status === "live";
-              return <ListRow key={s.id} leading={<div className="w-16 rounded-xl bg-[#f3f6fb] px-2 py-2 text-center text-[10px] font-semibold text-text/55"><span className="block text-primary">{schedule?.startAt.toLocaleDateString("en-IN", { weekday: "short" })}</span><span>{schedule?.startAt.getDate()}</span></div>} title={s.subject} subtitle={`${s.educator} · ${schedule ? formatClassStart(schedule.startAt) : "Schedule unavailable"}`} trailing={<Button fullWidth={false} className="rounded-full px-4 py-2 text-xs" onClick={() => navigate(liveNow ? `/student/liveclassjoin?session=${schedule.id}&join=1` : `/student/live-course?course=${s.courseId}`)}>{liveNow ? "Join Live Class" : "View Schedule"}</Button>} />;
+              return (
+                <div key={s.id} className="flex flex-wrap items-center gap-4 rounded-3xl bg-white/[0.07] p-3.5 ring-1 ring-white/10 sm:flex-nowrap">
+                  <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-(--lp-yellow) text-center text-(--lp-ink)">
+                    <div className="leading-tight">
+                      <span className="block text-[10px] font-bold uppercase">{schedule?.startAt.toLocaleDateString("en-IN", { weekday: "short" })}</span>
+                      <span className="block font-display text-2xl font-bold">{schedule?.startAt.getDate()}</span>
+                    </div>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 truncate text-sm font-semibold">
+                      {liveNow && <span className="inline-flex items-center gap-1 rounded-full bg-(--lp-danger) px-2 py-0.5 text-[10px] font-bold uppercase">Live</span>}
+                      <span className="truncate">{s.subject}</span>
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-white/60">{s.educator} · {schedule ? formatClassStart(schedule.startAt) : "Schedule unavailable"}</p>
+                  </div>
+                  <PillButton
+                    tone="yellow"
+                    size="sm"
+                    onClick={() => navigate(liveNow ? `/student/liveclassjoin?session=${schedule.id}&join=1` : `/student/live-course?course=${s.courseId}`)}
+                  >
+                    {liveNow ? "Join Live Class" : "View Schedule"}
+                  </PillButton>
+                </div>
+              );
             })}
           </div>
         </section>
 
-        <section className="rounded-2xl border border-text/10 bg-white p-4 shadow-[0_8px_24px_rgba(23,50,77,0.04)] sm:p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-base font-bold text-[#17324d]">Your Progress</h2>
-            <button type="button" onClick={() => navigate("/student/learninghistory")} className="text-xs font-semibold text-primary">View details →</button>
-          </div>
-          <div className="flex items-center gap-5">
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#168bd0 ${overallProgress}%, #e6edf2 0)` }}>
-              <div className="flex h-20 w-20 flex-col items-center justify-center rounded-full bg-white"><strong className="text-2xl text-[#17324d]">{overallProgress}%</strong><span className="text-[9px] text-text/45">Overall Progress</span></div>
-            </div>
-            <div className="min-w-0 flex-1 space-y-3 text-xs">
-              {[["Courses", "3 / 5", "#df5965"], ["Assessments", "2 / 4", "#74b89d"], ["Assignments", "1 / 3", "#e6b84c"], ["Live Classes", "4 / 8", "#51a9c7"]].map(([label, value, color]) => <div key={label} className="flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-text/65"><i className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />{label}</span><strong className="text-text/70">{value}</strong></div>)}
-            </div>
+        <section className="min-w-0 rounded-[36px] bg-white p-5 ring-1 ring-(--lp-line) sm:p-7">
+          <SectionHeader eyebrow="Don't miss" title="Coming up" action="Calendar" onAction={() => navigate("/student/calendar")} />
+          <div className="mt-5 space-y-3">
+            {COMING_UP.map(({ icon: Icon, type, title, course, when, action, href, courseId }, i) => {
+              const schedule = type === "Live class" ? getLiveCourseSchedule(courseId) : null;
+              const liveNow = schedule?.status === "live";
+              const destination = schedule
+                ? liveNow ? `/student/liveclassjoin?session=${schedule.id}&join=1` : `/student/live-course?course=${courseId}`
+                : href;
+              const tones = ["bg-(--lp-blue-soft) text-(--lp-blue-deep)", "bg-(--lp-yellow-soft) text-(--lp-ink)", "bg-(--lp-grey) text-(--lp-ink)"];
+              return (
+                <div key={title} className="flex items-center gap-3.5 rounded-3xl bg-(--lp-grey) p-3.5">
+                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${tones[i % tones.length]}`}><Icon className="h-5 w-5" /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-(--lp-blue-deep)">{type}</p>
+                    <p className="truncate text-sm font-semibold text-(--lp-ink)">{title}</p>
+                    <p className="truncate text-xs text-(--lp-muted)">{course} · {schedule ? formatClassStart(schedule.startAt) : when}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(destination)}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3.5 py-2 text-xs font-semibold text-(--lp-ink) ring-1 ring-(--lp-line) transition-transform duration-200 ease-out hover:-translate-y-0.5"
+                  >
+                    {schedule && liveNow ? "Join" : schedule ? "Schedule" : action}
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>
 
-      <section className="mt-6 rounded-2xl border border-text/10 bg-white p-4 shadow-[0_8px_24px_rgba(23,50,77,0.04)] sm:p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-base font-bold text-[#17324d]">Recommended for You</h2>
-          <button type="button" onClick={() => navigate("/student/recommended")} className="text-xs font-semibold text-primary">View all →</button>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {/* ------------------------------------------------------ Recommended */}
+      <section className="rounded-[36px] bg-(--lp-blue-tint) p-5 ring-1 ring-(--lp-blue-soft) sm:p-7">
+        <SectionHeader eyebrow="Picked for you" title="Recommended for You" action="View all" onAction={() => navigate("/student/recommended")} />
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {RECOMMENDED.map((c, i) => {
             const enrolled = COURSES.find((course) => course.id === c.id)?.enrolled === true || isStudentCourseEnrolled(c.id, user);
-            return <ColorBlockCard key={c.id} rotationIndex={i} image={imageForCategory(c.category)} title={c.title} subtitle={c.subtitle} description={c.description} price={c.price} originalPrice={c.originalPrice} rating={c.rating} actionLabel={enrolled ? "Enrolled" : "Enroll"} actionDisabled={enrolled} onAction={() => navigate(enrolled ? `/student/courseplayer?course=${c.id}` : `/student/course/${c.id}`)} compact fullWidth showWishlist wishlisted={wishlist.isWishlisted(c.id)} onToggleWishlist={() => { const nowSaved = !wishlist.isWishlisted(c.id); wishlist.toggle(c); showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist"); }} onClick={() => navigate(`/student/course/${c.id}`)} />;
+            const saved = wishlist.isWishlisted(c.id);
+            const go = () => navigate(`/student/course/${c.id}`);
+            return (
+              <article
+                key={c.id}
+                role="button"
+                tabIndex={0}
+                onClick={go}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") go(); }}
+                className="group flex cursor-pointer flex-col rounded-[28px] bg-white p-3 outline-none ring-1 ring-(--lp-line) transition-transform duration-200 ease-out hover:-translate-y-1 focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35"
+              >
+                <div className="relative overflow-hidden rounded-[20px]">
+                  <img src={imageForCategory(c.category)} alt="" onError={(e) => imgFallback(e, c.title, 480, 360)} className="aspect-[16/10] w-full object-cover" />
+                  <span className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${TILE_TONES[i % TILE_TONES.length].chip}`}>{c.category}</span>
+                  <button
+                    type="button"
+                    aria-pressed={saved}
+                    aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const nowSaved = !saved;
+                      wishlist.toggle(c);
+                      showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
+                    }}
+                    className="absolute right-2.5 top-2.5 grid h-9 w-9 place-items-center rounded-full bg-white text-(--lp-ink) shadow transition-transform duration-150 ease-out hover:scale-110"
+                  >
+                    <HeartIcon filled={saved} />
+                  </button>
+                </div>
+                <div className="flex flex-1 flex-col px-1.5 pb-1 pt-3">
+                  <h3 className="line-clamp-2 min-h-[2.5rem] font-display text-[15px] font-bold leading-snug text-(--lp-ink)">{c.title}</h3>
+                  <p className="mt-0.5 truncate text-xs text-(--lp-muted)">{c.subtitle}</p>
+                  {c.description && <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-(--lp-muted)">{c.description}</p>}
+                  <div className="mt-3 flex items-center justify-between text-sm font-bold text-(--lp-ink)">
+                    <span className="flex items-baseline gap-1.5">
+                      {c.price === 0 ? "Free" : `₹${c.price}`}
+                      {typeof c.originalPrice === "number" && c.originalPrice > c.price && (
+                        <span className="text-xs font-normal text-(--lp-muted) line-through">₹{c.originalPrice}</span>
+                      )}
+                    </span>
+                    {c.rating !== undefined && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-(--lp-yellow-soft) px-2 py-1 text-xs font-semibold">
+                        <StarIcon className="h-3.5 w-3.5 fill-current text-(--lp-ink)" />{c.rating}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={enrolled}
+                    onClick={(e) => { e.stopPropagation(); navigate(enrolled ? `/student/courseplayer?course=${c.id}` : `/student/course/${c.id}`); }}
+                    className={`mt-3 w-full rounded-full px-4 py-2.5 text-xs font-semibold transition-colors duration-150 ${enrolled ? "cursor-not-allowed bg-(--lp-blue-soft) text-(--lp-blue-deep)" : "bg-(--lp-ink) text-white hover:bg-(--lp-ink)/90"}`}
+                  >
+                    {enrolled ? "Enrolled" : "Enroll"}
+                  </button>
+                </div>
+              </article>
+            );
           })}
         </div>
       </section>
 
       <MyTestSeriesSection variant="compact" />
 
-      <section className="mt-6 rounded-2xl border border-text/10 bg-white p-5 shadow-[0_8px_24px_rgba(23,50,77,0.04)] sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary/70">Stay on track</p>
-            <h2 className="mt-1 font-display text-xl font-bold text-[#17324d]">Your Learning Activity</h2>
-            <p className="mt-1 text-xs text-text/50">See what you completed and what deserves your attention next.</p>
+      {/* -------------------------------------------------- Learning activity */}
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <article className="min-w-0 rounded-[36px] bg-white p-5 ring-1 ring-(--lp-line) sm:p-7">
+          <SectionHeader eyebrow="Your latest wins" title="Recent activity" action="History" onAction={() => navigate("/student/learninghistory")} />
+          <ol className="relative mt-5 space-y-1">
+            {LEARNING_ACTIVITY.map(({ icon: Icon, title, course, time, tone }) => (
+              <li key={title} className="flex items-center gap-3.5 rounded-2xl px-2 py-3 transition-colors duration-150 hover:bg-(--lp-grey)">
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${tone}`}><Icon className="h-4 w-4" /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-(--lp-ink)">{title}</p>
+                  <p className="truncate text-xs text-(--lp-muted)">{course}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-(--lp-grey) px-2.5 py-1 text-[11px] font-medium text-(--lp-muted)">{time}</span>
+              </li>
+            ))}
+          </ol>
+        </article>
+
+        <article className="relative isolate min-w-0 overflow-hidden rounded-[36px] bg-(--lp-yellow-soft) p-5 sm:p-7">
+          <div className="pointer-events-none absolute -bottom-20 -right-14 -z-10 h-52 w-52 rounded-full bg-(--lp-yellow)/70" aria-hidden="true" />
+          <p className="text-xs font-semibold text-(--lp-muted)">Weekly goal</p>
+          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-(--lp-ink)">4 of 5 study sessions</h2>
+          <div className="mt-5 flex gap-1.5" aria-label="80% of weekly goal">
+            {[0, 1, 2, 3, 4].map((n) => (
+              <span key={n} className={`h-3 flex-1 rounded-full ${n < 4 ? "bg-(--lp-ink)" : "bg-white"}`} />
+            ))}
           </div>
-          <button type="button" onClick={() => navigate("/student/learninghistory")} className="text-xs font-semibold text-primary">View learning history →</button>
-        </div>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.5fr_0.85fr]">
-          <article className="overflow-hidden rounded-2xl border border-[#eadbd3] bg-[#fbf0ea]">
-            <div className="flex items-center justify-between border-b border-[#eadbd3] px-5 py-4">
-              <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Continue learning</p><h3 className="mt-1 font-display text-base font-bold text-[#17324d]">Pick up where you left off</h3></div>
-              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-primary">{currentCourse.progress}% complete</span>
-            </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-[150px_1fr] sm:items-center">
-              <img src={imageForCategory(currentCourse.category)} alt="" className="h-28 w-full rounded-xl object-cover sm:h-32" />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-primary">{currentCourse.subtitle}</p>
-                <h3 className="mt-1 font-display text-lg font-bold text-[#17324d]">{currentCourse.title}</h3>
-                <p className="mt-2 text-xs text-text/60">Current lesson · {currentCourse.currentLesson}</p>
-                <div className="mt-4 flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-primary" style={{ width: `${currentCourse.progress}%` }} /></div><span className="text-xs font-bold text-primary">{currentCourse.progress}%</span></div>
-                <button type="button" onClick={() => navigate(`/student/courseplayer?course=${currentCourse.id}`)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-primary/90">Continue Learning <span aria-hidden="true">→</span></button>
-              </div>
-            </div>
-          </article>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <article className="rounded-2xl border border-text/10 bg-white p-5">
-              <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text/45">Learning streak</p><h3 className="mt-1 font-display text-base font-bold text-[#17324d]"><FlameIcon className="mr-1 inline-block text-[#e7743a]" />5 day streak</h3></div><span className="text-xs font-semibold text-text/45">Keep it going!</span></div>
-              <div className="mt-4 grid grid-cols-7 gap-1.5 text-center text-[10px] text-text/45">
-                {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <div key={`${day}-${index}`}><span className="block">{day}</span><span className={`mx-auto mt-2 flex h-7 w-7 items-center justify-center rounded-lg ${index < 5 ? "bg-primary text-white" : "bg-bg text-text/35"}`}>{index < 5 ? "✓" : "·"}</span></div>)}
-              </div>
-            </article>
-            <article className="rounded-2xl border border-[#d9e9e5] bg-[#eef7f4] p-5">
-              <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#28756f]">Weekly goal</p><h3 className="mt-1 font-display text-base font-bold text-[#17324d]">4 of 5 study sessions</h3></div><span className="text-lg font-bold text-[#28756f]">80%</span></div>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white"><div className="h-full w-4/5 rounded-full bg-[#28756f]" /></div>
-              <p className="mt-2 text-xs text-text/55">One more focused session will complete your goal.</p>
-            </article>
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr_0.85fr]">
-          <article className="rounded-2xl border border-text/10 bg-white">
-            <div className="flex items-center justify-between border-b border-text/10 px-5 py-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text/45">Recent activity</p><h3 className="mt-1 font-display text-base font-bold text-[#17324d]">Your latest wins</h3></div><button type="button" onClick={() => navigate("/student/learninghistory")} className="text-xs font-semibold text-primary">View all →</button></div>
-            <div className="divide-y divide-text/10">
-              {LEARNING_ACTIVITY.map(({ icon: Icon, title, course, time, tone }) => <div key={title} className="flex items-center gap-3 px-5 py-3.5"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-text">{title}</p><p className="mt-0.5 truncate text-xs text-text/50">{course}</p></div><span className="shrink-0 text-[11px] text-text/40">{time}</span></div>)}
-            </div>
-          </article>
-
-          <article className="rounded-2xl border border-text/10 bg-white">
-            <div className="border-b border-text/10 px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text/45">Learning insight</p><h3 className="mt-1 font-display text-base font-bold text-[#17324d]">You’re close to your goal</h3></div>
-            <div className="p-5"><p className="text-sm leading-6 text-text/65">You’ve completed <strong className="text-text">3 lessons this week</strong>. Keep your momentum with one more focused session.</p><div className="mt-4 h-2 overflow-hidden rounded-full bg-bg"><div className="h-full w-3/4 rounded-full bg-primary" /></div><p className="mt-2 text-xs font-semibold text-primary">75% of your weekly lesson target</p></div>
-          </article>
-        </div>
-
-        <article className="mt-4 rounded-2xl border border-text/10 bg-white">
-          <div className="flex items-center justify-between border-b border-text/10 px-5 py-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text/45">Coming up</p><h3 className="mt-1 font-display text-base font-bold text-[#17324d]">Next learning tasks</h3></div><button type="button" onClick={() => navigate("/student/calendar")} className="text-xs font-semibold text-primary">Open calendar →</button></div>
-          <div className="grid divide-y divide-text/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            {COMING_UP.map(({ icon: Icon, type, title, course, when, action, href, courseId }) => {
-              const schedule = type === "Live class" ? getLiveCourseSchedule(courseId) : null;
-              const liveNow = schedule?.status === "live";
-              const destination = schedule
-                ? liveNow ? `/student/liveclassjoin?session=${schedule.id}&join=1` : `/student/live-course?course=${courseId}`
-                : href;
-              return <div key={title} className="flex items-center gap-3 px-5 py-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fff0eb] text-primary"><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-wide text-primary/65">{type}</p><p className="mt-1 truncate text-sm font-semibold text-text">{title}</p><p className="mt-0.5 truncate text-xs text-text/50">{course}</p><p className="mt-1 text-[11px] text-text/45">{schedule ? formatClassStart(schedule.startAt) : when}</p></div><button type="button" onClick={() => navigate(destination)} className="shrink-0 text-xs font-semibold text-primary">{schedule && liveNow ? "Join Live Class" : schedule ? "View Schedule" : action} →</button></div>;
-            })}
+          <p className="mt-3 text-sm text-(--lp-muted)">One more focused session will complete your goal.</p>
+          <div className="mt-6 rounded-3xl bg-white p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-(--lp-blue-deep)">Learning insight</p>
+            <p className="mt-1 text-sm leading-6 text-(--lp-muted)">
+              You've completed <strong className="text-(--lp-ink)">3 lessons this week</strong> — 75% of your lesson target. Keep your momentum going.
+            </p>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-(--lp-grey)"><div className="h-full w-3/4 rounded-full bg-(--lp-blue)" /></div>
           </div>
         </article>
       </section>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </div>
+  );
+}
+
+// ------------------------------------------------------------ local pieces
+const TILE_TONES = [
+  { card: "bg-(--lp-blue-tint) text-(--lp-ink) ring-1 ring-(--lp-blue-soft)", sub: "text-(--lp-muted)", track: "bg-white", bar: "bg-(--lp-blue)", btn: "bg-(--lp-ink) text-white", chip: "bg-(--lp-blue) text-white" },
+  { card: "bg-(--lp-yellow-soft) text-(--lp-ink)", sub: "text-(--lp-muted)", track: "bg-white", bar: "bg-(--lp-ink)", btn: "bg-(--lp-ink) text-white", chip: "bg-(--lp-yellow) text-(--lp-ink)" },
+  { card: "bg-(--lp-ink) text-white", sub: "text-white/60", track: "bg-white/15", bar: "bg-(--lp-yellow)", btn: "bg-(--lp-yellow) text-(--lp-ink)", chip: "bg-(--lp-ink) text-white" },
+  { card: "bg-(--lp-grey) text-(--lp-ink)", sub: "text-(--lp-muted)", track: "bg-white", bar: "bg-(--lp-blue)", btn: "bg-(--lp-blue) text-white", chip: "bg-white text-(--lp-ink)" },
+];
+
+function SectionHeader({ eyebrow, title, action, onAction, dark = false }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <p className={`text-xs font-semibold ${dark ? "text-white/60" : "text-(--lp-muted)"}`}>{eyebrow}</p>
+        <h2 className={`mt-0.5 font-display text-2xl font-bold tracking-tight ${dark ? "text-white" : "text-(--lp-ink)"}`}>{title}</h2>
+      </div>
+      {action && (
+        <button
+          type="button"
+          onClick={onAction}
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-transform duration-200 ease-out hover:-translate-y-0.5 ${dark ? "bg-white/10 text-white" : "bg-(--lp-grey) text-(--lp-ink)"}`}
+        >
+          {action} <ArrowUpRight className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
