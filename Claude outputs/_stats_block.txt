@@ -1,0 +1,49 @@
+      {/* ───────────── SUBJECT STRIP + STATS + PLATFORM ───────────── */}
+      <section className="border-y border-(--lp-line) bg-white">
+        <div className={`${SHELL} flex flex-wrap items-center justify-center gap-x-2 gap-y-2 py-5 text-sm text-(--lp-muted)`} aria-label="Subjects offered">
+          <span className="mr-2 font-semibold text-(--lp-ink)">Learn</span>
+          {COURSE_CATEGORIES.filter((c) => c !== "Other").map((c, i, arr) => (
+            <span key={c} className="flex items-center gap-2">
+              {c}
+              {i < arr.length - 1 && <span className="h-1 w-1 rounded-full bg-(--lp-yellow)" aria-hidden="true" />}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-(--lp-blue-tint) py-14 md:py-20">
+        <div className={SHELL}>
+          <div className="grid grid-cols-2 gap-y-10 md:grid-cols-4 md:divide-x md:divide-(--lp-blue)/15">
+            {[
+              { value: 50000, suffix: "+", label: "Students learning", bar: "bg-(--lp-blue)" },
+              { value: 250, suffix: "+", label: "Verified mentors", bar: "bg-(--lp-yellow)" },
+              { value: 92, suffix: "%", label: "Student satisfaction", bar: "bg-(--lp-ink)" },
+              { value: 8, suffix: "+", label: "Years of experience", bar: "bg-(--lp-blue)" },
+            ].map((s, i) => (
+              <Reveal key={s.label} delay={i * 70} className="md:px-8 md:first:pl-0 md:last:pr-0">
+                <span className={`mb-4 block h-1 w-10 rounded-full ${s.bar}`} aria-hidden="true" />
+                <StatCard
+                  value={s.value}
+                  suffix={s.suffix}
+                  label={s.label}
+                  className="items-start gap-1.5"
+                  valueClassName="font-(family-name:--lp-font) text-5xl font-bold leading-none tracking-[-0.03em] text-(--lp-ink) sm:text-6xl"
+                  labelClassName="text-sm font-medium normal-case tracking-normal text-(--lp-muted)"
+                />
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="platform" className="scroll-mt-24 bg-white py-16 md:py-24">
+        <div className={SHELL}>
+          <Reveal>
+            <SectionTitle eyebrow="The platform" title="Everything a serious student needs, in one place." subtitle="Not a pile of videos — a complete loop of learning, practice and honest feedback." />
+          </Reveal>
+          <Reveal delay={80}>
+            <ProductShowcase />
+          </Reveal>
+        </div>
+      </section>
+

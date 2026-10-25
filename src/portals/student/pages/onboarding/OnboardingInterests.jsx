@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import Chip from "../../../../components/ui/Chip";
 import { register } from "../../../../auth/services/authApi";
 import { useOnboarding, PENDING_SIGNUP_STORAGE_KEY } from "../../context/OnboardingContext";
+import { useAuth } from "../../../../hooks/useAuth";
 import OnboardingLayout from "../../components/OnboardingLayout";
 
 const SUBJECTS = ["Programming", "Math", "Science", "Languages", "Music", "Design", "Business", "Other"];
@@ -17,6 +18,7 @@ const GOALS = ["Exam Prep", "Skill Building", "Hobby Learning", "Career Growth"]
 
 export default function OnboardingInterests() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const { form, toggleInterest, set } = useOnboarding();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -48,7 +50,18 @@ export default function OnboardingInterests() {
       } catch {
         // best-effort cleanup only
       }
-      // No OTP step after registration — OTP is only needed at login.
+      // No OTP step after registration — OTP is only needed at login. The
+      // dashboard sits behind ProtectedRoute, so the new student must be
+      // signed in before we navigate (same session shape the OTP screen
+      // sets); without this they were bounced straight back to /login.
+      const identifier = form.email.trim() || form.phone.trim();
+      setUser({
+        id: identifier.toLowerCase(),
+        name: form.fullName.trim() || (identifier.includes("@") ? identifier.split("@")[0] : identifier),
+        identifier,
+        role: "student",
+        onboardingComplete: true,
+      });
       navigate("/student/dashboard");
     } catch {
       setError("Something went wrong creating your account. Please try again.");

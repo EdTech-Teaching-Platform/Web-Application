@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import SectionShapes from "../../../components/common/SectionShapes";
 import Chip from "../../../components/ui/Chip";
 import { SearchIcon, StarIcon, FileTextIcon, ClockIcon, BookOpenIcon } from "../../../components/ui/icons";
@@ -91,9 +91,24 @@ function HorizontalRow({ title, packages, viewAllOnClick }) {
 }
 
 export default function TestSeriesMarketplace() {
-  const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState({});
+  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
+  // Deep link from the landing page: /test-series?class=Class 11&subject=Physics
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState(() => {
+    const initial = {};
+    const cls = searchParams.get("class");
+    const subject = searchParams.get("subject");
+    if (cls && CLASS_LEVELS.includes(cls)) initial.classGrade = cls;
+    if (subject && SERIES_SUBJECTS.includes(subject)) initial.subject = subject;
+    return initial;
+  });
   const [sort, setSort] = useState("Popular");
+
+  useEffect(() => {
+    if (!searchParams.get("class") && !searchParams.get("subject")) return undefined;
+    const id = window.setTimeout(() => document.getElementById("browse-all-test-series")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+    return () => window.clearTimeout(id);
+  }, [searchParams]);
 
   function toggle(key, value) {
     setFilters((prev) => ({ ...prev, [key]: prev[key] === value ? "" : value }));

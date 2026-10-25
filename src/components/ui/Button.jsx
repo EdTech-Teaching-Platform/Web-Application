@@ -41,6 +41,10 @@ export default function Button({
     // cascade fight by JSX string order — overriding bg-primary/text-white
     // with bg-white/text-primary via className was landing as invisible
     // white-text-on-white in practice.
+    // "ink" — black pill used by the redesigned auth screens (needs the
+    // --lp-* variables from auth/components/AuthKit.jsx in scope).
+    ink:
+      "bg-(--lp-ink) text-white hover:bg-(--lp-ink)/90 disabled:bg-(--lp-ink)/35 disabled:text-white/80",
     inverse:
       "bg-white text-primary hover:bg-white/90 disabled:bg-white/20 disabled:text-white/50 disabled:hover:bg-white/20",
   };

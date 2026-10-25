@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
+import { AuthFrame } from "../components/AuthKit";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import ConfirmationCard from "../../components/ui/ConfirmationCard";
@@ -58,7 +59,7 @@ export default function ForgotPassword() {
 
   if (sent) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-10">
+      <AuthFrame>
         <ConfirmationCard
           state="success"
           heading="Check your inbox"
@@ -76,7 +77,7 @@ export default function ForgotPassword() {
             </Button>
           }
         />
-      </div>
+      </AuthFrame>
     );
   }
 
@@ -103,7 +104,7 @@ export default function ForgotPassword() {
           error={touched ? fieldError : undefined}
           autoComplete="username"
         />
-        <Button type="submit" disabled={!isValid || submitting}>
+        <Button type="submit" variant="ink" disabled={!isValid || submitting}>
           {submitting ? "Sending…" : "Send Reset Link"}
         </Button>
       </form>

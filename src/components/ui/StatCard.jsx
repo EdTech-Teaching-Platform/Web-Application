@@ -30,7 +30,9 @@ function useCountUp(target, active) {
   return value;
 }
 
-export default function StatCard({ value, label, suffix = "" }) {
+// Optional `className` / `valueClassName` / `labelClassName` let a page restyle
+// the card (used by the redesigned Landing stats strip); defaults unchanged.
+export default function StatCard({ value, label, suffix = "", className = "", valueClassName = "font-display text-3xl font-bold text-text sm:text-4xl", labelClassName = "text-xs uppercase tracking-wide text-text/50" }) {
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
 
@@ -54,12 +56,12 @@ export default function StatCard({ value, label, suffix = "" }) {
   const animated = useCountUp(isNumeric ? value : 0, inView && isNumeric);
 
   return (
-    <div ref={ref} className="flex flex-col gap-1">
-      <span className="font-display text-3xl font-bold text-text sm:text-4xl">
+    <div ref={ref} className={`flex flex-col gap-1 ${className}`}>
+      <span className={valueClassName}>
         {isNumeric ? animated.toLocaleString() : value}
         {suffix}
       </span>
-      <span className="text-xs uppercase tracking-wide text-text/50">{label}</span>
+      <span className={labelClassName}>{label}</span>
     </div>
   );
 }

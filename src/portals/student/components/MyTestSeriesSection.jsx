@@ -8,19 +8,19 @@ import { TEST_SERIES_PACKAGES, getPurchasedSeriesIds, getSeriesProgress } from "
 const FILTERS = ["All", "Not Started", "In Progress", "Completed"];
 
 function statusTone(status) {
-  if (status === "Completed") return "bg-[#e7f1ef] text-[#28756f]";
-  if (status === "In Progress") return "bg-[#f8e8df] text-primary";
-  return "bg-bg text-text/50";
+  if (status === "Completed") return "bg-(--lp-blue-soft) text-(--lp-blue-deep)";
+  if (status === "In Progress") return "bg-(--lp-yellow) text-(--lp-ink)";
+  return "bg-(--lp-grey) text-text/60";
 }
 
 function SeriesProgressCard({ pkg, progress }) {
   const percent = progress.totalTests ? Math.round((progress.testsCompleted / progress.totalTests) * 100) : 0;
   return (
-    <article className="flex h-full flex-col rounded-2xl border border-text/10 bg-white p-5 shadow-[0_4px_18px_rgba(23,50,77,0.04)]">
+    <article className="flex h-full flex-col rounded-[28px] bg-white p-5 ring-1 ring-(--lp-line) transition-transform duration-200 ease-out hover:-translate-y-1">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider ${statusTone(progress.status)}`}>{progress.status}</span>
         {progress.averageScore !== null && (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-text/55"><StarIcon className="h-3.5 w-3.5 fill-current text-[#b88825]" />{progress.averageScore}% avg</span>
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-text/55"><StarIcon className="h-3.5 w-3.5 fill-current text-(--lp-ink)" />{progress.averageScore}% avg</span>
         )}
       </div>
       <p className="mt-3 text-[11px] font-semibold text-text/45">{pkg.classGrade} · {pkg.subject}</p>
@@ -31,7 +31,7 @@ function SeriesProgressCard({ pkg, progress }) {
           <span>{progress.testsCompleted} of {progress.totalTests} tests completed</span>
           <span>{percent}%</span>
         </div>
-        <div className="mt-1.5 h-2 rounded-full bg-bg">
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-(--lp-grey)">
           <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
         </div>
       </div>
@@ -43,7 +43,7 @@ function SeriesProgressCard({ pkg, progress }) {
 
       <Link
         to={progress.nextTest ? `/student/assessments/test-series/${progress.nextTest.assessmentId}` : `/student/test-series/${pkg.id}`}
-        className="mt-4 inline-flex items-center justify-center rounded-full border border-primary/20 px-4 py-2.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-white"
+        className="mt-4 inline-flex items-center justify-center rounded-full bg-(--lp-ink) px-4 py-2.5 text-xs font-semibold text-white transition-transform duration-200 ease-out hover:-translate-y-0.5"
       >
         {progress.status === "Not Started" ? "Start Test Series →" : progress.status === "Completed" ? "Retake Latest Test →" : "Continue Test Series →"}
       </Link>
@@ -78,27 +78,27 @@ export default function MyTestSeriesSection({ variant = "full" }) {
 
   if (!rows.length) {
     return (
-      <section id="my-test-series" className="mt-7">
+      <section id="my-test-series" className="mt-4 rounded-[36px] bg-white p-5 ring-1 ring-(--lp-line) sm:p-7">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-xl font-bold text-text">My Test Series</h2>
+          <h2 className="font-display text-2xl font-bold tracking-tight text-(--lp-ink)">My Test Series</h2>
         </div>
-        <div className="mt-4 rounded-2xl border border-dashed border-text/15 bg-white px-6 py-10 text-center">
+        <div className="mt-4 rounded-3xl border border-dashed border-text/15 bg-(--lp-grey) px-6 py-10 text-center">
           <h3 className="font-display text-base font-semibold text-text">No test series yet</h3>
           <p className="mt-2 text-sm text-text/50">Buy a test series to start tracking your progress here.</p>
-          <Link to="/student/test-series" className="mt-4 inline-flex rounded-full bg-primary px-5 py-2.5 text-xs font-semibold text-white">Browse Test Series</Link>
+          <Link to="/student/test-series" className="mt-4 inline-flex rounded-full bg-(--lp-ink) px-5 py-2.5 text-xs font-semibold text-white">Browse Test Series</Link>
         </div>
       </section>
     );
   }
 
   return (
-    <section id="my-test-series" className="mt-7">
+    <section id="my-test-series" className="mt-4 rounded-[36px] bg-white p-5 ring-1 ring-(--lp-line) sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-xl font-bold text-text">My Test Series</h2>
+        <h2 className="font-display text-2xl font-bold tracking-tight text-(--lp-ink)">My Test Series</h2>
         {variant === "compact" ? (
-          <Link to="/student/my-learning" className="text-xs font-semibold text-primary hover:underline">View all →</Link>
+          <Link to="/student/my-learning" className="rounded-full bg-(--lp-grey) px-4 py-2 text-xs font-semibold text-(--lp-ink)">View all →</Link>
         ) : (
-          <Link to="/student/test-series" className="text-xs font-semibold text-primary hover:underline">Browse more →</Link>
+          <Link to="/student/test-series" className="rounded-full bg-(--lp-grey) px-4 py-2 text-xs font-semibold text-(--lp-ink)">Browse more →</Link>
         )}
       </div>
       {variant !== "compact" && (
@@ -111,7 +111,7 @@ export default function MyTestSeriesSection({ variant = "full" }) {
           {filtered.map(({ pkg, progress }) => <SeriesProgressCard key={pkg.id} pkg={pkg} progress={progress} />)}
         </div>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-text/15 bg-white px-6 py-10 text-center">
+        <div className="mt-4 rounded-3xl border border-dashed border-text/15 bg-(--lp-grey) px-6 py-10 text-center">
           <p className="text-sm text-text/50">No test series match this filter.</p>
         </div>
       )}

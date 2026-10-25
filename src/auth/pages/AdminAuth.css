@@ -12,27 +12,30 @@
  * scattering of faint, slowly drifting line icons behind the card.
  *
  * Palette: this screen intentionally overrides the shared admin theme
- * tokens (adminTheme.css, navy) with a light reddish-brown/cream palette,
- * scoped to .ul-login only — the rest of the admin console is untouched.
+ * tokens (adminTheme.css, navy) with the public-site theme (electric blue /
+ * ink / sunshine yellow on white), scoped to .ul-login only — the rest of
+ * the admin console is untouched. (Variable names such as --color-soft-pink
+ * and --color-accent-red are kept so the rules below don't change; their
+ * values are now the new theme's colors.)
  */
 .ul-login {
-  /* ---------- light cream + reddish-brown palette (scoped to the login screen only) --------- */
-  --color-primary: #a8492c;
-  --color-primary-dark: #7a2e1f;
-  --color-primary-soft: #f5e3da;
-  --color-bg: #fbf3ee;
-  --color-bg-secondary: #f8ece5;
+  /* ---------- blue / ink / yellow palette (scoped to the login screen only) --------- */
+  --color-primary: #2557d6;
+  --color-primary-dark: #0f1115;
+  --color-primary-soft: #e3ecff;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f6f8;
   --color-card: #ffffff;
-  --color-soft-pink: #f9ded2;
-  --color-border: #ecdccf;
-  --color-text-primary: #241009;
-  --color-text-secondary: #8a6a5c;
-  --color-text-muted: #c2a094;
-  --color-accent-red: #cf3a1e;
-  --gradient-primary: linear-gradient(135deg, #c96a44 0%, #a8492c 100%);
-  --shadow-card: 0 10px 26px -14px rgba(122, 46, 31, 0.22);
-  --shadow-elevated: 0 26px 60px -24px rgba(90, 40, 26, 0.22);
-  --shadow-ring: 0 0 0 3px rgba(168, 73, 44, 0.16);
+  --color-soft-pink: #ffd84d;
+  --color-border: #e6e8ee;
+  --color-text-primary: #0f1115;
+  --color-text-secondary: #5d6472;
+  --color-text-muted: #9aa1ae;
+  --color-accent-red: #3d7bf7;
+  --gradient-primary: linear-gradient(135deg, #3d7bf7 0%, #2557d6 100%);
+  --shadow-card: 0 10px 26px -14px rgba(15, 17, 21, 0.35);
+  --shadow-elevated: 14px 14px 0 #ffd84d, 0 40px 80px -30px rgba(37, 87, 214, 0.45);
+  --shadow-ring: 0 0 0 4px rgba(61, 123, 247, 0.18);
 
   position: fixed;
   inset: 0;
@@ -45,6 +48,8 @@
   overflow: hidden;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   z-index: 50;
+  background-image: radial-gradient(rgba(15, 17, 21, 0.08) 1px, transparent 1.2px);
+  background-size: 26px 26px;
   padding: 24px;
 }
 
@@ -67,28 +72,30 @@
   height: 340px;
   top: -110px;
   right: -110px;
-  opacity: 0.9;
+  opacity: 1;
 }
 .ul-login__page-glow--tr-small {
   width: 64px;
   height: 64px;
   top: 190px;
   right: 90px;
-  opacity: 0.85;
+  opacity: 1;
+  background: var(--color-primary);
 }
 .ul-login__page-glow--bl-big {
   width: 300px;
   height: 300px;
   bottom: -110px;
   left: -120px;
-  opacity: 0.9;
+  opacity: 1;
+  background: var(--color-accent-red);
 }
 .ul-login__page-glow--bl-small {
   width: 78px;
   height: 78px;
   bottom: 150px;
   left: 60px;
-  opacity: 0.85;
+  opacity: 1;
 }
 
 .ul-login__page-icon {
@@ -143,8 +150,8 @@
 }
 
 .ul-login__wordmark {
-  font-family: "Plus Jakarta Sans", sans-serif;
-  font-size: clamp(24px, 3.4vh, 30px);
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  font-size: clamp(26px, 3.6vh, 34px);
   font-weight: 800;
   margin: 12px 0 6px;
   letter-spacing: -0.01em;
@@ -168,7 +175,8 @@
   z-index: 1;
   width: 100%;
   background: var(--color-card);
-  border-radius: 26px;
+  border: 2px solid var(--color-text-primary);
+  border-radius: 36px;
   box-shadow: var(--shadow-elevated);
   padding: clamp(24px, 4vh, 34px) clamp(22px, 4vw, 34px);
 }
@@ -195,8 +203,8 @@
 .ul-login__field {
   width: 100%;
   padding: 13px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border: 2px solid transparent;
+  border-radius: 999px;
   font-size: 13.5px;
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
@@ -257,8 +265,8 @@
   background: var(--color-primary-dark);
   color: #fff;
   border: none;
-  border-radius: 14px;
-  padding: 15px;
+  border-radius: 999px;
+  padding: 16px;
   font-size: 14.5px;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -273,7 +281,7 @@
 }
 
 .ul-login__error {
-  color: #b3261e;
+  color: #e5484d;
   font-size: 12px;
   margin: 10px 0 0;
   font-weight: 600;

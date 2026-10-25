@@ -18,7 +18,13 @@ import { StarIcon } from "./icons";
 // `rows` is an array of two arrays of testimonial items:
 // { id, quote, name, role, rating, avatar }. `avatar` is an image URL;
 // falls back to initials when omitted.
-function Avatar({ name, avatar }) {
+const AVATAR_TONES = [
+  "bg-(--lp-blue-soft) text-(--lp-blue-deep)",
+  "bg-(--lp-yellow-soft) text-(--lp-ink)",
+  "bg-(--lp-grey) text-(--lp-ink)",
+];
+
+function Avatar({ name, avatar, index = 0 }) {
   const [failed, setFailed] = useState(false);
   if (avatar && !failed) {
     return (
@@ -26,7 +32,7 @@ function Avatar({ name, avatar }) {
         src={avatar}
         alt=""
         onError={() => setFailed(true)}
-        className="h-10 w-10 rounded-full object-cover"
+        className="h-11 w-11 rounded-full object-cover ring-1 ring-(--lp-line)"
       />
     );
   }
@@ -37,19 +43,32 @@ function Avatar({ name, avatar }) {
     .join("")
     .toUpperCase();
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
+    <span
+      aria-hidden="true"
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${AVATAR_TONES[index % AVATAR_TONES.length]}`}
+    >
       {initials}
     </span>
   );
 }
 
-function MarqueeRow({ items, direction = "left", durationSeconds = 40 }) {
+function QuoteMark() {
+  return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true">
+      <path d="M9.6 5C5.9 6.7 3.5 9.9 3.5 14.2V19h6.2v-6H6.6c.1-2.2 1.3-3.8 3.6-5L9.6 5Zm10 0c-3.7 1.7-6.1 4.9-6.1 9.2V19h6.2v-6h-3.1c.1-2.2 1.3-3.8 3.6-5L19.6 5Z" />
+    </svg>
+  );
+}
+
+function MarqueeRow({ items, direction = "left", durationSeconds = 40, cardClassName = "bg-white", starClassName = "text-(--lp-yellow)" }) {
   const [paused, setPaused] = useState(false);
-  const doubled = [...items, ...items]; // seamless loop
+  // 4 copies (scroll distance = 2 copies = -50%) so the row still fills very
+  // wide screens when there are only a few cards.
+  const copies = [...items, ...items, ...items, ...items]; // seamless loop
 
   return (
     <div
-      className="flex w-max gap-4"
+      className="marquee-track flex w-max gap-5"
       style={{
         animation: `marquee-${direction} ${durationSeconds}s linear infinite`,
         animationPlayState: paused ? "paused" : "running",
@@ -57,41 +76,56 @@ function MarqueeRow({ items, direction = "left", durationSeconds = 40 }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {doubled.map((item, i) => (
-        <div key={`${item.id}-${i}`} className="w-80 shrink-0 rounded-2xl bg-blush p-5 text-text">
-          {typeof item.rating === "number" && (
-            <div className="mb-2 flex items-center gap-0.5 text-primary">
-              {Array.from({ length: 5 }, (_, star) => (
-                <StarIcon
-                  key={star}
-                  className={star < Math.round(item.rating) ? "fill-current" : "fill-current opacity-25"}
-                />
-              ))}
+      {copies.map((item, i) => (
+        <figure
+          key={`${item.id}-${i}`}
+          aria-hidden={i >= items.length ? "true" : undefined}
+          className={`group flex h-56 w-[22rem] shrink-0 flex-col justify-between rounded-3xl border border-(--lp-line) ${item.cardClassName ?? cardClassName} p-6 text-(--lp-ink) transition-[transform,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-(--lp-blue)/40`}
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-(--lp-blue)/25">
+                <QuoteMark />
+              </span>
+              {typeof item.rating === "number" && (
+                <div className={`flex items-center gap-0.5 ${starClassName}`} role="img" aria-label={`${item.rating} out of 5 stars`}>
+                  {Array.from({ length: 5 }, (_, star) => (
+                    <StarIcon
+                      key={star}
+                      width="14"
+                      height="14"
+                      className={star < Math.round(item.rating) ? "fill-current" : "fill-(--lp-line)"}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-          <p className="line-clamp-3 text-sm text-text/80">"{item.quote}"</p>
-          <div className="mt-3 flex items-center gap-3">
-            <Avatar name={item.name} avatar={item.avatar} />
-            <div>
-              <p className="text-sm font-semibold text-text">{item.name}</p>
-              {item.role && <p className="text-xs text-text/50">{item.role}</p>}
-            </div>
+            <blockquote className="mt-4 line-clamp-4 text-[1.0625rem] font-medium leading-relaxed tracking-tight text-(--lp-ink)">
+              {item.quote}
+            </blockquote>
           </div>
-        </div>
+          <figcaption className="flex items-center gap-3 border-t border-(--lp-line) pt-4">
+            <Avatar name={item.name} avatar={item.avatar} index={i} />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-(--lp-ink)">{item.name}</p>
+              {item.role && <p className="truncate text-xs text-(--lp-muted)">{item.role}</p>}
+            </div>
+          </figcaption>
+        </figure>
       ))}
     </div>
   );
 }
 
-export default function Marquee({ rows }) {
+// Optional `cardClassName` / `starClassName` restyle the cards; the defaults
+// give the clean white-card look used on the Landing page.
+export default function Marquee({ rows, cardClassName, starClassName }) {
   return (
     <div
-      className="flex flex-col gap-4 overflow-hidden"
+      className="marquee-mask flex flex-col gap-5 overflow-hidden py-1"
       style={{
-        maskImage:
-          "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
-        WebkitMaskImage:
-          "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+        maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+        WebkitMaskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
       }}
     >
       <style>{`
@@ -103,9 +137,13 @@ export default function Marquee({ rows }) {
           from { transform: translateX(-50%); }
           to { transform: translateX(0); }
         }
+        @media (prefers-reduced-motion: reduce) {
+          .marquee-track { animation: none !important; }
+          .marquee-mask { overflow-x: auto; }
+        }
       `}</style>
-      <MarqueeRow items={rows[0] ?? []} direction="left" durationSeconds={45} />
-      <MarqueeRow items={rows[1] ?? rows[0] ?? []} direction="right" durationSeconds={50} />
+      <MarqueeRow items={rows[0] ?? []} direction="left" durationSeconds={110} cardClassName={cardClassName} starClassName={starClassName} />
+      <MarqueeRow items={rows[1] ?? rows[0] ?? []} direction="right" durationSeconds={120} cardClassName={cardClassName} starClassName={starClassName} />
     </div>
   );
 }

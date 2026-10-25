@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Input from "../../../../components/ui/Input";
 import { useOnboarding } from "../../context/OnboardingContext";
+import Select from "../../../../components/ui/Select";
 import OnboardingLayout from "../../components/OnboardingLayout";
 
 const ORDINAL = (n) => {
@@ -70,8 +71,8 @@ export default function OnboardingBasics() {
 
         <div>
           <FieldLabel>Grade Level</FieldLabel>
-          <select
-            className="w-full rounded-xl border border-text/15 bg-bg px-4 py-2.5 text-sm text-text focus:border-primary focus:outline-none"
+          <Select wrapperClassName="block w-full"
+            className="w-full rounded-full border border-text/15 bg-bg px-5 py-3 pr-11 text-sm text-text focus:border-primary"
             value={form.grade}
             onChange={(e) => set("grade")(e.target.value)}
           >
@@ -81,7 +82,7 @@ export default function OnboardingBasics() {
                 {g}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">

@@ -3,7 +3,7 @@ import Navbar from "../components/common/Navbar";
 import { CompassIcon, HelpCircleIcon, HomeIcon } from "../components/ui/icons";
 import { useAuth } from "../hooks/useAuth";
 import StudentErrorBoundary from "../components/common/StudentErrorBoundary";
-import SectionShapes from "../components/common/SectionShapes";
+import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
 
 const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
@@ -36,7 +36,7 @@ function MobileNav() {
     { href: "/student/profile", label: "Account", icon: HomeIcon },
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-text/10 bg-white/95 px-2 py-2 backdrop-blur md:hidden">
+    <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 rounded-full bg-white/95 px-2 py-1.5 shadow-[0_14px_40px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) backdrop-blur md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -44,8 +44,8 @@ function MobileNav() {
           <Link
             key={item.href}
             to={item.href}
-            className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-1 text-[10px] font-semibold ${
-              active ? "text-primary" : "text-text/45"
+            className={`flex min-w-0 flex-col items-center gap-0.5 rounded-full px-1 py-1.5 text-[10px] font-semibold transition-colors duration-150 ${
+              active ? "bg-(--lp-ink) text-white" : "text-(--lp-muted)"
             }`}
           >
             <Icon className="h-5 w-5" />
@@ -63,7 +63,7 @@ export default function StudentLayout() {
   const isCoursePlayer = location.pathname === "/student/courseplayer";
 
   return (
-    <div className="relative isolate flex h-screen flex-col overflow-hidden bg-bg">
+    <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-(--lp-grey) font-body text-text">
       <Navbar
         title="Universal Learning"
         navEntries={navEntries}
@@ -79,7 +79,7 @@ export default function StudentLayout() {
             into something else (a course, a live session, a booking)
             render their own BackButton / contextual "Back to X" action
             instead, scoped to where that specific page was entered from. */}
-        <main className={`student-main min-w-0 flex-1 pb-20 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
+        <main className={`student-main min-w-0 flex-1 pb-24 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
           {/* SectionShapes used to sit directly on the outer h-screen/
               overflow-hidden shell above, which never scrolls — only this
               <main> does (overflow-y-auto) -- so those shapes stayed glued
@@ -91,7 +91,6 @@ export default function StudentLayout() {
               not just the viewport-sized <main> box), fixes that: it now
               scrolls up together with the page exactly like Landing. */}
           <div className="relative min-h-full">
-            <SectionShapes visible variant="student" />
             <div className="relative z-10">
               <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
                 <Outlet />
