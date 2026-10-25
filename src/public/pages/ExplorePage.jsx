@@ -7,7 +7,7 @@
 // Shared between the public pre-login route ("/explore", src/public/
 // routes.jsx) and the logged-in student portal ("/student/explore",
 // src/portals/student/routes.jsx) — same file, same marketplace content
-// either way; only the wishlist/enroll actions branch on `user`.
+// either way; only the enroll actions branch on `user`.
 import { useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import ColorBlockCard from "../../components/ui/ColorBlockCard";
@@ -18,7 +18,6 @@ import SectionShapes from "../../components/common/SectionShapes";
 import CourseCarousel from "../../components/common/CourseCarousel";
 import { ChevronDownIcon, SearchIcon, TargetIcon, BriefcaseIcon, FileTextIcon, HeartIcon } from "../../components/ui/icons";
 import { useAuth } from "../../hooks/useAuth";
-import { useWishlist } from "../../hooks/useWishlist";
 import { useToast } from "../../hooks/useToast";
 import { useScrollToHash } from "../../hooks/useScrollToHash";
 import ToastStack from "../../components/ui/Toast";
@@ -111,7 +110,6 @@ export default function ExplorePage() {
   const location = useLocation();
   const { user } = useAuth();
   const userId = user?.identifier || user?.id || "guest";
-  const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
   useScrollToHash();
   const enrolledIds = useMemo(() => new Set(getStudentEnrolledCourseIds(userId)), [userId]);
@@ -257,15 +255,6 @@ export default function ExplorePage() {
     navigate(coursePath(course.id));
   }
 
-  function toggleWishlist(course) {
-    if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(coursePath(course.id))}`);
-      return;
-    }
-    const saved = !wishlist.isWishlisted(course.id);
-    wishlist.toggle(course);
-    showToast(saved ? "Added to wishlist" : "Removed from wishlist");
-  }
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
@@ -330,8 +319,6 @@ export default function ExplorePage() {
         <SectionHeading id="popular" eyebrow="Trending now" title="Popular courses" subtitle="Learn what students are exploring right now." viewAllHref="/student/explore?sort=popular#browse" />
         <CourseCarousel
           courses={popularCourses}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
           onCourseClick={openCourse}
           onAction={openCourse}
           metaFor={(c) => `${c.courseType === "Live" ? "Live" : "Self-paced"} · ${c.level} · ${c.duration}`}
@@ -377,9 +364,6 @@ export default function ExplorePage() {
               reviewCount={course.reviewCount}
               actionLabel="View Course"
               onAction={() => openCourse(course)}
-              showWishlist
-              wishlisted={wishlist.isWishlisted(course.id)}
-              onToggleWishlist={() => toggleWishlist(course)}
               onClick={() => openCourse(course)}
             />
           ))}
@@ -392,8 +376,6 @@ export default function ExplorePage() {
         <SectionHeading id="new-trending" eyebrow="Just added" title="New & trending" subtitle="Recently added courses and what's picking up momentum." viewAllHref="/student/explore?sort=newest#browse" />
         <CourseCarousel
           courses={newAndTrending}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
           onCourseClick={openCourse}
           onAction={openCourse}
           badgeFor={(c, i) => (i % 2 === 0 ? "NEW" : "TRENDING")}
@@ -457,7 +439,7 @@ export default function ExplorePage() {
             </div>
             {results.length ? (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                {results.map((course, index) => <ColorBlockCard key={course.id} rotationIndex={index} compact fullWidth image={course.image} title={course.title} subtitle={course.subtitle} meta={`${course.courseType === "Live" ? "Live" : "Recorded"} · ${course.level} · ${course.duration}`} description={course.description} price={course.price} originalPrice={course.originalPrice} rating={course.rating} reviewCount={course.reviewCount} actionLabel={!!user && course.enrolled ? "Enrolled" : "Enroll"} actionDisabled={!!user && course.enrolled} onAction={() => openCourse(course)} showWishlist wishlisted={wishlist.isWishlisted(course.id)} onToggleWishlist={() => toggleWishlist(course)} onClick={() => openCourse(course)} />)}
+                {results.map((course, index) => <ColorBlockCard key={course.id} rotationIndex={index} compact fullWidth image={course.image} title={course.title} subtitle={course.subtitle} meta={`${course.courseType === "Live" ? "Live" : "Recorded"} · ${course.level} · ${course.duration}`} description={course.description} price={course.price} originalPrice={course.originalPrice} rating={course.rating} reviewCount={course.reviewCount} actionLabel={!!user && course.enrolled ? "Enrolled" : "Enroll"} actionDisabled={!!user && course.enrolled} onAction={() => openCourse(course)} onClick={() => openCourse(course)} />)}
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-text/15 bg-white px-6 py-16 text-center"><h2 className="font-display text-lg font-semibold text-text">No courses match these filters</h2><p className="mt-2 text-sm text-text/55">Try a broader search or clear the filters.</p><Button fullWidth={false} className="mt-5" onClick={() => setParams({})}>Clear filters</Button></div>

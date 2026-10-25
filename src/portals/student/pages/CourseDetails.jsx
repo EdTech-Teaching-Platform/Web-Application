@@ -16,7 +16,6 @@ import Modal from "../../../components/ui/Modal";
 import ToastStack from "../../../components/ui/Toast";
 import { useAuth } from "../../../hooks/useAuth";
 import { isStudentCourseEnrolled } from "../data/studentLocalState";
-import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import { getCourseById, getEducatorById, getRelatedCourses, imageForEducator } from "../../../data/catalogMock";
 import { imgFallback } from "../../../utils/stockImages";
@@ -25,7 +24,6 @@ import AttendanceCard from "../components/AttendanceCard";
 import { ATTENDANCE_SESSIONS } from "../data/sessionMock";
 import {
   StarIcon,
-  HeartIcon,
   ShareIcon,
   AwardIcon,
   ChevronDownIcon,
@@ -144,7 +142,6 @@ export default function CourseDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
 
   const courseId = routeCourseId || searchParams.get("course") || "c1";
@@ -184,7 +181,6 @@ export default function CourseDetails() {
   const related = getRelatedCourses(course);
   const courseAttendance = ATTENDANCE_SESSIONS.filter((session) => session.courseId === course.id);
   const isArchived = course.status === "archived";
-  const isWishlisted = wishlist.isWishlisted(course.id);
   const totalReviews = Object.values(course.ratingBreakdown).reduce((a, b) => a + b, 0);
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/student/course/${course.id}`;
 
@@ -211,13 +207,6 @@ export default function CourseDetails() {
     action();
   }
 
-  function handleToggleWishlist() {
-    requireAuth(currentCoursePath, () => {
-      const nowSaved = !isWishlisted;
-      wishlist.toggle(course);
-      showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
-    });
-  }
 
   function handleEnroll() {
     requireAuth(currentCoursePath, () => {
@@ -277,15 +266,6 @@ export default function CourseDetails() {
                 className="h-full w-full object-cover"
               />
               <div className="absolute right-4 top-4 flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleToggleWishlist}
-                  aria-pressed={isWishlisted}
-                  aria-label={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white transition-transform duration-150 hover:scale-110"
-                >
-                  <HeartIcon filled={isWishlisted} />
-                </button>
                 <button
                   type="button"
                   onClick={() => setShareOpen(true)}
@@ -543,15 +523,6 @@ export default function CourseDetails() {
                       price={c.price}
                       originalPrice={c.originalPrice}
                       rating={c.rating}
-                      showWishlist
-                      wishlisted={wishlist.isWishlisted(c.id)}
-                      onToggleWishlist={() =>
-                        requireAuth(relatedCoursePath(c.id), () => {
-                          const nowSaved = !wishlist.isWishlisted(c.id);
-                          wishlist.toggle(c);
-                          showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
-                        })
-                      }
                       actionLabel={relatedEnrolled ? (c.courseType === "Live" ? "View Schedule" : "Go to Course") : "Enroll"}
                       onAction={() =>
                         relatedEnrolled
@@ -602,10 +573,6 @@ export default function CourseDetails() {
                 Enroll Now
               </Button>
             )}
-            <Button fullWidth className="mt-3" variant="secondary" onClick={handleToggleWishlist}>
-              <HeartIcon filled={isWishlisted} className="h-4 w-4" />
-              {isWishlisted ? "Saved to Wishlist" : "Add to Wishlist"}
-            </Button>
 
             {!isArchived && (
               <div className="mt-5 border-t border-text/10 pt-5">

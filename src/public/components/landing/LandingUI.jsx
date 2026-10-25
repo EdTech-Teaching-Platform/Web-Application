@@ -2,7 +2,7 @@
 // landing page (src/public/pages/LandingPage.jsx). Kept next to the page
 // rather than promoted to src/components/ui — no other portal needs them.
 // All colors come from the --lp-* variables in ../landingTheme.js.
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------- Reveal
 // Fade + rise on first scroll into view. opacity/transform only, ease-out,

@@ -98,13 +98,13 @@ export default function Onboarding() {
     setSubmitting(true);
     setSubmitError("");
     try {
+      const email = (form.email || form.identifier || "").trim();
       await register({
         fullName: form.fullName.trim(),
-        role: "student",
-        identifier: form.identifier.trim(),
+        email,
         password: form.password,
       });
-      navigate(`/verify-otp?mode=register&destination=${encodeURIComponent(form.identifier.trim())}`);
+      navigate("/student/dashboard");
     } catch {
       setSubmitError("Something went wrong creating your account. Please try again.");
     } finally {

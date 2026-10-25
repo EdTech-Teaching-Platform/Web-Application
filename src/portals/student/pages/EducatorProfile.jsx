@@ -25,7 +25,6 @@ import Modal from "../../../components/ui/Modal";
 import ToastStack from "../../../components/ui/Toast";
 import SectionShapes from "../../../components/common/SectionShapes";
 import { useAuth } from "../../../hooks/useAuth";
-import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import { isStudentCourseEnrolled } from "../data/studentLocalState";
 import {
@@ -58,7 +57,6 @@ export default function EducatorProfile() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
 
   const educatorId = searchParams.get("educator") ?? "ed1";
@@ -288,15 +286,6 @@ export default function EducatorProfile() {
                 actionLabel={enrolled ? "Enrolled" : "Enroll"}
                 actionDisabled={enrolled}
                 onAction={() => navigate(coursePath(course.id))}
-                showWishlist
-                wishlisted={wishlist.isWishlisted(course.id)}
-                onToggleWishlist={() =>
-                  requireAuth(() => {
-                    const nowSaved = !wishlist.isWishlisted(course.id);
-                    wishlist.toggle(course);
-                    showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
-                  })
-                }
                 onClick={() => navigate(coursePath(course.id))}
               />
               );

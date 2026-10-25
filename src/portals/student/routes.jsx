@@ -1,141 +1,96 @@
-import { Outlet, Route, Navigate } from "react-router-dom";
-import { OnboardingProvider } from "./context/OnboardingContext";
-import OnboardingBasics from "./pages/onboarding/OnboardingBasics";
-import OnboardingDetails from "./pages/onboarding/OnboardingDetails";
-import OnboardingInterests from "./pages/onboarding/OnboardingInterests";
+import { Navigate, Route, useLocation, useParams } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
-import Landing from "./pages/Landing";
-import SearchResults from "./pages/SearchResults";
-import EducatorProfile from "./pages/EducatorProfile";
-import CourseDetails from "./pages/CourseDetails";
-import Wishlist from "./pages/Wishlist";
-import Checkout from "./pages/Checkout";
-import PaymentResult from "./pages/PaymentResult";
-import CoursePlayer from "./pages/CoursePlayer";
-import ResourceViewer from "./pages/ResourceViewer";
-import Notes from "./pages/Notes";
-import LearningHistory from "./pages/LearningHistory";
-import ProgressTracking from "./pages/ProgressTracking";
-import ManageBooking from "./pages/ManageBooking";
-import LiveClassJoin from "./pages/LiveClassJoin";
-import LiveCourseSchedule from "./pages/LiveCourseSchedule";
-import LiveClassRating from "./pages/LiveClassRating";
-import Recordings from "./pages/Recordings";
-import LiveRecordingDetail from "./pages/LiveRecordingDetail";
-import Attendance from "./pages/Attendance";
-import Quiz from "./pages/Quiz";
-import AssignmentSubmit from "./pages/AssignmentSubmit";
-import Certificates from "./pages/Certificates";
-import Orders from "./pages/Orders";
-import Messages from "./pages/Messages";
-import Notifications from "./pages/Notifications";
-import Reviews from "./pages/Reviews";
-import ExplorePage from "../../public/pages/ExplorePage";
-import LiveClassesDiscover from "./pages/LiveClassesDiscover";
-import RecordedClassesDiscover from "./pages/RecordedClassesDiscover";
-import Calendar from "./pages/Calendar";
-import MyLearning from "./pages/MyLearning";
-import Recommended from "./pages/Recommended";
-import Profile from "./pages/Profile";
-import HelpComplaints from "./pages/HelpComplaints";
-import TestSeries from "./pages/TestSeries";
-import TestSeriesMarketplace from "./pages/TestSeriesMarketplace";
-import TestSeriesPackageDetail from "./pages/TestSeriesPackageDetail";
-import TestSeriesCheckout from "./pages/TestSeriesCheckout";
-import CourseQuizzes from "./pages/CourseQuizzes";
-import SkillAssessments from "./pages/SkillAssessments";
-import AssessmentResults from "./pages/AssessmentResults";
-import AssessmentRunner from "./pages/AssessmentRunner";
-import AssessmentResultDetail from "./pages/AssessmentResultDetail";
+import SeriesList from "./pages/SeriesList";
+import SeriesDetail from "./pages/SeriesDetail";
+import TestIntro from "./pages/TestIntro";
+import TestRunner from "./pages/TestRunner";
+import TestReport from "./pages/TestReport";
+import History from "./pages/History";
+import MyTests from "./pages/MyTests";
+import Account from "./pages/Account";
+import ComingSoon from "./pages/ComingSoon";
 
-// Wraps every onboarding route in ONE OnboardingProvider instance via a
-// layout route + <Outlet/>, so the context — and the form state it holds —
-// survives navigation between steps. Wrapping each <Route>'s element in its
-// own separate <OnboardingProvider> would remount a fresh provider (and
-// reset the form) on every step change.
-function OnboardingLayoutRoute() {
-  return (
-    <OnboardingProvider>
-      <Outlet />
-    </OnboardingProvider>
-  );
+// The student portal is test series only for now. Course discovery (Explore,
+// course details, live / recorded classes) and the other mock-backed screens
+// are unmounted: their files are kept, their routes redirect to the test
+// series list or show ComingSoon. See docs/ADMIN_BACKEND_TODO.md.
+
+// Keeps a search (?q= or ?search=) when redirecting old discovery URLs.
+export function ToSeriesList() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  const q = params.get("q") || params.get("search") || params.get("category") || "";
+  return <Navigate to={`/student/test-series${q ? `?q=${encodeURIComponent(q)}` : ""}`} replace />;
 }
 
-// Onboarding is a self-contained, full-bleed flow with NO sidebar/top-nav
-// chrome — per request, it must not render inside StudentLayout. So this is
-// exported separately, as a complete absolute-path <Route>, and mounted as
-// its own sibling in src/routes/AppRoutes.jsx rather than nested under the
-// "/student" + StudentLayout route below. Trimmed to 3 steps per request —
-// Basics → Details → Interests — the Review step is gone; Interests now
-// creates the account directly (see OnboardingInterests.jsx).
+function ToSeriesDetail() {
+  const { seriesId } = useParams();
+  return <Navigate to={`/student/test-series/${seriesId}`} replace />;
+}
+
+// The old multi-step sign-up wizard created demo accounts. Real sign-up is
+// /register; profile details are edited on the Account page.
+function OnboardingRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return <Navigate to={user ? "/student/account" : "/register"} replace />;
+}
+
 export const studentOnboardingRoutes = (
-  <Route path="/student/onboarding" element={<OnboardingLayoutRoute />}>
-    <Route index element={<Navigate to="basics" replace />} />
-    <Route path="intro" element={<Navigate to="basics" replace />} />
-    <Route path="basics" element={<OnboardingBasics />} />
-    <Route path="details" element={<OnboardingDetails />} />
-    <Route path="interests" element={<OnboardingInterests />} />
-    <Route path="terms" element={<Navigate to="interests" replace />} />
-    <Route path="review" element={<Navigate to="interests" replace />} />
-  </Route>
+  <Route path="/student/onboarding/*" element={<OnboardingRedirect />} />
 );
 
-// Mounted at /student/* inside src/routes/AppRoutes.jsx, wrapped in
-// StudentLayout (sidebar + top nav). Add new screens here as you build
-// them. Onboarding routes live in studentOnboardingRoutes above instead,
-// since that flow deliberately has no sidebar.
+const COMING_SOON = [
+  ["messages", "Messages"],
+  ["notifications", "Notifications"],
+  ["certificates", "Certificates"],
+  ["orders", "Payments"],
+  ["help-complaints", "Help & complaints"],
+  ["help-complaints/:ticketId", "Help & complaints"],
+  ["calendar", "Calendar"],
+  ["booksession", "Booking a session"],
+  ["managebooking", "Bookings"],
+  ["liveclassjoin", "Live classes"],
+  ["live-course", "Live classes"],
+  ["liveclassrating", "Live classes"],
+  ["recordings", "Recordings"],
+  ["live-recording", "Recordings"],
+  ["attendance", "Attendance"],
+  ["quiz", "Course quizzes"],
+  ["assignmentsubmit", "Assignments"],
+  ["reviews", "Reviews"],
+  ["notes", "Notes"],
+];
+
+// Old routes that now point at the test-series screens.
+const TO_LIST = [
+  "explore", "live-classes", "recorded-classes", "course/:courseId", "coursedetails", "my-learning",
+  "recommended", "searchresults", "educatorprofile", "landing", "wishlist", "checkout", "paymentresult",
+  "courseplayer", "resourceviewer", "assessments/test-series", "assessments/test-series/:assessmentId",
+  "assessments/course-quizzes", "assessments/skill-assessments", "assessments/take/:assessmentId",
+];
+const TO_HISTORY = ["learninghistory", "progresstracking", "assessments/my-results", "assessments/results/:attemptId",
+  "assessments/results/:attemptId/review"];
+
+// Mounted at /student/* inside StudentLayout (behind ProtectedRoute role="student").
 const studentRoutes = (
   <>
-      <Route index element={<Navigate to="dashboard" replace />} />
-      <Route path="dashboard" element={<Dashboard />} />
-      <Route path="my-learning" element={<MyLearning />} />
-      <Route path="recommended" element={<Recommended />} />
-      <Route path="explore" element={<ExplorePage />} />
-      <Route path="live-classes" element={<LiveClassesDiscover />} />
-      <Route path="recorded-classes" element={<Navigate to="/student/explore" replace />} />
-      <Route path="test-series" element={<TestSeriesMarketplace />} />
-      <Route path="test-series/:seriesId/checkout" element={<TestSeriesCheckout />} />
-      <Route path="test-series/:seriesId" element={<TestSeriesPackageDetail />} />
-      <Route path="assessments/test-series" element={<Navigate to="/student/test-series" replace />} />
-      <Route path="assessments/test-series/:assessmentId" element={<TestSeries />} />
-      <Route path="assessments/course-quizzes" element={<CourseQuizzes />} />
-      <Route path="assessments/skill-assessments" element={<SkillAssessments />} />
-      <Route path="assessments/my-results" element={<AssessmentResults />} />
-      <Route path="assessments/take/:assessmentId" element={<AssessmentRunner />} />
-      <Route path="assessments/results/:attemptId/review" element={<AssessmentResultDetail />} />
-      <Route path="assessments/results/:attemptId" element={<AssessmentResultDetail />} />
-      <Route path="calendar" element={<Calendar />} />
-      <Route path="landing" element={<Landing />} />
-      <Route path="searchresults" element={<SearchResults />} />
-      <Route path="educatorprofile" element={<EducatorProfile />} />
-      <Route path="coursedetails" element={<CourseDetails />} />
-      <Route path="course/:courseId" element={<CourseDetails />} />
-      <Route path="wishlist" element={<Wishlist />} />
-      <Route path="checkout" element={<Checkout />} />
-      <Route path="paymentresult" element={<PaymentResult />} />
-      <Route path="courseplayer" element={<CoursePlayer />} />
-      <Route path="resourceviewer" element={<ResourceViewer />} />
-      <Route path="notes" element={<Notes />} />
-      <Route path="learninghistory" element={<LearningHistory />} />
-      <Route path="progresstracking" element={<ProgressTracking />} />
-      <Route path="booksession" element={<Navigate to="live-classes" replace />} />
-      <Route path="managebooking" element={<ManageBooking />} />
-      <Route path="liveclassjoin" element={<LiveClassJoin />} />
-      <Route path="live-course" element={<LiveCourseSchedule />} />
-      <Route path="liveclassrating" element={<LiveClassRating />} />
-      <Route path="recordings" element={<Recordings />} />
-      <Route path="live-recording" element={<LiveRecordingDetail />} />
-      <Route path="attendance" element={<Attendance />} />
-      <Route path="quiz" element={<Quiz />} />
-      <Route path="assignmentsubmit" element={<AssignmentSubmit />} />
-      <Route path="certificates" element={<Certificates />} />
-      <Route path="orders" element={<Orders />} />
-      <Route path="messages" element={<Messages />} />
-      <Route path="help-complaints" element={<HelpComplaints />} />
-      <Route path="help-complaints/:ticketId" element={<HelpComplaints />} />
-      <Route path="notifications" element={<Notifications />} />
-      <Route path="reviews" element={<Reviews />} />
-      <Route path="profile" element={<Profile />} />
+    <Route index element={<Navigate to="dashboard" replace />} />
+    <Route path="dashboard" element={<Dashboard />} />
+    <Route path="test-series" element={<SeriesList />} />
+    <Route path="test-series/:seriesId" element={<SeriesDetail />} />
+    <Route path="test-series/:seriesId/checkout" element={<ToSeriesDetail />} />
+    <Route path="test/:testId" element={<TestIntro />} />
+    <Route path="test/:testId/take" element={<TestRunner />} />
+    <Route path="report/:attemptId" element={<TestReport />} />
+    <Route path="history" element={<History />} />
+    <Route path="my-tests" element={<MyTests />} />
+    <Route path="account" element={<Account />} />
+    <Route path="profile" element={<Navigate to="/student/account" replace />} />
+    {TO_LIST.map((path) => <Route key={path} path={path} element={<ToSeriesList />} />)}
+    {TO_HISTORY.map((path) => <Route key={path} path={path} element={<Navigate to="/student/history" replace />} />)}
+    {COMING_SOON.map(([path, title]) => <Route key={path} path={path} element={<ComingSoon title={title} />} />)}
   </>
 );
 

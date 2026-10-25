@@ -1,114 +1,135 @@
-import apiClient from "../../services/apiClient";
-import { verifyEducatorCredentials } from "../../portals/teacher/data/educatorAccountStore";
+import { supabase } from "../../services/supabaseClient";
+import { safeRedirect } from "../utils/validators";
 
-// Auth API layer, built on the shared apiClient — proposed per the build
-// spec (Section 6, open question 3): the LMS doc is functional, not the
-// Technical Design Doc, and no auth/services folder or endpoint paths
-// exist yet anywhere in the repo. Confirm every path below with whoever
-// owns the Technical Design Document before removing DEMO_MODE.
+// Supabase Auth calls for the auth screens. Every function throws an Error
+// whose message is safe to show to the user (see authErrorMessage).
 //
-// DEMO_MODE lets the 5 auth screens be built, wired, and demoed end-to-end
-// without a live backend. Flip it off once the endpoints above are real —
-// no call sites need to change, only this flag.
-const DEMO_MODE = true;
+// All redirects (email confirmation, Google, password recovery) come back to
+// the app; /auth/callback then routes by role (src/auth/pages/AuthCallback.jsx).
 
-function demoDelay(ms = 900) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export const AUTH_CALLBACK_PATH = "/auth/callback";
+export const RESET_PASSWORD_PATH = "/reset-password";
+
+export const GOOGLE_NOT_CONFIGURED =
+  "Google sign-in isn't set up for this site yet. Please use your email and password.";
+
+function origin() {
+  return typeof window === "undefined" ? "" : window.location.origin;
 }
 
-// payload: { fullName, role: "student" | "educator", identifier, password }
-export async function register(payload) {
-  if (DEMO_MODE) {
-    await demoDelay();
-    return { data: { ok: true } };
-  }
-  return apiClient.post("/auth/register", payload);
+export function callbackUrl(redirect) {
+  const next = safeRedirect(redirect);
+  return `${origin()}${AUTH_CALLBACK_PATH}${next ? `?redirect=${encodeURIComponent(next)}` : ""}`;
 }
 
-// payload: { identifier, password }
-// Password is step one of a mandatory two-step login: every successful
-// password check is now followed by a one-time code sent to the user's
-// email/phone (see requestLoginOtp/verifyLoginOtp below) — dashboard access
-// is only granted once that code is verified too. Returns the account's
-// role so, once the OTP step passes, Login knows which portal to send the
-// person to. DEMO_MODE has no real backend to ask, so it infers a demo role
-// from the identifier itself ("admin@…" / "superadmin@…" → those roles,
-// anything else → student) purely so this flow is exercisable without a
-// live API — replace with the real role from the login response once the
-// backend exists.
-export async function login(payload) {
-  if (DEMO_MODE) {
-    await demoDelay();
-    if (payload.role === "teacher") {
-      const educator = verifyEducatorCredentials(payload.identifier, payload.password);
-      if (!educator) throw new Error("invalid_credentials");
-      return { data: { ok: true, role: "teacher", name: educator.profile.fullName } };
-    }
-    const id = payload.identifier.toLowerCase();
-    const role = id.includes("superadmin") ? "super_admin" : id.includes("admin") ? "admin" : "student";
-    return { data: { ok: true, role } };
+// Maps Supabase Auth errors to messages a student can act on.
+export function authErrorMessage(error, fallback = "Something went wrong. Please try again.") {
+  const message = String(error?.message ?? "");
+  const status = error?.status;
+  if (/invalid login credentials/i.test(message)) return "Incorrect email or password.";
+  if (/email not confirmed/i.test(message)) return "Confirm your email first: open the link we sent to your inbox.";
+  if (/already registered|already been registered|user_already_exists/i.test(message)) {
+    return "An account with this email already exists. Log in instead.";
   }
-  return apiClient.post("/auth/login", payload);
+  if (status === 429 || /rate limit|for security purposes|too many/i.test(message)) {
+    return "Too many attempts. Please wait a minute and try again.";
+  }
+  if (/provider is not enabled|unsupported provider/i.test(message)) return GOOGLE_NOT_CONFIGURED;
+  if (/error sending|smtp|confirmation email|recovery email/i.test(message)) {
+    return "We couldn't send the email right now. Email delivery may not be set up yet; please contact support.";
+  }
+  if (/failed to fetch|network|load failed/i.test(message)) return "Can't reach the server. Check your connection and try again.";
+  if (/password should|weak password|password is too/i.test(message)) return message;
+  if (/session.*(missing|expired)|auth session missing|token.*expired|otp_expired/i.test(message)) {
+    return "Your link has expired. Please request a new one.";
+  }
+  return message || fallback;
 }
 
-// payload: { identifier } — sent right after password succeeds, for every
-// role. Platform-generated and delivered to the user's email/phone (unlike
-// an authenticator-app TOTP), so this pairs with a resend/cooldown on the
-// Verify screen the same way account verification does.
-export async function requestLoginOtp(payload) {
-  if (DEMO_MODE) {
-    await demoDelay();
-    return { data: { ok: true } };
-  }
-  return apiClient.post("/auth/login/otp/request", payload);
+function fail(error, fallback) {
+  const wrapped = new Error(authErrorMessage(error, fallback));
+  wrapped.cause = error;
+  wrapped.status = error?.status;
+  throw wrapped;
 }
 
-// payload: { identifier, code } — completes the mandatory post-login OTP
-// step for every role. Only once this succeeds does the user actually get
-// into their dashboard.
-export async function verifyLoginOtp(payload) {
-  if (DEMO_MODE) {
-    await demoDelay();
-    if (payload.code?.length !== 6) throw new Error("invalid_code");
-    return { data: { ok: true } };
+/** Sign up with email + password. Returns { user, session, needsConfirmation }. */
+export async function register({ email, password, fullName, redirect }) {
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password,
+    options: {
+      data: { full_name: fullName?.trim() || "" },
+      emailRedirectTo: callbackUrl(redirect),
+    },
+  });
+  if (error) fail(error, "We couldn't create your account. Please try again.");
+  // With email confirmation on, an existing address comes back as a user with
+  // no identities (Supabase hides whether the email exists).
+  if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    fail({ message: "User already registered" });
   }
-  return apiClient.post("/auth/login/otp/verify", payload);
+  return { user: data?.user ?? null, session: data?.session ?? null, needsConfirmation: !data?.session };
 }
 
-// payload: { identifier, code }
-export async function verifyAccountOtp(payload) {
-  if (DEMO_MODE) {
-    await demoDelay();
-    if (payload.code?.length !== 6) throw new Error("invalid_code");
-    return { data: { ok: true } };
-  }
-  return apiClient.post("/auth/verify", payload);
+/** Sign in with email + password. */
+export async function login({ email, password }) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+  if (error) fail(error, "We couldn't sign you in. Please try again.");
+  return data;
 }
 
-// payload: { identifier, purpose: "register" | "login-otp" }
-export async function resendOtp(payload) {
-  if (DEMO_MODE) {
-    await demoDelay(500);
-    return { data: { ok: true } };
+// The provider list is public (GET /auth/v1/settings). null = couldn't tell.
+export async function isGoogleEnabled() {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  try {
+    const res = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } });
+    if (!res.ok) return null;
+    const settings = await res.json();
+    return Boolean(settings?.external?.google);
+  } catch {
+    return null;
   }
-  return apiClient.post("/auth/otp/resend", payload);
 }
 
-// payload: { identifier }
-export async function requestPasswordReset(payload) {
-  if (DEMO_MODE) {
-    await demoDelay();
-    return { data: { ok: true } };
-  }
-  return apiClient.post("/auth/password/forgot", payload);
+/**
+ * Google sign-in. Checks that the provider is enabled first, so an
+ * unconfigured project shows a message instead of Supabase's raw error page.
+ */
+export async function signInWithGoogle({ redirect } = {}) {
+  if ((await isGoogleEnabled()) === false) fail({ message: "Unsupported provider: provider is not enabled" });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callbackUrl(redirect), skipBrowserRedirect: true },
+  });
+  if (error) fail(error, "Google sign-in failed. Please try again.");
+  if (!data?.url) fail({ message: "Google sign-in failed. Please try again." });
+  window.location.assign(data.url);
+  return data;
 }
 
-// payload: { token, password }
-export async function resetPassword(payload) {
-  if (DEMO_MODE) {
-    await demoDelay();
-    if (payload.token === "expired") throw new Error("invalid_token");
-    return { data: { ok: true } };
-  }
-  return apiClient.post("/auth/password/reset", payload);
+/** Sends the recovery email. Supabase answers the same whether or not the email exists. */
+export async function requestPasswordReset({ email }) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${origin()}${RESET_PASSWORD_PATH}`,
+  });
+  if (error) fail(error, "We couldn't send the reset link. Please try again.");
+}
+
+/** Sets a new password for the current (recovery) session. */
+export async function updatePassword({ password }) {
+  const { data, error } = await supabase.auth.updateUser({ password });
+  if (error) fail(error, "We couldn't update your password. Please try again.");
+  return data;
+}
+
+/** Ends the session (admin auth events are recorded by record_logout for admins only). */
+export async function logout(scope = "local") {
+  // Best effort: logging out must never fail because of the audit call. The
+  // builder is only thenable, so wrap it before catching.
+  await Promise.resolve(supabase.rpc("record_logout", { p_scope: scope })).catch(() => null);
+  const { error } = await supabase.auth.signOut({ scope });
+  if (error && scope !== "local") fail(error, "We couldn't sign you out everywhere. Please try again.");
+  if (error) await supabase.auth.signOut({ scope: "local" });
 }

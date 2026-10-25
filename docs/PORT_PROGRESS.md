@@ -99,6 +99,189 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## Student test series, auth and student portal (written, nothing applied)
+
+This covers three phases, all files only. None of the five `20261026100*_student_*`
+migrations is applied.
+
+**Assumption:** the five files were never applied. They were untracked and
+uncommitted, so they were fixed in place. If `npx supabase migration list` shows
+them as remote, the fixes must move to new files instead.
+
+### A. Database: `20261026100000`–`100400` (student RPCs)
+
+| File | What |
+|---|---|
+| `20261026100000_student_preflight.sql` | Read-only preflight. It collects every problem in one error: ~100 lead / admin columns; `quiz_answers.selected_option_ids` is an array; Batch 1–2 helpers exist; `quiz_attempts.status` allows in_progress / submitted / timed_out; clashes for both tables, all 26 function names (any overload) and the two `quiz_admin` columns. |
+| `20261026100100_student_tables.sql` | `attempt_proctor_events` (FK to `quiz_attempts`, CASCADE, indexed `(attempt_id, occurred_at)`), `attempt_reports` (pk = FK, CASCADE). RLS on, no policies, no grants. `quiz_admin.max_violations int default 3`, `quiz_admin.instructions_extra text` (our table). |
+| `20261026100200_student_rpc_series.sql` | Helpers `adm_student_uid`, `adm_student_writer_uid`, `adm_student_series`, `adm_student_is_enrolled`, `adm_live_series`, `adm_series_card`; RPCs `public_list_series`, `public_get_series`, `student_list_series`, `student_get_series`, `student_enroll`, `student_my_series`. |
+| `20261026100300_student_rpc_exam.sql` | Helpers `adm_attempt_deadline`, `adm_test_window`, `adm_attempt_question_order`, `adm_report_bucket`, `adm_finalize_attempt`; RPCs `student_get_test_intro`, `student_start_attempt`, `student_save_answer`, `student_log_proctor_event`, `student_submit_attempt`, `student_get_report`. |
+| `20261026100400_student_rpc_dashboard.sql` | `student_my_history`, `student_get_stats`, `student_dashboard`. |
+| `supabase/tests/student_rpcs.sql` | 34 checks with fixtures, rolled back. **Local / disposable database only** (it inserts into `auth.users`). |
+| `docs/trial_run.sql` | The five student files only, inside `begin; … rollback;`. The 29 admin files are applied, and their preflights would now fail on clashes. |
+| `docs/STUDENT_RPC_CONTRACT.md` | Every RPC, its parameters, the returned JSON (captured from a real run), error codes, scoring and report rules. |
+| `scripts/admin_indexes_concurrently.sql` | Adds 3 student indexes on lead tables: `quiz_attempts (student_id, quiz_id, started_at desc)`, `quiz_answers (attempt_id, question_id)`, `enrollments (student_id, course_id) where is_active`. |
+| `scripts/admin_verify_push*.sql` | Regenerated from every `2026…_admin_*` and `2026…_student_*` file: 33 tables, 265 function names. Anon may call `submit_callback_request`, `public_list_series` and `public_get_series`. |
+
+**Rules.**
+- **Caller:** the student is always `auth.uid()`.
+- **Grants:** every `student_*` RPC is revoked from public / anon and granted to
+  authenticated. Every `adm_*` helper is revoked from all browser roles. The
+  `public_*` pair is granted to anon.
+- **What students can see:** live series only (published, active, admin status
+  published or no admin row, not deleted, not past `available_until`), and
+  published tests only.
+- **Access:** a direct enrolment (not revoked, not expired) or a lead course
+  enrolment (never the hidden house course). Admin-created series on the house
+  course now reach students through these RPCs (this answers open item 2 of
+  "Live status" for the student side).
+- **Paid series:** `0A000`, STUB: needs payments model (F4).
+- **Scoring and report rules:** in `docs/STUDENT_RPC_CONTRACT.md`.
+
+**Bugs fixed in the earlier draft:**
+- **Answer leak:** `student_start_attempt` returned the options of fill-in-blank
+  and short-answer questions. Those options *are* the accepted / model answers,
+  so the answer key went to the student.
+- **Report submitted the test:** `student_get_report` was STABLE but called the
+  submit function, which writes. It would fail at runtime, and if it had worked,
+  merely opening a report would have submitted a running attempt.
+- **Rolled-back timeout:** `student_save_answer` set `timed_out` and then raised
+  an error, which rolled the update back.
+- **Ungraded timeout:** `student_start_attempt` marked expired attempts
+  `timed_out` without grading them.
+- **Wrong order:** question and option order compared `sort_order` as text
+  (10 before 2), and so did test order in `public_get_series`.
+- **Multi-choice comparison:** sorted-array equality of option ids, which depends
+  on collation. It's now a set comparison.
+- **Short answers:** auto-marked by text match, including against the
+  placeholder "Manual grading: see rubric". They're now always pending review.
+- **Missing checks:** no check that the series was still published, of its
+  availability window or the custom quiz window, of blocked accounts or of
+  expired enrolments. Concurrent starts could exceed the attempt limit (now
+  serialized with an advisory lock).
+- **Revocations:** a revoked enrolment could be re-activated by the student.
+- **Duplicate series:** `student_my_series` / `student_dashboard` listed a series
+  twice for students with both kinds of access.
+- **Search:** `%` and `_` acted as wildcards.
+- **Stats:** accuracy counted pending answers as wrong; rank tie-break was
+  arbitrary.
+- **Answer visibility:** the lead's `quizzes.show_answers_after` was ignored. It
+  now decides whether correct answers and explanations appear.
+- **Double violations:** one tab switch (blur + visibilitychange) counted as two.
+  There's now a 3-second debounce, and informational events aren't counted.
+- **Unknown column type:** `quiz_answers.selected_option_ids` is shown only as
+  `ARRAY` in the dump. Writes now use `::uuid[]`, which works for both `uuid[]`
+  and `text[]` columns.
+
+**Checks run (no real database).**
+- **Postgres 17 parser:** 5 files plus the trial; 54 function / DO bodies,
+  0 errors.
+- **Hardening:** 269 function definitions; `search_path` pinned everywhere, and
+  every non-`adm_` function is SECURITY DEFINER.
+- **Executed in PGlite**, an in-memory WASM Postgres in the scratchpad that
+  touches no real database:
+  - lead schema from `existing_Schema.sql`, plus stand-ins for Supabase's roles,
+    default grants, `auth.uid()`, storage and pg_cron;
+  - **all 35 migrations apply** in order (29 admin + allowlist + 5 student);
+  - `supabase/tests/student_rpcs.sql` passes all 34 checks, with
+    `selected_option_ids` as `text[]` **and** as `uuid[]`;
+  - `scripts/admin_verify_push_editor.sql` gives 14/14 PASS;
+  - `docs/trial_run.sql` succeeds on a database at the live state (admin +
+    allowlist applied).
+
+  PGlite is not Supabase: the lead's RLS policies, real auth and pg_cron weren't
+  exercised.
+
+### B. Auth (frontend, Supabase Auth)
+
+- **Files:**
+  - `src/auth/services/authApi.js`: signUp (emailRedirectTo `/auth/callback`),
+    signInWithPassword, Google (checks `/auth/v1/settings` first and shows a
+    message if the provider is off), resetPasswordForEmail (to
+    `/reset-password`), updateUser, logout; `authErrorMessage` maps errors.
+  - `src/auth/pages/AuthCallback.jsx`: new, `/auth/callback`; routes by role.
+  - `Login.jsx` (email only, Google), `Register.jsx` (password checklist),
+    `ForgotPassword.jsx`, `ResetPassword.jsx` (states: loading / expired /
+    form / success).
+  - `src/auth/utils/validators.js`, `src/auth/routes.jsx`.
+- **`src/services/profileService.js`:** `ensureProfile`. Insert-or-ignore,
+  concurrent calls share one request, role is always `student`, Google name and
+  avatar come from metadata.
+- **`src/context/AuthContext.jsx`:** one `onAuthStateChange` source
+  (INITIAL_SESSION covers reload). Profile work is deferred out of the callback
+  (Supabase can deadlock if it's awaited there). It exposes `user`, `role`,
+  `loading`, `recovery`, `error` and `logout` (signs out and clears per-user
+  storage). `setUser` remains only for the mock teacher / regional-head flows.
+- **Routing:**
+  - `ProtectedRoute` waits for `loading` and redirects by role.
+  - `utils/roles.homePathForUser`: student → `/student/dashboard`, admin /
+    super_admin → `/admin/logindashboard` (`/admin` has no index route).
+  - `Navbar`: "go to homepage" now really signs out.
+- **Removed:** the OTP flow (`OtpVerification.jsx`, `auth/components/OtpInput.jsx`,
+  `components/ui/OtpInput.jsx`, already deleted by the earlier attempt) and
+  DEMO_MODE in auth. The Apple sign-in button is gone; the "App Store, coming
+  soon" badges on the landing page and footer stay, since they aren't sign-in.
+- **Docs:** `docs/AUTH_SETUP.md`. Google sign-in and forgot / reset password are
+  marked **UNTESTED** until the dashboard is configured.
+
+### C. Student portal (frontend)
+
+- **Services:** `services/studentRpc.js` (admin-style error normalization, the
+  builder is awaited), `studentSeriesApi.js`, `attemptApi.js`, `profileApi.js`
+  (own `profiles` / `student_profiles` rows).
+- **Hooks:** `useStudentData`, `useAttemptRunner` (state machine: server
+  deadline + clock offset, debounced autosave, resume, auto-submit at zero,
+  flushes pending saves before submit), `useProctor` (fullscreen,
+  visibilitychange, blur, fullscreen exit, copy / cut / paste, contextmenu, each
+  sent to `student_log_proctor_event`).
+- **Pages:** `Dashboard`, `SeriesList` and `SeriesDetail` (student and public
+  modes), `TestIntro` (the "I understand" checkbox gates Start), `TestRunner`
+  (palette, mark for review, timer, blocking violation warning, submit
+  confirmation), `TestReport`, `History`, `MyTests`, `Account`, `ComingSoon`.
+- **Components:** `PageState`, `SeriesCard` (on `ColorBlockCard`).
+- **Landing:** `FeaturedSeries` (`public_list_series`).
+- **Routes:** `src/portals/student/routes.jsx`, `src/public/routes.jsx`. Old
+  discovery URLs redirect to the series list and keep `?q=`.
+- **Nav:** `StudentLayout` shows Dashboard, Test Series (Browse / My Tests /
+  History) and Account.
+- **Tests:** `tests/student-tests.test.jsx` (runner state machine, timer, resume,
+  auto-submit, proctor handlers → API, report pending / skipped states) and
+  `tests/auth-flow.test.jsx`. `npm test`: 49/49. `npm run build`: passes.
+
+### Assumptions
+
+1. **Streaks** use calendar days in Asia/Kolkata.
+2. **Rank and percentile** cover every finished attempt of the test, including
+   other attempts by the same student. They're a snapshot at submission.
+3. **Unanswered subjective questions** count 0 toward `max_score`; answered ones
+   are pending and left out.
+4. **`multi_select`** in the start response reveals that a question has more than
+   one correct option (for checkboxes), not which ones.
+5. **Grace periods:** saves get 10 seconds past the deadline; a submit more than
+   15 seconds after it is `timed_out`.
+
+### Open items (need the lead)
+
+1. **The lead's RLS on `quiz_question_options`, `quiz_attempts` and
+   `quiz_answers`.** If students can select `quiz_question_options.is_correct`,
+   or insert / update their own attempts and answers through PostgREST, they can
+   bypass these RPCs: read answers or forge scores. Check the lead's policies.
+   We may not change them.
+2. **The profile insert depends on lead RLS.** The app inserts its own `profiles`
+   row (role `student`) and `student_profiles` row. If the lead's RLS refuses
+   that, sign-up fails with a clear message, and the lead needs an insert policy
+   or a signup trigger (their decision).
+3. **Manual grading:** pending answers stay pending. No educator / admin grading
+   RPC exists yet.
+4. **Payments (F4):** paid series can't be enrolled in.
+5. **Per-question time** isn't tracked (`time_spent_secs` is always `null`).
+6. **Indexes:** run the 3 new statements in `scripts/admin_indexes_concurrently.sql`
+   after the push.
+7. **Course quizzes** (`quizzes.series_id` null) aren't covered by the student
+   RPCs.
+
+---
+
 ## Admin allowlist (`20261026090000`, written, not applied)
 
 ### The problem

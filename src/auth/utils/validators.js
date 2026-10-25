@@ -1,6 +1,6 @@
 // Shared validation/formatting helpers for the auth screens.
-// Every field here follows the LMS doc Sec 5.1 rule: identifier can be
-// email OR phone, accepted in the same single field.
+// Sign-in is email + password (Supabase Auth). isPhone / isEmailOrPhone stay
+// for the teacher registration and student profile forms.
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[0-9]{7,15}$/;
@@ -17,18 +17,34 @@ export function isEmailOrPhone(value = "") {
   return isEmail(value) || isPhone(value);
 }
 
-// "email" | "phone" | null — used to decide OTP delivery channel and to
-// mask the destination on the Verify screen (Section 6, open question 4:
-// assumed to switch on input type since the doc doesn't say explicitly).
 export function identifierKind(value = "") {
   if (isEmail(value)) return "email";
   if (isPhone(value)) return "phone";
   return null;
 }
 
-// Registration/Reset password rule: min 8 chars, at least 1 letter + 1 number.
+// Password rule for sign up and reset: min 8 chars, at least 1 letter + 1 number.
+export const PASSWORD_RULES = [
+  { id: "length", label: "At least 8 characters", test: (v) => v.length >= 8 },
+  { id: "letter", label: "A letter", test: (v) => /[A-Za-z]/.test(v) },
+  { id: "number", label: "A number", test: (v) => /[0-9]/.test(v) },
+];
+
+// [{id, label, ok}] for the live checklist under password fields.
+export function passwordChecks(value = "") {
+  return PASSWORD_RULES.map((rule) => ({ id: rule.id, label: rule.label, ok: rule.test(value) }));
+}
+
 export function isStrongPassword(value = "") {
-  return value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value);
+  return PASSWORD_RULES.every((rule) => rule.test(value));
+}
+
+// "weak" | "fair" | "strong": fair meets the rule; strong is also 12+ chars
+// with mixed case or a symbol.
+export function passwordStrength(value = "") {
+  if (!isStrongPassword(value)) return "weak";
+  const extra = value.length >= 12 && (/[a-z]/.test(value) && /[A-Z]/.test(value) || /[^A-Za-z0-9]/.test(value));
+  return extra ? "strong" : "fair";
 }
 
 export function maskDestination(value = "") {
@@ -43,4 +59,11 @@ export function maskDestination(value = "") {
     return `+•• •••• ${digits.slice(-4)}`;
   }
   return value;
+}
+
+// Only same-site paths ("/student/x"), never "//evil.com" or "\\evil".
+export function safeRedirect(value) {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")
+    ? value
+    : "";
 }

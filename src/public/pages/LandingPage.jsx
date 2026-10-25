@@ -32,6 +32,7 @@ import ClassFinder from "../components/landing/ClassFinder";
 import TestJourney from "../components/landing/TestJourney";
 import ExamCountdownBanner from "../components/landing/ExamCountdownBanner";
 import TestSeriesShowcase from "../components/landing/TestSeriesShowcase";
+import FeaturedSeries from "../components/landing/FeaturedSeries";
 import FaqSection from "../components/landing/FaqSection";
 import DeviceMockup from "../components/landing/DeviceMockup";
 import { Reveal, PillButton, SectionHead } from "../components/landing/LandingUI";
@@ -193,6 +194,9 @@ export default function LandingPage() {
 
       {/* ───────────────────────── TEST SERIES ───────────────────────── */}
       <TestSeriesShowcase />
+
+      {/* ─────────────── FEATURED TEST SERIES (public_list_series) ─────────────── */}
+      <FeaturedSeries />
 
       {/* ──────────────────────── TESTIMONIALS ───────────────────────── */}
       <section id="testimonials" className="scroll-mt-24 bg-(--lp-blue-tint) py-16 md:py-28">

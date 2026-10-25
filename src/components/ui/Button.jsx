@@ -1,6 +1,6 @@
 // Primary/Secondary buttons per design.md Section 4 (Buttons): pill shape,
 // generous padding, solid primary fill vs. outlined secondary.
-// "social" is the Google/Apple pill treatment used on Login + Registration.
+// "social" is the Google pill treatment used on Login + Registration.
 //
 // `as`: lets a nav/CTA render as react-router's <Link> (pass `as={Link}
 // to="/register"`) instead of a native <button> — same pill styling

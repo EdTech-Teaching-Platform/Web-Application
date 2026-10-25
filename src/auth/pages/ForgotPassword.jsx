@@ -1,21 +1,21 @@
-// Forgot Password (request) — LMS doc Sec 5.1: "time-boxed, single-use
-// reset link sent to the registered email." First of the 2 screens this
-// flow needs (see ResetPassword.jsx for the second).
-import { useEffect, useMemo, useState } from "react";
+// Forgot Password (request) — LMS doc Sec 5.1:
+// Sends a single-use reset link via Supabase Auth resetPasswordForEmail; the
+// link opens /reset-password. Supabase answers the same whether or not the
+// email has an account, so the confirmation never reveals that.
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AuthCard from "../components/AuthCard";
 import { AuthFrame } from "../components/AuthKit";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import ConfirmationCard from "../../components/ui/ConfirmationCard";
-import { isEmailOrPhone, maskDestination } from "../utils/validators";
+import { isEmail, maskDestination } from "../utils/validators";
 import { requestPasswordReset } from "../services/authApi";
 
 const RESEND_SECONDS = 60;
-const LINK_EXPIRY_MINUTES = 15;
 
 export default function ForgotPassword() {
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -29,10 +29,10 @@ export default function ForgotPassword() {
   }, [cooldown]);
 
   const fieldError = useMemo(() => {
-    if (!identifier.trim()) return "Enter your email or phone number.";
-    if (!isEmailOrPhone(identifier)) return "Enter a valid email or phone number.";
+    if (!email.trim()) return "Enter your email address.";
+    if (!isEmail(email)) return "Enter a valid email address.";
     return undefined;
-  }, [identifier]);
+  }, [email]);
 
   const isValid = !fieldError;
 
@@ -40,11 +40,11 @@ export default function ForgotPassword() {
     setSubmitting(true);
     setError("");
     try {
-      await requestPasswordReset({ identifier: identifier.trim() });
+      await requestPasswordReset({ email });
       setSent(true);
       setCooldown(RESEND_SECONDS);
-    } catch {
-      setError("Couldn't send the reset link. Please try again.");
+    } catch (err) {
+      setError(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -63,9 +63,7 @@ export default function ForgotPassword() {
         <ConfirmationCard
           state="success"
           heading="Check your inbox"
-          message={`We've sent a password reset link to ${maskDestination(
-            identifier.trim()
-          )}. It expires in ${LINK_EXPIRY_MINUTES} minutes.`}
+          message={`If ${maskDestination(email.trim())} has an account, a password reset link is on its way. The link works once and expires after a while.`}
           primaryAction={
             <Link to="/login">
               <Button>Back to Login</Button>
@@ -86,7 +84,7 @@ export default function ForgotPassword() {
       showBackToHome={false}
       eyebrow="Reset password"
       title="Forgot your password?"
-      subtitle="Enter the email or phone number on your account and we'll send you a reset link."
+      subtitle="Enter the email associated with your account and we'll send you a reset link."
       footer={
         <Link to="/login" className="block text-center text-sm font-medium text-primary hover:underline">
           Back to Login
@@ -94,15 +92,18 @@ export default function ForgotPassword() {
       }
     >
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && (
+          <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>
+        )}
         <Input
-          label="Email or Phone"
-          placeholder="you@example.com or +1 555 000 0000"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
+          label="Email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           onBlur={() => setTouched(true)}
           error={touched ? fieldError : undefined}
-          autoComplete="username"
+          autoComplete="email"
         />
         <Button type="submit" variant="ink" disabled={!isValid || submitting}>
           {submitting ? "Sending…" : "Send Reset Link"}

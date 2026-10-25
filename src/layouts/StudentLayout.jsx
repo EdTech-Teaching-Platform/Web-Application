@@ -1,39 +1,33 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
-import { CompassIcon, HelpCircleIcon, HomeIcon } from "../components/ui/icons";
+import { BookOpenIcon, ClockIcon, HomeIcon, UsersIcon } from "../components/ui/icons";
 import { useAuth } from "../hooks/useAuth";
 import StudentErrorBoundary from "../components/common/StudentErrorBoundary";
 import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
 
+// Test-series portal only. Explore / courses, wishlist, payments, messages
+// and the other mock-backed screens are hidden (see src/portals/student/routes.jsx).
 const navEntries = [
   { href: "/student/dashboard", label: "Dashboard" },
-  { href: "/student/explore", label: "Explore" },
   {
     label: "Test Series",
     items: [
       { href: "/student/test-series", label: "Browse Test Series" },
-      { href: "/student/assessments/my-results", label: "My Results" },
+      { href: "/student/my-tests", label: "My Tests" },
+      { href: "/student/history", label: "History" },
     ],
   },
-  {
-    label: "Account",
-    items: [
-      { href: "/student/profile", label: "Profile" },
-      { href: "/student/wishlist", label: "Wishlist" },
-      { href: "/student/orders", label: "Payments" },
-      { href: "/student/help-complaints", label: "Help & Complaints" },
-    ],
-  },
+  { href: "/student/account", label: "Account" },
 ];
 
 function MobileNav() {
   const { pathname } = useLocation();
   const items = [
     { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
-    { href: "/student/explore", label: "Explore", icon: CompassIcon },
-    { href: "/student/test-series", label: "Test Series", icon: HomeIcon },
-    { href: "/student/help-complaints", label: "Help", icon: HelpCircleIcon },
-    { href: "/student/profile", label: "Account", icon: HomeIcon },
+    { href: "/student/test-series", label: "Series", icon: BookOpenIcon },
+    { href: "/student/my-tests", label: "My Tests", icon: BookOpenIcon },
+    { href: "/student/history", label: "History", icon: ClockIcon },
+    { href: "/student/account", label: "Account", icon: UsersIcon },
   ];
   return (
     <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 rounded-full bg-white/95 px-2 py-1.5 shadow-[0_14px_40px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) backdrop-blur md:hidden">
@@ -67,7 +61,6 @@ export default function StudentLayout() {
       <Navbar
         title="Universal Learning"
         navEntries={navEntries}
-        notificationsHref="/student/notifications"
         onSignOut={logout}
         user={user}
       />

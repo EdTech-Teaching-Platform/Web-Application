@@ -8,7 +8,7 @@
 // palette. Tailwind v4 utilities such as `bg-primary`, `text-primary` and
 // `font-display` read those variables, so the existing shared components
 // pick up the new look automatically — without any change to how they
-// behave and without touching the other portals.
+import React from "react";
 import { Link } from "react-router-dom";
 import { LANDING_THEME_VARS } from "../../public/landingTheme";
 import { Sparkle, Squiggle, ArrowUpRight } from "../../public/components/landing/LandingUI";

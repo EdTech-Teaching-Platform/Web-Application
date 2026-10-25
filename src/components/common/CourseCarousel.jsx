@@ -9,8 +9,6 @@ import ColorBlockCard from "../ui/ColorBlockCard";
 // Recorded Classes rather than re-implemented per page.
 export default function CourseCarousel({
   courses,
-  wishlist,
-  onToggleWishlist,
   onCourseClick,
   onAction,
   actionLabel = "View Course",
@@ -39,9 +37,6 @@ export default function CourseCarousel({
           reviewCount={course.reviewCount}
           actionLabel={actionLabel}
           onAction={() => (onAction ? onAction(course) : onCourseClick?.(course))}
-          showWishlist={!!wishlist}
-          wishlisted={wishlist ? wishlist.isWishlisted(course.id) : false}
-          onToggleWishlist={() => onToggleWishlist?.(course)}
           onClick={() => onCourseClick?.(course)}
         />
       ))}

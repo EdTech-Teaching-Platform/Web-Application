@@ -49,6 +49,53 @@ a function-not-found error.
 5. **Regional Head portal.** It's mounted (`/regionalhead/*`) but still on
    mock data, with no `regional_heads` contract in the lead's database.
 
+## Student portal: hidden screens (2026-10-26)
+
+The student portal is now test series only. Every screen below had no backend
+contract and showed mock data, so it's hidden. Its route shows a "coming soon"
+page (`src/portals/student/pages/ComingSoon.jsx`), or redirects to the
+test-series list or history, and the screen is out of the nav. The page files
+are kept, unmounted.
+
+| Route(s) under `/student/` | Screen | Now |
+|---|---|---|
+| `messages` | Messages | Coming soon |
+| `notifications` | Notifications (and the navbar bell) | Coming soon; bell removed |
+| `certificates` | Certificates | Coming soon |
+| `orders` | Payments / orders | Coming soon (payments are F4) |
+| `help-complaints`, `help-complaints/:ticketId` | Help & complaints | Coming soon (the lead's `support_tickets` could back it later) |
+| `calendar` | Calendar | Coming soon |
+| `booksession`, `managebooking` | Session bookings | Coming soon |
+| `liveclassjoin`, `live-course`, `liveclassrating`, `recordings`, `live-recording`, `attendance` | Live classes / recordings / attendance | Coming soon |
+| `quiz`, `assignmentsubmit`, `notes`, `reviews` | Course quiz, assignments, notes, reviews | Coming soon |
+| `explore`, `live-classes`, `recorded-classes`, `course/:courseId`, `coursedetails`, `my-learning`, `recommended`, `searchresults`, `educatorprofile`, `landing`, `wishlist`, `checkout`, `paymentresult`, `courseplayer`, `resourceviewer`, `assessments/*` (except results) | Course discovery, course player, wishlist, old assessments | Redirect to `/student/test-series` (a `?q=` search is kept) |
+| `learninghistory`, `progresstracking`, `assessments/my-results`, `assessments/results/:id` | Old progress / results | Redirect to `/student/history` |
+| `profile` | Old mock profile | Redirect to `/student/account` |
+| `/student/onboarding/*` | Demo sign-up wizard | Redirect to `/register` (or `/student/account` when signed in) |
+
+**Public routes** `/explore`, `/course/:id`, `/live-classes`, `/instructors` and
+`/educator` (mock courses and educators) redirect to `/test-series`.
+
+**Removed:**
+- **Wishlist, everywhere:** `src/hooks/useWishlist.js`,
+  `src/portals/student/pages/Wishlist.jsx`, the nav and route entries, the
+  wishlist props in `CourseCarousel` and the course pages, and the `ul_wishlist*`
+  keys, which are cleared on logout.
+
+**Unmounted, no longer bundled:**
+- **Student mock data:** `src/data/catalogMock.js`,
+  `portals/student/data/*` (`assessmentCatalog`, `testSeriesCatalog`,
+  `recommendedMock`, `sessionMock`, `studentLocalState`, …).
+- **Old student pages:** the old student `Profile.jsx`, `TestSeries*.jsx`,
+  `Assessment*.jsx` and course pages.
+
+**Still in the bundle:** `TestSeriesContext` remains in `App.jsx`, used only by
+the teacher portal.
+
+**What each hidden screen needs before it can come back:** a backend contract
+in the lead's database, or an agreed RPC, then a page wired to it like the test
+series screens (`docs/STUDENT_RPC_CONTRACT.md`).
+
 ## Phase 6 status
 
 The admin service layer, RPC error normalization, role/status mappers, CSV

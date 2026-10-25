@@ -22,3 +22,12 @@ export function isAdminDbRole(role) {
 export function canUseAdminPortal(user) {
   return Boolean(user) && (user.role === "admin" || isAdminDbRole(user.dbRole));
 }
+
+// Where a signed-in user lands after login (routing only; the server decides access).
+export function homePathForUser(user) {
+  if (!user) return "/login";
+  if (canUseAdminPortal(user)) return "/admin/logindashboard";   // /admin has no index route
+  if (user.role === "teacher") return "/teacher/dashboard";
+  if (user.role === "regionalhead") return "/regionalhead";
+  return "/student/dashboard";
+}

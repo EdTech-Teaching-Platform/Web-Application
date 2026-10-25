@@ -83,3 +83,19 @@ create index concurrently if not exists adm_support_tickets_status_idx
   on public.support_tickets (status, created_at desc);
 create index concurrently if not exists adm_support_ticket_replies_ticket_idx
   on public.support_ticket_replies (ticket_id, created_at);
+
+-- Student port (20261026100*) ---------------------------------------------
+-- Run after the student migrations; one statement at a time, like the rest.
+-- ROLLBACK
+--   drop index concurrently if exists public.adm_quiz_attempts_student_idx;
+--   drop index concurrently if exists public.adm_quiz_answers_attempt_idx;
+--   drop index concurrently if exists public.adm_enrollments_student_idx;
+-- a student's attempts per test (start, intro, history, stats, dashboard)
+create index concurrently if not exists adm_quiz_attempts_student_idx
+  on public.quiz_attempts (student_id, quiz_id, started_at desc);
+-- saved answers per attempt (autosave, resume, grading)
+create index concurrently if not exists adm_quiz_answers_attempt_idx
+  on public.quiz_answers (attempt_id, question_id);
+-- course-based series access (adm_student_series)
+create index concurrently if not exists adm_enrollments_student_idx
+  on public.enrollments (student_id, course_id) where is_active;

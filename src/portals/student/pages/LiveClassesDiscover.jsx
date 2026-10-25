@@ -17,7 +17,6 @@ import CourseCarousel from "../../../components/common/CourseCarousel";
 import { ChevronDownIcon, SearchIcon } from "../../../components/ui/icons";
 import { COURSE_CATEGORIES, CATEGORY_META } from "../../../utils/constants";
 import { useAuth } from "../../../hooks/useAuth";
-import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import { useScrollToHash } from "../../../hooks/useScrollToHash";
 import ToastStack from "../../../components/ui/Toast";
@@ -52,7 +51,6 @@ export default function LiveClassesDiscover() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
   useScrollToHash();
 
@@ -115,15 +113,6 @@ export default function LiveClassesDiscover() {
     navigate(coursePath(course.id));
   }
 
-  function toggleWishlist(course) {
-    if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(coursePath(course.id))}`);
-      return;
-    }
-    const saved = !wishlist.isWishlisted(course.id);
-    wishlist.toggle(course);
-    showToast(saved ? "Added to wishlist" : "Removed from wishlist");
-  }
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
@@ -152,8 +141,6 @@ export default function LiveClassesDiscover() {
         <SectionHeading eyebrow="Happening today" title="Live now & starting soon" subtitle="Jump into a session that's live, or catch one about to start." />
         <CourseCarousel
           courses={liveAndSoon}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
           onCourseClick={openCourse}
           onAction={openCourse}
           actionLabel="View Details"
@@ -168,8 +155,6 @@ export default function LiveClassesDiscover() {
         <SectionHeading eyebrow="Trending" title="Popular live classes" subtitle="The live sessions students are booking the most." viewAllHref="#browse" />
         <CourseCarousel
           courses={popular}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
           onCourseClick={openCourse}
           onAction={openCourse}
           actionLabel="View Details"
@@ -197,9 +182,6 @@ export default function LiveClassesDiscover() {
               reviewCount={course.reviewCount}
               actionLabel="View Details"
               onAction={() => openCourse(course)}
-              showWishlist
-              wishlisted={wishlist.isWishlisted(course.id)}
-              onToggleWishlist={() => toggleWishlist(course)}
               onClick={() => openCourse(course)}
             />
           ))}
@@ -281,9 +263,6 @@ export default function LiveClassesDiscover() {
                     reviewCount={course.reviewCount}
                     actionLabel="View Details"
                     onAction={() => openCourse(course)}
-                    showWishlist
-                    wishlisted={wishlist.isWishlisted(course.id)}
-                    onToggleWishlist={() => toggleWishlist(course)}
                     onClick={() => openCourse(course)}
                   />
                 ))}

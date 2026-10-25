@@ -2,6 +2,7 @@
 // illustration): a few overlapping "real UI" cards — the same kind of cards
 // users meet inside the product — laid out like a designer's hero shot.
 // Static, decorative (aria-hidden), numbers are sample data.
+import React from "react";
 import { AwardIcon, CheckCircleIcon, FlameIcon, StarIcon, VideoIcon } from "../../components/ui/icons";
 
 const CARD = "absolute rounded-[26px] bg-white p-4 text-(--lp-ink) shadow-[0_28px_60px_rgba(0,0,0,0.28)] ring-1 ring-black/5";

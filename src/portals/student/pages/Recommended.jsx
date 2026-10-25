@@ -8,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 import ColorBlockCard from "../../../components/ui/ColorBlockCard";
 import BackButton from "../../../components/common/BackButton";
 import { imageForCategory } from "../../../utils/stockImages";
-import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import ToastStack from "../../../components/ui/Toast";
 import { RECOMMENDED, RELATED_COURSES } from "../data/recommendedMock";
@@ -16,7 +15,7 @@ import { getCourseById } from "../../../data/catalogMock";
 import { useAuth } from "../../../hooks/useAuth";
 import { isStudentCourseEnrolled } from "../data/studentLocalState";
 
-function CourseGrid({ courses, wishlist, showToast, navigate }) {
+function CourseGrid({ courses, showToast, navigate }) {
   const { user } = useAuth();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -39,13 +38,6 @@ function CourseGrid({ courses, wishlist, showToast, navigate }) {
           onAction={() => navigate(enrolled ? `/student/courseplayer?course=${c.id}` : `/student/course/${c.id}`)}
           compact
           fullWidth
-          showWishlist
-          wishlisted={wishlist.isWishlisted(c.id)}
-          onToggleWishlist={() => {
-            const nowSaved = !wishlist.isWishlisted(c.id);
-            wishlist.toggle(c);
-            showToast(nowSaved ? "Added to wishlist" : "Removed from wishlist");
-          }}
           onClick={() => navigate(`/student/course/${c.id}`)}
         />
         );
@@ -56,7 +48,6 @@ function CourseGrid({ courses, wishlist, showToast, navigate }) {
 
 export default function Recommended() {
   const navigate = useNavigate();
-  const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
 
   return (
@@ -72,7 +63,7 @@ export default function Recommended() {
       </p>
 
       <section className="mt-6">
-        <CourseGrid courses={RECOMMENDED} wishlist={wishlist} showToast={showToast} navigate={navigate} />
+        <CourseGrid courses={RECOMMENDED} showToast={showToast} navigate={navigate} />
       </section>
 
       <section className="mt-10">
@@ -80,7 +71,7 @@ export default function Recommended() {
           <h2 className="font-display text-lg font-bold text-[#17324d]">You might also like</h2>
           <p className="mt-1 text-xs text-text/50">Related courses worth exploring next.</p>
         </div>
-        <CourseGrid courses={RELATED_COURSES} wishlist={wishlist} showToast={showToast} navigate={navigate} />
+        <CourseGrid courses={RELATED_COURSES} showToast={showToast} navigate={navigate} />
       </section>
 
       <div className="mt-10 flex justify-center">

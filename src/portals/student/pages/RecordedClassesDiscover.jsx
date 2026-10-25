@@ -13,7 +13,6 @@ import CourseCarousel from "../../../components/common/CourseCarousel";
 import { ChevronDownIcon, SearchIcon } from "../../../components/ui/icons";
 import { COURSE_CATEGORIES, CATEGORY_META } from "../../../utils/constants";
 import { useAuth } from "../../../hooks/useAuth";
-import { useWishlist } from "../../../hooks/useWishlist";
 import { useToast } from "../../../hooks/useToast";
 import { useScrollToHash } from "../../../hooks/useScrollToHash";
 import ToastStack from "../../../components/ui/Toast";
@@ -48,7 +47,6 @@ function CheckGroup({ label, options, selected, onToggle }) {
 export default function RecordedClassesDiscover() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const wishlist = useWishlist();
   const { toasts, showToast, dismiss } = useToast();
   useScrollToHash();
 
@@ -114,15 +112,6 @@ export default function RecordedClassesDiscover() {
     navigate(`/student/course/${course.id}`);
   }
 
-  function toggleWishlist(course) {
-    if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/student/course/${course.id}`)}`);
-      return;
-    }
-    const saved = !wishlist.isWishlisted(course.id);
-    wishlist.toggle(course);
-    showToast(saved ? "Added to wishlist" : "Removed from wishlist");
-  }
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
@@ -151,8 +140,6 @@ export default function RecordedClassesDiscover() {
         <SectionHeading eyebrow="Trending now" title="Popular prerecorded courses" subtitle="Self-paced courses students are enrolling in most." viewAllHref="#browse" />
         <CourseCarousel
           courses={popular}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
           onCourseClick={openCourse}
           onAction={openCourse}
           actionLabel="View Details"
@@ -166,8 +153,6 @@ export default function RecordedClassesDiscover() {
         <SectionHeading eyebrow="This week" title="Trending this week" subtitle="Highly rated courses picking up momentum." />
         <CourseCarousel
           courses={trending}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
           onCourseClick={openCourse}
           onAction={openCourse}
           actionLabel="View Details"
@@ -196,9 +181,6 @@ export default function RecordedClassesDiscover() {
               reviewCount={course.reviewCount}
               actionLabel="View Details"
               onAction={() => openCourse(course)}
-              showWishlist
-              wishlisted={wishlist.isWishlisted(course.id)}
-              onToggleWishlist={() => toggleWishlist(course)}
               onClick={() => openCourse(course)}
             />
           ))}
@@ -211,8 +193,6 @@ export default function RecordedClassesDiscover() {
         <SectionHeading eyebrow="Fresh" title="Newly added" subtitle="The latest recorded courses on Universal Learning." />
         <CourseCarousel
           courses={newlyAdded}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
           onCourseClick={openCourse}
           onAction={openCourse}
           actionLabel="View Details"
@@ -284,9 +264,6 @@ export default function RecordedClassesDiscover() {
                     reviewCount={course.reviewCount}
                     actionLabel="View Details"
                     onAction={() => openCourse(course)}
-                    showWishlist
-                    wishlisted={wishlist.isWishlisted(course.id)}
-                    onToggleWishlist={() => toggleWishlist(course)}
                     onClick={() => openCourse(course)}
                   />
                 ))}

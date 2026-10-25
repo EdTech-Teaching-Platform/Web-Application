@@ -72,7 +72,7 @@ function NavGroup({ group, pathname }) {
 // compatibility (they render, in that fixed order, before navEntries).
 export default function Navbar({ title, links = [], navItems, navGroups, navEntries, user, notificationsHref, onSignOut }) {
   const { pathname } = useLocation();
-  const { user: authUser } = useAuth();
+  const { user: authUser, logout } = useAuth();
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
   const [homeConfirmOpen, setHomeConfirmOpen] = useState(false);
 
@@ -82,13 +82,15 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
     setHomeConfirmOpen(true);
   };
 
-  const confirmGoHome = () => {
+  const confirmGoHome = async () => {
     setHomeConfirmOpen(false);
-    // Clear persisted auth without updating React state on the protected
-    // dashboard. That prevents its guard from briefly rendering /login
-    // before the browser loads the public root route.
-    window.localStorage.removeItem("universal-learning-session");
-    window.location.replace("/");
+    // Real sign-out (Supabase session + per-user storage), then a full load of
+    // "/" so the protected page's guard never flashes /login on the way.
+    try {
+      await logout();
+    } finally {
+      window.location.replace("/");
+    }
   };
   const initials = user?.name
     ? user.name

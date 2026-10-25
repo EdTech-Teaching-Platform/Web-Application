@@ -5,7 +5,8 @@
 // Colours come from the --lp-* variables set by landingTheme.js.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CLASS_LEVELS, SERIES_SUBJECTS } from "../../../portals/student/data/testSeriesCatalog";
+const CLASS_LEVELS = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12", "College / University", "Competitive Exams", "Other"];
+const SERIES_SUBJECTS = ["Mathematics", "Physics", "Chemistry", "Biology", "English", "Computer Science", "Social Science", "Other"];
 import { PillButton, ArrowUpRight } from "./LandingUI";
 import { PiIcon, TargetIcon, FlaskIcon, HeartIcon, ChatIcon, CodeIcon, UsersIcon, BookOpenIcon } from "../../../components/ui/icons";
 
@@ -40,9 +41,9 @@ export default function ClassFinder() {
   const [level, setLevel] = useState("Class 11");
 
   const go = (subject) => {
-    const params = new URLSearchParams({ class: level });
-    if (subject) params.set("subject", subject);
-    navigate(`/test-series?${params.toString()}`);
+    // The series search matches title / subject / exam; the class level is
+    // only a UI step for now (series do not expose a searchable grade).
+    navigate(subject ? `/test-series?q=${encodeURIComponent(subject)}` : "/test-series");
   };
 
   return (
