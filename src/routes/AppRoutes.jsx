@@ -65,6 +65,16 @@ export default function AppRoutes() {
           {adminRoutes}
         </Route>
 
+        {/* Regional Head portal (still on regionalPortalMock / regionalHeadsMock).
+            Login and the invite link (built by regionalHeadsMock as
+            /invite/regional-head/:token) sit outside RegionalHeadLayout,
+            which redirects anyone who isn't a signed-in Regional Head. */}
+        <Route path="/regionalhead/login" element={<RegionalHeadLogin />} />
+        <Route path="/invite/regional-head/:token" element={<RegionalHeadInvite />} />
+        <Route path="/regionalhead" element={<RegionalHeadLayout />}>
+          {regionalHeadRoutes}
+        </Route>
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
