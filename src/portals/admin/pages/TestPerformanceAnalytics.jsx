@@ -208,6 +208,8 @@ export default function TestPerformanceAnalytics() {
   const [educatorFilter, setEducatorFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  // Declared before lbState below reads it (it was declared after use: a TDZ ReferenceError on every render).
+  const [lbSeries, setLbSeries] = useState("all");
   const filters = { series: seriesFilter, subject: subjectFilter, test: testFilter, educator: educatorFilter, from: dateFrom, to: dateTo };
   const filterState = useRpc(useCallback(() => performanceApi.filterOptions(seriesFilter), [seriesFilter]));
   const summaryState = useRpc(useCallback(() => performanceApi.summary(filters), [seriesFilter, subjectFilter, testFilter, educatorFilter, dateFrom, dateTo]));
@@ -231,7 +233,6 @@ export default function TestPerformanceAnalytics() {
   const seriesEngagement = (engagementState.data || []).map((r) => ({ seriesId: r.series_id, seriesName: r.series_title, subject: r.subject, attempts: Number(r.attempts || 0), avgPerformance: Number(r.avg_performance || 0), educators: r.educators && r.educators !== "Unassigned" ? r.educators.split(", ") : [] }));
 
   // ---- Leaderboard & Ranking ----
-  const [lbSeries, setLbSeries] = useState("all");
   const lbLoading = lbState.loading;
   const lbSeriesId = lbSeries;
   const lbRows = (lbState.data || []).map((r) => ({ rank: r.rank_no, name: r.learner, score: Number(r.score || 0), percentile: Number(r.percentile || 0), attempts: Number(r.attempts || 0) }));

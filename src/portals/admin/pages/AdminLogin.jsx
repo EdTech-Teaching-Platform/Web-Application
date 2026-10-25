@@ -95,13 +95,17 @@ export default function AdminLogin() {
   }, [stage, navigate]);
 
   useEffect(() => {
-    if (!sessionActive) return undefined;
-    supabase.rpc("touch_session").catch(() => {});
-    const interval = window.setInterval(() => {
-      supabase.rpc("touch_session").catch(() => {});
-    }, 5 * 60 * 1000);
-    return () => window.clearInterval(interval);
-  }, [sessionActive]);
+  if (!sessionActive) return undefined;
+
+  // Fire-and-forget initial session touch safely wrapped in Promise.resolve
+  Promise.resolve(supabase.rpc("touch_session")).catch(() => {});
+
+  const interval = window.setInterval(() => {
+    Promise.resolve(supabase.rpc("touch_session")).catch(() => {});
+  }, 5 * 60 * 1000);
+
+  return () => window.clearInterval(interval);
+}, [sessionActive]);
 
   const handleCredentialsSubmit = async (event) => {
     event.preventDefault();

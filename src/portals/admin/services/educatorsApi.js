@@ -37,38 +37,53 @@ export const educatorsApi = {
       documents: (data.documents || []).map((document) => ({
         ...document,
         type: document.doc_type,
-        fileName: document.file_path?.split("/").pop() || "Document",
+        fileName: document.doc_name || document.file_path?.split("/").pop() || "Document",
         uploadedDate: document.uploaded_at ? new Date(document.uploaded_at).toLocaleDateString("en-IN") : "—",
         rejectionReason: document.note,
       })),
+      courses: (data.courses || []).map((course) => ({
+        ...course,
+        students: Number(course.students || 0),
+        completionRate: Number(course.completion_rate || 0),
+        rating: Number(course.rating || 0),
+      })),
+      coursesCount: Number(data.educator.courses_count || 0),
+      professionalSummary: data.educator.bio || "",
+      address: data.educator.location || "—",
+      gender: data.educator.gender || "—",
+      dob: data.educator.dob || "—",
+      role: "Educator",
+      skills: [],
+      certifications: [],
+      previousExperience: [],
+      permissions: [],
       history: data.history || [],
       students: [],
-      performance: {},
+      performance: { totalStudents: Number(data.educator.students_count || 0), activeStudents: 0, completedStudents: 0, atRiskStudents: 0 },
+      payments: { totalEarnings: 0, paidAmount: 0, pendingAmount: 0, commissionRate: 0, nextPayoutDate: null, nextPayoutAmount: 0, history: [] },
       messages: [],
     };
   },
   setVerification: (id, status, note) => callRpc("set_educator_verification", { p_id: id, p_decision: status, p_note: note || null }),
-  updateDocument: async (id, documentId, status, note) => {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) throw normalizeRpcError(userError);
-    const { error } = await supabase.from("educator_documents").update({
-      status,
-      note: note || null,
-      reviewed_by: userData.user?.id || null,
-      reviewed_at: new Date().toISOString(),
-    }).eq("id", documentId).eq("educator_id", id);
-    if (error) throw normalizeRpcError(error);
-  },
+  updateDocument: (id, documentId, status, note) => callRpc("review_educator_document", {
+    p_educator_id: id, p_document_id: documentId, p_status: status, p_note: note || null,
+  }),
   setAccountStatus: (id, status, reason) => callRpc("set_educator_account_status", { p_id: id, p_status: status, p_reason: reason || null }),
   delete: (id) => callRpc("delete_educator", { p_id: id }),
   createInvites: async (rows) => {
     const { data, error } = await supabase.functions.invoke("create-educator-invites", { body: { rows } });
     if (error) throw normalizeRpcError(error);
+    // Per-row results: surface duplicates / failures when nothing was created.
+    if (data && !data.created && Array.isArray(data.results) && data.results.length) {
+      throw new Error(data.results.map((r) => `${r.email}: ${r.error || r.status}`).join("; "));
+    }
     return data;
   },
+  // sign-educator-document checks admin and that the path belongs to an
+  // educator_verification_docs row, then signs it with the service role.
   signedDocumentUrl: async (path) => {
-    const { data, error } = await supabase.storage.from("educator-documents").createSignedUrl(path, 300);
-    if (error) throw error;
+    const { data, error } = await supabase.functions.invoke("sign-educator-document", { body: { path } });
+    if (error) throw normalizeRpcError(error);
     return data.signedUrl;
   },
 };

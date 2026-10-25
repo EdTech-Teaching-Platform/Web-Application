@@ -13,6 +13,7 @@ function toAppUser(session, profile) {
     email: profile.email ?? session.user.email,
     name: profile.full_name ?? "",
     role,
+    dbRole: profile.role,
   };
 }
 

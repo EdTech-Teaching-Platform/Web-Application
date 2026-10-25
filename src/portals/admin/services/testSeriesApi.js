@@ -1,15 +1,23 @@
-import { supabase } from "../../../services/supabaseClient";
-import { normalizeRpcError, callRpc, listResult } from "./adminApi";
+import { callRpc, listResult } from "./adminApi";
 
-function throwIfError(error) {
-  if (error) throw normalizeRpcError(error);
-}
+// Every read and write goes through SECURITY DEFINER RPCs: the lead's RLS
+// gives admins read-only access to test_series / quizzes / quiz_questions /
+// quiz_question_options, so direct table writes from the browser would fail.
+
+const OBJECTIVE_TYPES = ["objective", "mcq", "mcq_single", "single", "mcq_multi", "multi_select", "multiple_choice", "true_false"];
+// Text-answer questions store their accepted / model answer as the single
+// correct option; this placeholder means none was given (adm_text_answer).
+const MANUAL_GRADING_PLACEHOLDER = "Manual grading: see rubric";
 
 function mapQuestion(question) {
-  const options = (question.question_options || []).sort((a, b) => a.position - b.position);
+  const options = (question.options || []).slice().sort((a, b) => a.position - b.position);
+  const objective = OBJECTIVE_TYPES.includes(question.type);
+  const answerOption = options.find((o) => o.is_correct)?.label || "";
   return {
     id: question.id,
-    type: ["mcq", "multi_select", "true_false"].includes(question.type) ? "objective" : "subjective",
+    type: objective ? "objective" : "subjective",
+    storedType: question.type,
+    modelAnswer: objective || answerOption === MANUAL_GRADING_PLACEHOLDER ? "" : answerOption,
     text: question.body || "",
     optionA: options.find((o) => o.option_key === "A")?.label || "",
     optionB: options.find((o) => o.option_key === "B")?.label || "",
@@ -25,24 +33,30 @@ function mapQuestion(question) {
     topic: question.topic || "",
     explanation: question.explanation || "",
     image: question.image_path || "",
+    needsManualGrading: !!question.needs_manual_grading,
   };
 }
 
 function mapTest(test) {
-  const questions = (test.questions || []).sort((a, b) => a.position - b.position).map(mapQuestion);
+  const questions = (test.questions || []).slice().sort((a, b) => a.position - b.position).map(mapQuestion);
+  const totalMarks = Number(test.total_marks || 0);
   return {
     id: test.id,
     name: test.title,
     instructions: test.instructions || "",
     duration: test.duration_minutes,
-    totalMarks: Number(test.total_marks || 0),
-    passingMarks: Math.round(Number(test.total_marks || 0) * Number(test.passing_percent || 0) / 100),
+    totalMarks,
+    passingMarks: test.passing_marks != null
+      ? Number(test.passing_marks)
+      : Math.round(totalMarks * Number(test.passing_percent || 0) / 100),
     passingPercent: Number(test.passing_percent || 0),
     attemptLimit: test.attempt_limit,
     scheduledAt: test.scheduled_at || "",
     shuffleQuestions: !!test.shuffle_questions,
     shuffleOptions: !!test.shuffle_options,
+    showAnswersAfter: test.show_answers_after || "submission",
     status: test.status,
+    sections: test.sections || [],
     questions,
   };
 }
@@ -60,7 +74,7 @@ function mapSeries(series) {
     enrollment: Number(series.enrollments || 0),
     attempts: Number(series.attempts || 0),
     avgPerformance: Number(series.avg_score || 0),
-    tests: (series.tests || []).sort((a, b) => a.position - b.position).map(mapTest),
+    tests: (series.tests || []).slice().sort((a, b) => a.position - b.position).map(mapTest),
   };
 }
 
@@ -71,142 +85,28 @@ export const testSeriesApi = {
     return { ...result, rows: result.rows.map((row) => mapSeries(row)) };
   },
   get: async (id) => {
-    const { data, error } = await supabase
-      .from("test_series")
-      .select("*, subjects(name), tests(*, questions(*, question_options(*)), test_sections(*))")
-      .eq("id", id)
-      .is("deleted_at", null)
-      .maybeSingle();
-    throwIfError(error);
-    return data ? mapSeries({ ...data, subject_name: data.subjects?.name }) : null;
+    const data = await callRpc("get_test_series", { p_id: id });
+    return data ? mapSeries(data) : null;
   },
-  createTest: async (seriesId, payload) => {
-    const { data, error } = await supabase.from("tests").insert({
-      series_id: seriesId,
-      title: payload.name,
-      instructions: payload.instructions || null,
-      duration_minutes: payload.duration,
-      total_marks: payload.totalMarks,
-      passing_percent: payload.passingPercent || 40,
-      attempt_limit: payload.attemptLimit,
-      scheduled_at: payload.scheduledAt || null,
-      shuffle_questions: !!payload.shuffleQuestions,
-      shuffle_options: !!payload.shuffleOptions,
-      status: payload.status || "draft",
-    }).select().single();
-    throwIfError(error);
-    return mapTest(data);
-  },
-  updateTest: async (id, payload) => {
-    const { data, error } = await supabase.from("tests").update({
-      title: payload.name,
-      instructions: payload.instructions || null,
-      duration_minutes: payload.duration,
-      total_marks: payload.totalMarks,
-      passing_percent: payload.passingPercent || 40,
-      attempt_limit: payload.attemptLimit,
-      scheduled_at: payload.scheduledAt || null,
-      shuffle_questions: !!payload.shuffleQuestions,
-      shuffle_options: !!payload.shuffleOptions,
-      status: payload.status || "draft",
-    }).eq("id", id).select().single();
-    throwIfError(error);
-    return mapTest(data);
-  },
-  deleteTest: async (id) => {
-    const { error } = await supabase.from("tests").delete().eq("id", id);
-    throwIfError(error);
-  },
-  setTestStatus: async (id, status) => {
-    const { data, error } = await supabase.from("tests").update({ status }).eq("id", id).select().single();
-    throwIfError(error);
-    return mapTest(data);
-  },
-  createSection: async (payload) => {
-    const { data, error } = await supabase.from("test_sections").insert(payload).select().single();
-    throwIfError(error);
-    return data;
-  },
-  updateSection: async (id, payload) => {
-    const { data, error } = await supabase.from("test_sections").update(payload).eq("id", id).select().single();
-    throwIfError(error);
-    return data;
-  },
-  deleteSection: async (id) => {
-    const { error } = await supabase.from("test_sections").delete().eq("id", id);
-    throwIfError(error);
-  },
-  createQuestion: async (payload) => {
-    const { data, error } = await supabase.from("questions").insert(payload).select().single();
-    throwIfError(error);
-    return data;
-  },
-  updateQuestion: async (id, payload) => {
-    const { data, error } = await supabase.from("questions").update(payload).eq("id", id).select().single();
-    throwIfError(error);
-    return data;
-  },
-  deleteQuestion: async (id) => {
-    const { error } = await supabase.from("questions").delete().eq("id", id);
-    throwIfError(error);
-  },
-  createOption: async (payload) => {
-    const { data, error } = await supabase.from("question_options").insert(payload).select().single();
-    throwIfError(error);
-    return data;
-  },
-  updateOption: async (id, payload) => {
-    const { data, error } = await supabase.from("question_options").update(payload).eq("id", id).select().single();
-    throwIfError(error);
-    return data;
-  },
-  deleteOption: async (id) => {
-    const { error } = await supabase.from("question_options").delete().eq("id", id);
-    throwIfError(error);
-  },
-  deleteSeries: async (id) => {
-    const { error } = await supabase.from("test_series").update({ deleted_at: new Date().toISOString() }).eq("id", id);
-    throwIfError(error);
-  },
-  createSeries: async (payload) => {
-    const { data: subject, error: subjectError } = payload.subject
-      ? await supabase.from("subjects").select("id").eq("name", payload.subject).maybeSingle()
-      : { data: null, error: null };
-    throwIfError(subjectError);
-    const { data, error } = await supabase.from("test_series").insert({
-      title: payload.name,
-      about: payload.description || null,
-      subject_id: subject?.id || null,
-      audience: payload.audience || null,
-      pricing: payload.pricing,
-      price_inr: payload.price,
-      start_date: payload.startDate || null,
-      end_date: payload.endDate || null,
-      status: payload.status || "draft",
-    }).select().single();
-    throwIfError(error);
-    return data;
-  },
-  updateSeries: async (id, payload) => {
-    const { data: subject, error: subjectError } = payload.subject
-      ? await supabase.from("subjects").select("id").eq("name", payload.subject).maybeSingle()
-      : { data: null, error: null };
-    throwIfError(subjectError);
-    const { data, error } = await supabase.from("test_series").update({
-      title: payload.name,
-      about: payload.description || null,
-      subject_id: subject?.id || null,
-      audience: payload.audience || null,
-      pricing: payload.pricing,
-      price_inr: payload.price,
-      start_date: payload.startDate || null,
-      end_date: payload.endDate || null,
-      status: payload.status || "draft",
-    }).eq("id", id).select().single();
-    throwIfError(error);
-    return data;
-  },
-  publishSeries: (id) => callRpc("publish_test_series", { p_id: id }),
+  createTest: async (seriesId, payload) => mapTest(await callRpc("create_test", { p_series_id: seriesId, p: payload })),
+  updateTest: async (id, payload) => mapTest(await callRpc("update_test", { p_id: id, p: payload })),
+  deleteTest: (id) => callRpc("delete_test", { p_id: id }),
+  duplicateTest: async (id) => mapTest(await callRpc("duplicate_test", { p_id: id })),
+  setTestStatus: async (id, status) => mapTest(await callRpc("set_test_status", { p_id: id, p_status: status })),
+  createSection: (payload) => callRpc("create_test_section", { p_test_id: payload.test_id ?? payload.testId, p: payload }),
+  updateSection: (id, payload) => callRpc("update_test_section", { p_id: id, p: payload }),
+  deleteSection: (id) => callRpc("delete_test_section", { p_id: id }),
+  createQuestion: (payload) => callRpc("create_question", { p_test_id: payload.test_id ?? payload.testId, p: payload }),
+  updateQuestion: (id, payload) => callRpc("update_question", { p_id: id, p: payload }),
+  deleteQuestion: (id) => callRpc("delete_question", { p_id: id }),
+  createOption: (payload) => callRpc("create_question_option", { p_question_id: payload.question_id ?? payload.questionId, p: payload }),
+  updateOption: (id, payload) => callRpc("update_question_option", { p_id: id, p: payload }),
+  deleteOption: (id) => callRpc("delete_question_option", { p_id: id }),
+  deleteSeries: (id) => callRpc("delete_test_series", { p_id: id }),
+  createSeries: (payload) => callRpc("create_test_series", { p: payload }),
+  updateSeries: (id, payload) => callRpc("update_test_series", { p_id: id, p: payload }),
+  // adm_publish_test_series: the lead owns publish_test_series(uuid, boolean).
+  publishSeries: (id) => callRpc("adm_publish_test_series", { p_id: id, p_publish: true }),
   duplicateSeries: (id) => callRpc("duplicate_test_series", { p_id: id }),
   saveDraft: (id, state) => callRpc("save_wizard_draft", { p_id: id, p_state: state }),
   discardDraft: (id) => callRpc("discard_wizard_draft", { p_id: id }),

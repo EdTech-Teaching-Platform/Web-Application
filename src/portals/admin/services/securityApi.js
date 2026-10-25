@@ -2,13 +2,7 @@ import { supabase } from "../../../services/supabaseClient";
 import { callRpc, listResult, normalizeRpcError } from "./adminApi";
 
 export const securityApi = {
-  sessions: async () => {
-    const { data, error } = await supabase.from("user_sessions")
-      .select("session_id,user_id,role,user_agent,started_at,last_seen_at,ended_at,end_reason")
-      .is("ended_at", null).order("last_seen_at", { ascending: false });
-    if (error) throw normalizeRpcError(error);
-    return data || [];
-  },
+  sessions: () => callRpc("list_active_sessions"),
   revoke: async (id) => {
     const { data, error } = await supabase.functions.invoke("revoke-user-sessions", { body: { userId: id, reason: "admin_action" } });
     if (error) throw normalizeRpcError(error);

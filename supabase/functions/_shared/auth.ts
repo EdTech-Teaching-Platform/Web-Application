@@ -1,4 +1,7 @@
 import { createClient, type SupabaseClient, type User } from "https://esm.sh/@supabase/supabase-js@2";
+import { isAdminRole } from "./roles.ts";
+
+export { isAdminRole };
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,16 +33,26 @@ export async function requireUser(req: Request, client: SupabaseClient): Promise
   return data.user;
 }
 
+// admin and super_admin may use admin functions (mapped to the app role "admin").
 export async function requireAdmin(req: Request, client: SupabaseClient) {
   const user = await requireUser(req, client);
   const { data, error } = await client.from("profiles").select("role").eq("id", user.id).single();
-  if (error || data?.role !== "admin") throw new Error("Admins only");
+  if (error || !isAdminRole(data?.role)) throw new Error("Admins only");
   return user;
+}
+
+// For server-to-server calls (cron / schedulers): the bearer token must be the
+// service-role key itself.
+export function requireServiceRole(req: Request) {
+  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!service || token !== service) throw new Error("Authentication required");
 }
 
 export function fail(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  return json({ error: message }, /Authentication|required|Admins only|forbidden/i.test(message) ? 403 : 400);
+  // Only auth failures are 403; validation messages ("userId is required") stay 400.
+  return json({ error: message }, /^(Authentication required|Admins only)$|forbidden/i.test(message) ? 403 : 400);
 }
 
 export async function hmacValid(req: Request, body: string, secretName: string) {

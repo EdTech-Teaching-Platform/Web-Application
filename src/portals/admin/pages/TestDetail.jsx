@@ -6,8 +6,10 @@
 // file's header comment) plus .ul-ts-*/.ul-tsd-* and .ul-td-* from
 // TestDetail.css.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+// Constants and pure readiness checks only; data loads and saves through
+// testSeriesApi (question / option / test-status / publish RPCs).
 import {
   QUESTION_TYPE,
   QUESTION_TYPE_LABEL,
@@ -18,15 +20,10 @@ import {
   TEST_STATUS,
   TEST_STATUS_LABEL,
   TEST_STATUS_BADGE_CLASS,
-  useTestById,
-  createQuestion,
-  updateQuestion,
-  deleteQuestion,
-  setTestStatus,
-  setSeriesStatus,
   validateTestForPublish,
   validateSeriesForPublish,
 } from "../data/testSeriesMock";
+import { testSeriesApi } from "../services/testSeriesApi";
 import { IconClose, IconPlus, IconEdit, IconChevronLeft, IconEye } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import QuestionImageField from "../components/QuestionImageField";
@@ -43,7 +40,7 @@ const EMPTY_OBJECTIVE = {
   marks: 4, negativeMarks: 1, difficulty: DIFFICULTY.MEDIUM, subject: "", explanation: "",
 };
 const EMPTY_SUBJECTIVE = {
-  text: "", image: "", answerInstructions: "", marks: 5, difficulty: DIFFICULTY.MEDIUM, subject: "", rubric: "",
+  text: "", image: "", answerInstructions: "", modelAnswer: "", marks: 5, difficulty: DIFFICULTY.MEDIUM, subject: "", rubric: "",
 };
 
 export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp, onBack, onSeriesPublished } = {}) {
@@ -51,7 +48,37 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   const seriesId = seriesIdProp ?? routeParams.seriesId;
   const testId = testIdProp ?? routeParams.testId;
   const navigate = useNavigate();
-  const { series, test } = useTestById(seriesId, testId);
+  const [toast, setToast] = useState("");
+  const [series, setSeries] = useState(null);
+  const [test, setTest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const load = useCallback(async () => {
+    const data = await testSeriesApi.get(seriesId);
+    setSeries(data);
+    setTest(data?.tests.find((t) => String(t.id) === String(testId)) || null);
+  }, [seriesId, testId]);
+  useEffect(() => {
+    let active = true;
+    load().catch((error) => active && setToast(error.message)).finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [load]);
+  // Runs one RPC, reloads the series, shows a toast; errors come back as toasts.
+  const run = async (request, message) => {
+    if (saving) return false;
+    setSaving(true);
+    try {
+      await request();
+      await load();
+      if (message) setToast(message);
+      return true;
+    } catch (error) {
+      setToast(error.message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
   const goBack = () => (onBack ? onBack() : navigate(seriesId ? `/admin/testseries/${seriesId}` : "/admin/testseries"));
   // "Publish Test Series" goes further back than the plain Back button —
   // it drops out of this series entirely onto the top-level Test Series
@@ -62,7 +89,6 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   // land on /admin/testseries, which renders that same list.
   const goToSeriesStructure = () => (onSeriesPublished ? onSeriesPublished() : navigate("/admin/testseries"));
 
-  const [toast, setToast] = useState("");
   const toastTimer = useRef(null);
   useEffect(() => {
     if (!toast) return undefined;
@@ -80,14 +106,18 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const readiness = useMemo(() => (test ? validateTestForPublish(test) : { valid: false, errors: [] }), [test]);
-  const seriesReadiness = useMemo(() => (series ? validateSeriesForPublish(series) : { valid: false, errors: [] }), [series]);
+  const seriesReadiness = useMemo(
+    () => (series ? validateSeriesForPublish({ ...series, availability: { mode: series.availability_mode } }) : { valid: false, errors: [] }),
+    [series],
+  );
   const marksUsed = useMemo(() => (test ? test.questions.reduce((sum, q) => sum + Number(q.marks || 0), 0) : 0), [test]);
 
   if (!series || !test) {
     return (
       <div className="ul-ts-page">
         <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back</button>
-        <div className="ul-set-empty">This Test could not be found.</div>
+        <div className="ul-set-empty">{loading ? "Loading…" : "This Test could not be found."}</div>
+        {toast && <div className="ul-set-toast">{toast}</div>}
       </div>
     );
   }
@@ -106,7 +136,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
     setFormErrors([]);
     setForm(q.type === QUESTION_TYPE.OBJECTIVE
       ? { text: q.text, image: q.image || "", optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD, correctAnswer: q.correctAnswer, marks: q.marks, negativeMarks: q.negativeMarks, difficulty: q.difficulty, subject: q.subject, explanation: q.explanation || "" }
-      : { text: q.text, image: q.image || "", answerInstructions: q.answerInstructions, marks: q.marks, difficulty: q.difficulty, subject: q.subject, rubric: q.rubric || "" });
+      : { text: q.text, image: q.image || "", answerInstructions: q.answerInstructions, modelAnswer: q.modelAnswer || "", marks: q.marks, difficulty: q.difficulty, subject: q.subject, rubric: q.rubric || "" });
     setBuilderStep("form");
     setBuilderOpen(true);
   };
@@ -136,30 +166,28 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
     return errors;
   };
 
-  const saveQuestion = () => {
+  const saveQuestion = async () => {
     const errors = validateQuestionForm();
     if (errors.length > 0) {
       setFormErrors(errors);
       return;
     }
+    // Subjective covers short_answer / fill_blank / long_answer; modelAnswer
+    // becomes the question's single correct option (blank = manual grading).
     const payload = questionType === QUESTION_TYPE.OBJECTIVE
       ? { ...form, marks: Number(form.marks), negativeMarks: Number(form.negativeMarks) || 0 }
-      : { ...form, marks: Number(form.marks) };
+      : { ...form, marks: Number(form.marks), modelAnswer: (form.modelAnswer || "").trim() };
 
-    if (editingQuestionId) {
-      updateQuestion(series.id, test.id, editingQuestionId, payload);
-      setToast("Question updated.");
-    } else {
-      createQuestion(series.id, test.id, questionType, payload);
-      setToast("Question added.");
-    }
-    closeBuilder();
+    const ok = editingQuestionId
+      // the stored type is kept on edit (no "type" key), so short_answer stays short_answer
+      ? await run(() => testSeriesApi.updateQuestion(editingQuestionId, payload), "Question updated.")
+      : await run(() => testSeriesApi.createQuestion({ ...payload, type: questionType, testId: test.id }), "Question added.");
+    if (ok) closeBuilder();
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    deleteQuestion(series.id, test.id, deleteTarget.id);
-    setToast("Question deleted.");
+    await run(() => testSeriesApi.deleteQuestion(deleteTarget.id), "Question deleted.");
     setDeleteTarget(null);
   };
 
@@ -169,21 +197,19 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
       setToast(readiness.errors[0]);
       return;
     }
-    setTestStatus(series.id, test.id, next);
-    setToast(`"${test.name}" ${next === TEST_STATUS.PUBLISHED ? "published" : "unpublished"}.`);
+    run(() => testSeriesApi.setTestStatus(test.id, next), `"${test.name}" ${next === TEST_STATUS.PUBLISHED ? "published" : "unpublished"}.`);
   };
 
-  const handlePublishSeries = () => {
+  const handlePublishSeries = async () => {
     if (!seriesReadiness.valid) {
       setToast(seriesReadiness.errors[0]);
       return;
     }
-    setSeriesStatus(series.id, SERIES_STATUS.PUBLISHED);
-    setToast(`"${series.name}" published. The entire Test Series is now live for students.`);
+    const ok = await run(() => testSeriesApi.publishSeries(series.id), `"${series.name}" published. The entire Test Series is now live for students.`);
     // Jump straight to the Test Series Structure page (the series list)
     // instead of leaving the admin sitting on a single Test's question
     // list — publishing the whole series is the "I'm done here" action.
-    goToSeriesStructure();
+    if (ok) goToSeriesStructure();
   };
 
   return (
@@ -381,6 +407,10 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                         <label>Answer / Instructions</label>
                         <textarea value={form.answerInstructions} onChange={(e) => setForm({ ...form, answerInstructions: e.target.value })} placeholder="Model answer or instructions for the student" />
                       </div>
+                      <div className="ul-ts-form-row">
+                        <label>Model Answer (short answer / fill in the blank / long answer)</label>
+                        <textarea value={form.modelAnswer} onChange={(e) => setForm({ ...form, modelAnswer: e.target.value })} placeholder="Accepted answer used for grading. Leave blank for manual grading." />
+                      </div>
                       <div className="ul-ts-form-grid-2">
                         <div className="ul-ts-form-row">
                           <label>Marks</label>
@@ -411,7 +441,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                 {!editingQuestionId && (
                   <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setBuilderStep("type")}>Back</button>
                 )}
-                <button type="button" className="ul-btn ul-btn--primary" onClick={saveQuestion}>{editingQuestionId ? "Save Changes" : "Add Question"}</button>
+                <button type="button" className="ul-btn ul-btn--primary" onClick={saveQuestion} disabled={saving}>{editingQuestionId ? "Save Changes" : "Add Question"}</button>
               </div>
             )}
           </div>

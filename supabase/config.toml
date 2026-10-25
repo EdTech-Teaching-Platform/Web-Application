@@ -1,9 +1,15 @@
+# Edge Function settings. verify_jwt = false only for payment-webhook, which is
+# called by the payment gateway and checks an HMAC signature instead.
+# send-notification-emails is called server-to-server with the service-role
+# key as the bearer token (a valid JWT), so it keeps verify_jwt = true.
 [functions.create-educator-invites]
 verify_jwt = true
 [functions.revoke-user-sessions]
 verify_jwt = true
 [functions.send-notification-emails]
-verify_jwt = false
+verify_jwt = true
+[functions.sign-educator-document]
+verify_jwt = true
 [functions.payment-webhook]
 verify_jwt = false
 [functions.process-refund]

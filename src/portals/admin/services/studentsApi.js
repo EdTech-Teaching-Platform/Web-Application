@@ -1,11 +1,16 @@
-import { supabase } from "../../../services/supabaseClient";
-import { normalizeRpcError } from "./adminApi";
-
-function throwIfError(error) {
-  if (error) throw normalizeRpcError(error);
-}
+import { callRpc, listResult } from "./adminApi";
 
 function mapStudent(row) {
+  const enrolledSeries = (row.enrolled_series || []).map((entry) => ({
+    title: entry.title || "Test series",
+    progress: Number(entry.progress || 0),
+    enrolledDate: entry.enrolled_at,
+  }));
+  const enrolledCourses = (row.enrolled_courses || []).map((entry) => ({
+    title: entry.title || "Course",
+    progress: Number(entry.progress || 0),
+    enrolledDate: entry.enrolled_at,
+  }));
   return {
     ...row,
     name: row.full_name,
@@ -13,66 +18,29 @@ function mapStudent(row) {
     registeredDate: row.registered_at ? new Date(row.registered_at).toLocaleDateString("en-IN") : "—",
     lastActive: row.last_active_at ? new Date(row.last_active_at).toLocaleString("en-IN") : "—",
     blockedDate: row.blocked_at ? new Date(row.blocked_at).toLocaleDateString("en-IN") : "",
-    enrolledCourses: row.enrolled_courses || [],
+    blockedReason: row.blocked_reason || "",
+    enrolledCourses: [...enrolledSeries, ...enrolledCourses],
   };
 }
 
 export const studentsApi = {
-  stats: async () => {
-    const [all, active, blocked] = await Promise.all([
-      supabase.from("students").select("id", { count: "exact", head: true }),
-      supabase.from("students").select("id", { count: "exact", head: true }).eq("status", "active"),
-      supabase.from("students").select("id", { count: "exact", head: true }).eq("status", "blocked"),
-    ]);
-    [all, active, blocked].forEach(({ error }) => throwIfError(error));
-    return { total: all.count || 0, active: active.count || 0, blocked: blocked.count || 0 };
-  },
+  stats: () => callRpc("get_student_stats"),
   list: async ({ search, status, grade, page, size }) => {
-    let query = supabase.from("v_students_list").select("*", { count: "exact" });
-    if (search.trim()) query = query.or(`full_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%,student_code.ilike.%${search.trim()}%`);
-    if (status !== "all") query = query.eq("status", status);
-    if (grade !== "all") query = query.eq("grade", grade);
-    const from = (page - 1) * size;
-    const { data, error, count } = await query.order("registered_at", { ascending: false }).range(from, from + size - 1);
-    throwIfError(error);
-    return { rows: (data || []).map(mapStudent), total: count || 0 };
+    const result = listResult(await callRpc("list_students", {
+      p_search: search?.trim() || null,
+      p_status: status === "all" ? null : status,
+      p_grade: grade === "all" ? null : grade,
+      p_sort: "registered_desc",
+      p_page: page,
+      p_size: size,
+    }));
+    return { ...result, rows: result.rows.map(mapStudent) };
   },
   detail: async (id) => {
-    const { data, error } = await supabase.from("v_students_list").select("*").eq("id", id).maybeSingle();
-    throwIfError(error);
-    if (!data) return null;
-    const { data: enrollments, error: enrollmentError } = await supabase
-      .from("series_enrollments")
-      .select("series_id, enrolled_at")
-      .eq("user_id", id);
-    throwIfError(enrollmentError);
-    const seriesIds = (enrollments || []).map((entry) => entry.series_id);
-    let series = [];
-    if (seriesIds.length) {
-      const { data: seriesRows, error: seriesError } = await supabase.from("test_series").select("id, title").in("id", seriesIds);
-      throwIfError(seriesError);
-      series = seriesRows || [];
-    }
-    return mapStudent({ ...data, enrolled_courses: (enrollments || []).map((entry) => ({
-      title: series.find((item) => item.id === entry.series_id)?.title || "Test series",
-      progress: 0,
-      enrolledDate: entry.enrolled_at,
-    })) });
+    const data = await callRpc("get_student_detail", { p_id: id });
+    return data ? mapStudent(data) : null;
   },
-  setStatus: async (id, status, reason) => {
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    throwIfError(authError);
-    const { error } = await supabase.from("students").update({
-      status,
-      blocked_reason: status === "blocked" ? reason : null,
-    }).eq("id", id);
-    throwIfError(error);
-    const { error: historyError } = await supabase.from("student_block_history").insert({
-      student_id: id,
-      action: status === "blocked" ? "blocked" : "unblocked",
-      reason: status === "blocked" ? reason : null,
-      by_admin: authData.user?.id || null,
-    });
-    throwIfError(historyError);
-  },
+  setStatus: (id, status, reason) => (status === "blocked"
+    ? callRpc("block_student", { p_id: id, p_reason: reason })
+    : callRpc("unblock_student", { p_id: id })),
 };

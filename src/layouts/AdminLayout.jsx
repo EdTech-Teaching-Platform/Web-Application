@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { canUseAdminPortal } from "../utils/roles";
 import AdminSidebar from "../portals/admin/components/AdminSidebar";
 import AdminTopbar from "../portals/admin/components/AdminTopbar";
 import {
@@ -72,7 +73,8 @@ export default function AdminLayout() {
   if (!user) {
     return <Navigate to="/admin/login" replace />;
   }
-  if (user.role !== "admin") {
+  // admin and super_admin (mapped to the app role "admin" in utils/roles.js)
+  if (!canUseAdminPortal(user)) {
     return <Navigate to="/" replace />;
   }
 

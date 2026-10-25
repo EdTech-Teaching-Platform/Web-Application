@@ -12,7 +12,7 @@ declare
     'redeem_coupon(text,uuid,uuid,numeric,uuid)',
     'request_refund(uuid,refund_reason,text,numeric)',
     'approve_refund(uuid,text)',
-    'publish_test_series(uuid)',
+    'adm_publish_test_series(uuid,boolean)',
     'set_educator_verification(uuid,educator_verification,text)'
   ];
   signature text;
@@ -30,10 +30,10 @@ $$;
 do $$
 begin
   begin
-    perform publish_test_series('00000000-0000-0000-0000-000000000000'::uuid);
-    raise exception 'publish_test_series accepted a missing series';
+    perform adm_publish_test_series('00000000-0000-0000-0000-000000000000'::uuid, true);
+    raise exception 'adm_publish_test_series accepted a missing series';
   exception when others then
-    if sqlerrm = 'publish_test_series accepted a missing series' then raise; end if;
+    if sqlerrm = 'adm_publish_test_series accepted a missing series' then raise; end if;
   end;
 
   begin

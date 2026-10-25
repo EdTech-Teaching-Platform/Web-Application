@@ -1,5 +1,4 @@
-import { supabase } from "../../../services/supabaseClient";
-import { callRpc, listResult, normalizeRpcError } from "./adminApi";
+import { callRpc, listResult } from "./adminApi";
 
 const mapAssignment = (a) => ({
   ...a,
@@ -30,31 +29,15 @@ const mapRequest = (r) => ({
   duration: r.duration_minutes,
 });
 
-function throwIfError(error) {
-  if (error) throw normalizeRpcError(error);
-}
-
 export const assignmentsApi = {
   list: async (params) => {
     const result = listResult(await callRpc("list_assignments", params));
     return { ...result, rows: result.rows.map(mapAssignment) };
   },
   detail: (id) => callRpc("get_assignment_detail", { p_id: id }),
-  requests: async () => {
-    const { data, error } = await supabase.from("v_series_requests").select("*").order("sent_date", { ascending: false });
-    throwIfError(error);
-    return (data || []).map(mapRequest);
-  },
-  eligibleEducators: async () => {
-    const { data, error } = await supabase.from("v_eligible_educators").select("*").order("name");
-    throwIfError(error);
-    return data || [];
-  },
-  series: async () => {
-    const { data, error } = await supabase.from("test_series").select("id, title").is("deleted_at", null).order("title");
-    throwIfError(error);
-    return (data || []).map((s) => ({ id: s.id, name: s.title }));
-  },
+  requests: async () => ((await callRpc("list_series_requests")) || []).map(mapRequest),
+  eligibleEducators: async () => (await callRpc("list_eligible_educators")) || [],
+  series: async () => ((await callRpc("list_series_options")) || []).map((s) => ({ id: s.id, name: s.title })),
   create: (payload) => callRpc("create_assignments", { p: payload }),
   updateRequirements: (id, patch) => callRpc("update_assignment_requirements", { p_id: id, patch }),
   reassign: (id, educatorId) => callRpc("reassign_educator", { p_id: id, p_educator: educatorId }),
