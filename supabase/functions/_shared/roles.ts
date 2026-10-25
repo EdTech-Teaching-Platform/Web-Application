@@ -1,4 +1,6 @@
-// profiles.role values allowed to call admin Edge Functions (D5, D13).
+// profiles.role values that count as admin roles (D5, D13). NOT an
+// authorization check: users can edit their own profiles.role. Edge Functions
+// authorize with requireAdmin() in auth.ts (the adm_is_platform_admin RPC).
 // Kept free of imports so it can be unit-tested outside Deno.
 export const ADMIN_ROLES = ["admin", "super_admin"] as const;
 

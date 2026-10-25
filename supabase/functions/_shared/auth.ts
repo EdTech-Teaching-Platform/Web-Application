@@ -1,7 +1,4 @@
 import { createClient, type SupabaseClient, type User } from "https://esm.sh/@supabase/supabase-js@2";
-import { isAdminRole } from "./roles.ts";
-
-export { isAdminRole };
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,11 +30,14 @@ export async function requireUser(req: Request, client: SupabaseClient): Promise
   return data.user;
 }
 
-// admin and super_admin may use admin functions (mapped to the app role "admin").
+// Same check as every admin RPC: adm_is_platform_admin() (allowlist row in
+// adm_admin_users AND profiles.role admin / super_admin). Never trust
+// profiles.role alone here: users can edit their own profile row.
+// `client` must carry the caller's JWT (clients(req).userClient).
 export async function requireAdmin(req: Request, client: SupabaseClient) {
   const user = await requireUser(req, client);
-  const { data, error } = await client.from("profiles").select("role").eq("id", user.id).single();
-  if (error || !isAdminRole(data?.role)) throw new Error("Admins only");
+  const { data, error } = await client.rpc("adm_is_platform_admin");
+  if (error || data !== true) throw new Error("Admins only");
   return user;
 }
 

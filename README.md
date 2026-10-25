@@ -74,8 +74,11 @@ More detail:
 Read-only checks for the SQL editor: `scripts/admin_verify_push_editor.sql`
 and `scripts/admin_snapshot_lead_editor.sql`.
 
-**Creating an admin.** An admin is a `profiles` row whose `role` is `admin` or
-`super_admin`. Changing a role on the shared database needs the lead's approval.
+**Creating an admin.** Once `20261026090000_admin_allowlist.sql` is applied, an
+admin needs **both** a row in `public.adm_admin_users` and a `profiles.role` of
+`admin` or `super_admin`. The role alone isn't enough, because users can edit
+their own profile. See `docs/PORT_PROGRESS.md` → "How to add an admin". Changes
+on the shared database need the lead's approval.
 
 **Money is stubbed.** The lead's database has no payments model yet (F4), so
 discount, transaction and refund screens return stub responses.

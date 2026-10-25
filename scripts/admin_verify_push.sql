@@ -1,10 +1,10 @@
 -- =====================================================================
--- scripts/admin_verify_push.sql   (GENERATED from supabase/migrations/20261025*_admin_*.sql)
+-- scripts/admin_verify_push.sql   (GENERATED from supabase/migrations/2026102[56]*_admin_*.sql)
 --
 -- Read-only checks to run right after `supabase db push`. Every query
 -- returns ZERO rows when everything is in place, except the summary at the end.
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/admin_verify_push.sql
--- Counts: 30 tables, 6 sequences, 237 function names.
+-- Counts: 31 tables, 6 sequences, 239 function names.
 -- =====================================================================
 \set QUIET on
 \pset footer off
@@ -12,7 +12,7 @@
 \echo '1. Missing tables / sequences (expect 0 rows)'
 select x.name as missing_relation
   from unnest(array[
-    'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
+    'adm_admin_users', 'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
     'ai_generated_questions', 'ai_test_jobs', 'assignment_comments', 'assignment_history', 
     'assignment_notifications', 'assignment_status_progress', 'callback_activity', 
     'educator_admin_state', 'educator_invites', 'notification_campaign_events', 'notification_campaigns', 
@@ -35,16 +35,16 @@ select x.name as missing_function
     'adm_educator_verification_key', 'adm_eligible_educators', 'adm_end_user_sessions', 
     'adm_ensure_educator_state', 'adm_ensure_series_admin', 'adm_ensure_student', 'adm_grade_matches', 
     'adm_house_course_id', 'adm_initials', 'adm_insert_options', 'adm_insert_question', 
-    'adm_is_account_blocked', 'adm_is_platform_admin', 'adm_is_service_role', 'adm_like', 
-    'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 'adm_normalize_phone', 
-    'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 'adm_publish_campaign', 
-    'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 'adm_report_educators', 
-    'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 'adm_require_admin', 
-    'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 'adm_resolve_date_range', 
-    'adm_review_match', 'adm_series_educators', 'adm_series_json', 'adm_series_rows', 
-    'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 'adm_stat_card', 
-    'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 'adm_text_answer', 
-    'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
+    'adm_is_account_blocked', 'adm_is_admin_user', 'adm_is_platform_admin', 'adm_is_service_role', 
+    'adm_like', 'adm_list_admins', 'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 
+    'adm_normalize_phone', 'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 
+    'adm_publish_campaign', 'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 
+    'adm_report_educators', 'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 
+    'adm_require_admin', 'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 
+    'adm_resolve_date_range', 'adm_review_match', 'adm_series_educators', 'adm_series_json', 
+    'adm_series_rows', 'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 
+    'adm_stat_card', 'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 
+    'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
     'adm_ui_question_type', 'adm_validate_campaign', 'adm_validate_quiz_for_publish', 'approve_refund', 
     'archive_notification', 'assign_request', 'assign_support_ticket', 'block_student', 
     'cancel_assignment', 'clear_done_notes', 'create_assignments', 'create_discount', 
@@ -96,7 +96,7 @@ select x.name as missing_function
 select c.relname as table_without_rls
   from pg_class c join pg_namespace n on n.oid = c.relnamespace
  where n.nspname = 'public' and c.relkind = 'r' and c.relname = any (array[
-    'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
+    'adm_admin_users', 'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
     'ai_generated_questions', 'ai_test_jobs', 'assignment_comments', 'assignment_history', 
     'assignment_notifications', 'assignment_status_progress', 'callback_activity', 
     'educator_admin_state', 'educator_invites', 'notification_campaign_events', 'notification_campaigns', 
@@ -111,7 +111,7 @@ select c.relname, r.role, priv
   cross join unnest(array['anon', 'authenticated']) as r(role)
   cross join unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE']) as v(priv)
  where n.nspname = 'public' and c.relkind = 'r' and c.relname = any (array[
-    'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
+    'adm_admin_users', 'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
     'ai_generated_questions', 'ai_test_jobs', 'assignment_comments', 'assignment_history', 
     'assignment_notifications', 'assignment_status_progress', 'callback_activity', 
     'educator_admin_state', 'educator_invites', 'notification_campaign_events', 'notification_campaigns', 
@@ -133,16 +133,16 @@ select p.oid::regprocedure as anon_executable
     'adm_educator_verification_key', 'adm_eligible_educators', 'adm_end_user_sessions', 
     'adm_ensure_educator_state', 'adm_ensure_series_admin', 'adm_ensure_student', 'adm_grade_matches', 
     'adm_house_course_id', 'adm_initials', 'adm_insert_options', 'adm_insert_question', 
-    'adm_is_account_blocked', 'adm_is_platform_admin', 'adm_is_service_role', 'adm_like', 
-    'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 'adm_normalize_phone', 
-    'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 'adm_publish_campaign', 
-    'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 'adm_report_educators', 
-    'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 'adm_require_admin', 
-    'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 'adm_resolve_date_range', 
-    'adm_review_match', 'adm_series_educators', 'adm_series_json', 'adm_series_rows', 
-    'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 'adm_stat_card', 
-    'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 'adm_text_answer', 
-    'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
+    'adm_is_account_blocked', 'adm_is_admin_user', 'adm_is_platform_admin', 'adm_is_service_role', 
+    'adm_like', 'adm_list_admins', 'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 
+    'adm_normalize_phone', 'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 
+    'adm_publish_campaign', 'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 
+    'adm_report_educators', 'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 
+    'adm_require_admin', 'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 
+    'adm_resolve_date_range', 'adm_review_match', 'adm_series_educators', 'adm_series_json', 
+    'adm_series_rows', 'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 
+    'adm_stat_card', 'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 
+    'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
     'adm_ui_question_type', 'adm_validate_campaign', 'adm_validate_quiz_for_publish', 'approve_refund', 
     'archive_notification', 'assign_request', 'assign_support_ticket', 'block_student', 
     'cancel_assignment', 'clear_done_notes', 'create_assignments', 'create_discount', 
@@ -195,7 +195,7 @@ select p.oid::regprocedure as helper_exposed
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public' and p.proname like 'adm\_%'
    and p.proname <> all (array[
-    'adm_is_platform_admin', 'adm_publish_test_series'
+    'adm_is_platform_admin', 'adm_publish_test_series', 'adm_list_admins'
   ]::text[])
    and has_function_privilege('authenticated', p.oid, 'execute');
 
@@ -220,16 +220,16 @@ select p.oid::regprocedure as no_search_path
     'adm_educator_verification_key', 'adm_eligible_educators', 'adm_end_user_sessions', 
     'adm_ensure_educator_state', 'adm_ensure_series_admin', 'adm_ensure_student', 'adm_grade_matches', 
     'adm_house_course_id', 'adm_initials', 'adm_insert_options', 'adm_insert_question', 
-    'adm_is_account_blocked', 'adm_is_platform_admin', 'adm_is_service_role', 'adm_like', 
-    'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 'adm_normalize_phone', 
-    'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 'adm_publish_campaign', 
-    'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 'adm_report_educators', 
-    'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 'adm_require_admin', 
-    'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 'adm_resolve_date_range', 
-    'adm_review_match', 'adm_series_educators', 'adm_series_json', 'adm_series_rows', 
-    'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 'adm_stat_card', 
-    'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 'adm_text_answer', 
-    'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
+    'adm_is_account_blocked', 'adm_is_admin_user', 'adm_is_platform_admin', 'adm_is_service_role', 
+    'adm_like', 'adm_list_admins', 'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 
+    'adm_normalize_phone', 'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 
+    'adm_publish_campaign', 'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 
+    'adm_report_educators', 'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 
+    'adm_require_admin', 'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 
+    'adm_resolve_date_range', 'adm_review_match', 'adm_series_educators', 'adm_series_json', 
+    'adm_series_rows', 'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 
+    'adm_stat_card', 'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 
+    'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
     'adm_ui_question_type', 'adm_validate_campaign', 'adm_validate_quiz_for_publish', 'approve_refund', 
     'archive_notification', 'assign_request', 'assign_support_ticket', 'block_student', 
     'cancel_assignment', 'clear_done_notes', 'create_assignments', 'create_discount', 
@@ -288,16 +288,16 @@ select p.oid::regprocedure as not_security_definer
     'adm_educator_verification_key', 'adm_eligible_educators', 'adm_end_user_sessions', 
     'adm_ensure_educator_state', 'adm_ensure_series_admin', 'adm_ensure_student', 'adm_grade_matches', 
     'adm_house_course_id', 'adm_initials', 'adm_insert_options', 'adm_insert_question', 
-    'adm_is_account_blocked', 'adm_is_platform_admin', 'adm_is_service_role', 'adm_like', 
-    'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 'adm_normalize_phone', 
-    'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 'adm_publish_campaign', 
-    'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 'adm_report_educators', 
-    'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 'adm_require_admin', 
-    'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 'adm_resolve_date_range', 
-    'adm_review_match', 'adm_series_educators', 'adm_series_json', 'adm_series_rows', 
-    'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 'adm_stat_card', 
-    'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 'adm_text_answer', 
-    'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
+    'adm_is_account_blocked', 'adm_is_admin_user', 'adm_is_platform_admin', 'adm_is_service_role', 
+    'adm_like', 'adm_list_admins', 'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 
+    'adm_normalize_phone', 'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 
+    'adm_publish_campaign', 'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 
+    'adm_report_educators', 'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 
+    'adm_require_admin', 'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 
+    'adm_resolve_date_range', 'adm_review_match', 'adm_series_educators', 'adm_series_json', 
+    'adm_series_rows', 'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 
+    'adm_stat_card', 'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 
+    'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
     'adm_ui_question_type', 'adm_validate_campaign', 'adm_validate_quiz_for_publish', 'approve_refund', 
     'archive_notification', 'assign_request', 'assign_support_ticket', 'block_student', 
     'cancel_assignment', 'clear_done_notes', 'create_assignments', 'create_discount', 
@@ -368,16 +368,16 @@ select (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronames
     'adm_educator_verification_key', 'adm_eligible_educators', 'adm_end_user_sessions', 
     'adm_ensure_educator_state', 'adm_ensure_series_admin', 'adm_ensure_student', 'adm_grade_matches', 
     'adm_house_course_id', 'adm_initials', 'adm_insert_options', 'adm_insert_question', 
-    'adm_is_account_blocked', 'adm_is_platform_admin', 'adm_is_service_role', 'adm_like', 
-    'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 'adm_normalize_phone', 
-    'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 'adm_publish_campaign', 
-    'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 'adm_report_educators', 
-    'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 'adm_require_admin', 
-    'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 'adm_resolve_date_range', 
-    'adm_review_match', 'adm_series_educators', 'adm_series_json', 'adm_series_rows', 
-    'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 'adm_stat_card', 
-    'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 'adm_text_answer', 
-    'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
+    'adm_is_account_blocked', 'adm_is_admin_user', 'adm_is_platform_admin', 'adm_is_service_role', 
+    'adm_like', 'adm_list_admins', 'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 
+    'adm_normalize_phone', 'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 
+    'adm_publish_campaign', 'adm_publish_test_series', 'adm_question_json', 'adm_range_options', 
+    'adm_report_educators', 'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 
+    'adm_require_admin', 'adm_require_quiz', 'adm_require_series', 'adm_resolve_audience', 
+    'adm_resolve_date_range', 'adm_review_match', 'adm_series_educators', 'adm_series_json', 
+    'adm_series_rows', 'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 
+    'adm_stat_card', 'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 
+    'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
     'adm_ui_question_type', 'adm_validate_campaign', 'adm_validate_quiz_for_publish', 'approve_refund', 
     'archive_notification', 'assign_request', 'assign_support_ticket', 'block_student', 
     'cancel_assignment', 'clear_done_notes', 'create_assignments', 'create_discount', 
@@ -423,7 +423,7 @@ select (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronames
     'update_test', 'update_test_section', 'update_test_series', 'upsert_test_series_full'
   ]::text[])) as our_function_overloads,
        (select count(*) from unnest(array[
-    'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
+    'adm_admin_users', 'admin_auth_events', 'admin_nav_items', 'admin_notes', 'admin_series_enrollments', 
     'ai_generated_questions', 'ai_test_jobs', 'assignment_comments', 'assignment_history', 
     'assignment_notifications', 'assignment_status_progress', 'callback_activity', 
     'educator_admin_state', 'educator_invites', 'notification_campaign_events', 'notification_campaigns', 

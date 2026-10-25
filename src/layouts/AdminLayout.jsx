@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { canUseAdminPortal } from "../utils/roles";
+import { supabase } from "../services/supabaseClient";
 import AdminSidebar from "../portals/admin/components/AdminSidebar";
 import AdminTopbar from "../portals/admin/components/AdminTopbar";
 import {
@@ -67,6 +68,21 @@ export default function AdminLayout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // profiles.role is only a routing hint (users can edit their own profile
+  // row). Before rendering, confirm with the same server check every admin RPC
+  // uses: adm_is_platform_admin() (allowlist + role). Fails closed on error.
+  const userId = user?.id ?? null;
+  const roleAllowsPortal = canUseAdminPortal(user);
+  const [serverCheck, setServerCheck] = useState({ userId: null, ok: false });
+  useEffect(() => {
+    if (!userId || !roleAllowsPortal) return undefined;
+    let alive = true;
+    Promise.resolve(supabase.rpc("adm_is_platform_admin"))
+      .then(({ data, error }) => { if (alive) setServerCheck({ userId, ok: !error && data === true }); })
+      .catch(() => { if (alive) setServerCheck({ userId, ok: false }); });
+    return () => { alive = false; };
+  }, [userId, roleAllowsPortal]);
+
   if (loading) {
     return null;
   }
@@ -74,7 +90,13 @@ export default function AdminLayout() {
     return <Navigate to="/admin/login" replace />;
   }
   // admin and super_admin (mapped to the app role "admin" in utils/roles.js)
-  if (!canUseAdminPortal(user)) {
+  if (!roleAllowsPortal) {
+    return <Navigate to="/" replace />;
+  }
+  if (serverCheck.userId !== userId) {
+    return null; // still confirming with the server
+  }
+  if (!serverCheck.ok) {
     return <Navigate to="/" replace />;
   }
 

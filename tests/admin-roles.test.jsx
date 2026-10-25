@@ -1,8 +1,8 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 beforeAll(() => {
@@ -39,10 +39,14 @@ describe("admin roles (D13)", () => {
 
 describe("AdminLayout with a super_admin", () => {
   beforeEach(() => vi.resetModules());
+  afterEach(() => cleanup());
 
-  it("renders admin pages for a super_admin user", async () => {
+  // serverAdmin = what adm_is_platform_admin() returns for this user.
+  async function renderLayout({ dbRole, serverAdmin }) {
+    const rpc = vi.fn(async () => ({ data: serverAdmin, error: null }));
+    vi.doMock("../src/services/supabaseClient", () => ({ supabase: { rpc } }));
     vi.doMock("../src/hooks/useAuth", () => ({
-      useAuth: () => ({ user: { role: "admin", dbRole: "super_admin" }, loading: false }),
+      useAuth: () => ({ user: { id: "u-1", role: "admin", dbRole }, loading: false }),
     }));
     vi.doMock("../src/portals/admin/components/AdminSidebar", () => ({ default: () => null }));
     vi.doMock("../src/portals/admin/components/AdminTopbar", () => ({ default: () => null }));
@@ -62,7 +66,19 @@ describe("AdminLayout with a super_admin", () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByText("Students page")).toBeInTheDocument();
+    return rpc;
+  }
+
+  it("renders admin pages for a super_admin the server confirms", async () => {
+    const rpc = await renderLayout({ dbRole: "super_admin", serverAdmin: true });
+    expect(await screen.findByText("Students page")).toBeInTheDocument();
     expect(screen.queryByText("Home")).not.toBeInTheDocument();
+    expect(rpc).toHaveBeenCalledWith("adm_is_platform_admin");
+  });
+
+  it("redirects a self-promoted user (role admin, not allowlisted)", async () => {
+    await renderLayout({ dbRole: "admin", serverAdmin: false });
+    expect(await screen.findByText("Home")).toBeInTheDocument();
+    expect(screen.queryByText("Students page")).not.toBeInTheDocument();
   });
 });

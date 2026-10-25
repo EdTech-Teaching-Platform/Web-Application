@@ -99,6 +99,125 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## Admin allowlist (`20261026090000`, written, not applied)
+
+### The problem
+
+`adm_is_platform_admin()` trusted `profiles.role` alone, and the lead's RLS lets
+users update their own `profiles` row, `role` included. Anyone could set their
+own role to `admin` and pass every admin RPC.
+
+### The fix
+
+The fix changes only our own objects. A user is an admin only when **both** of
+these hold:
+1. they have a row in `public.adm_admin_users`;
+2. their `profiles.role` is still `admin` or `super_admin`.
+
+Removing either one revokes access.
+
+### Files
+
+| File | What |
+|---|---|
+| `supabase/migrations/20261026090000_admin_allowlist.sql` | See "Objects" below. |
+| `docs/trial_run_20261026090000.sql` | This migration only, inside `begin; … rollback;`. |
+| `supabase/functions/_shared/auth.ts` | `requireAdmin()` calls the `adm_is_platform_admin` RPC with the caller's JWT. It no longer reads `profiles.role`. |
+| `supabase/functions/_shared/roles.ts` | Comment only: role values for display, not for authorization. No longer re-exported from `auth.ts`. |
+| `src/layouts/AdminLayout.jsx` | Still routes on the role, then confirms with `adm_is_platform_admin()` before rendering. It renders nothing while checking, and redirects to `/` if the check is false or fails. |
+| `tests/admin-roles.test.jsx` | Adds a test: a self-promoted user (role `admin`, server says no) is redirected. |
+| `scripts/admin_verify_push*.sql` | Regenerated from every `2026…_admin_*` file: 31 tables, 239 function names. `adm_list_admins` is allowed for authenticated in check 6. |
+
+### Objects in the migration
+
+- **Preflight (read-only).** It aborts, listing every problem at once, if:
+  - a function it replaces or calls is missing;
+  - `auth.users`, one of our tables, or a `profiles` column it reads is
+    missing;
+  - `adm_admin_users`, `adm_is_admin_user` or `adm_list_admins` already exists;
+  - no admin profile exists to backfill.
+- **`adm_admin_users`:**
+  - columns: `user_id` (pk, references `auth.users`, on delete cascade),
+    `created_at`, and `created_by` (a plain uuid, audit only);
+  - RLS is on, with no policies;
+  - anon and authenticated have no table privileges;
+  - backfilled from `profiles where role in ('admin', 'super_admin')`.
+- **`adm_is_admin_user(uuid)`:** the single check (allowlist row and admin
+  role). It's internal and revoked from every role.
+- **`adm_is_platform_admin()`:** replaced. It now returns
+  `adm_is_admin_user(auth.uid())`, with the same signature, SECURITY DEFINER,
+  `search_path` and grants as before.
+- **Updated automatically,** because they call `adm_require_admin()` /
+  `adm_is_platform_admin()`:
+  - every admin RPC, including `get_admin_me`, `record_login` and
+    `touch_session`;
+  - the two `question-images` storage policies.
+- **Replaced, because they read `profiles.role` directly:**
+  - `record_logout(text)`: admin auth events only for real admins;
+  - `adm_resolve_audience(...)`: the `admins` audience uses the allowlist;
+  - `assign_support_ticket(uuid, uuid)`: the assignee must pass the check.
+- **`adm_list_admins()`:** a new read-only RPC, admin only. It returns
+  `{admins: [...], role_without_allowlist: [...]}`:
+  - `admins[].active = false` means the user is allowlisted but their role is no
+    longer admin;
+  - `role_without_allowlist` lists profiles that claim an admin role but aren't
+    admins. Review it now and then.
+- **Not changed:** the one-off house-course owner pick (`20261025110200`,
+  already applied), and the preflights. Neither is an authorization check.
+
+### How to add an admin
+
+Both steps are needed, in the SQL editor, with the lead's approval. Order
+doesn't matter, and the user has no admin access until both are done.
+
+```sql
+-- 1. the allowlist row (created_by = your own user id, for the audit trail)
+insert into public.adm_admin_users (user_id, created_by)
+values ('<new admin user uuid>', '<your user uuid>')
+on conflict (user_id) do nothing;
+
+-- 2. the profile role (a lead table)
+update public.profiles set role = 'admin' where id = '<new admin user uuid>';  -- or 'super_admin'
+```
+
+The user must already exist in `auth.users` (they have signed up, or been
+invited), because of the foreign key.
+
+**To remove an admin:**
+`delete from public.adm_admin_users where user_id = '<uuid>';`. That takes
+effect on their next request. Changing their profile role back is optional,
+because either step alone revokes access.
+
+### Before applying
+
+1. **Review the backfill.** Anyone who has already set their own role to admin
+   would be allowlisted:
+   `select id, email, full_name, role, created_at from public.profiles where role in ('admin', 'super_admin') order by created_at;`
+2. **Run `docs/trial_run_20261026090000.sql`.** Expect "Success. No rows
+   returned".
+3. **Push.** With approval, `npx supabase db push` applies only this new
+   version.
+4. **Verify.** `scripts/admin_verify_push_editor.sql` should show every row
+   PASS (31 tables, 239 function names). Then sign in to `/admin`, and check
+   that `adm_list_admins()` returns the expected admins and an empty
+   `role_without_allowlist`.
+
+### Checks run (nothing applied)
+
+- **SQL parser (Postgres 17, offline):** the migration has 23 statements and the
+  trial file 25; 14 function / DO bodies across both, 0 errors.
+- **Hardening:** 243 function definitions across all `2026…` files, 0 problems.
+- **`npm run build`:** ✅ passes.
+- **`npm test`:** ✅ 12/12.
+- **`oxlint` on the changed files:** one warning, on the route-change effect
+  that was already in `AdminLayout.jsx`, not on the new code.
+
+### Rollback
+
+Rollback SQL is in the migration header. It restores the four 20261025
+definitions exactly, then drops `adm_list_admins`, `adm_is_admin_user` and the
+table.
+
 ---
 
 ## Batch 1: foundation and people (written, awaiting review)
