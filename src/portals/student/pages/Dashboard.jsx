@@ -102,18 +102,18 @@ function Empty({ children, icon: Icon = BookOpenIcon }) {
 
 // A stat as a flip-clock tile (same look as the landing countdown): hinge line,
 // side pins, lighter top half. The number still counts up through StatCard.
-function FlipTile({ icon: Icon, value, suffix, label, tone }) {
+function FlipTile({ icon: Icon, value, suffix, label, tone, className = "" }) {
   return (
-    <div>
+    <div className={className}>
       <div className={`group relative overflow-hidden rounded-xl transition-transform duration-300 ease-out hover:-translate-y-0.5 ${tone}`}>
         <Icon className="pointer-events-none absolute -right-1.5 -top-1.5 h-10 w-10 opacity-[0.13] transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-110" aria-hidden="true" />
-        <div className="relative z-10 grid place-items-center px-2 py-3.5 sm:py-4">
+        <div className="relative z-10 grid place-items-center px-2 py-2.5 sm:py-4">
           <StatCard
             value={value}
             suffix={suffix}
             label=""
             className="items-center gap-0"
-            valueClassName="font-display text-2xl font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.75rem]"
+            valueClassName="font-display text-xl font-extrabold leading-none tabular-nums tracking-tight sm:text-[1.75rem]"
             labelClassName="hidden"
           />
         </div>
@@ -122,7 +122,7 @@ function FlipTile({ icon: Icon, value, suffix, label, tone }) {
         <span className="pointer-events-none absolute -left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink)" aria-hidden="true" />
         <span className="pointer-events-none absolute -right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink)" aria-hidden="true" />
       </div>
-      <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60">{label}</p>
+      <p className="mt-1 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-white/60 sm:mt-2 sm:text-[10px] sm:tracking-[0.16em]">{label}</p>
     </div>
   );
 }
@@ -136,7 +136,7 @@ function HeroButton({ onClick, tone = "yellow", children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`group inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-yellow) ${look}`}
+      className={`group inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-[13px] font-semibold transition-[transform,box-shadow,background-color] sm:justify-start sm:gap-2 sm:px-4 sm:text-sm duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-yellow) ${look}`}
     >
       {children}
       <ChevronRightIcon className="h-4 w-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
@@ -155,12 +155,12 @@ function DashHero({ firstName, stats, navigate }) {
   ];
 
   return (
-    <header className="relative isolate overflow-hidden rounded-[2rem] bg-(--lp-ink) text-white shadow-[0_30px_60px_-30px_rgb(15_17_21/0.55)]">
+    <header className="relative isolate overflow-hidden rounded-[1.5rem] bg-(--lp-ink) sm:rounded-[2rem] text-white shadow-[0_30px_60px_-30px_rgb(15_17_21/0.55)]">
       {/* atmosphere: rings, blue disc, dotted grid, soft glow */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
         <div className="absolute -right-32 -top-32 h-[26rem] w-[26rem] rounded-full border border-white/10" />
         <div className="absolute -right-16 -top-16 h-[18rem] w-[18rem] rounded-full border border-white/10" />
-        <div className="ul-dash-drift absolute -right-6 -top-6 h-[9rem] w-[9rem] rounded-full bg-(--lp-blue)/80" style={{ "--dx": "-10px", "--dy": "12px", "--dur": "28s" }} />
+        <div className="ul-dash-drift absolute -right-6 -top-6 h-24 w-24 rounded-full sm:h-[9rem] sm:w-[9rem] bg-(--lp-blue)/80" style={{ "--dx": "-10px", "--dy": "12px", "--dur": "28s" }} />
         <div className="absolute -bottom-32 left-[28%] h-72 w-72 rounded-full bg-(--lp-blue)/20" />
         <div className="ul-dash-drift absolute -left-20 top-1/4 h-64 w-64 rounded-full bg-(--lp-yellow)/[0.09] blur-3xl" style={{ "--dx": "30px", "--dy": "20px", "--dur": "32s" }} />
         <div
@@ -172,14 +172,14 @@ function DashHero({ firstName, stats, navigate }) {
             WebkitMaskImage: "linear-gradient(to right, black, transparent 60%)",
           }}
         />
-        <span className="ul-dash-drift absolute left-[44%] top-[14%] font-display text-5xl font-bold italic text-white/[0.07]" style={{ "--r": "-6deg", "--dur": "26s" }}>E = mc²</span>
-        <span className="ul-dash-drift absolute bottom-[40%] right-[40%] font-display text-6xl font-bold text-(--lp-yellow)/[0.12]" style={{ "--r": "8deg", "--dur": "30s", "--delay": "-9s" }}>π</span>
+        <span className="ul-dash-drift absolute left-[44%] top-[14%] max-sm:hidden font-display text-5xl font-bold italic text-white/[0.07]" style={{ "--r": "-6deg", "--dur": "26s" }}>E = mc²</span>
+        <span className="ul-dash-drift absolute bottom-[40%] right-[40%] max-sm:hidden font-display text-6xl font-bold text-(--lp-yellow)/[0.12]" style={{ "--r": "8deg", "--dur": "30s", "--delay": "-9s" }}>π</span>
       </div>
 
-      <div className="relative px-5 pb-5 pt-6 sm:px-8 sm:pt-7">
-        <div className="grid items-center gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+      <div className="relative px-5 pb-5 pt-6 max-sm:px-4 max-sm:pb-4 max-sm:pt-5 sm:px-8 sm:pt-7">
+        <div className="grid items-center gap-4 sm:gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           <div>
-            <h1 className="break-words font-display text-3xl font-bold leading-[1.05] tracking-tight sm:text-4xl lg:text-[2.6rem]">
+            <h1 className="break-words font-display text-[1.75rem] font-bold leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.6rem]">
               Welcome back
               {firstName && (
                 <>
@@ -191,9 +191,9 @@ function DashHero({ firstName, stats, navigate }) {
                 </>
               )}
             </h1>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70 sm:text-[15px]">Pick up a test, check your latest report, or find a new series.</p>
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              <HeroButton onClick={() => navigate("/student/test-series")}>Browse test series</HeroButton>
+            <p className="mt-2.5 max-w-md text-[13px] leading-relaxed text-white/70 sm:mt-3 sm:text-[15px]">Pick up a test, check your latest report, or find a new series.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:flex sm:flex-wrap sm:gap-2.5">
+              <HeroButton onClick={() => navigate("/student/test-series")}><span className="sm:hidden">Browse series</span><span className="hidden sm:inline">Browse test series</span></HeroButton>
               <HeroButton tone="ghost" onClick={() => navigate("/student/history")}>View history</HeroButton>
             </div>
           </div>
@@ -211,11 +211,11 @@ function DashHero({ firstName, stats, navigate }) {
           )}
         </div>
 
-        <div className="mt-5 border-t-2 border-dashed border-white/15 pt-4">
-          <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 sm:text-xs">Your progress</p>
-          <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5" aria-label="Your stats">
+        <div className="mt-4 border-t-2 border-dashed border-white/15 pt-3 sm:mt-5 sm:pt-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 sm:mb-2.5 sm:text-xs">Your progress</p>
+          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5" aria-label="Your stats">
             {tiles.map((t) => (
-              <FlipTile key={t.label} icon={t.icon} value={t.value} suffix={t.suffix} label={t.label} tone={t.tone} />
+              <FlipTile key={t.label} icon={t.icon} value={t.value} suffix={t.suffix} label={t.label} tone={t.tone} className="max-sm:last:col-span-2" />
             ))}
           </section>
         </div>
@@ -244,7 +244,7 @@ function CoverArt({ glyph }) {
         <path d="M0 128c60-26 110 22 180-6s100-30 140-8" stroke="currentColor" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" />
       </svg>
       <span
-        className="pointer-events-none absolute -bottom-3 right-4 select-none font-display text-[5.5rem] font-extrabold italic leading-none tracking-tight text-(--lp-ink)/[0.14] transition-transform duration-500 ease-out group-hover:-translate-y-1.5 group-hover:-rotate-6"
+        className="pointer-events-none absolute -bottom-2 right-4 select-none font-display text-5xl font-extrabold sm:-bottom-3 sm:text-[5.5rem] italic leading-none tracking-tight text-(--lp-ink)/[0.14] transition-transform duration-500 ease-out group-hover:-translate-y-1.5 group-hover:-rotate-6"
         aria-hidden="true"
       >
         {glyph}
@@ -270,32 +270,32 @@ function DashSeriesCard({ series, index = 0, progress, onOpen, onResume, actionL
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(e); }}
-      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.25rem] bg-white sm:rounded-[1.75rem] shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
-      <div className={`relative aspect-[2/1] w-full overflow-hidden ${rotationClassFor(index)}`}>
+      <div className={`relative h-16 w-full overflow-hidden sm:aspect-[2/1] sm:h-auto ${rotationClassFor(index)}`}>
         <CoverArt glyph={glyphFor(series, index)} />
         {badge && (
-          <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary shadow-sm">
+          <span className="absolute left-3 top-2.5 rounded-full bg-white px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-primary sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] shadow-sm">
             {badge}
           </span>
         )}
         {hasProgress && (
-          <span className="absolute right-4 top-4 rounded-full bg-(--lp-ink) px-2.5 py-1 text-[10px] font-bold tabular-nums text-white shadow-sm">{Math.round(pct)}%</span>
+          <span className="absolute right-3 top-2.5 rounded-full bg-(--lp-ink) px-2 py-0.5 text-[9px] sm:right-4 sm:top-4 sm:px-2.5 sm:py-1 sm:text-[10px] font-bold tabular-nums text-white shadow-sm">{Math.round(pct)}%</span>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-5">
-        <h3 className="line-clamp-2 min-h-[2.75rem] font-display text-lg font-bold leading-snug tracking-tight text-text">{series.title}</h3>
-        {series.subject && <p className="line-clamp-1 text-sm font-medium text-text/70">{series.subject}</p>}
+      <div className="flex flex-1 flex-col gap-1 p-3.5 sm:gap-2 sm:p-5">
+        <h3 className="line-clamp-2 font-display text-[15px] font-bold sm:min-h-[2.75rem] sm:text-lg leading-snug tracking-tight text-text">{series.title}</h3>
+        {series.subject && <p className="line-clamp-1 text-[13px] font-medium text-text/70 sm:text-sm">{series.subject}</p>}
         {meta && (
           <p className="flex items-center gap-1.5 text-xs text-(--lp-muted)">
             <ClockIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span className="line-clamp-1">{meta}</span>
           </p>
         )}
-        {series.description && <p className="line-clamp-2 text-xs leading-relaxed text-text/55">{series.description}</p>}
+        {series.description && <p className="line-clamp-2 text-xs leading-relaxed text-text/55 max-sm:hidden">{series.description}</p>}
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto pt-2 sm:pt-4">
           {hasProgress ? (
             <div className="flex items-center gap-3">
               <div
@@ -310,7 +310,7 @@ function DashSeriesCard({ series, index = 0, progress, onOpen, onResume, actionL
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onResume?.(); }}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-(--lp-ink) px-4 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:bg-(--lp-blue-deep) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-(--lp-ink) px-3.5 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-(--lp-blue-deep) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-4 sm:py-2"
               >
                 Open
                 <ChevronRightIcon className="h-3.5 w-3.5" />
@@ -481,7 +481,7 @@ export default function Dashboard() {
         {enrolled.length === 0 ? (
           <Empty>You haven't enrolled in a test series yet. Recommended series are below.</Empty>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {enrolled.map((s, i) => (
               <Rise key={s.id} delay={i * 80} className="h-full">
                 <DashSeriesCard series={s} index={i} progress={Number(s.progress_percentage) || 0}
@@ -514,7 +514,7 @@ export default function Dashboard() {
           title="Recommended for you"
           action={<PillLink onClick={() => navigate("/student/test-series")}>Browse all</PillLink>}
         >
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {recommended.map((s, i) => (
               <Rise key={s.id} delay={i * 80} className="h-full">
                 <DashSeriesCard series={s} index={i} actionLabel="View" onAction={() => navigate(`/student/dashboard/series/${s.id}`)}

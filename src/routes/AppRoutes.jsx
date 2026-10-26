@@ -1,11 +1,14 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import AuthLayout from "../layouts/AuthLayout";
 import PublicLayout from "../layouts/PublicLayout";
-import StudentLayout from "../layouts/StudentLayout";
-import TeacherLayout from "../layouts/TeacherLayout";
-import AdminLayout from "../layouts/AdminLayout";
-import RegionalHeadLayout from "../layouts/RegionalHeadLayout";
+// Portal shells are loaded on demand: a visitor on the landing page or a
+// student never downloads the teacher / admin / regional-head code.
+const StudentLayout = lazy(() => import("../layouts/StudentLayout"));
+const TeacherLayout = lazy(() => import("../layouts/TeacherLayout"));
+const AdminLayout = lazy(() => import("../layouts/AdminLayout"));
+const RegionalHeadLayout = lazy(() => import("../layouts/RegionalHeadLayout"));
 import NotFound from "../components/common/NotFound";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 import ScrollToTop from "../components/common/ScrollToTop";
@@ -18,9 +21,10 @@ import studentRoutes, { studentOnboardingRoutes } from "../portals/student/route
 import teacherRoutes, { teacherRegistrationRoutes } from "../portals/teacher/routes";
 import adminRoutes from "../portals/admin/routes";
 import regionalHeadRoutes from "../portals/regionalhead/routes";
-import RegionalHeadLogin from "../portals/regionalhead/pages/RegionalHeadLogin";
-import AdminLogin from "../portals/admin/pages/AdminLogin";
-import RegionalHeadInvite from "../portals/admin/pages/RegionalHeadInvite";
+import RouteFallback from "../components/common/RouteFallback";
+const RegionalHeadLogin = lazy(() => import("../portals/regionalhead/pages/RegionalHeadLogin"));
+const AdminLogin = lazy(() => import("../portals/admin/pages/AdminLogin"));
+const RegionalHeadInvite = lazy(() => import("../portals/admin/pages/RegionalHeadInvite"));
 
 import { SessionRequestsProvider } from "../portals/teacher/context/SessionRequestsContext";
 
@@ -38,6 +42,7 @@ export default function AppRoutes() {
   return (
     <>
       <ScrollToTop />
+      <Suspense fallback={<RouteFallback fullscreen />}>
       <Routes>
         <Route element={<PublicLayout />}>{publicRoutes}</Route>
 
@@ -77,6 +82,7 @@ export default function AppRoutes() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </>
   );
 }

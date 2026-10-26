@@ -94,10 +94,10 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
   return (
     <>
     <header className="relative z-30 px-3 pt-3 sm:px-5">
-     <div className="mx-auto flex h-16 max-w-[1320px] items-center gap-2 rounded-full bg-white/85 pl-3 pr-2 shadow-[0_12px_40px_rgba(15,17,21,0.10)] ring-1 ring-white/80 backdrop-blur-xl sm:pl-4">
-      <Link to="/" className="inline-flex shrink-0 items-center gap-2.5 font-display text-base font-bold tracking-tight text-(--lp-ink) sm:text-lg">
-        <BrandMark className="h-10 w-10" />
-        <span className="hidden sm:inline">{title}</span>
+     <div className="mx-auto flex h-14 max-w-[1320px] items-center gap-2 rounded-full bg-white/85 pl-2.5 pr-1.5 sm:h-16 sm:pl-3 sm:pr-2 shadow-[0_12px_40px_rgba(15,17,21,0.10)] ring-1 ring-(--lp-line) backdrop-blur-xl sm:pl-4">
+      <Link to="/" className="inline-flex min-w-0 shrink items-center gap-2 font-display text-base font-bold tracking-tight text-(--lp-ink) sm:text-lg">
+        <BrandMark className="h-9 w-9 sm:h-10 sm:w-10" />
+        <span className="line-clamp-2 max-w-[6.5rem] text-[13px] font-bold leading-[1.1] sm:max-w-none sm:text-lg sm:leading-normal">{title}</span>
       </Link>
 
       {(navItems || navGroups || navEntries) && (
@@ -158,7 +158,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
           </Link>
         )}
         {initials && (
-          <Link to="/student/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-(--lp-yellow) text-xs font-bold text-(--lp-ink) ring-2 ring-white shadow-sm transition-transform duration-200 ease-out hover:-translate-y-0.5" aria-label="Open profile">
+          <Link to="/student/profile" className="flex h-9 w-9 items-center justify-center rounded-full bg-(--lp-yellow) text-xs font-bold text-(--lp-ink) ring-2 ring-white shadow-sm sm:h-10 sm:w-10 transition-transform duration-200 ease-out hover:-translate-y-0.5" aria-label="Open profile">
             {initials}
           </Link>
         )}

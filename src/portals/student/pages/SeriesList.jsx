@@ -135,7 +135,7 @@ export default function SeriesList({ publicMode = false }) {
   };
 
   return (
-    <div className={`${PAGE} space-y-8 pb-10`}>
+    <div className={`${PAGE} pb-10`}>
       <PageHero
         compact
         theme="sky"
@@ -154,7 +154,7 @@ export default function SeriesList({ publicMode = false }) {
             placeholder="Search by title, subject or exam"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="h-14 w-full rounded-full border-0 bg-white pl-12 pr-5 text-sm text-text shadow-[0_22px_50px_-18px_rgba(37,87,214,0.28)] ring-1 ring-(--lp-line) transition-shadow duration-200 ease-out placeholder:text-text/40 focus:outline-none focus:shadow-[0_26px_60px_-16px_rgba(37,87,214,0.4)] focus:ring-2 focus:ring-(--lp-blue)"
+            className="h-12 w-full rounded-full border-0 bg-white pl-12 sm:h-14 pr-5 text-sm text-text shadow-[0_22px_50px_-18px_rgba(37,87,214,0.28)] ring-1 ring-(--lp-line) transition-shadow duration-200 ease-out placeholder:text-text/40 focus:outline-none focus:shadow-[0_26px_60px_-16px_rgba(37,87,214,0.4)] focus:ring-2 focus:ring-(--lp-blue)"
           />
         </div>
         {!publicMode && (data?.categories?.length ?? 0) > 0 && (
@@ -166,22 +166,22 @@ export default function SeriesList({ publicMode = false }) {
           </div>
         )}
         {(data?.items?.length ?? 0) > 0 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end" role="group" aria-label="Filter test series">
-            <div className="block sm:w-52">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-end" role="group" aria-label="Filter test series">
+            <div className="block min-w-0 sm:w-52">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text/60">Subject</span>
               <Select wrapperClassName="block w-full" className={FILTER_SELECT} value={subject} onChange={(e) => setParam("subject", e.target.value)}>
                 <option value="">All subjects</option>
                 {subjects.map((v) => <option key={v} value={v}>{v}</option>)}
               </Select>
             </div>
-            <div className="block sm:w-48">
+            <div className="block min-w-0 sm:w-48">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text/60">Difficulty</span>
               <Select wrapperClassName="block w-full" className={FILTER_SELECT} value={level} onChange={(e) => setParam("level", e.target.value)}>
                 <option value="">Any level</option>
                 {levels.map((v) => <option key={v} value={v}>{v}</option>)}
               </Select>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-auto">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text/60">Price</span>
               <div className="flex gap-2" role="group" aria-label="Price">
                 {[["", "All"], ["free", "Free"], ["paid", "Paid"]].map(([value, label]) => (
@@ -197,7 +197,7 @@ export default function SeriesList({ publicMode = false }) {
                   ["subject", "level", "price", "category", "page"].forEach((k) => next.delete(k));
                   setParams(next);
                 }}
-                className="h-11 px-2 text-sm font-semibold text-(--lp-blue-deep) underline-offset-4 hover:underline"
+                className="col-span-2 h-11 px-2 text-sm font-semibold text-(--lp-blue-deep) underline-offset-4 hover:underline sm:col-auto"
               >
                 Clear filters
               </button>

@@ -1,9 +1,10 @@
+import { lazy } from "react";
 import { Route } from "react-router-dom";
-import RHDashboard from "./pages/RHDashboard";
-import RHOnboarding from "./pages/RHOnboarding";
-import RHStudents from "./pages/RHStudents";
-import RHProgress from "./pages/RHProgress";
-import RHQueries from "./pages/RHQueries";
+const RHDashboard = lazy(() => import("./pages/RHDashboard"));
+const RHOnboarding = lazy(() => import("./pages/RHOnboarding"));
+const RHStudents = lazy(() => import("./pages/RHStudents"));
+const RHProgress = lazy(() => import("./pages/RHProgress"));
+const RHQueries = lazy(() => import("./pages/RHQueries"));
 
 // Mounted at /regionalhead/* (inside RegionalHeadLayout) by src/routes/AppRoutes.jsx
 const regionalHeadRoutes = (

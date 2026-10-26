@@ -69,28 +69,28 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(e); }}
-      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue)"
+      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.25rem] bg-white sm:rounded-[1.75rem] shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue)"
     >
-      <div className={`relative aspect-[2/1] w-full overflow-hidden ${rotationClassFor(index)}`}>
+      <div className={`relative h-20 w-full overflow-hidden sm:aspect-[2/1] sm:h-auto ${rotationClassFor(index)}`}>
         <svg className="absolute inset-0 h-full w-full text-white transition-transform duration-500 ease-out group-hover:scale-105" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
           {COVER_ART[index % COVER_ART.length]}
         </svg>
         <CoverDots />
-        <CoverGlyph className="right-24">{glyphFor(series, index)}</CoverGlyph>
+        <CoverGlyph className="right-20 max-sm:text-6xl sm:right-24">{glyphFor(series, index)}</CoverGlyph>
         {badge && (
-          <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-(--lp-blue-deep) shadow-sm">
+          <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-0.5 text-[9px] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] font-bold uppercase tracking-[0.12em] text-(--lp-blue-deep) shadow-sm">
             {badge}
           </span>
         )}
-        <span className="absolute -bottom-5 right-5 grid h-14 w-14 place-items-center rounded-2xl bg-white text-(--lp-blue-deep) shadow-[0_8px_20px_rgb(15_17_21/0.14)]" aria-hidden="true">
-          <BookOpenIcon className="h-6 w-6" />
+        <span className="absolute -bottom-4 right-4 grid h-11 w-11 place-items-center rounded-xl bg-white sm:-bottom-5 sm:right-5 sm:h-14 sm:w-14 sm:rounded-2xl text-(--lp-blue-deep) shadow-[0_8px_20px_rgb(15_17_21/0.14)]" aria-hidden="true">
+          <BookOpenIcon className="h-5 w-5 sm:h-6 sm:w-6" />
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-5 pt-6">
+      <div className="flex flex-1 flex-col gap-2.5 p-4 pt-5 sm:gap-3 sm:p-5 sm:pt-6">
         <div className="space-y-1">
-          <h3 className="line-clamp-2 min-h-[3rem] pr-12 font-display text-lg font-bold leading-snug tracking-tight text-text">{series.title}</h3>
-          {series.subject && <p className="line-clamp-1 text-sm font-medium text-text/60">{series.subject}</p>}
+          <h3 className="line-clamp-2 pr-10 font-display text-base font-bold sm:min-h-[3rem] sm:pr-12 sm:text-lg leading-snug tracking-tight text-text">{series.title}</h3>
+          {series.subject && <p className="line-clamp-1 text-[13px] font-medium text-text/60 sm:text-sm">{series.subject}</p>}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -99,10 +99,10 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
           {series.level ? <MetaChip icon={TargetIcon}>{series.level}</MetaChip> : null}
         </div>
 
-        {series.description && <p className="line-clamp-2 text-xs leading-relaxed text-text/55">{series.description}</p>}
+        {series.description && <p className="line-clamp-2 text-xs leading-relaxed text-text/55 max-sm:hidden">{series.description}</p>}
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-(--lp-line) pt-4">
-          <span className="font-display text-xl font-bold tracking-tight text-text">{priceLabel(series)}</span>
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-(--lp-line) pt-3 sm:pt-4">
+          <span className="font-display text-lg sm:text-xl font-bold tracking-tight text-text">{priceLabel(series)}</span>
           {actionLabel && (
             <button
               type="button"

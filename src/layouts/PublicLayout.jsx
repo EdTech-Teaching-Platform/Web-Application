@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import RouteFallback from "../components/common/RouteFallback";
 import Button from "../components/ui/Button";
 import SectionShapes from "../components/common/SectionShapes";
 import { useAuth } from "../hooks/useAuth";
@@ -50,7 +52,7 @@ export default function PublicLayout() {
       <div style={LANDING_THEME_VARS} className="relative min-h-screen bg-white font-body text-text selection:bg-(--lp-yellow) selection:text-(--lp-ink)">
         <LandingHeader links={links} communityHref={communityHref} />
         <main className="public-page-content relative z-10">
-          <Outlet />
+          <Suspense fallback={<RouteFallback />}><Outlet /></Suspense>
         </main>
       </div>
     );
@@ -97,7 +99,7 @@ export default function PublicLayout() {
       </header>
       <SectionShapes variant="public" />
       <main className="public-page-content relative z-10">
-        <Outlet />
+        <Suspense fallback={<RouteFallback />}><Outlet /></Suspense>
       </main>
     </div>
   );

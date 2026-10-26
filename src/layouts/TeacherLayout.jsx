@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Suspense } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
+import RouteFallback from "../components/common/RouteFallback";
 import { useAuth } from "../hooks/useAuth";
 import { useSessionRequests } from "../portals/teacher/context/SessionRequestsContext";
 import { useTestSeries } from "../context/TestSeriesContext";
@@ -219,7 +221,9 @@ export default function TeacherLayout() {
               onDismissApproved={() => dismissApprovedNotice(account.id)}
             />
             <LockedSection locked={locked} blur icon={ClockIcon} title={lockCopy.title} reason={lockCopy.reason}>
-              <Outlet />
+              <Suspense fallback={<RouteFallback />}>
+                <Outlet />
+              </Suspense>
             </LockedSection>
           </div>
         </main>

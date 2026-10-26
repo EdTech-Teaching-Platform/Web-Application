@@ -19,6 +19,9 @@ import { profileApi } from "../services/profileApi";
 import { studentSeriesApi } from "../services/studentSeriesApi";
 import { formatPercent, formatSeconds } from "../utils/format";
 
+// Short fields that sit two-up on phones; everything else takes a full row.
+const PAIRED = new Set(["location", "grade", "age", "gender"]);
+
 const TEXT_FIELDS = [
   { name: "full_name", label: "Full name", autoComplete: "name" },
   { name: "phone", label: "Phone", autoComplete: "tel" },
@@ -61,7 +64,7 @@ function StatsSection() {
   if (loading) return <LoadingState label="Loading your stats" rows={1} />;
   if (error) return <ErrorState error={error} onRetry={reload} title="Couldn't load your stats" />;
   return (
-    <section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Your stats">
+    <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-label="Your stats">
       <StatTile icon={FileTextIcon} tone="blue" value={stats.tests_taken} label="Tests taken" />
       <StatTile icon={AwardIcon} tone="yellow" value={stats.tests_passed} label="Tests passed" />
       <StatTile icon={BookOpenIcon} tone="peach" value={stats.series_enrolled} label="Series enrolled" />
@@ -117,13 +120,13 @@ function ProfileFields({ user, email, initial, reload, message, setMessage }) {
   };
 
   return (
-    <form onSubmit={save} noValidate className="space-y-6 rounded-[2rem] bg-white p-6 shadow-[0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) sm:p-8">
+    <form onSubmit={save} noValidate className="space-y-5 rounded-[1.5rem] bg-white p-4 shadow-[0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) sm:space-y-6 sm:rounded-[2rem] sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="relative inline-block font-display text-2xl font-bold tracking-tight text-text sm:text-3xl">
           Profile
           <Squiggle className="absolute -bottom-2.5 left-0 h-2 w-full text-(--lp-blue)/70" />
         </h2>
-        <p className="inline-flex max-w-full items-center gap-2 rounded-full bg-(--lp-grey) px-4 py-2 text-sm text-text/70">
+        <p className="inline-flex w-full max-w-full items-center gap-2 rounded-full bg-(--lp-grey) px-3.5 py-2 text-[13px] text-text/70 sm:w-auto sm:px-4 sm:text-sm">
           <MailIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <span className="truncate">Signed in as {email}</span>
         </p>
@@ -137,11 +140,12 @@ function ProfileFields({ user, email, initial, reload, message, setMessage }) {
           <span>{message.text}</span>
         </p>
       )}
-      <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-5 sm:gap-y-5">
         {TEXT_FIELDS.map((f) => (
           <Input
             key={f.name}
             label={f.label}
+            containerClassName={PAIRED.has(f.name) ? "" : "col-span-2 sm:col-span-1"}
             type={f.type ?? "text"}
             value={form[f.name]}
             autoComplete={f.autoComplete}
@@ -153,11 +157,11 @@ function ProfileFields({ user, email, initial, reload, message, setMessage }) {
         ))}
       </div>
       <ChipInput label="Interests" values={form.interests} onChange={(v) => set("interests", v)} placeholder="e.g. physics, maths" max={10} />
-      <div className="flex flex-wrap items-center gap-3 border-t border-(--lp-line) pt-6">
+      <div className="flex flex-col gap-2.5 border-t border-(--lp-line) pt-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:pt-6">
         <Button type="submit" fullWidth={false} disabled={!valid || !dirty || saving}>{saving ? "Saving…" : "Save changes"}</Button>
         <Link
           to="/forgot-password"
-          className="inline-flex items-center gap-2 rounded-full bg-(--lp-grey) px-5 py-3 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-(--lp-blue-soft) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-(--lp-grey) px-5 py-3 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-(--lp-blue-soft) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <LockIcon className="h-4 w-4" aria-hidden="true" />
           Change password
@@ -172,7 +176,7 @@ export default function Account() {
   const signOut = useSignOut();
   const initials = (user?.name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   return (
-    <div className={`${PAGE} space-y-8 pb-10`}>
+    <div className={`${PAGE} pb-10`}>
       <PageHero
         compact
         theme="ink"
@@ -180,7 +184,7 @@ export default function Account() {
         eyebrow="Account"
         title={user?.name || "Your account"}
         lead={initials ? (
-          <span className="hidden h-20 w-20 shrink-0 place-items-center rounded-full bg-(--lp-yellow) font-display text-2xl font-bold text-(--lp-ink) ring-4 ring-white/15 sm:grid" aria-hidden="true">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-(--lp-yellow) font-display text-lg font-bold text-(--lp-ink) ring-4 ring-white/15 sm:h-20 sm:w-20 sm:text-2xl" aria-hidden="true">
             {initials}
           </span>
         ) : null}

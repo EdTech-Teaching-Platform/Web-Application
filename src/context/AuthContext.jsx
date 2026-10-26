@@ -25,6 +25,29 @@ export function clearUserStorage(storage = typeof window === "undefined" ? null 
   }
 }
 
+// Last loaded profile, kept per user so a reload shows the signed-in app at once
+// while a fresh copy is fetched behind it. Key is under "ul_student_" so logout
+// clears it. The server still enforces access; this only affects first paint.
+const profileCacheKey = (id) => `ul_student_profile:${id}`;
+
+function readCachedProfile(id) {
+  try {
+    const raw = window.localStorage.getItem(profileCacheKey(id));
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && parsed.id === id && parsed.role ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedProfile(profile) {
+  try {
+    window.localStorage.setItem(profileCacheKey(profile.id), JSON.stringify(profile));
+  } catch {
+    // storage unavailable: the cache is optional
+  }
+}
+
 export function toAppUser(authUser, profile) {
   if (!authUser || !profile) return null;
   return {
@@ -55,13 +78,23 @@ export function AuthProvider({ children }) {
   const currentId = useRef(null);
 
   const loadProfile = useCallback(async (authUser) => {
+    // Show the cached profile immediately (stale-while-revalidate), then
+    // replace it with the fresh one.
+    const cached = readCachedProfile(authUser.id);
+    if (cached && currentId.current === authUser.id) {
+      setUserState(toAppUser(authUser, cached));
+      setError("");
+      setLoading(false);
+    }
     try {
       const profile = await ensureProfile(authUser);
       if (currentId.current !== authUser.id) return;   // signed out meanwhile
+      if (profile) writeCachedProfile(profile);
       setUserState(toAppUser(authUser, profile));
       setError("");
     } catch (err) {
       if (currentId.current !== authUser.id) return;
+      if (cached) return;   // offline / slow: keep the cached session view
       setUserState(null);
       setError(err?.message || "We couldn't load your profile.");
     } finally {

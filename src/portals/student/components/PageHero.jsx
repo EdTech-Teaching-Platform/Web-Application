@@ -31,12 +31,12 @@ export default function PageHero({ theme = "yellow", art = "study", eyebrow, sho
   const Art = HERO_ART[art];
   const glyph = ART_GLYPH[art] ?? "π";
   return (
-    <header className="relative isolate overflow-hidden rounded-[2rem] bg-(--lp-ink) text-white shadow-[0_30px_60px_-30px_rgb(15_17_21/0.55)]">
+    <header className="relative isolate overflow-hidden rounded-[1.5rem] bg-(--lp-ink) sm:rounded-[2rem] text-white shadow-[0_30px_60px_-30px_rgb(15_17_21/0.55)]">
       <style>{MOTION_CSS}</style>
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
         <div className="absolute -right-28 -top-28 h-[22rem] w-[22rem] rounded-full border border-white/10" />
         <div className="absolute -right-14 -top-14 h-[15rem] w-[15rem] rounded-full border border-white/10" />
-        <div className="ul-dash-drift absolute -right-5 -top-5 h-[7.5rem] w-[7.5rem] rounded-full bg-(--lp-blue)/80" style={{ "--dx": "-8px", "--dy": "10px", "--dur": "28s" }} />
+        <div className="ul-dash-drift absolute -right-5 -top-5 h-20 w-20 rounded-full sm:h-[7.5rem] sm:w-[7.5rem] bg-(--lp-blue)/80" style={{ "--dx": "-8px", "--dy": "10px", "--dur": "28s" }} />
         <div className={`ul-dash-drift absolute -left-20 top-1/4 h-60 w-60 rounded-full blur-3xl ${t.glow}`} style={{ "--dx": "26px", "--dy": "18px", "--dur": "32s" }} />
         <div
           className="absolute inset-0 opacity-40"
@@ -50,7 +50,7 @@ export default function PageHero({ theme = "yellow", art = "study", eyebrow, sho
         <span className="ul-dash-drift absolute right-[34%] top-[10%] hidden font-display text-5xl font-bold italic text-white/[0.06] md:block" style={{ "--r": "-6deg", "--dur": "26s" }}>{glyph}</span>
       </div>
 
-      <div className={`relative grid items-center gap-6 px-5 sm:px-8 md:grid-cols-[1.35fr_0.65fr] ${compact ? "py-6" : "py-8"}`}>
+      <div className={`relative grid items-center gap-6 px-4 sm:px-8 md:grid-cols-[1.35fr_0.65fr] ${compact ? "py-5 sm:py-6" : "py-6 sm:py-8"}`}>
         <div className="flex items-center gap-5">
           {lead}
           <div className="min-w-0">
@@ -63,8 +63,8 @@ export default function PageHero({ theme = "yellow", art = "study", eyebrow, sho
                 <span className="truncate">{eyebrow}</span>
               </span>
             )}
-            <h1 className={`break-words font-display font-bold tracking-tight ${eyebrow && showEyebrow ? "mt-3.5" : ""} ${compact ? "text-3xl leading-tight sm:text-4xl" : "text-3xl leading-[1.05] sm:text-4xl lg:text-[2.75rem]"}`}>{title}</h1>
-            {subtitle && <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70 sm:text-[15px]">{subtitle}</p>}
+            <h1 className={`break-words font-display font-bold tracking-tight ${eyebrow && showEyebrow ? "mt-3.5" : ""} ${compact ? "text-[1.65rem] leading-tight sm:text-4xl" : "text-[1.65rem] leading-[1.1] sm:text-4xl lg:text-[2.75rem]"}`}>{title}</h1>
+            {subtitle && <p className="mt-2 max-w-md text-[13px] leading-relaxed text-white/70 sm:mt-3 sm:text-[15px]">{subtitle}</p>}
             {children && <div className="mt-5 flex flex-wrap gap-2.5">{children}</div>}
           </div>
         </div>

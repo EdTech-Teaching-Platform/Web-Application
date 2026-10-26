@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import { BookOpenIcon, ClockIcon, CompassIcon, FileTextIcon, HomeIcon, UsersIcon } from "../components/ui/icons";
@@ -7,6 +7,7 @@ import { useSignOut } from "../hooks/useSignOut";
 import StudentErrorBoundary from "../components/common/StudentErrorBoundary";
 import StudentBackdrop from "../components/common/StudentBackdrop";
 import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
+import RouteFallback from "../components/common/RouteFallback";
 
 // Test-series portal only. Explore / courses, wishlist, payments, messages
 // and the other mock-backed screens are hidden (see src/portals/student/routes.jsx).
@@ -21,14 +22,14 @@ const navEntries = [
 function MobileNav() {
   const { pathname } = useLocation();
   const items = [
-    { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
+    { href: "/student/dashboard", label: "Home", icon: HomeIcon },
     { href: "/student/test-series", label: "Series", icon: BookOpenIcon },
-    { href: "/student/my-tests", label: "My Tests", icon: BookOpenIcon },
+    { href: "/student/my-tests", label: "My Tests", icon: FileTextIcon },
     { href: "/student/history", label: "History", icon: ClockIcon, alsoActive: ["/student/report"] },
     { href: "/student/account", label: "Account", icon: UsersIcon },
   ];
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 rounded-full bg-white/95 px-2 py-1.5 shadow-[0_14px_40px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) backdrop-blur md:hidden">
+    <nav className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-full bg-white/95 p-1.5 shadow-[0_14px_40px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) backdrop-blur md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href || (!item.exact && pathname.startsWith(`${item.href}/`)) || Boolean(item.alsoActive?.some((p) => pathname === p || pathname.startsWith(`${p}/`)));
@@ -36,7 +37,7 @@ function MobileNav() {
           <Link
             key={item.href}
             to={item.href}
-            className={`flex min-w-0 flex-col items-center gap-0.5 rounded-full px-1 py-1.5 text-[10px] font-semibold transition-colors duration-150 ${
+            className={`flex min-w-0 flex-col items-center gap-0.5 rounded-full px-1 py-2 text-[10px] font-semibold transition-colors duration-150 ${
               active ? "bg-(--lp-ink) text-white" : "text-(--lp-muted)"
             }`}
           >
@@ -54,6 +55,9 @@ function MobileNav() {
 const PAGE_TRANSITION_CSS = `
 @keyframes ul-page-in { from { opacity: 0; } to { opacity: 1; } }
 .ul-page-in { animation: ul-page-in 0.32s ease-out backwards; }
+/* Phones: the whole student portal is sized in rem, so scaling the root down
+   a notch gives every screen less "zoomed-in" proportions at once. */
+@media (max-width: 639px) { html { font-size: 14px; } }
 @media (prefers-reduced-motion: reduce) { .ul-page-in { animation: none; } }
 `;
 
@@ -65,6 +69,23 @@ export default function StudentLayout() {
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [location.pathname]);
+  // Warm the other student screens while the browser is idle, so switching tabs
+  // never waits for a download (same specifiers as the lazy routes = same chunks).
+  useEffect(() => {
+    const warm = () => {
+      import("../portals/student/pages/SeriesList");
+      import("../portals/student/pages/MyTests");
+      import("../portals/student/pages/History");
+      import("../portals/student/pages/Account");
+      import("../portals/student/pages/SeriesDetail");
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(warm, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(warm, 2000);
+    return () => clearTimeout(t);
+  }, []);
   const { user } = useAuth();
   const signOut = useSignOut();
   const isCoursePlayer = location.pathname === "/student/courseplayer";
@@ -112,7 +133,9 @@ export default function StudentLayout() {
               <style>{PAGE_TRANSITION_CSS}</style>
               <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
                 <div key={location.pathname} className="ul-page-in">
-                  <Outlet />
+                  <Suspense fallback={<RouteFallback />}>
+                    <Outlet />
+                  </Suspense>
                 </div>
               </StudentErrorBoundary>
             </div>

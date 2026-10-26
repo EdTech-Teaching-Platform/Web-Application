@@ -82,4 +82,4 @@ export function PageHeader({ eyebrow, title, subtitle, actions }) {
   );
 }
 
-export const PAGE = "mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6 lg:px-8";
+export const PAGE = "mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8";

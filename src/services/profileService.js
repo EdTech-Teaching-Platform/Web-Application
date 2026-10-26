@@ -41,9 +41,23 @@ async function readProfile(userId) {
   return data;
 }
 
+// Once the student_profiles row is known to exist we remember that in this
+// browser (key is under the "ul_student_" prefix, so logout clears it) and skip
+// the write on later sign-ins / reloads: one round trip less before the app
+// can render.
+const studentRowKey = (userId) => `ul_student_row_ok:${userId}`;
+
+function studentRowKnown(userId) {
+  try { return window.localStorage.getItem(studentRowKey(userId)) === "1"; } catch { return false; }
+}
+
 async function ensureStudentRow(userId) {
+  if (studentRowKnown(userId)) return;
   // Insert-or-ignore; a failure here must not block sign-in (the Account page retries).
-  await supabase.from("student_profiles").upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
+  const { error } = await supabase.from("student_profiles").upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
+  if (!error) {
+    try { window.localStorage.setItem(studentRowKey(userId), "1"); } catch { /* optional */ }
+  }
 }
 
 async function run(user) {

@@ -1,16 +1,17 @@
+import { lazy } from "react";
 import { Navigate, Route, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import Dashboard from "./pages/Dashboard";
-import SeriesList from "./pages/SeriesList";
-import SeriesDetail from "./pages/SeriesDetail";
-import TestIntro from "./pages/TestIntro";
-import TestRunner from "./pages/TestRunner";
-import TestReport from "./pages/TestReport";
-import History from "./pages/History";
-import MyTests from "./pages/MyTests";
-import Account from "./pages/Account";
-import ComingSoon from "./pages/ComingSoon";
-import StudentOnboarding from "./pages/StudentOnboarding";
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const SeriesList = lazy(() => import("./pages/SeriesList"));
+const SeriesDetail = lazy(() => import("./pages/SeriesDetail"));
+const TestIntro = lazy(() => import("./pages/TestIntro"));
+const TestRunner = lazy(() => import("./pages/TestRunner"));
+const TestReport = lazy(() => import("./pages/TestReport"));
+const History = lazy(() => import("./pages/History"));
+const MyTests = lazy(() => import("./pages/MyTests"));
+const Account = lazy(() => import("./pages/Account"));
+const ComingSoon = lazy(() => import("./pages/ComingSoon"));
+const StudentOnboarding = lazy(() => import("./pages/StudentOnboarding"));
 import { homePathForUser } from "../../utils/roles";
 
 // The student portal is test series only for now. Course discovery (Explore,

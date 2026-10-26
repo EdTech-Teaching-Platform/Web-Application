@@ -1,8 +1,9 @@
+import { lazy } from "react";
 import { Navigate, Route, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import LandingPage from "./pages/LandingPage";
-import SeriesList from "../portals/student/pages/SeriesList";
-import SeriesDetail from "../portals/student/pages/SeriesDetail";
+const SeriesList = lazy(() => import("../portals/student/pages/SeriesList"));
+const SeriesDetail = lazy(() => import("../portals/student/pages/SeriesDetail"));
 
 // Public/pre-portal routes — mounted under PublicLayout in
 // src/routes/AppRoutes.jsx. Visitors browse published test series through the
