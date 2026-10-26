@@ -99,6 +99,145 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-10-27: fast "Publish now" / "Save as draft" (written, nothing applied)
+
+### Network calls (before → after)
+
+- **Opening the wizard:**
+  - **Before:** `list_test_series` (100 rows, with enrolment and attempt counts
+    over every series), only for the hidden "Duplicate" start and a name
+    warning.
+  - **After:** loaded only when the Duplicate start is picked. The name warning
+    uses `series_name_exists`, which was already being called (300 ms
+    debounce).
+- **Editing a draft:** `get_test_series` (full tree) is unchanged. A lighter
+  read is an open item.
+- **Publish now / Schedule go-live:** already one RPC,
+  `upsert_test_series_full(p, true)`. It saves, validates and publishes in one
+  transaction, and stays that way. Then the app goes to the list page, which
+  loads its own page (`list_test_series` page 1, `get_test_series_stats`).
+  Nothing reloads the list twice.
+- **Save as draft:**
+  - a saved series: one `save_wizard_draft` (stores the wizard state only);
+  - a new series: one `upsert_test_series_full(p, false)`.
+
+### Server: `20261027110000_admin_fast_publish.sql`
+
+Same rows, same errors, set-based. No similarity or repeated-question scan runs
+on save or publish: `detect_repeated_questions` runs only from the cron job and
+the tracker's button.
+
+| Was (per row) | Now |
+|---|---|
+| Duplicate-name check through `adm_series_rows()` (every series + courses + categories; a SECURITY DEFINER table function, so never inlined) | `adm_series_name_taken()`: one lookup on `test_series` / `test_series_admin`. Also behind `series_name_exists`. |
+| `adm_ensure_series_admin` through `adm_series_rows()` (twice per publish) | Reads only that series |
+| `adm_delete_quiz` per test | `adm_delete_series_quizzes`: three deletes for the whole series |
+| Per question: section subquery, `adm_insert_question`, `adm_insert_options` option-by-option loop | `adm_insert_questions_bulk`: per test, one statement writes questions, admin rows and options (`adm_question_options` gives the same options as rows). The `20261027090000` guards are kept, with the same messages. |
+| Section insert loop | One `insert … select` per test |
+| `adm_validate_quiz_for_publish` per test (a `not exists` per question) | `adm_series_publish_problem`: one query; same first failing test, same message |
+| `adm_complete_assignments_for_quiz` per test | `adm_complete_assignments_for_series` |
+
+- **Double submits on the server:**
+  - an existing series: `select … for update` on its `test_series` row;
+  - a new series: `pg_advisory_xact_lock` on the lower-cased name.
+
+  Before, two concurrent saves of one series could both insert their tests,
+  doubling them.
+- **Replaced (ours, same signatures and grants):**
+  - `adm_ensure_series_admin`
+  - `series_name_exists`
+  - `adm_publish_test_series`
+  - `upsert_test_series_full`
+- **New internal helpers** (revoked from `anon` / `authenticated`):
+  - `adm_series_name_taken`
+  - `adm_question_options`
+  - `adm_insert_questions_bulk`
+  - `adm_delete_series_quizzes`
+  - `adm_series_publish_problem`
+  - `adm_complete_assignments_for_series`
+- **Behaviour difference:** when a payload has several problems, the first one
+  reported can differ, because each test's questions are checked before any
+  are written. Still all-or-nothing.
+- **Index (not a migration):** `scripts/admin_indexes_concurrently.sql` now
+  also has `adm_quiz_question_options_question_idx` on
+  `quiz_question_options (question_id)`, for the lead's approval.
+  - Without it, every deleted question makes the FK check scan the whole
+    options table, and so does every "has a correct option" check.
+  - Check `pg_indexes` first, in case the lead already has one.
+- **Rollback:** `scripts/rollback_20261027110000_admin_fast_publish.sql` (one
+  transaction). It restores the four functions verbatim from the 20261025 files
+  and drops the six helpers.
+- **Trial:** `docs/trial_run_20261027110000.sql`.
+- **Test:** `supabase/tests/admin_fast_publish.sql` (33 checks and 14 expected errors), local only.
+
+### Frontend
+
+- **`TestSeriesWizard.jsx`** (Publish now / Schedule go-live and Save as draft):
+  - a ref blocks a second click before React re-renders;
+  - both buttons, Back, the step pills and "← Test Series" are disabled while
+    saving;
+  - `beforeunload` warns before closing the tab;
+  - the button reads "Publishing…" / "Scheduling…" / "Saving…" (`aria-busy`).
+- **`components/SaveProgress.jsx`**, in the sticky footer:
+  - **steps:** "Saving questions" → "Validating" → "Publishing" (or
+    "Scheduling go-live"), "Saving questions" for a new draft, "Saving draft"
+    for a saved one;
+  - while the single request runs, the first step shows as in progress. On
+    success the app goes to the list with the toast, as before;
+  - **on error:** the failed step (publish-rule messages map to "Validating"),
+    the server's message plus "Nothing was saved.", and Retry and Dismiss;
+  - **without a server answer** (a dropped connection), it says the series may
+    have been saved and to check the list before retrying.
+- **`utils/saveProgress.js`:** steps, the failed step, and the messages.
+- **Debug timing (`utils/debugTiming.js`):** off by default.
+  - `callRpc` wraps every admin RPC in `console.time("rpc <name> #n")`.
+  - The wizard also times the whole save, labelled with the number of tests and
+    questions.
+  - Turn it on with `localStorage.setItem("ul_debug_rpc_timing", "1")`, or
+    `VITE_DEBUG_RPC_TIMING=true` at build time.
+- **`data/testSeriesWizard.js`:** the review's "Another series already uses
+  this name" warning also uses `ctx.nameTaken`.
+
+### Checks run (nothing applied)
+
+- **PGlite** (in memory):
+  - all 42 migration files apply;
+  - `admin_fast_publish.sql` passes;
+  - `admin_block_subjective`, `feedback_rpcs` and `student_rpcs` still pass;
+  - the trial succeeds.
+  - **Old vs new:** the same 14-step scenario (draft, failed publish, publish
+    with a window and limits, schedule, 6 error payloads, name check,
+    unpublish) gives **identical** rows, audit entries and messages.
+  - After the rollback script, the output is identical to the old one again.
+- **PGlite timings** (10 tests × 100 questions × 4 options; WASM, so only
+  relative):
+
+  | | Old | New |
+  |---|---|---|
+  | Create draft | 451 ms | 300 ms |
+  | Replace and publish | 1,121 ms | 374 ms |
+  | Publish only | 420 ms | 5 ms |
+
+- **Static checks:**
+  - the Postgres 17 parser: 0 errors;
+  - hardening: 295 definitions, 0 problems;
+  - `scripts/admin_verify_push_editor.sql` regenerated: all PASS (34 tables,
+    282 function names).
+- **`npm run build`:** ✅. **`npm test`:** ✅ 83/83, including
+  `tests/admin-fast-publish.test.jsx` (steps, messages, the timing flag, and
+  the wizard: no list on open, the double-click lock, error and retry, and the
+  draft error with dismiss).
+- **Lint:** no new warnings in the changed files.
+
+### Open items
+
+1. **Push:** after `20261027090000` and the feedback files. Run
+   `docs/trial_run_20261027110000.sql` first.
+2. **The options index:** with the lead's approval, one statement at a time.
+3. **Time on the real database:** see "SQL to time" in the hand-off.
+4. **Lighter edit load:** the wizard only needs `wizard_state`, but
+   `get_test_series` builds the whole tree. A small `adm_` read RPC would fix it.
+
 ## 2026-10-27: AI and subjective "coming soon", test feedback and moderation (written, nothing applied)
 
 ### 1. AI-assisted building: coming soon
