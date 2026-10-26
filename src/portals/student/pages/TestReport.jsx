@@ -2,13 +2,13 @@
 // Charts are plain CSS / SVG (ProgressRing, DonutChart); no chart library.
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import Button from "../../../components/ui/Button";
 import Chip from "../../../components/ui/Chip";
 import DonutChart from "../../../components/ui/DonutChart";
-import ProgressRing from "../../../components/ui/ProgressRing";
 import StatCard from "../../../components/ui/StatCard";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import { ErrorState, LoadingState, PAGE, PageHeader } from "../components/PageState";
+import { AlertTriangleIcon, AwardIcon, CheckIcon, ClockIcon, StarIcon, TargetIcon, UsersIcon, XIcon } from "../../../components/ui/icons";
+import { ErrorState, LoadingState, PAGE } from "../components/PageState";
+import PageHero, { HERO_BTN_LIGHT, HERO_BTN_YELLOW } from "../components/PageHero";
 import { useStudentData } from "../hooks/useStudentData";
 import { attemptApi } from "../services/attemptApi";
 import { isRuleError } from "../services/studentRpc";
@@ -21,17 +21,55 @@ const STATUS = {
   pending: { label: "Pending review", tone: "warning" },
 };
 
+const CARD = "rounded-3xl bg-white p-6 ring-1 ring-(--lp-line)";
+
+function CardTitle({ icon: Icon, tone = "bg-(--lp-blue-soft) text-primary", children, as: Tag = "h2" }) {
+  return (
+    <div className="flex items-center gap-3">
+      {Icon && (
+        <span className={`grid h-9 w-9 place-items-center rounded-xl ${tone}`} aria-hidden="true">
+          <Icon className="h-[18px] w-[18px]" />
+        </span>
+      )}
+      <Tag className="font-display text-lg font-bold tracking-tight text-text">{children}</Tag>
+    </div>
+  );
+}
+
 function Bar({ label, value, max = 100, suffix = "%", tone = "bg-primary" }) {
   const width = max > 0 ? Math.min(100, Math.max(0, (Number(value) / max) * 100)) : 0;
   return (
     <div>
-      <div className="flex justify-between text-xs text-text/70">
+      <div className="flex justify-between gap-3 text-xs text-text/70">
         <span className="truncate">{label}</span>
-        <span className="font-semibold text-text">{Math.round(Number(value) * 10) / 10}{suffix}</span>
+        <span className="font-bold text-text">{Math.round(Number(value) * 10) / 10}{suffix}</span>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-text/10" role="img" aria-label={`${label}: ${Math.round(Number(value))}${suffix}`}>
-        <div className={`h-full rounded-full ${tone}`} style={{ width: `${width}%` }} />
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-(--lp-grey)" role="img" aria-label={`${label}: ${Math.round(Number(value))}${suffix}`}>
+        <div className={`h-full rounded-full transition-[width] duration-500 ease-out ${tone}`} style={{ width: `${width}%` }} />
       </div>
+    </div>
+  );
+}
+
+// Score ring with explicit colours (the shared ProgressRing references colour
+// tokens that aren't defined in this theme, so its arc was invisible here).
+function ScoreRing({ value, label, passed, size = 148, stroke = 14 }) {
+  const pct = Math.max(0, Math.min(100, Number(value) || 0));
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div role="img" aria-label={label} className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} stroke="var(--lp-grey)" />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} strokeLinecap="round"
+          stroke={passed ? "var(--color-success)" : "var(--lp-blue)"}
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - pct / 100)}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center font-display text-3xl font-bold tracking-tight text-text">
+        {Math.round(pct)}%
+      </span>
     </div>
   );
 }
@@ -39,13 +77,13 @@ function Bar({ label, value, max = 100, suffix = "%", tone = "bg-primary" }) {
 function Breakdown({ title, buckets }) {
   if (!buckets?.length) return null;
   return (
-    <div className="rounded-2xl bg-white p-5 ring-1 ring-text/10">
-      <h3 className="font-display text-base font-semibold text-text">{title}</h3>
-      <div className="mt-4 space-y-3">
+    <div className={CARD}>
+      <CardTitle as="h3">{title}</CardTitle>
+      <div className="mt-5 space-y-4">
         {buckets.map((b) => (
           <div key={b.name}>
-            <Bar label={`${b.name} (${b.correct}/${b.graded || 0} graded${b.pending ? `, ${b.pending} pending` : ""})`} value={b.accuracy} />
-            {b.skipped > 0 && <p className="mt-0.5 text-[11px] text-text/50">{b.skipped} skipped</p>}
+            <Bar label={`${b.name} (${b.correct}/${b.graded || 0} graded${b.pending ? `, ${b.pending} pending` : ""})`} value={b.accuracy} tone="bg-(--lp-blue)" />
+            {b.skipped > 0 && <p className="mt-1 text-[11px] text-text/50">{b.skipped} skipped</p>}
           </div>
         ))}
       </div>
@@ -53,41 +91,75 @@ function Breakdown({ title, buckets }) {
   );
 }
 
+const Q_TONE = {
+  correct: "bg-success/15 text-success",
+  incorrect: "bg-danger/15 text-danger",
+  skipped: "bg-(--lp-grey) text-(--lp-muted)",
+  pending: "bg-warning/15 text-warning",
+};
+
 export function QuestionReview({ question, hidden }) {
   const s = STATUS[question.status] ?? STATUS.skipped;
   return (
-    <li className="rounded-2xl bg-white p-5 ring-1 ring-text/10">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-text">Q{question.position}</span>
+    <li className={`${CARD} p-5 sm:p-6`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`grid h-9 min-w-9 place-items-center rounded-xl px-2 text-sm font-bold ${Q_TONE[question.status] ?? Q_TONE.skipped}`}>Q{question.position}</span>
         <StatusBadge status={s.tone}>{s.label}</StatusBadge>
-        <span className="ml-auto text-xs text-text/60">
+        <span className="ml-auto rounded-full bg-(--lp-grey) px-3 py-1 text-xs font-semibold text-text/70">
           {question.status === "pending" ? `${question.points} marks, awaiting review` : `${question.points_earned ?? 0} / ${question.points}`}
         </span>
       </div>
-      <p className="mt-2 whitespace-pre-line text-sm text-text">{question.text}</p>
+      <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-text">{question.text}</p>
       {question.options?.length > 0 ? (
-        <ul className="mt-3 space-y-1.5">
+        <ul className="mt-4 space-y-2">
           {question.options.map((o) => (
             <li key={o.id}
-              className={`rounded-xl px-3 py-2 text-sm ring-1 ${o.is_correct ? "bg-success/10 ring-success/40" : o.selected ? "bg-danger/10 ring-danger/40" : "ring-text/10"}`}>
-              {o.text}
-              {o.selected && <span className="ml-2 text-xs font-semibold text-text/70">(your answer)</span>}
-              {o.is_correct && <span className="ml-2 text-xs font-semibold text-success">(correct)</span>}
+              className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm ring-1 ${o.is_correct ? "bg-success/10 ring-success/40" : o.selected ? "bg-danger/10 ring-danger/40" : "bg-white ring-(--lp-line)"}`}>
+              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${o.is_correct ? "bg-success text-white" : o.selected ? "bg-danger text-white" : "ring-1 ring-(--lp-line)"}`} aria-hidden="true">
+                {o.is_correct ? <CheckIcon className="h-3 w-3" /> : o.selected ? <XIcon className="h-3 w-3" /> : null}
+              </span>
+              <span className="min-w-0">
+                {o.text}
+                {o.selected && <span className="ml-2 text-xs font-semibold text-text/70">(your answer)</span>}
+                {o.is_correct && <span className="ml-2 text-xs font-semibold text-success">(correct)</span>}
+              </span>
             </li>
           ))}
         </ul>
       ) : (
-        <dl className="mt-3 space-y-1 text-sm">
+        <dl className="mt-4 space-y-2 rounded-2xl bg-(--lp-grey) px-4 py-3 text-sm">
           <div><dt className="inline font-medium text-text/70">Your answer: </dt><dd className="inline text-text">{question.student_answer || "Not answered"}</dd></div>
           {question.correct_answer && (
             <div><dt className="inline font-medium text-text/70">{question.status === "pending" ? "Model answer: " : "Accepted answer: "}</dt><dd className="inline text-text">{question.correct_answer}</dd></div>
           )}
         </dl>
       )}
-      {question.explanation && <p className="mt-3 rounded-xl bg-bg px-3 py-2 text-sm text-text/70"><strong>Explanation:</strong> {question.explanation}</p>}
-      {hidden && !question.options?.length && <p className="mt-2 text-xs text-text/50">Answers are hidden for this test.</p>}
-      <p className="mt-2 text-[11px] text-text/40">{[question.section, question.topic, question.difficulty].filter(Boolean).join(" · ")}</p>
+      {question.explanation && <p className="mt-4 rounded-2xl bg-(--lp-blue-tint) px-4 py-3 text-sm leading-relaxed text-text/80"><strong>Explanation:</strong> {question.explanation}</p>}
+      {hidden && !question.options?.length && <p className="mt-3 text-xs text-text/50">Answers are hidden for this test.</p>}
+      <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.1em] text-text/40">{[question.section, question.topic, question.difficulty].filter(Boolean).join(" · ")}</p>
     </li>
+  );
+}
+
+function Notice({ children }) {
+  return (
+    <p role="status" className="flex items-start gap-3 rounded-2xl bg-warning/10 px-5 py-4 text-sm text-text ring-1 ring-warning/30">
+      <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+const TILE = "rounded-3xl bg-(--lp-grey) p-4";
+const STAT_VALUE = "font-display text-2xl font-bold leading-none tracking-tight text-text sm:text-3xl";
+const STAT_LABEL = "text-[11px] font-semibold uppercase tracking-[0.12em] text-(--lp-muted)";
+
+function Tile({ icon: Icon, tone, children }) {
+  return (
+    <div className={TILE}>
+      <span className={`grid h-9 w-9 place-items-center rounded-xl ${tone}`} aria-hidden="true"><Icon className="h-[18px] w-[18px]" /></span>
+      <div className="mt-4">{children}</div>
+    </div>
   );
 }
 
@@ -125,55 +197,69 @@ export default function TestReport() {
   const canRetake = Boolean(intro?.can_start);
 
   return (
-    <div className={PAGE}>
-      <PageHeader
+    <div className={`${PAGE} space-y-8 pb-10`}>
+      <PageHero
+        compact
+        theme="blue"
+        art="chart"
         eyebrow={report.series_title || "Report"}
         title={report.test_title}
         subtitle={`Attempt ${s.attempt_number} · submitted ${formatDate(s.submitted_at, true)}`}
-        actions={
-          <>
-            {report.series_id && (
-              <Button variant="secondary" fullWidth={false} onClick={() => navigate(`/student/test-series/${report.series_id}`)}>Back to series</Button>
-            )}
-            {canRetake && <Button fullWidth={false} onClick={() => navigate(`/student/test/${report.test_id}`)}>Retake</Button>}
-          </>
-        }
-      />
+      >
+        {report.series_id && (
+          <button type="button" onClick={() => navigate(`/student/test-series/${report.series_id}`)} className={HERO_BTN_LIGHT}>
+            Back to series
+          </button>
+        )}
+        {canRetake && (
+          <button type="button" onClick={() => navigate(`/student/test/${report.test_id}`)} className={HERO_BTN_YELLOW}>
+            Retake
+          </button>
+        )}
+      </PageHero>
 
       {s.auto_submitted && (
-        <p role="status" className="rounded-xl bg-warning/10 px-4 py-3 text-sm text-text">
+        <Notice>
           {s.auto_submit_reason === "proctor_limit"
             ? `This test was submitted automatically after ${s.violations_count} violations (limit ${s.violation_limit}).`
             : "This test was submitted automatically when time ran out."}
-        </p>
+        </Notice>
       )}
       {s.pending_count > 0 && (
-        <p role="status" className="rounded-xl bg-warning/10 px-4 py-3 text-sm text-text">
+        <Notice>
           {s.pending_count} written {s.pending_count === 1 ? "answer is" : "answers are"} pending review ({s.pending_marks} marks).
           Your score below leaves them out, so it may change once they're graded.
-        </p>
+        </Notice>
       )}
 
-      <section className="grid gap-6 rounded-3xl bg-white p-6 ring-1 ring-text/10 md:grid-cols-[auto_1fr] md:items-center">
-        <div className="flex flex-col items-center gap-2">
-          <ProgressRing value={s.percentage} size={132} stroke={12} label={`Score ${formatPercent(s.percentage, 1)}`} />
+      <section className={`${CARD} grid gap-8 p-6 sm:p-8 md:grid-cols-[auto_1fr] md:items-center`}>
+        <div className="flex flex-col items-center gap-3">
+          <ScoreRing value={s.percentage} passed={s.passed} label={`Score ${formatPercent(s.percentage, 1)}`} />
           <StatusBadge status={s.passed ? "success" : "danger"}>
             {s.passed ? "Passed" : "Not passed"}{s.provisional ? " (provisional)" : ""}
           </StatusBadge>
         </div>
-        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-          <StatCard value={formatScore(s.score, s.max_score)} label="Score" />
-          <StatCard value={`#${s.rank}`} label={`Rank of ${s.total_attempts}`} />
-          <StatCard value={formatPercent(s.percentile)} label="Percentile" />
-          <StatCard value={formatPercent(s.passing_percentage)} label="Pass mark" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Tile icon={AwardIcon} tone="bg-(--lp-blue-soft) text-primary">
+            <StatCard value={formatScore(s.score, s.max_score)} label="Score" valueClassName={STAT_VALUE} labelClassName={STAT_LABEL} className="gap-2" />
+          </Tile>
+          <Tile icon={StarIcon} tone="bg-(--lp-yellow-soft) text-(--lp-ink)">
+            <StatCard value={`#${s.rank}`} label={`Rank of ${s.total_attempts}`} valueClassName={STAT_VALUE} labelClassName={STAT_LABEL} className="gap-2" />
+          </Tile>
+          <Tile icon={UsersIcon} tone="bg-rotation-3/25 text-primary">
+            <StatCard value={formatPercent(s.percentile)} label="Percentile" valueClassName={STAT_VALUE} labelClassName={STAT_LABEL} className="gap-2" />
+          </Tile>
+          <Tile icon={TargetIcon} tone="bg-(--lp-ink) text-(--lp-yellow)">
+            <StatCard value={formatPercent(s.passing_percentage)} label="Pass mark" valueClassName={STAT_VALUE} labelClassName={STAT_LABEL} className="gap-2" />
+          </Tile>
         </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl bg-white p-5 ring-1 ring-text/10">
-          <h2 className="font-display text-base font-semibold text-text">Answers</h2>
+        <div className={CARD}>
+          <CardTitle icon={CheckIcon} tone="bg-success/15 text-success">Answers</CardTitle>
           <DonutChart
-            className="mt-3"
+            className="mt-4"
             centerLabel={`${s.correct_count}/${questions.length}`}
             centerSub="correct"
             segments={[
@@ -184,27 +270,27 @@ export default function TestReport() {
             ]}
           />
         </div>
-        <div className="rounded-2xl bg-white p-5 ring-1 ring-text/10">
-          <h2 className="font-display text-base font-semibold text-text">Time</h2>
-          <p className="mt-3 font-display text-3xl font-bold text-text">{formatSeconds(s.time_taken_secs)}</p>
-          <p className="text-sm text-text/60">of {formatMinutes(s.time_limit_mins)}</p>
+        <div className={CARD}>
+          <CardTitle icon={ClockIcon} tone="bg-(--lp-yellow-soft) text-(--lp-ink)">Time</CardTitle>
+          <p className="mt-5 font-display text-4xl font-bold tracking-tight text-text">{formatSeconds(s.time_taken_secs)}</p>
+          <p className="text-sm text-(--lp-muted)">of {formatMinutes(s.time_limit_mins)}</p>
           {s.time_limit_mins > 0 && (
-            <div className="mt-4">
-              <Bar label="Time used" value={(s.time_taken_secs / (s.time_limit_mins * 60)) * 100} />
+            <div className="mt-5">
+              <Bar label="Time used" value={(s.time_taken_secs / (s.time_limit_mins * 60)) * 100} tone="bg-(--lp-blue)" />
             </div>
           )}
           {questions.length > 0 && (
-            <p className="mt-3 text-xs text-text/60">About {formatSeconds(s.time_taken_secs / questions.length)} per question.</p>
+            <p className="mt-4 rounded-2xl bg-(--lp-grey) px-4 py-3 text-xs text-text/70">About {formatSeconds(s.time_taken_secs / questions.length)} per question.</p>
           )}
         </div>
-        <div className="rounded-2xl bg-white p-5 ring-1 ring-text/10">
-          <h2 className="font-display text-base font-semibold text-text">Compared with others</h2>
-          <div className="mt-4 space-y-3">
-            <Bar label="You" value={c.your_percentage} />
+        <div className={CARD}>
+          <CardTitle icon={UsersIcon} tone="bg-(--lp-blue-soft) text-primary">Compared with others</CardTitle>
+          <div className="mt-5 space-y-4">
+            <Bar label="You" value={c.your_percentage} tone="bg-(--lp-blue)" />
             <Bar label="Average" value={c.average_percentage} tone="bg-text/40" />
             <Bar label="Topper" value={c.topper_percentage} tone="bg-success" />
           </div>
-          <p className="mt-3 text-xs text-text/60">
+          <p className="mt-4 rounded-2xl bg-(--lp-grey) px-4 py-3 text-xs text-text/70">
             {c.difference_from_average >= 0 ? `${c.difference_from_average} points above` : `${Math.abs(c.difference_from_average)} points below`} the average,
             across {s.total_attempts} {s.total_attempts === 1 ? "attempt" : "attempts"}.
           </p>
@@ -219,31 +305,31 @@ export default function TestReport() {
 
       {(report.strengths?.length > 0 || report.weaknesses?.length > 0) && (
         <section className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl bg-success/10 p-5">
-            <h2 className="font-display text-base font-semibold text-text">Strengths</h2>
+          <div className="rounded-3xl bg-success/10 p-6 ring-1 ring-success/20">
+            <CardTitle icon={CheckIcon} tone="bg-success text-white">Strengths</CardTitle>
             {report.strengths?.length ? (
-              <ul className="mt-2 space-y-1 text-sm text-text">{report.strengths.map((t) => <li key={t.topic}>{t.topic}: {formatPercent(t.accuracy)}</li>)}</ul>
-            ) : <p className="mt-2 text-sm text-text/60">Keep practising to build a strong topic.</p>}
+              <ul className="mt-4 space-y-2 text-sm font-medium text-text">{report.strengths.map((t) => <li key={t.topic} className="rounded-2xl bg-white/70 px-4 py-2.5">{t.topic}: {formatPercent(t.accuracy)}</li>)}</ul>
+            ) : <p className="mt-4 text-sm text-text/60">Keep practising to build a strong topic.</p>}
           </div>
-          <div className="rounded-2xl bg-danger/10 p-5">
-            <h2 className="font-display text-base font-semibold text-text">Work on</h2>
+          <div className="rounded-3xl bg-danger/10 p-6 ring-1 ring-danger/20">
+            <CardTitle icon={TargetIcon} tone="bg-danger text-white">Work on</CardTitle>
             {report.weaknesses?.length ? (
-              <ul className="mt-2 space-y-1 text-sm text-text">{report.weaknesses.map((t) => <li key={t.topic}>{t.topic}: {formatPercent(t.accuracy)}</li>)}</ul>
-            ) : <p className="mt-2 text-sm text-text/60">No weak topics in this attempt.</p>}
+              <ul className="mt-4 space-y-2 text-sm font-medium text-text">{report.weaknesses.map((t) => <li key={t.topic} className="rounded-2xl bg-white/70 px-4 py-2.5">{t.topic}: {formatPercent(t.accuracy)}</li>)}</ul>
+            ) : <p className="mt-4 text-sm text-text/60">No weak topics in this attempt.</p>}
           </div>
         </section>
       )}
 
-      <section>
+      <section className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="mr-auto font-display text-xl font-semibold text-text">Question review</h2>
+          <h2 className="mr-auto font-display text-2xl font-bold tracking-tight text-text sm:text-3xl">Question review</h2>
           <Chip active={filter === "all"} onClick={() => setFilter("all")}>All ({questions.length})</Chip>
           {Object.entries(counts).filter(([, n]) => n > 0).map(([k, n]) => (
             <Chip key={k} active={filter === k} onClick={() => setFilter(k)}>{STATUS[k].label} ({n})</Chip>
           ))}
         </div>
-        {s.answers_hidden && <p className="mt-2 text-sm text-text/60">Correct answers and explanations are hidden for this test.</p>}
-        <ol className="mt-4 space-y-3">
+        {s.answers_hidden && <p className="text-sm text-text/60">Correct answers and explanations are hidden for this test.</p>}
+        <ol className="space-y-4">
           {shown.map((q) => <QuestionReview key={q.question_id} question={q} hidden={s.answers_hidden} />)}
         </ol>
       </section>

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useSignOut } from "../../../hooks/useSignOut";
 import DropdownPanel from "../../../components/ui/DropdownPanel";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import NotificationsPanel from "./NotificationsPanel";
@@ -49,6 +50,7 @@ function MenuLink({ to, icon: Icon, label, hint, onClick }) {
 
 export default function HeaderActions({ account, initials }) {
   const navigate = useNavigate();
+  const signOut = useSignOut("/login");
   const [openMenu, setOpenMenu] = useState(null); // null | "bell" | "gear" | "avatar"
   const bellRef = useRef(null);
   const gearRef = useRef(null);
@@ -104,7 +106,7 @@ export default function HeaderActions({ account, initials }) {
   const logOut = () => {
     close();
     endEducatorSession();
-    navigate("/login", { replace: true });
+    signOut();
   };
 
   return (

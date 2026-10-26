@@ -9,7 +9,7 @@
   margin-bottom: 22px;
 }
 .ul-dash-welcome__title {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 24px;
   font-weight: 800;
   color: var(--color-text-primary);
@@ -42,12 +42,12 @@
   gap: 2px;
   min-width: 128px;
   white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(40, 16, 10, 0.04), 0 12px 24px -12px rgba(122, 46, 31, 0.2);
+  box-shadow: 0 2px 4px rgba(15, 17, 21, 0.04), 0 12px 24px -12px rgba(15, 17, 21, 0.2);
   transition: box-shadow 220ms ease, transform 220ms ease;
 }
 .ul-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(40, 16, 10, 0.07), 0 18px 30px -14px rgba(122, 46, 31, 0.26);
+  box-shadow: 0 6px 12px rgba(15, 17, 21, 0.07), 0 18px 30px -14px rgba(15, 17, 21, 0.26);
 }
 
 /* Dashboard-only sizing: smaller boxes, smaller text, and the value alone
@@ -128,12 +128,12 @@
   border: 1px solid var(--color-border);
   border-radius: 22px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(40, 16, 10, 0.05), 0 16px 32px -14px rgba(122, 46, 31, 0.24);
+  box-shadow: 0 2px 4px rgba(15, 17, 21, 0.05), 0 16px 32px -14px rgba(15, 17, 21, 0.24);
   transition: box-shadow 220ms ease, transform 220ms ease, border-color 220ms ease;
 }
 .ul-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 14px rgba(40, 16, 10, 0.08), 0 24px 40px -16px rgba(122, 46, 31, 0.32);
+  box-shadow: 0 6px 14px rgba(15, 17, 21, 0.08), 0 24px 40px -16px rgba(15, 17, 21, 0.32);
   border-color: var(--color-primary-light, var(--color-border));
 }
 
@@ -365,7 +365,7 @@
 
 /* ---------- big number + split bar ---------- */
 .ul-big-number {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 27px;
   font-weight: 800;
   color: var(--color-text-primary);
@@ -655,7 +655,7 @@
   color: var(--color-text-secondary);
 }
 .ul-progress-card__value {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 22px;
   font-weight: 800;
   color: var(--color-primary);
@@ -669,7 +669,7 @@
 .ul-progress-fill {
   height: 100%;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-analytics-orange));
+  background: linear-gradient(90deg, var(--color-accent, var(--color-primary)), var(--color-highlight, var(--color-analytics-orange)));
 }
 
 /* ---------- responsive ---------- */
@@ -814,7 +814,7 @@
 }
 .ul-dash2-hero-title {
   margin: 2px 0 4px;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 28px;
   font-weight: 800;
   color: var(--color-text-primary);
@@ -947,7 +947,7 @@
   white-space: nowrap;
 }
 .ul-dash2-net-value {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 18px;
   font-weight: 800;
   color: var(--color-text-primary);

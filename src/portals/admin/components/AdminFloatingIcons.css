@@ -13,12 +13,12 @@
   justify-content: center;
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(74, 24, 17, 0.16);
+  border: 1px solid rgba(15, 17, 21, 0.16);
   border-radius: 12px;
-  background: rgba(255, 244, 236, 0.3);
+  background: rgba(255, 255, 255, 0.3);
   color: var(--color-primary-dark);
   opacity: 0.28;
-  box-shadow: 0 6px 16px rgba(74, 24, 17, 0.05);
+  box-shadow: 0 6px 16px rgba(15, 17, 21, 0.05);
   animation: ul-admin-float 15s ease-in-out infinite;
   will-change: transform;
 }

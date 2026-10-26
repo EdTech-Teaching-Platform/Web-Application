@@ -8,8 +8,11 @@
 //     raised white "chip" (hash links only — scroll-spy via IntersectionObserver)
 //   • mobile menu is an animated sheet with Log in / Sign Up inside
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MenuIcon, XIcon } from "../../../components/ui/icons";
+import { useAuth } from "../../../hooks/useAuth";
+import { useSignOut } from "../../../hooks/useSignOut";
+import { homePathForUser } from "../../../utils/roles";
 import { ArrowUpRight } from "./LandingUI";
 
 function LogoMark() {
@@ -39,12 +42,72 @@ function NavItem({ link, communityHref, active, className, onClick }) {
   );
 }
 
+function AccountMenu({ initials, onSignOut }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  // close on outside click / Escape
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative hidden md:block">
+      <button
+        type="button"
+        aria-label="Account menu"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="grid h-10 w-10 place-items-center rounded-full bg-(--lp-yellow) text-xs font-bold text-(--lp-ink) ring-2 ring-white transition-transform duration-200 ease-out hover:-translate-y-0.5"
+      >
+        {initials}
+      </button>
+      <div
+        role="menu"
+        className={`absolute right-0 top-[calc(100%+0.5rem)] z-50 w-40 origin-top-right rounded-2xl bg-white p-1.5 shadow-[0_20px_50px_rgba(15,17,21,0.16)] ring-1 ring-(--lp-line) transition-[opacity,transform,visibility] duration-150 ease-out ${
+          open ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
+        }`}
+      >
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            setOpen(false);
+            onSignOut();
+          }}
+          className="block w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-(--lp-ink) transition-colors hover:bg-(--lp-grey)"
+        >
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingHeader({ links, communityHref }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const signOut = useSignOut();
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeHref, setActiveHref] = useState(null);
   const frame = useRef(0);
+  // Signed-in visitors get a way back into their portal instead of Log in / Sign Up.
+  const { user, loading: authLoading } = useAuth();
+  const homePath = homePathForUser(user);
+  const initials = (user?.name || user?.email || "")
+    .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
   // scroll state + reading progress (rAF-throttled, passive)
   useEffect(() => {
@@ -131,21 +194,38 @@ export default function LandingHeader({ links, communityHref }) {
         </nav>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <Link
-            to="/login"
-            className="hidden rounded-full px-4 py-2 text-sm font-semibold text-(--lp-ink) transition-colors duration-150 hover:bg-(--lp-grey) md:inline-flex"
-          >
-            Log in
-          </Link>
-          <Link
-            to="/register"
-            className="group inline-flex items-center gap-2 rounded-full bg-(--lp-ink) py-1.5 pl-5 pr-1.5 text-sm font-semibold text-white transition-transform duration-200 ease-out hover:-translate-y-0.5"
-          >
-            Sign Up
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink) transition-transform duration-200 ease-out group-hover:rotate-45">
-              <ArrowUpRight className="h-4 w-4" />
-            </span>
-          </Link>
+          {authLoading ? (
+            <span className="h-11 w-28" aria-hidden="true" />
+          ) : user ? (
+            <>
+              {initials && <AccountMenu initials={initials} onSignOut={signOut} />}
+              <Link
+                to={homePath}
+                onClick={(e) => {
+                  // explicit navigation so the click always lands on the dashboard
+                  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  navigate(homePath);
+                }}
+                className="group inline-flex items-center gap-2 rounded-full bg-(--lp-ink) py-1.5 pl-5 pr-1.5 text-sm font-semibold text-white transition-transform duration-200 ease-out hover:-translate-y-0.5"
+              >
+                Dashboard
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink) transition-transform duration-200 ease-out group-hover:rotate-45">
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
+              </Link>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="group inline-flex items-center gap-2 rounded-full bg-(--lp-ink) py-1.5 pl-5 pr-1.5 text-sm font-semibold text-white transition-transform duration-200 ease-out hover:-translate-y-0.5"
+            >
+              Log in
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink) transition-transform duration-200 ease-out group-hover:rotate-45">
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </Link>
+          )}
           <button
             type="button"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -171,7 +251,7 @@ export default function LandingHeader({ links, communityHref }) {
       <nav
         id="landing-mobile-menu"
         aria-label="Mobile"
-        className={`mx-auto mt-2 max-w-[1200px] origin-top rounded-3xl bg-white p-3 shadow-[0_24px_60px_rgba(15,17,21,0.16)] ring-1 ring-(--lp-line) transition-[opacity,transform,visibility] duration-200 ease-out lg:hidden ${
+        className={`absolute left-3 right-3 top-full z-50 mx-auto mt-2 max-w-[1200px] origin-top rounded-3xl bg-white p-3 shadow-[0_24px_60px_rgba(15,17,21,0.16)] ring-1 ring-(--lp-line) transition-[opacity,transform,visibility] duration-200 ease-out sm:left-6 sm:right-6 lg:hidden ${
           menuOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0"
         }`}
       >
@@ -185,14 +265,28 @@ export default function LandingHeader({ links, communityHref }) {
             className={`flex items-center justify-between rounded-2xl px-4 py-3 text-[15px] font-semibold transition-colors hover:bg-(--lp-grey) ${isActive(link) ? "bg-(--lp-blue-tint) text-(--lp-blue-deep)" : "text-(--lp-ink)"}`}
           />
         ))}
-        <div className="mt-2 grid grid-cols-2 gap-2 border-t border-(--lp-line) pt-3">
-          <Link to="/login" onClick={() => setMenuOpen(false)} className="rounded-full bg-(--lp-grey) py-3 text-center text-sm font-semibold text-(--lp-ink)">
-            Log in
-          </Link>
-          <Link to="/register" onClick={() => setMenuOpen(false)} className="rounded-full bg-(--lp-ink) py-3 text-center text-sm font-semibold text-white">
-            Sign Up
-          </Link>
-        </div>
+        {!authLoading && (
+          user ? (
+            <div className="mt-2 border-t border-(--lp-line) pt-3">
+              <Link to={homePath} onClick={() => setMenuOpen(false)} className="block rounded-full bg-(--lp-ink) py-3 text-center text-sm font-semibold text-white">
+                Dashboard
+              </Link>
+              <button
+                type="button"
+                onClick={() => { setMenuOpen(false); signOut(); }}
+                className="mt-2 block w-full rounded-full bg-(--lp-grey) py-3 text-center text-sm font-semibold text-(--lp-ink)"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div className="mt-2 border-t border-(--lp-line) pt-3">
+              <Link to="/login" onClick={() => setMenuOpen(false)} className="block rounded-full bg-(--lp-ink) py-3 text-center text-sm font-semibold text-white">
+                Log in
+              </Link>
+            </div>
+          )
+        )}
       </nav>
     </header>
   );

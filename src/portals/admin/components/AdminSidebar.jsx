@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
+import { useSignOut } from "../../../hooks/useSignOut";
 import { dashboardApi } from "../services/adminApi";
 import { useRpc } from "../hooks/useRpc";
 import sidebarBooksImg from "../../../assets/illustrations/sidebar-books.png";
@@ -78,8 +79,9 @@ const NAV_SECTIONS = [
 // AdminChrome.css) where the sidebar becomes an off-canvas drawer opened
 // from AdminTopbar's hamburger button. On desktop it just renders in place.
 export default function AdminSidebar({ open = false, onClose = () => {} }) {
-  const { user, setUser } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  // Real sign-out: ends the Supabase session, clears per-user storage, reloads at /login.
+  const signOut = useSignOut("/login");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -102,8 +104,7 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
 
   const confirmLogout = () => {
     setLogoutConfirmOpen(false);
-    setUser(null);
-    navigate("/login", { replace: true });
+    signOut();
   };
 
   const initials =

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BellIcon, ChevronDownIcon } from "../../components/ui/icons";
-import { useAuth } from "../../hooks/useAuth";
 import { BrandMark } from "../../auth/components/AuthKit";
 
 // Shared top navbar shell — each portal layout can pass its own
@@ -12,6 +11,15 @@ import { BrandMark } from "../../auth/components/AuthKit";
 // Student categories stay visible in the primary bar. Each category owns a
 // small hover/focus dropdown so related destinations remain close without
 // turning the navbar into a large mega-menu.
+// An entry marked `exact` only matches its own URL, so a drill-down page
+// (e.g. one test series) does not light up its parent list tab.
+// `alsoActive` lists extra path prefixes that belong to the same tab (e.g. a
+// test report opened from History keeps History highlighted).
+function isEntryActive(entry, pathname) {
+  if (entry.alsoActive?.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return true;
+  return pathname === entry.href || (!entry.exact && pathname.startsWith(`${entry.href}/`));
+}
+
 function NavGroup({ group, pathname }) {
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -72,26 +80,8 @@ function NavGroup({ group, pathname }) {
 // compatibility (they render, in that fixed order, before navEntries).
 export default function Navbar({ title, links = [], navItems, navGroups, navEntries, user, notificationsHref, onSignOut }) {
   const { pathname } = useLocation();
-  const { user: authUser, logout } = useAuth();
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
-  const [homeConfirmOpen, setHomeConfirmOpen] = useState(false);
 
-  const handleBrandClick = (event) => {
-    if (!authUser) return; // logged-out visitors navigate normally
-    event.preventDefault();
-    setHomeConfirmOpen(true);
-  };
-
-  const confirmGoHome = async () => {
-    setHomeConfirmOpen(false);
-    // Real sign-out (Supabase session + per-user storage), then a full load of
-    // "/" so the protected page's guard never flashes /login on the way.
-    try {
-      await logout();
-    } finally {
-      window.location.replace("/");
-    }
-  };
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -104,14 +94,14 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
   return (
     <>
     <header className="relative z-30 px-3 pt-3 sm:px-5">
-     <div className="mx-auto flex h-16 max-w-[1320px] items-center gap-2 rounded-full bg-white/90 pl-3 pr-2 shadow-[0_10px_40px_rgba(15,17,21,0.08)] ring-1 ring-(--lp-line) backdrop-blur-xl sm:pl-4">
-      <Link to="/" onClick={handleBrandClick} className="inline-flex shrink-0 items-center gap-2.5 font-display text-base font-bold tracking-tight text-(--lp-ink) sm:text-lg">
+     <div className="mx-auto flex h-16 max-w-[1320px] items-center gap-2 rounded-full bg-white/85 pl-3 pr-2 shadow-[0_12px_40px_rgba(15,17,21,0.10)] ring-1 ring-white/80 backdrop-blur-xl sm:pl-4">
+      <Link to="/" className="inline-flex shrink-0 items-center gap-2.5 font-display text-base font-bold tracking-tight text-(--lp-ink) sm:text-lg">
         <BrandMark className="h-10 w-10" />
         <span className="hidden sm:inline">{title}</span>
       </Link>
 
       {(navItems || navGroups || navEntries) && (
-        <nav className="hidden min-w-0 flex-1 items-center gap-1 pl-4 lg:flex">
+        <nav className="ml-4 hidden min-w-0 items-center gap-1 rounded-full bg-(--lp-grey)/80 p-1 ring-1 ring-(--lp-line)/70 lg:flex">
           {navItems?.map((item) => (
             <Link
               key={item.href}
@@ -133,13 +123,14 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
               <Link
                 key={entry.href}
                 to={entry.href}
-              className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-                  pathname === entry.href || pathname.startsWith(`${entry.href}/`)
-                    ? "bg-(--lp-ink) text-white"
-                    : "text-(--lp-muted) hover:bg-(--lp-grey) hover:text-(--lp-ink)"
+              aria-current={isEntryActive(entry, pathname) ? "page" : undefined}
+              className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  isEntryActive(entry, pathname)
+                    ? "bg-(--lp-ink) text-white shadow-[0_6px_16px_rgba(15,17,21,0.25)]"
+                    : "text-(--lp-muted) hover:bg-white hover:text-(--lp-ink) hover:shadow-sm"
                 }`}
               >
-                {entry.icon && <entry.icon className="h-4 w-4" aria-hidden="true" />}
+                {entry.icon && <entry.icon className={`h-4 w-4 ${isEntryActive(entry, pathname) ? "text-(--lp-yellow)" : ""}`} aria-hidden="true" />}
                 {entry.label}
               </Link>
             )
@@ -167,7 +158,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
           </Link>
         )}
         {initials && (
-          <Link to="/student/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-(--lp-yellow) text-xs font-bold text-(--lp-ink) ring-2 ring-white" aria-label="Open profile">
+          <Link to="/student/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-(--lp-yellow) text-xs font-bold text-(--lp-ink) ring-2 ring-white shadow-sm transition-transform duration-200 ease-out hover:-translate-y-0.5" aria-label="Open profile">
             {initials}
           </Link>
         )}
@@ -183,18 +174,6 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
       </nav>
      </div>
     </header>
-    {homeConfirmOpen && (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-(--lp-ink)/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setHomeConfirmOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setHomeConfirmOpen(false); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="go-home-title" className="w-full max-w-md rounded-[32px] bg-white p-7 shadow-[0_30px_80px_rgba(15,17,21,0.3)] ring-1 ring-(--lp-line)">
-          <h2 id="go-home-title" className="font-display text-xl font-bold text-text">Go to the homepage?</h2>
-          <p className="mt-2 text-sm leading-6 text-text/60">Going back to the homepage will sign you out. Continue?</p>
-          <div className="mt-6 flex justify-end gap-3">
-            <button type="button" autoFocus onClick={() => setHomeConfirmOpen(false)} className="rounded-full bg-(--lp-grey) px-5 py-2.5 text-sm font-semibold text-(--lp-ink) hover:bg-(--lp-line)">Cancel</button>
-            <button type="button" onClick={confirmGoHome} className="rounded-full bg-(--lp-ink) px-5 py-2.5 text-sm font-semibold text-white hover:bg-(--lp-ink)/90">Continue</button>
-          </div>
-        </section>
-      </div>
-    )}
     {signOutConfirmOpen && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-(--lp-ink)/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSignOutConfirmOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setSignOutConfirmOpen(false); }}>
         <section role="dialog" aria-modal="true" aria-labelledby="sign-out-title" className="w-full max-w-md rounded-[32px] bg-white p-7 shadow-[0_30px_80px_rgba(15,17,21,0.3)] ring-1 ring-(--lp-line)">

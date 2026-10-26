@@ -128,7 +128,7 @@ export default function DiscountOverview() {
           <div className="ul-dsc-split"><div className="ul-dsc-split__paid" style={{ width: `${paidPct}%` }} /><div className="ul-dsc-split__disc" style={{ width: `${list ? 100 - paidPct : 0}%` }} /></div>
           <div className="ul-dsc-split__legend">
             <span><i style={{ background: "var(--color-primary)" }} />Paid {inr(m.revenue)} {list ? `(${paidPct.toFixed(1)}%)` : ""}</span>
-            <span><i style={{ background: "#e0a48f" }} />Discounted {inr(m.given)} {list ? `(${(100 - paidPct).toFixed(1)}%)` : ""}</span>
+            <span><i style={{ background: "#ffd84d" }} />Discounted {inr(m.given)} {list ? `(${(100 - paidPct).toFixed(1)}%)` : ""}</span>
           </div>
           <div className="ul-dov-listrow"><span>List price of discounted purchases</span><b>{inr(list)}</b></div>
         </section>

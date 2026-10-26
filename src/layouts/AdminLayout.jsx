@@ -59,6 +59,15 @@ export default function AdminLayout() {
   // — hidden off-canvas below 900px, opened via the hamburger in AdminTopbar).
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Scope the admin ("Landing") theme tokens to the time an admin screen is
+  // mounted (see body.ul-admin in adminTheme.css). On <body> so portalled
+  // modals/menus pick the theme up too; removed on unmount so Student and
+  // Teacher pages are unaffected.
+  useEffect(() => {
+    document.body.classList.add("ul-admin");
+    return () => document.body.classList.remove("ul-admin");
+  }, []);
+
   // Whenever the route changes: close the mobile drawer (e.g. after
   // tapping a nav link on a phone) and reset scroll to the top, so every
   // Admin page always opens at (0, 0) instead of inheriting wherever the

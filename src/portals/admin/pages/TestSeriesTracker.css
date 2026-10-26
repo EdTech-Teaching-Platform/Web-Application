@@ -222,3 +222,17 @@
 /* assigned educators: show full names, one per line */
 .ul-trk-educators { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.35; }
 .ul-trk-educators div { white-space: normal; word-break: normal; }
+
+/* Overall Status column: keep the badge fully inside the cell (it used to be
+   clipped at the table's right edge) and let long labels wrap instead. */
+.ul-trk-table thead th:last-child,
+.ul-trk-table tbody td:last-child {
+  padding-left: 6px;
+  padding-right: 16px;
+}
+.ul-trk-table tbody td:last-child .ul-status-badge {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}

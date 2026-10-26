@@ -80,6 +80,8 @@ const studentRoutes = (
     <Route path="dashboard" element={<Dashboard />} />
     <Route path="test-series" element={<SeriesList />} />
     <Route path="test-series/:seriesId" element={<SeriesDetail />} />
+    <Route path="my-tests/:seriesId" element={<SeriesDetail from="mine" />} />
+    <Route path="dashboard/series/:seriesId" element={<SeriesDetail from="dashboard" />} />
     <Route path="test-series/:seriesId/checkout" element={<ToSeriesDetail />} />
     <Route path="test/:testId" element={<TestIntro />} />
     <Route path="test/:testId/take" element={<TestRunner />} />

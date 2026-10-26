@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import Button from "../components/ui/Button";
 import SectionShapes from "../components/common/SectionShapes";
 import { useAuth } from "../hooks/useAuth";
+import { homePathForUser } from "../utils/roles";
 import { LANDING_THEME_VARS } from "../public/landingTheme";
 import LandingHeader from "../public/components/landing/LandingHeader";
 
@@ -33,7 +34,7 @@ const NAV_LINKS = [
 
 export default function PublicLayout() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isHome = location.pathname === "/";
   const communityHref = user
     ? "/student/messages"
@@ -78,9 +79,15 @@ export default function PublicLayout() {
         {/* Item 3: Log In removed from the public nav — Sign Up is the
             only auth CTA here, right-aligned on its own. */}
         <div className="flex items-center justify-end">
-          <Button as={Link} to="/register" fullWidth={false} className="px-5 py-2.5">
-            Sign Up
-          </Button>
+          {authLoading ? null : user ? (
+            <Button as={Link} to={homePathForUser(user)} fullWidth={false} className="px-5 py-2.5">
+              Dashboard
+            </Button>
+          ) : (
+            <Button as={Link} to="/login" fullWidth={false} className="px-5 py-2.5">
+              Log in
+            </Button>
+          )}
         </div>
       </header>
       <SectionShapes variant="public" />

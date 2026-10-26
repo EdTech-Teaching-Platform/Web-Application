@@ -231,7 +231,7 @@ export default function TestSeriesTracker() {
           <div className="ul-edu-table-scroll">
             <table className="ul-edu-table ul-trk-table">
               <colgroup>
-                {["16%", "9%", "19%", "5%", "6%", "7%", "7%", "11%", "10%", "10%"].map((w, i) => <col key={i} style={{ width: w }} />)}
+                {["15%", "9%", "16%", "5%", "6%", "7%", "7%", "10%", "9%", "16%"].map((w, i) => <col key={i} style={{ width: w }} />)}
               </colgroup>
               <thead>
                 <tr>

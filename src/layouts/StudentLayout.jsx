@@ -1,39 +1,36 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
-import { BookOpenIcon, ClockIcon, HomeIcon, UsersIcon } from "../components/ui/icons";
+import { BookOpenIcon, ClockIcon, CompassIcon, FileTextIcon, HomeIcon, UsersIcon } from "../components/ui/icons";
 import { useAuth } from "../hooks/useAuth";
+import { useSignOut } from "../hooks/useSignOut";
 import StudentErrorBoundary from "../components/common/StudentErrorBoundary";
+import StudentBackdrop from "../components/common/StudentBackdrop";
 import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
 
 // Test-series portal only. Explore / courses, wishlist, payments, messages
 // and the other mock-backed screens are hidden (see src/portals/student/routes.jsx).
 const navEntries = [
-  { href: "/student/dashboard", label: "Dashboard" },
-  {
-    label: "Test Series",
-    items: [
-      { href: "/student/test-series", label: "Browse Test Series" },
-      { href: "/student/my-tests", label: "My Tests" },
-      { href: "/student/history", label: "History" },
-    ],
-  },
-  { href: "/student/account", label: "Account" },
+  { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
+  { href: "/student/test-series", label: "Test Series", icon: CompassIcon, exact: true },
+  { href: "/student/my-tests", label: "My Tests", icon: FileTextIcon },
+  { href: "/student/history", label: "History", icon: ClockIcon, alsoActive: ["/student/report"] },
+  { href: "/student/account", label: "Account", icon: UsersIcon },
 ];
 
 function MobileNav() {
   const { pathname } = useLocation();
   const items = [
     { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
-    { href: "/student/test-series", label: "Series", icon: BookOpenIcon },
+    { href: "/student/test-series", label: "Series", icon: BookOpenIcon, exact: true },
     { href: "/student/my-tests", label: "My Tests", icon: BookOpenIcon },
-    { href: "/student/history", label: "History", icon: ClockIcon },
+    { href: "/student/history", label: "History", icon: ClockIcon, alsoActive: ["/student/report"] },
     { href: "/student/account", label: "Account", icon: UsersIcon },
   ];
   return (
     <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-5 rounded-full bg-white/95 px-2 py-1.5 shadow-[0_14px_40px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) backdrop-blur md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = pathname === item.href || (!item.exact && pathname.startsWith(`${item.href}/`)) || Boolean(item.alsoActive?.some((p) => pathname === p || pathname.startsWith(`${p}/`)));
         return (
           <Link
             key={item.href}
@@ -53,15 +50,16 @@ function MobileNav() {
 
 export default function StudentLayout() {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const signOut = useSignOut();
   const isCoursePlayer = location.pathname === "/student/courseplayer";
 
   return (
-    <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-(--lp-grey) font-body text-text">
+    <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">
       <Navbar
         title="Universal Learning"
         navEntries={navEntries}
-        onSignOut={logout}
+        onSignOut={signOut}
         user={user}
       />
       <div className="relative z-10 flex min-h-0 flex-1">
@@ -84,6 +82,7 @@ export default function StudentLayout() {
               not just the viewport-sized <main> box), fixes that: it now
               scrolls up together with the page exactly like Landing. */}
           <div className="relative min-h-full">
+            <StudentBackdrop />
             <div className="relative z-10">
               <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
                 <Outlet />

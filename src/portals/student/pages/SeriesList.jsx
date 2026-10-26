@@ -4,11 +4,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Chip from "../../../components/ui/Chip";
-import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import { SearchIcon } from "../../../components/ui/icons";
-import SeriesCard from "../components/SeriesCard";
-import { EmptyPanel, ErrorState, LoadingState, PAGE, PageHeader } from "../components/PageState";
+import SeriesShowcaseCard from "../components/SeriesShowcaseCard";
+import PageHero from "../components/PageHero";
+import { EmptyPanel, ErrorState, LoadingState, PAGE } from "../components/PageState";
 import { useStudentData } from "../hooks/useStudentData";
 import { studentSeriesApi } from "../services/studentSeriesApi";
 import { isNotAvailable } from "../services/studentRpc";
@@ -61,6 +61,8 @@ export default function SeriesList({ publicMode = false }) {
   };
 
   const detailPath = (id) => (publicMode ? `/test-series/${id}` : `/student/test-series/${id}`);
+  // Series the student is already enrolled in open under "My tests" (so that tab stays active).
+  const openPath = (series) => (!publicMode && series.is_enrolled ? `/student/my-tests/${series.id}` : detailPath(series.id));
 
   const enroll = async (series) => {
     if (publicMode) {
@@ -80,8 +82,11 @@ export default function SeriesList({ publicMode = false }) {
   };
 
   return (
-    <div className={PAGE}>
-      <PageHeader
+    <div className={`${PAGE} space-y-8 pb-10`}>
+      <PageHero
+        compact
+        theme="sky"
+        art="search"
         eyebrow="Test series"
         title="Find a test series"
         subtitle="Practice tests with a timer, instant scoring and a detailed report after every attempt."
@@ -89,13 +94,14 @@ export default function SeriesList({ publicMode = false }) {
 
       <div className="flex flex-col gap-4">
         <div className="relative max-w-xl">
-          <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text/40" />
-          <Input
+          <SearchIcon className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+          <input
+            type="search"
             aria-label="Search test series"
             placeholder="Search by title, subject or exam"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="pl-10"
+            className="h-12 w-full rounded-full border-0 bg-white pl-12 pr-5 text-sm text-text shadow-[0_1px_2px_rgb(15_17_21/0.05)] ring-1 ring-(--lp-line) transition-shadow duration-200 ease-out placeholder:text-text/40 focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         {!publicMode && (data?.categories?.length ?? 0) > 0 && (
@@ -128,14 +134,14 @@ export default function SeriesList({ publicMode = false }) {
         <>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((series, i) => (
-              <SeriesCard
+              <SeriesShowcaseCard
                 key={series.id}
                 series={series}
                 index={i}
-                onOpen={() => navigate(detailPath(series.id))}
+                onOpen={() => navigate(openPath(series))}
                 actionLabel={series.is_enrolled ? "Enrolled · Open" : busyId === series.id ? "Enrolling…" : series.is_free ? "Enrol free" : "View details"}
                 actionDisabled={busyId === series.id}
-                onAction={() => (series.is_enrolled || !series.is_free ? navigate(detailPath(series.id)) : enroll(series))}
+                onAction={() => (series.is_enrolled || !series.is_free ? navigate(openPath(series)) : enroll(series))}
               />
             ))}
           </div>

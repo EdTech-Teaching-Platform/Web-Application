@@ -11,7 +11,7 @@ export const AuthContext = createContext(null);
 const USER_STORAGE_PREFIXES = [
   "ul_wishlist", "ul_assessment", "ul_test_series_purchases", "ul_activity_log", "ul_course_progress",
   "ul_course_qa", "ul_learning_time", "ul_student_", "ul_demo_orders", "ul.testSeries",
-  "universal-learning-", "ul-pending-signup", "ul.educator.session",
+  "universal-learning-", "ul-pending-signup", "ul.educator.session", "ul-admin-notepad",
 ];
 
 export function clearUserStorage(storage = typeof window === "undefined" ? null : window.localStorage) {

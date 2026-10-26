@@ -34,7 +34,7 @@ export const approvalsWeekly = [
 ];
 
 export const moderators = [
-  { initials: "A", color: "#5B0F14" },
+  { initials: "A", color: "#0f1115" },
   { initials: "R", color: "#50C3E5" },
   { initials: "K", color: "#F9A044" },
   { initials: "N", color: "#B85DD5" },
@@ -63,7 +63,7 @@ export const complianceNote = {
 };
 
 export const approvalTasks = [
-  { id: "t1", label: "Educator Verifications", progress: 62, meta: "3 of 8 reviewed", color: "#5B0F14" },
+  { id: "t1", label: "Educator Verifications", progress: 62, meta: "3 of 8 reviewed", color: "#0f1115" },
   { id: "t2", label: "Course Approvals", progress: 40, meta: "2 of 5 reviewed", color: "#50C3E5" },
   { id: "t3", label: "Institution Onboarding", progress: 100, meta: "Riverdale — complete", color: "#F9A044", done: true },
 ];

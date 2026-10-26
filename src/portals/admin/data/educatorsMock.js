@@ -138,7 +138,7 @@ function buildEducator(seed) {
   const rand = mulberry32(hashSeed(seed.id));
   const name = `${seed.first} ${seed.last}`;
   const initials = `${seed.first[0]}${seed.last[0]}`.toUpperCase();
-  const avatarColors = ["#5B0F14", "#50C3E5", "#F9A044", "#B85DD5", "#6B1117"];
+  const avatarColors = ["#0f1115", "#50C3E5", "#F9A044", "#B85DD5", "#1b1f27"];
   const avatarColor = avatarColors[hashSeed(seed.id) % avatarColors.length];
   const location = pick(rand, CITY_POOL);
 
