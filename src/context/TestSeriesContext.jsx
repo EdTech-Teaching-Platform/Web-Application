@@ -40,7 +40,7 @@ import { nowIso } from "../portals/teacher/data/testSeriesDeadlines";
 // reset the demo. If storage is blocked entirely the store stays in memory and
 // reports "saved" (nothing can fail that can't be attempted). Bump STORAGE_KEY
 // when seeds change.
-const STORAGE_KEY = "ul.testSeries.v3";
+const STORAGE_KEY = "ul.testSeries.v7";
 const SAVE_DEBOUNCE_MS = 600;
 
 const TestSeriesContext = createContext(null);
@@ -203,7 +203,7 @@ export function TestSeriesProvider({ children }) {
       series: prev.series.map((x) => {
         if (x.id !== id) return x;
         const next = { ...x, ...extra, status: to, updatedAt: stamp.slice(0, 10), lastSavedAt: stamp };
-        if (to === "drafting") next.draftPayload = { ...x.draftPayload, stepIndex: Math.min(x.draftPayload?.stepIndex ?? 0, 3) };
+        if (to === "drafting") next.draftPayload = { ...x.draftPayload, stepIndex: Math.min(x.draftPayload?.stepIndex ?? 0, 4) };
         next.builderProgress = computeBuilderProgress(next);
         return next;
       }),

@@ -1,14 +1,14 @@
 // Test Series — teacher dashboard (landing for /teacher/testseries).
-// Lists only the CURRENT teacher's series from TestSeriesContext: both the
-// ones an admin assigned and the educator's own, course-wise or standalone.
+// Shows the CURRENT teacher's PUBLISHED series from TestSeriesContext (live,
+// whether an admin assigned them or the educator built them).
+// Series still being worked on live under "Assigned to me" (admin-assigned) or
+// the "My drafts" filter (the educator's own unpublished series).
 // Gated by TestSeriesGuard (see routes.jsx) so it never renders without access.
 import { useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useTestSeries } from "../../../context/TestSeriesContext";
 import { useTeacherCourses } from "../context/TeacherCoursesContext";
 import TestSeriesCard from "../components/TestSeriesCard";
-import StatCard from "../../../components/ui/StatCard";
-import Chip from "../../../components/ui/Chip";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
 import EmptyState from "../../../components/ui/EmptyState";
@@ -16,13 +16,9 @@ import { PlusIcon, QuizIcon, CheckIcon, UsersIcon, AssignmentIcon, FlagIcon, Sea
 import { isLive } from "../data/testSeriesData";
 
 const STATUS_FILTERS = [
-  { key: "all", label: "All", test: () => true },
-  { key: "assigned", label: "Not started", test: (s) => s.status === "assigned" },
-  { key: "drafting", label: "Drafting", test: (s) => s.status === "drafting" },
-  { key: "ready", label: "Ready for review", test: (s) => s.status === "ready" },
-  { key: "published", label: "Published", test: (s) => s.status === "published" },
-  { key: "final", label: "Final published", test: (s) => s.status === "final" },
-  { key: "archived", label: "Archived", test: (s) => s.status === "archived" },
+  { key: "published", label: "Published", test: (s) => isLive(s) },
+  { key: "review", label: "Under review", test: (s) => s.status === "ready" },
+  { key: "drafts", label: "My drafts", test: (s) => s.origin === "own" && !isLive(s) && s.status !== "ready" },
 ];
 const TYPE_FILTERS = [
   { key: "all", label: "All types", test: () => true },
@@ -36,7 +32,7 @@ export default function TestSeries() {
   const navigate = useNavigate();
   const { series, submissions, currentTeacher, assignedActionCount, transitionSeries, deleteSeries, duplicateSeries } = useTestSeries();
   const { courses } = useTeacherCourses();
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("published");
   const [type, setType] = useState("all");
   const [query, setQuery] = useState("");
   const [toDelete, setToDelete] = useState(null);
@@ -52,7 +48,8 @@ export default function TestSeries() {
   const mineIds = useMemo(() => new Set(mine.map((s) => s.id)), [mine]);
   const pendingGrading = submissions.filter((s) => mineIds.has(s.seriesId) && s.status !== "graded").length;
   const totalEnrolled = mine.reduce((sum, s) => sum + s.enrollments, 0);
-  const filtering = status !== "all" || type !== "all" || query.trim() !== "";
+  const filtering = status !== "published" || type !== "all" || query.trim() !== "";
+  const liveCount = mine.filter(isLive).length;
 
   const createButton = (
     <Button fullWidth={false} className="px-6" onClick={() => navigate("/teacher/testseries/new")}>
@@ -61,91 +58,131 @@ export default function TestSeries() {
     </Button>
   );
 
+  const renderCard = (s) => (
+    <TestSeriesCard
+      key={s.id}
+      series={s}
+      courseTitle={courseTitle(s.courseId)}
+      onArchiveToggle={() => transitionSeries(s.id, s.status === "archived" ? "drafting" : "archived")}
+      onDuplicate={() => {
+        const id = duplicateSeries(s.id);
+        if (id) navigate(`/teacher/testseries/${id}`);
+      }}
+      onDelete={() => setToDelete(s)}
+    />
+  );
+  const pill = (active) =>
+    `inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+      active ? "bg-(--lp-ink) text-white" : "bg-white text-(--lp-muted) ring-1 ring-(--lp-line) hover:bg-(--lp-blue-tint) hover:text-(--lp-ink)"
+    }`;
+  const SectionHead = ({ title, hint, count }) => (
+    <div className="mb-4 flex items-end justify-between gap-3 first:mt-0">
+      <div>
+        <h2 className="font-(family-name:--lp-font) text-xl font-bold tracking-tight text-(--lp-ink)">{title}</h2>
+        <p className="mt-0.5 text-xs text-(--lp-muted)">{hint}</p>
+      </div>
+      <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-(--lp-ink) ring-1 ring-(--lp-line)">{count}</span>
+    </div>
+  );
+
   return (
     <div className="pb-16">
-      <div className="flex flex-col gap-4 border-b border-text/[0.07] pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="eyebrow mb-1.5">Create</div>
-          <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">Test Series</h1>
-          <p className="mt-1.5 text-sm text-muted">Build series an admin assigned to you and your own, tied to a course or standalone.</p>
+      {/* Hero */}
+      <div className="relative flex flex-col gap-5 overflow-hidden rounded-[2rem] bg-(--lp-ink) px-6 py-7 text-white shadow-[0_24px_50px_-28px_rgba(15,17,21,0.6)] sm:flex-row sm:items-end sm:justify-between sm:px-8">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-(--lp-blue)/40 blur-2xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 right-1/3 h-40 w-40 rounded-full bg-(--lp-yellow)/25 blur-2xl" />
+        <div className="relative">
+          <span className="inline-flex rounded-full bg-(--lp-yellow) px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-(--lp-ink)">Create</span>
+          <h1 className="mt-3 font-(family-name:--lp-font) text-3xl font-bold tracking-tight sm:text-4xl">Test Series</h1>
+          <p className="mt-1.5 max-w-md text-sm text-white/70">Everything you have published, live for students. Series you still have to build are under Assigned to me.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <NavLink to="/teacher/testseries/assigned" className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-surface px-5 py-3 text-sm font-semibold text-text transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-card">
+        <div className="relative flex flex-wrap items-center gap-3">
+          <NavLink to="/teacher/testseries/assigned" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/20 transition-colors hover:bg-white/20">
             <FlagIcon className="h-4 w-4" />
             Assigned to me
-            {assignedActionCount > 0 && <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">{assignedActionCount}</span>}
+            {assignedActionCount > 0 && <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-(--lp-yellow) px-1.5 text-[10px] font-bold text-(--lp-ink)">{assignedActionCount}</span>}
           </NavLink>
-          {createButton}
+          <NavLink to="/teacher/testseries/new" className="inline-flex items-center gap-2 rounded-full bg-(--lp-yellow) px-5 py-2.5 text-sm font-bold text-(--lp-ink) transition-transform hover:-translate-y-0.5">
+            <PlusIcon className="h-4 w-4" />
+            New test series
+          </NavLink>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={QuizIcon} tone="lavender" label="Total series" value={mine.length} />
-        <StatCard icon={CheckIcon} tone="sage" label="Live for students" value={mine.filter(isLive).length} />
-        <StatCard icon={UsersIcon} tone="blue" label="Total enrollments" value={totalEnrolled.toLocaleString()} />
-        <StatCard
-          icon={AssignmentIcon}
-          tone="orange"
-          label="Answers to grade"
-          value={pendingGrading}
-          action={
-            <NavLink to="/teacher/grading" className="text-xs font-semibold text-primary hover:underline">
-              Open grading queue
-            </NavLink>
-          }
-        />
+      {/* Slim stat strip */}
+      <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[1.5rem] bg-(--lp-line) ring-1 ring-(--lp-line) lg:grid-cols-4">
+        {[
+          { icon: CheckIcon, label: "Published", value: liveCount },
+          { icon: FlagIcon, label: "Assigned to do", value: assignedActionCount, to: "/teacher/testseries/assigned" },
+          { icon: UsersIcon, label: "Enrollments", value: totalEnrolled.toLocaleString() },
+          { icon: AssignmentIcon, label: "To grade", value: pendingGrading, to: "/teacher/grading" },
+        ].map(({ icon: Icon, label, value, to }) => {
+          const inner = (
+            <>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-(--lp-blue-tint) text-(--lp-blue-deep)"><Icon className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <span className="block font-(family-name:--lp-font) text-2xl font-bold leading-none text-(--lp-ink)">{value}</span>
+                <span className="mt-1 block truncate text-[11px] font-semibold uppercase tracking-wide text-(--lp-muted)">{label}</span>
+              </span>
+            </>
+          );
+          return to ? (
+            <NavLink key={label} to={to} className="flex items-center gap-3 bg-white px-5 py-4 transition-colors hover:bg-(--lp-blue-tint)">{inner}</NavLink>
+          ) : (
+            <div key={label} className="flex items-center gap-3 bg-white px-5 py-4">{inner}</div>
+          );
+        })}
       </div>
 
-      <div className="mt-6 flex flex-col gap-3">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+      {/* Filters */}
+      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-1" role="group" aria-label="Filter by status">
           {STATUS_FILTERS.map((f) => (
-            <Chip key={f.key} active={status === f.key} onClick={() => setStatus(f.key)} className="px-4 py-1.5 text-xs">
+            <button key={f.key} type="button" onClick={() => setStatus(f.key)} className={pill(status === f.key)}>
               {f.label}
-              <span className="ml-1.5 opacity-70">{mine.filter(f.test).length}</span>
-            </Chip>
+              <span className="opacity-60">{mine.filter(f.test).length}</span>
+            </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by type">
-          {TYPE_FILTERS.map((f) => (
-            <Chip key={f.key} active={type === f.key} onClick={() => setType(f.key)} className="px-4 py-1.5 text-xs">
-              {f.label}
-              <span className="ml-1.5 opacity-70">{mine.filter(f.test).length}</span>
-            </Chip>
-          ))}
-          <label className="relative ml-auto block w-full sm:w-64">
+        <div className="flex gap-2">
+          <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Filter by type" className="rounded-full border-0 bg-white py-2 pl-4 pr-8 text-xs font-semibold text-(--lp-ink) ring-1 ring-(--lp-line) outline-none focus:ring-2 focus:ring-(--lp-blue)">
+            {TYPE_FILTERS.map((f) => (
+              <option key={f.key} value={f.key}>{f.label} ({mine.filter(f.test).length})</option>
+            ))}
+          </select>
+          <label className="relative block min-w-0 flex-1 lg:w-60 lg:flex-none">
             <span className="sr-only">Search test series</span>
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by title" className="w-full rounded-full border border-text/12 bg-surface py-2 pl-10 pr-4 text-sm text-text outline-none placeholder:text-muted/80 focus:border-primary focus:ring-2 focus:ring-primary/15" />
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-(--lp-muted)" />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by title" className="w-full rounded-full border-0 bg-white py-2 pl-10 pr-4 text-sm text-(--lp-ink) outline-none ring-1 ring-(--lp-line) placeholder:text-(--lp-muted)/80 focus:ring-2 focus:ring-(--lp-blue)" />
           </label>
         </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         {mine.length === 0 ? (
           <EmptyState icon={QuizIcon} heading="No test series yet" message="Create your first series: choose how to build it, group tests into sections, add questions and publish when you're ready." action={createButton} />
         ) : visible.length === 0 ? (
           <EmptyState
             icon={QuizIcon}
-            heading="No series match"
-            message="Nothing matches these filters right now."
-            action={filtering ? <Button variant="secondary" fullWidth={false} className="px-5 py-2" onClick={() => { setStatus("all"); setType("all"); setQuery(""); }}>Clear filters</Button> : null}
+            heading={filtering ? "No series match" : status === "review" ? "Nothing under review" : "Nothing published yet"}
+            message={filtering ? "Nothing matches these filters right now." : status === "review" ? "When you submit a series for review it waits here until the admin approves it." : "Series approved by the admin will show up here. Finish an assigned series from Assigned to me, or build your own."}
+            action={
+              filtering ? (
+                <Button variant="secondary" fullWidth={false} className="px-5 py-2" onClick={() => { setStatus("published"); setType("all"); setQuery(""); }}>Clear filters</Button>
+              ) : (
+                <NavLink to="/teacher/testseries/assigned" className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-soft">Go to Assigned to me</NavLink>
+              )
+            }
           />
         ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {visible.map((s) => (
-              <TestSeriesCard
-                key={s.id}
-                series={s}
-                courseTitle={courseTitle(s.courseId)}
-                onArchiveToggle={() => transitionSeries(s.id, s.status === "archived" ? "drafting" : "archived")}
-                onDuplicate={() => {
-                  const id = duplicateSeries(s.id);
-                  if (id) navigate(`/teacher/testseries/${id}`);
-                }}
-                onDelete={() => setToDelete(s)}
-              />
-            ))}
-          </div>
+          <section>
+            <SectionHead
+              title={status === "drafts" ? "Your drafts" : status === "review" ? "Under review" : "Published series"}
+              hint={status === "drafts" ? "Series you started yourself and haven't submitted yet." : status === "review" ? "Submitted and waiting for the admin to approve. They go live as soon as they're approved." : "Live for students. Open one to view results and enrollments."}
+              count={visible.length}
+            />
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">{visible.map(renderCard)}</div>
+          </section>
         )}
       </div>
 

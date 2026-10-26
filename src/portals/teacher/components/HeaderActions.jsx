@@ -27,21 +27,21 @@ import { endEducatorSession, EDUCATOR_STATUS, EDUCATOR_STATUS_META } from "../da
 // one closes the others; all three render through the shared DropdownPanel
 // (anchoring, click-outside, Escape, animation, mobile sheet).
 const iconButton =
-  "relative rounded-full p-2.5 text-muted transition-colors hover:bg-bg hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
+  "relative rounded-full p-2.5 text-(--lp-muted) transition-colors hover:bg-(--lp-blue-tint) hover:text-(--lp-ink) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--lp-blue)/40";
 
 function MenuLink({ to, icon: Icon, label, hint, onClick }) {
   return (
     <Link
       to={to}
       onClick={onClick}
-      className="group flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors duration-150 hover:bg-bg focus-visible:bg-bg focus-visible:outline-none"
+      className="group flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors duration-150 hover:bg-(--lp-blue-tint) focus-visible:bg-(--lp-blue-tint) focus-visible:outline-none"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/[0.07] text-primary">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-(--lp-blue-tint) text-(--lp-blue-deep)">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-text">{label}</span>
-        {hint && <span className="block truncate text-xs text-muted">{hint}</span>}
+        <span className="block text-sm font-semibold text-(--lp-ink)">{label}</span>
+        {hint && <span className="block truncate text-xs text-(--lp-muted)">{hint}</span>}
       </span>
       <ChevronRightIcon className="h-4 w-4 shrink-0 text-muted/60 transition-transform group-hover:translate-x-0.5" />
     </Link>
@@ -91,7 +91,6 @@ export default function HeaderActions({ account, initials }) {
 
   // ---- Settings gear: only screens that exist AND are currently reachable
   const settingsItems = [
-    { to: "/teacher/notificationprefs", icon: BellIcon, label: "Notification preferences", hint: "Choose what you hear about, and how" },
     { to: "/teacher/profilesetup#profile", icon: UsersIcon, label: "Educator profile & account", hint: "Your details as submitted" },
     { to: "/teacher/profilesetup", icon: CertificateIcon, label: "Digital ID Card", hint: "Your educator credential" },
     { to: "/teacher/reviewsavailability", icon: CalendarIcon, label: "Availability & bookings", hint: "Weekly hours and session slots" },
@@ -110,59 +109,15 @@ export default function HeaderActions({ account, initials }) {
   };
 
   return (
-    <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-      {/* Notifications */}
-      <div ref={bellRef} className="relative">
-        <button
-          type="button"
-          aria-label={unreadIds.size > 0 ? `Notifications, ${unreadIds.size} unread` : "Notifications"}
-          aria-haspopup="dialog"
-          aria-expanded={openMenu === "bell"}
-          onClick={() => toggle("bell")}
-          className={`${iconButton} ${openMenu === "bell" ? "bg-bg text-text" : ""}`}
-        >
-          <BellIcon />
-          {unreadIds.size > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white ring-2 ring-surface">
-              {unreadIds.size > 9 ? "9+" : unreadIds.size}
-            </span>
-          )}
-        </button>
-        <DropdownPanel open={openMenu === "bell"} onClose={close} anchorRef={bellRef} label="Notifications" widthClass="sm:w-[26rem]">
-          <NotificationsPanel
-            items={items}
-            unreadIds={unreadIds}
-            onOpenItem={openNotification}
-            onMarkAllRead={() => markAllRead(items.map((n) => n.id))}
-            onClose={close}
-          />
-        </DropdownPanel>
-      </div>
-
-      {/* Settings */}
-      <div ref={gearRef} className="relative">
-        <button
-          type="button"
-          aria-label="Settings"
-          aria-haspopup="dialog"
-          aria-expanded={openMenu === "gear"}
-          onClick={() => toggle("gear")}
-          className={`${iconButton} ${openMenu === "gear" ? "bg-bg text-text" : ""}`}
-        >
-          <SettingsIcon />
-        </button>
-        <DropdownPanel open={openMenu === "gear"} onClose={close} anchorRef={gearRef} label="Settings" widthClass="sm:w-72">
-          <div className="border-b border-line px-5 py-3.5">
-            <h2 className="text-sm font-bold text-text">Settings</h2>
-          </div>
-          <nav className="flex flex-col gap-0.5 p-2">
-            {settingsItems.map((item) => (
-              <MenuLink key={item.to} {...item} onClick={close} />
-            ))}
-          </nav>
-        </DropdownPanel>
-      </div>
-
+    <div className="ml-auto flex items-center gap-2 sm:gap-3">
+      <span className="hidden items-center gap-1.5 rounded-full bg-(--lp-grey) px-3 py-1.5 text-[11px] font-semibold text-(--lp-muted) md:inline-flex">
+        <CalendarIcon className="h-3.5 w-3.5" />
+        {new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+      </span>
+      <span className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold sm:inline-flex ${account.status === EDUCATOR_STATUS.APPROVED ? "bg-(--lp-blue-soft) text-(--lp-blue-deep)" : "bg-(--lp-yellow-soft) text-(--lp-ink)"}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${account.status === EDUCATOR_STATUS.APPROVED ? "bg-(--lp-blue)" : "bg-(--lp-yellow)"}`} />
+        {meta.label}
+      </span>
       {/* Profile */}
       <div ref={avatarRef} className="relative">
         <button
@@ -171,31 +126,31 @@ export default function HeaderActions({ account, initials }) {
           aria-haspopup="dialog"
           aria-expanded={openMenu === "avatar"}
           onClick={() => toggle("avatar")}
-          className="ml-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs font-semibold text-primary ring-1 ring-primary/15 transition-shadow hover:ring-2 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className={`flex items-center gap-2.5 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-(--lp-blue-tint) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--lp-blue)/40 sm:pr-3 ${openMenu === "avatar" ? "bg-(--lp-blue-tint)" : ""}`}
         >
-          {account.photoUrl ? <img src={account.photoUrl} alt="" className="h-full w-full object-cover" /> : initials || "ED"}
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-(--lp-ink) text-xs font-bold text-white ring-2 ring-white">
+            {account.photoUrl ? <img src={account.photoUrl} alt="" className="h-full w-full object-cover" /> : initials || "ED"}
+          </span>
+          <span className="hidden min-w-0 text-left sm:block">
+            <span className="block max-w-[9rem] truncate text-[13px] font-bold leading-tight text-(--lp-ink)">{name}</span>
+            <span className="block text-[11px] leading-tight text-(--lp-muted)">Educator</span>
+          </span>
+          <ChevronRightIcon className={`hidden h-4 w-4 text-(--lp-muted) transition-transform sm:block ${openMenu === "avatar" ? "-rotate-90" : "rotate-90"}`} />
         </button>
         <DropdownPanel open={openMenu === "avatar"} onClose={close} anchorRef={avatarRef} label="Account menu" widthClass="sm:w-72">
-          <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-semibold text-primary ring-1 ring-primary/15">
+          <div className="flex items-center gap-3 border-b border-(--lp-line) px-5 py-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-(--lp-ink) text-sm font-bold text-white ring-2 ring-white">
               {account.photoUrl ? <img src={account.photoUrl} alt="" className="h-full w-full object-cover" /> : initials || "ED"}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-text">{name}</p>
-              <p className="truncate text-xs text-muted">{account.email}</p>
+              <p className="truncate text-sm font-bold text-(--lp-ink)">{name}</p>
+              <p className="truncate text-xs text-(--lp-muted)">{account.email}</p>
               <StatusBadge status={meta.badgeStatus} size="sm" className="mt-1.5">
                 {meta.label}
               </StatusBadge>
             </div>
           </div>
-          <nav className="flex flex-col gap-0.5 p-2">
-            <MenuLink to="/teacher/profilesetup#profile" icon={UsersIcon} label="View profile" hint="Your submitted details" onClick={close} />
-            {canResubmit && (
-              <MenuLink to="/teacher/registration?resubmit=1" icon={PencilIcon} label="Edit profile" hint="Update & resubmit for review" onClick={close} />
-            )}
-            <MenuLink to="/teacher/profilesetup" icon={CertificateIcon} label="Digital ID Card" hint={account.status === EDUCATOR_STATUS.APPROVED ? "Verified credential" : "Provisional until verified"} onClick={close} />
-          </nav>
-          <div className="border-t border-line p-2">
+          <div className="border-t border-(--lp-line) p-2">
             <button
               type="button"
               onClick={logOut}

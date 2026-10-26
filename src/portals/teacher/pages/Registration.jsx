@@ -57,7 +57,7 @@ import {
   REFERENCE_FIELDS, createInitialForm,
 } from "../data/educatorRegistrationData";
 import {
-  registerEducator, resubmitEducator, findEducatorByIdentifier, useCurrentEducator, toIdCardProfile, endEducatorSession,
+  registerEducator, resubmitEducator, updateEducatorProfile, findEducatorByIdentifier, useCurrentEducator, toIdCardProfile, endEducatorSession,
   EDUCATOR_STATUS, EDUCATOR_STATUS_META,
 } from "../data/educatorAccountStore";
 
@@ -158,10 +158,13 @@ function formFromAccount(account) {
 export default function Registration() {
   const [searchParams] = useSearchParams();
   const wantsResubmit = searchParams.get("resubmit") === "1";
+  // ?edit=1 -> "My profile": any signed-in educator edits their saved details.
+  const wantsEdit = searchParams.get("edit") === "1";
   const current = useCurrentEducator();
   // Decided once, on first render: after a successful resubmit the status flips
   // to "pending", which must not bounce the educator away from the confirmation.
   const [resubmitAccount] = useState(() =>
+    wantsEdit && current ? current :
     wantsResubmit &&
     current &&
     (current.status === EDUCATOR_STATUS.CHANGES_REQUESTED || current.status === EDUCATOR_STATUS.REJECTED)
@@ -170,12 +173,12 @@ export default function Registration() {
   );
 
   // Asking to resubmit without an eligible signed-in account -> nothing to edit.
-  if (wantsResubmit && !resubmitAccount) return <Navigate to={current ? "/teacher" : "/login"} replace />;
+  if ((wantsResubmit || wantsEdit) && !resubmitAccount) return <Navigate to={current ? "/teacher" : "/login"} replace />;
 
-  return <RegistrationFlow resubmitAccount={resubmitAccount} />;
+  return <RegistrationFlow resubmitAccount={resubmitAccount} isEdit={wantsEdit && Boolean(resubmitAccount)} />;
 }
 
-function RegistrationFlow({ resubmitAccount }) {
+function RegistrationFlow({ resubmitAccount, isEdit = false }) {
   const navigate = useNavigate();
   const isResubmit = Boolean(resubmitAccount);
 
@@ -309,6 +312,11 @@ function RegistrationFlow({ resubmitAccount }) {
     setSubmitError(null);
     try {
       // ONE call saves the account details AND the profile details together.
+      if (isEdit) {
+        await updateEducatorProfile(resubmitAccount.id, form);
+        navigate("/teacher/profilesetup");
+        return;
+      }
       const account = isResubmit ? await resubmitEducator(resubmitAccount.id, form) : await registerEducator(form);
       // The application now waits for admin approval: end the session so the
       // dashboard is only reachable by logging in after they approve.
@@ -374,7 +382,7 @@ function RegistrationFlow({ resubmitAccount }) {
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
         <div className="w-full max-w-3xl">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <Link to={isResubmit ? "/teacher" : "/teacher/login"} className="inline-flex items-center gap-2.5 font-display text-base font-bold tracking-tight text-(--lp-ink)">
+            <Link to={isEdit ? "/teacher/profilesetup" : isResubmit ? "/teacher" : "/teacher/login"} className="inline-flex items-center gap-2.5 font-display text-base font-bold tracking-tight text-(--lp-ink)">
               <BrandMark className="h-9 w-9" />
               Universal Learning
             </Link>
@@ -385,13 +393,13 @@ function RegistrationFlow({ resubmitAccount }) {
                 </Link>
               )}
               <span className="rounded-full bg-(--lp-yellow) px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-(--lp-ink)">
-                {isResubmit ? "Update Your Profile" : "Educator Registration"}
+                {isEdit ? "My Profile" : isResubmit ? "Update Your Profile" : "Educator Registration"}
               </span>
             </div>
           </div>
 
           <div className="rounded-[36px] bg-white px-5 py-7 shadow-[0_30px_80px_rgba(37,87,214,0.18)] ring-1 ring-(--lp-line) sm:px-10">
-            {isResubmit && resubmitAccount.adminFeedback && (
+            {isResubmit && !isEdit && resubmitAccount.adminFeedback && (
               <div className="mb-4 flex items-start gap-2.5 rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger">
                 <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
@@ -1194,6 +1202,8 @@ function RegistrationFlow({ resubmitAccount }) {
                     : stepIndex === STEPS.length - 1
                     ? submitError === "generic"
                       ? "Try again"
+                      : isEdit
+                      ? "Save changes"
                       : isResubmit
                       ? "Resubmit for Review"
                       : "Submit for Review"

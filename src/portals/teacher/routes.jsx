@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Navigate, Route } from "react-router-dom";
 const Registration = lazy(() => import("./pages/Registration"));
 const ProfileSetup = lazy(() => import("./pages/ProfileSetup"));
+const EditProfile = lazy(() => import("./pages/EditProfile"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CourseBuilder = lazy(() => import("./pages/CourseBuilder"));
 const ContentUpload = lazy(() => import("./pages/ContentUpload"));
@@ -14,7 +15,7 @@ const Reviews = lazy(() => import("./pages/Reviews"));
 const BookingManage = lazy(() => import("./pages/BookingManage"));
 const LiveClasses = lazy(() => import("./pages/LiveClasses"));
 const Grading = lazy(() => import("./pages/Grading"));
-const Earnings = lazy(() => import("./pages/Earnings"));
+const Earnings = lazy(() => import("./pages/TestSeriesEarnings"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Messaging = lazy(() => import("./pages/Messaging"));
 const StudentManagement = lazy(() => import("./pages/StudentManagement"));
@@ -26,6 +27,7 @@ const TestSeriesBuilder = lazy(() => import("./pages/TestSeriesBuilder"));
 const NewTestSeries = lazy(() => import("./pages/TestSeriesBuilder").then((m) => ({ default: m.NewTestSeries })));
 const AssignedSeries = lazy(() => import("./pages/AssignedSeries"));
 const TestSeriesDetail = lazy(() => import("./pages/TestSeriesDetail"));
+const TestSeriesManage = lazy(() => import("./pages/TestSeriesManage"));
 const TestSeriesStudentPreview = lazy(() => import("./pages/TestSeriesStudentPreview"));
 import TestSeriesGuard from "./components/TestSeriesGuard";
 import { CourseBuilderProvider } from "./context/CourseBuilderContext";
@@ -84,6 +86,7 @@ const teacherRoutes = (
           shows the educator's Digital ID Card: provisional while under review,
           Verified once approved. NOT hidden, and exempt from the pending lock. */}
       <Route path="profilesetup" element={<ProfileSetup />} />
+      <Route path="editprofile" element={<EditProfile />} />
       <Route element={<TeacherCoursesProvider />}>
         <Route element={<MessagingProvider />}>
         {/* Dashboard sits inside MessagingProvider so its recent-announcements widget can read the shared history. */}
@@ -133,7 +136,7 @@ const teacherRoutes = (
             {/* TEMP-HIDDEN: <Route path="messaging" element={<Messaging />} /> */}
           </Route>
         </Route>
-        {/* TEMP-HIDDEN: <Route path="earnings" element={<Earnings />} /> */}
+        <Route path="earnings" element={<Earnings />} />
         {/* TEMP-HIDDEN: <Route path="analytics" element={<Analytics />} /> */}
         {/* Test Series -- every route here sits behind TestSeriesGuard (admin-
             granted creator access). Series/grading state lives in
@@ -148,6 +151,7 @@ const teacherRoutes = (
           <Route path="testseries/new" element={<NewTestSeries />} />
           <Route path="testseries/:seriesId" element={<TestSeriesBuilder />} />
           <Route path="testseries/:seriesId/detail" element={<TestSeriesDetail />} />
+          <Route path="testseries/:seriesId/manage" element={<TestSeriesManage />} />
           {/* Preview as Student: the nested :testId route renders nothing of its
               own -- the host reads the param, so it stays mounted (keeping its
               local preview state) when moving between selection and a test. */}

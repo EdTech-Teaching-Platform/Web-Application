@@ -142,7 +142,7 @@ export function useAssignmentNotifications(assignmentId) {
 
 // ---------- assignment store ----------
 function buildAssignment({
-  seriesId, seriesName, subject, topics, educatorId, testName, questionCount, questionTypeMix,
+  seriesId, seriesName, subject, topics, educatorId, testName, testCount, grade, exam, audience, questionCount, questionTypeMix,
   difficulty, totalMarks, duration, instructions, assignedDate, deadline, status,
   submission, history,
 }) {
@@ -155,6 +155,10 @@ function buildAssignment({
     educatorId,
     educatorName: educatorName(educatorId),
     testName,
+    testCount: testCount ?? 1,
+    grade: grade || "",
+    exam: exam || "",
+    audience: audience || "",
     questionCount: questionCount ?? 20,
     questionTypeMix: questionTypeMix || QUESTION_TYPE_MIX.MIXED,
     difficulty: difficulty || "Medium",

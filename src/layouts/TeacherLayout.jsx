@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import RouteFallback from "../components/common/RouteFallback";
 import { useAuth } from "../hooks/useAuth";
@@ -10,6 +9,7 @@ import EducatorStatusBanner from "../portals/teacher/components/EducatorStatusBa
 import EducatorApprovalGate from "../portals/teacher/components/EducatorApprovalGate";
 import HeaderActions from "../portals/teacher/components/HeaderActions";
 import LockedSection from "../components/ui/LockedSection";
+import { AUTH_THEME_VARS, BrandMark } from "../auth/components/AuthKit";
 import {
   HomeIcon,
   BookIcon,
@@ -27,6 +27,10 @@ import {
   FlagIcon,
   CertificateIcon,
   ClockIcon,
+  PencilIcon,
+  FileTextIcon,
+  AssignmentIcon,
+  CreditCardIcon,
 } from "../components/ui/icons";
 
 // Educator Studio chrome — sidebar + top bar shared by every /teacher/* page.
@@ -40,9 +44,9 @@ const NAV_ITEMS = [
   // TEMP-HIDDEN: { to: "/teacher/mycourses", label: "My Courses", icon: BookIcon },
   // Test Series -- only rendered when an admin has granted creator access
   // (filtered out below, so it is hidden entirely, not disabled).
-  { to: "/teacher/testseries", label: "Test Series", icon: QuizIcon, requiresTestSeries: true, excludePrefix: "/teacher/testseries/assigned" },
-  // Sub-item: series an admin assigned to this educator; badge = items needing action.
-  { to: "/teacher/testseries/assigned", label: "Assigned to me", icon: FlagIcon, requiresTestSeries: true, sub: true, badgeKey: "assigned" },
+  { to: "/teacher/testseries", label: "Test Series", icon: FileTextIcon, requiresTestSeries: true, excludePrefix: "/teacher/testseries/assigned" },
+  // Series an admin assigned to this educator; badge = items needing action.
+  { to: "/teacher/testseries/assigned", label: "Assigned to me", icon: AssignmentIcon, requiresTestSeries: true, badgeKey: "assigned" },
   // TEMP-HIDDEN: { to: "/teacher/liveclasses", label: "Live Classes", icon: VideoIcon },
   // TEMP-HIDDEN: { to: "/teacher/messaging", label: "Announcements", icon: MegaphoneIcon },
   // TEMP-HIDDEN: { to: "/teacher/studentmanagement", label: "Student Management", icon: UsersIcon },
@@ -53,16 +57,20 @@ const NAV_ITEMS = [
   // TEMP-HIDDEN: { to: "/teacher/requests", label: "Requests", icon: CalendarIcon, badgeKey: "requests" },
   // TEMP-HIDDEN: { to: "/teacher/earnings", label: "Revenue", icon: WalletIcon },
   // TEMP-HIDDEN: { to: "/teacher/analytics", label: "Analytics", icon: ChartIcon },
+  // Earnings -- per-test-series revenue and enrollment tracking.
+  { to: "/teacher/earnings", label: "Earnings", icon: WalletIcon, requiresTestSeries: true },
   // Digital ID Card -- always reachable (provisional "Pending Verification"
   // card while under review, the Verified card once approved), so unlike the
   // sections above it is NOT locked behind admin approval.
-  { to: "/teacher/profilesetup", label: "Digital ID Card", icon: CertificateIcon },
+  { to: "/teacher/profilesetup", label: "Digital ID Card", icon: CreditCardIcon },
+  // Edit profile -- all onboarding details, editable after sign-up.
+  { to: "/teacher/editprofile", label: "Edit profile", icon: PencilIcon },
 ];
 
 // Paths whose content stays usable while the profile is still under review.
 // Notification Preferences is account-level settings (reached from the header
 // gear + bell), so it stays usable while the profile is under review.
-const ALWAYS_OPEN_PREFIXES = ["/teacher/profilesetup", "/teacher/notificationprefs"];
+const ALWAYS_OPEN_PREFIXES = ["/teacher/profilesetup", "/teacher/editprofile", "/teacher/notificationprefs"];
 
 // Calm, reassuring copy for the lock chip, per verification status.
 const LOCK_COPY = {
@@ -81,10 +89,23 @@ const LOCK_COPY = {
 };
 
 function navLinkClass({ isActive }) {
-  return `group flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-150 ${
-    isActive ? "bg-primary text-white shadow-soft" : "text-muted hover:bg-primary/[0.07] hover:text-text"
+  return `group flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+    isActive
+      ? "bg-(--lp-ink) text-white shadow-[0_10px_22px_-12px_rgba(15,17,21,0.6)]"
+      : "text-(--lp-muted) hover:bg-(--lp-blue-tint) hover:text-(--lp-ink)"
   }`;
 }
+
+const PAGE_TITLES = [
+  ["/teacher/testseries/assigned", "Assigned to me"],
+  ["/teacher/testseries", "Test Series"],
+  ["/teacher/profilesetup", "Digital ID Card"],
+  ["/teacher/editprofile", "Edit profile"],
+  ["/teacher/notificationprefs", "Notifications"],
+  ["/teacher/earnings", "Earnings"],
+  ["/teacher/grading", "Grading"],
+  ["/teacher/dashboard", "Dashboard"],
+];
 
 export default function TeacherLayout() {
   const { user, logout } = useAuth();
@@ -93,6 +114,7 @@ export default function TeacherLayout() {
   const { hasAccess: hasTestSeriesAccess, assignedActionCount } = useTestSeries();
   const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pageTitle = PAGE_TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Dashboard";
   const name = account?.profile?.fullName || user?.name || "Educator";
   const initials = name
     .trim()
@@ -119,101 +141,119 @@ export default function TeacherLayout() {
   const lockCopy = LOCK_COPY[account.status] ?? LOCK_COPY.pending;
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div style={AUTH_THEME_VARS} className="relative min-h-screen overflow-x-clip bg-[#f3f6fd] font-body text-(--lp-ink)">
+      {/* Soft ambient glow behind the portal, purely decorative */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
+        <div className="absolute -right-24 -top-32 h-[26rem] w-[26rem] rounded-full bg-(--lp-blue)/15 blur-3xl" />
+        <div className="absolute -left-20 bottom-0 h-[22rem] w-[22rem] rounded-full bg-(--lp-yellow)/20 blur-3xl" />
+      </div>
+
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-surface px-4 py-5 shadow-card transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col p-3 transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-2.5 px-2 pb-6">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-            UL
-          </span>
-          <div>
-            <div className="text-sm font-bold leading-tight text-text">Educator Studio</div>
-            <div className="eyebrow-muted !text-[10px]">Universal Learning</div>
+        <div className="flex h-full flex-col rounded-[1.75rem] bg-white px-3 py-4 shadow-[0_18px_40px_-24px_rgba(15,17,21,0.28)] ring-1 ring-(--lp-line)">
+          <div className="flex items-center gap-2.5 px-2 pb-5">
+            <BrandMark className="h-10 w-10" />
+            <div className="min-w-0">
+              <div className="truncate font-(family-name:--lp-font) text-[15px] font-bold leading-tight tracking-tight text-(--lp-ink)">Universal Learning</div>
+              <span className="mt-1 inline-flex items-center rounded-full bg-(--lp-yellow) px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-(--lp-ink)">
+                Educator Studio
+              </span>
+            </div>
           </div>
-        </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
-          {NAV_ITEMS.filter((item) => !item.requiresTestSeries || hasTestSeriesAccess).map(({ to, label, icon: Icon, badgeKey, sub, excludePrefix }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `${navLinkClass({ isActive: isActive && !(excludePrefix && pathname.startsWith(excludePrefix)) })}${sub ? " ml-5 !py-2 !text-[13px]" : ""}`
-              }
-              onClick={() => setSidebarOpen(false)}
-            >
-              <Icon className="shrink-0" />
-              <span className="flex-1 truncate">{label}</span>
-              {badgeKey === "assigned" && assignedActionCount > 0 && (
-                <span className="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white" aria-label={`${assignedActionCount} assigned series need action`}>
-                  {assignedActionCount}
-                </span>
-              )}
-              {badgeKey === "requests" && pendingCount > 0 && (
-                <span className="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">
-                  {pendingCount}
-                </span>
-              )}
+          <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-(--lp-muted)/70">Menu</div>
+          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
+            {NAV_ITEMS.filter((item) => !item.requiresTestSeries || hasTestSeriesAccess).map(({ to, label, icon: Icon, badgeKey, sub, excludePrefix }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `${navLinkClass({ isActive: isActive && !(excludePrefix && pathname.startsWith(excludePrefix)) })}${sub ? " ml-5 !py-2 !text-[13px]" : ""}`
+                }
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Icon className="shrink-0" />
+                <span className="flex-1 truncate">{label}</span>
+                {badgeKey === "assigned" && assignedActionCount > 0 && (
+                  <span className="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-(--lp-yellow) px-1.5 text-[10px] font-bold text-(--lp-ink)" aria-label={`${assignedActionCount} assigned series need action`}>
+                    {assignedActionCount}
+                  </span>
+                )}
+                {badgeKey === "requests" && pendingCount > 0 && (
+                  <span className="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-(--lp-yellow) px-1.5 text-[10px] font-bold text-(--lp-ink)">
+                    {pendingCount}
+                  </span>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="mt-3 flex flex-col gap-1 border-t border-(--lp-line) pt-3">
+            {/* TEMP-HIDDEN: Help Center (-> hidden /teacher/notificationprefs)
+            <NavLink to="/teacher/notificationprefs" className={navLinkClass}>
+              <HelpIcon className="shrink-0" />
+              Help Center
             </NavLink>
-          ))}
-        </nav>
-
-        <div className="mt-4 flex flex-col gap-1 border-t border-line pt-4">
-          {/* TEMP-HIDDEN: Help Center (-> hidden /teacher/notificationprefs)
-          <NavLink to="/teacher/notificationprefs" className={navLinkClass}>
-            <HelpIcon className="shrink-0" />
-            Help Center
-          </NavLink>
-          */}
-          <NavLink to="/teacher/login" className={navLinkClass} onClick={() => { endEducatorSession(); logout(); }}>
-            <LogoutIcon className="shrink-0" />
-            Log Out
-          </NavLink>
+            */}
+            <NavLink to="/teacher/login" className={navLinkClass} onClick={() => { endEducatorSession(); logout(); }}>
+              <LogoutIcon className="shrink-0" />
+              Log Out
+            </NavLink>
+          </div>
         </div>
       </aside>
 
       {sidebarOpen && (
         <button
           aria-label="Close menu"
-          className="fixed inset-0 z-30 bg-text/30 backdrop-blur-[1px] lg:hidden"
+          className="fixed inset-0 z-30 bg-(--lp-ink)/35 backdrop-blur-[2px] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Main column */}
-      <div className="flex min-h-screen flex-col lg:pl-64">
-        {/* Top bar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-4 bg-surface px-5 shadow-soft">
-          <button
-            aria-label="Open menu"
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-full p-2 text-muted hover:bg-bg lg:hidden"
-          >
-            <span className="block h-0.5 w-5 bg-current" />
-            <span className="mt-1 block h-0.5 w-5 bg-current" />
-            <span className="mt-1 block h-0.5 w-5 bg-current" />
-          </button>
+      <div className="relative z-10 flex min-h-screen flex-col lg:pl-64">
+        {/* Floating glass top bar */}
+        <div className="sticky top-0 z-20 px-3 pt-3 sm:px-5 lg:px-6">
+          <header className="mx-auto flex h-14 w-full max-w-[1280px] items-center gap-3 rounded-full bg-white/80 px-3 shadow-[0_12px_30px_-20px_rgba(15,17,21,0.35)] ring-1 ring-(--lp-line) backdrop-blur-xl sm:px-4">
+            <button
+              aria-label="Open menu"
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-full bg-(--lp-grey) p-2.5 text-(--lp-ink) transition-colors hover:bg-(--lp-blue-soft) lg:hidden"
+            >
+              <span className="block h-0.5 w-4 bg-current" />
+              <span className="mt-1 block h-0.5 w-4 bg-current" />
+              <span className="mt-1 block h-0.5 w-4 bg-current" />
+            </button>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <BrandMark className="h-8 w-8 lg:hidden" />
+              <div className="min-w-0">
+                <div className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-(--lp-muted)">Educator Studio</div>
+                <div className="truncate font-(family-name:--lp-font) text-[15px] font-bold leading-tight tracking-tight text-(--lp-ink)">{pageTitle}</div>
+              </div>
+            </div>
 
-          {/* TEMP-HIDDEN: global header search (searches courses/students/sessions, all currently hidden).
-              Restore by deleting this comment wrapper. HeaderActions stays right-aligned via ml-auto, so no layout change is needed.
-          <div className="relative hidden max-w-sm flex-1 sm:block">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              placeholder="Search courses, students, sessions…"
-              className="w-full rounded-full border border-line bg-bg py-2.5 pl-10 pr-4 text-sm text-text placeholder:text-muted/80 outline-none transition-colors focus:border-primary/40 focus:bg-surface"
-            />
-          </div>
-          */}
+            {/* TEMP-HIDDEN: global header search (searches courses/students/sessions, all currently hidden).
+                Restore by deleting this comment wrapper. HeaderActions stays right-aligned via ml-auto, so no layout change is needed.
+            <div className="relative hidden max-w-sm flex-1 sm:block">
+              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+              <input
+                type="text"
+                placeholder="Search courses, students, sessions…"
+                className="w-full rounded-full border border-line bg-bg py-2.5 pl-10 pr-4 text-sm text-text placeholder:text-muted/80 outline-none transition-colors focus:border-primary/40 focus:bg-surface"
+              />
+            </div>
+            */}
 
-          <HeaderActions account={account} initials={initials} />
-        </header>
+            <HeaderActions account={account} initials={initials} />
+          </header>
+        </div>
 
-        <main className="flex-1 px-5 py-6 lg:px-8 lg:py-8">
+        <main className="flex-1 px-3 pb-8 pt-5 sm:px-5 lg:px-6 lg:pt-6">
           <div className="mx-auto w-full max-w-[1280px]">
             <EducatorStatusBanner
               account={account}

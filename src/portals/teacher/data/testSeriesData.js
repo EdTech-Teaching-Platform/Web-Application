@@ -7,6 +7,9 @@
 import { formatMoney } from "../../../utils/formatMoney";
 import { circuitStem, inclineStem, projectileStem, skaterStem, velocityGraphOptions, velocityTimeStem } from "./questionImages";
 import { normalizeDeadlines, deadlineErrors, effectiveBuildDeadline, nowIso, MOCK_TODAY_ISO } from "./testSeriesDeadlines";
+// The builder offers exactly what the admin "Create Test Series" wizard offers, so the
+// shared option lists come from the admin data layer.
+import { AUDIENCE_OPTIONS } from "../../admin/data/testSeriesMock";
 
 // ---------------------------------------------------------------------
 // Taxonomy — IMPORTANT: these constants MUST stay aligned with the public
@@ -42,22 +45,22 @@ export const TS_STATUSES = TS_LIFECYCLE;
 export const TS_STATUS_META = {
   assigned: { label: "Assigned", tone: "neutral" },
   drafting: { label: "Drafting", tone: "warning" },
-  ready: { label: "Ready for review", tone: "warning" },
+  ready: { label: "Under review", tone: "warning" },
   published: { label: "Published", tone: "success" },
-  final: { label: "Final published", tone: "success" },
+  final: { label: "Published", tone: "success" }, // legacy key: normalised to "published"
   archived: { label: "Archived", tone: "neutral" },
 };
 TS_STATUS_META.draft = TS_STATUS_META.drafting; // legacy key
 // ProgressSteps stepper stages. `stageIndex(status)` maps a status onto it.
-export const TS_STAGES = ["Assigned", "Build", "Review", "Publish", "Final publish"];
+export const TS_STAGES = ["Assigned", "Build", "Under review", "Published"];
 export function stageIndex(status) {
   switch (status) {
     case "assigned": return 0;
     case "drafting":
     case "draft": return 1;
     case "ready": return 2;
-    case "published": return 3;
-    case "final": return 5; // every stage complete
+    case "published":
+    case "final": return 4; // every stage complete
     default: return -1; // archived: off the track
   }
 }
@@ -134,8 +137,55 @@ export function newQuestion(type = "mcq_single") {
   return { ...base, points: type === "long_answer" ? 10 : 5, modelAnswer: "", wordLimit: type === "long_answer" ? 300 : 80, rubric: [] };
 }
 
+// Admin wizard defaults: 60 min, 40% to pass, 1 attempt. `type` and `locked` are
+// not options in the admin wizard, so the builder never shows them.
 export function newTest() {
-  return { id: makeId("t"), title: "", type: "Topic", duration: 30, locked: true, questions: [] };
+  return { id: makeId("t"), title: "", type: "Topic", duration: 60, locked: true, passingPct: 40, attemptLimit: 1, topics: [], questions: [] };
+}
+export function normalizeTest(t) {
+  return { instructions: "", passingPct: 40, attemptLimit: 1, topics: [], plannedQuestions: 0, ...t };
+}
+
+// ---- Question editor model (same fields as the admin question editor) ----
+// Only two kinds exist: Objective (MCQ, exactly four options A-D, one correct)
+// and Subjective. Difficulty is Easy / Medium / Hard in the UI and stored with
+// the legacy Beginner / Intermediate / Advanced keys the rest of the app reads.
+export const TS_AUDIENCES = AUDIENCE_OPTIONS;
+export const TS_Q_DIFFICULTIES = ["Easy", "Medium", "Hard"];
+const DIFF_TO_UI = { Beginner: "Easy", Intermediate: "Medium", Advanced: "Hard", Easy: "Easy", Medium: "Medium", Hard: "Hard" };
+const DIFF_TO_STORE = { Easy: "Beginner", Medium: "Intermediate", Hard: "Advanced" };
+export const difficultyLabel = (d) => DIFF_TO_UI[d] || "Medium";
+export const difficultyKey = (label) => DIFF_TO_STORE[label] || "Intermediate";
+export const OPTION_KEYS = ["A", "B", "C", "D"];
+
+const escapeHtml = (t) => String(t || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+export function plainToHtml(text) {
+  const t = String(text || "").trim();
+  if (!t) return "";
+  return `<p>${escapeHtml(t).replace(/\n/g, "<br>")}</p>`;
+}
+export function htmlToPlain(html) {
+  return String(html || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>\s*<p>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+export function newMcq() {
+  return {
+    id: makeId("q"), type: "mcq_single", text: "", points: 4, negativeMarks: 1, difficulty: "Intermediate", subject: "", topic: "", explanation: "",
+    options: OPTION_KEYS.map(() => ({ id: makeId("o"), text: "", correct: false })),
+  };
+}
+export function newSubjective() {
+  return { id: makeId("q"), type: "long_answer", text: "", points: 5, negativeMarks: 0, difficulty: "Intermediate", subject: "", topic: "", explanation: "", answerInstructions: "", modelAnswer: "", wordLimit: 300, rubric: [] };
 }
 
 export function newSection(title = "") {
@@ -157,6 +207,8 @@ export function newSeries(teacherId, opts = {}) {
     shortDescription: "",
     about: "",
     whoFor: "",
+    audienceLevel: "",
+    syllabus: "",
     grades: [],
     subjects: [],
     exams: [],
@@ -175,7 +227,7 @@ export function newSeries(teacherId, opts = {}) {
     createdAt: t,
     updatedAt: t,
     lastSavedAt: nowIso(),
-    draftPayload: { startCompleted: true, stepIndex: 0, activeTestId: null, activeQuestionId: null },
+    draftPayload: { startCompleted: false, stepIndex: 0, activeTestId: null, activeQuestionId: null },
     ...init,
   });
 }
@@ -188,13 +240,17 @@ export function normalizeSeries(raw) {
   s.courseId = s.scope === "course" ? s.courseId ?? null : null;
   s.assignment = s.assignment || null;
   if (s.status === "draft") s.status = "drafting";
+  if (s.status === "final") s.status = "published"; // there is no separate "final published" state any more
   s.audience = { visibility: "public", seatLimit: "", ...(s.audience || {}) };
   s.courseAccess = { enrolledDefault: true, ...(s.courseAccess || {}) };
-  s.startMethod = "scratch"; // every series is built manually, question by question
+  s.startMethod = ["csv", "ai"].includes(s.startMethod) ? s.startMethod : "scratch"; // same start options as the admin wizard
+  s.audienceLevel = s.audienceLevel || "";
+  s.syllabus = s.syllabus || "";
+  s.sections = (s.sections || []).map((sec) => ({ ...sec, tests: (sec.tests || []).map(normalizeTest) }));
   s.deadlines = normalizeDeadlines(s.deadlines, { origin: s.origin, requiredDeadline: s.assignment?.requiredDeadline });
   s.extensionRequest = s.extensionRequest || null;
   s.declined = s.declined || null;
-  s.lastEditedStep = s.lastEditedStep ?? Math.min(s.stepReached ?? 0, 3);
+  s.lastEditedStep = s.lastEditedStep ?? Math.min(s.stepReached ?? 0, 4);
   s.lastEditedPointer = s.lastEditedPointer || null;
   s.draftPayload = s.draftPayload || { startCompleted: true, stepIndex: s.lastEditedStep, activeTestId: null, activeQuestionId: null };
   if (s.lastSavedAt === undefined) s.lastSavedAt = s.updatedAt ? `${s.updatedAt}T10:00:00.000Z` : null;
@@ -211,7 +267,7 @@ export function computeBuilderProgress(series) {
   if (series.status === "ready" || isLive(series) || series.status === "final") return 100;
   const exp = series.assignment?.expected;
   const tests = allTests(series);
-  const detailsPart = 1 - Math.min(Object.keys(detailsErrors(series)).length, 6) / 6;
+  const detailsPart = 1 - Math.min(Object.keys(detailsErrors(series)).length + Object.keys(classificationErrors(series)).length, 8) / 8;
   const testTarget = exp?.tests || Math.max(tests.length, 2);
   const structPart = Math.min(1, tests.filter((t) => t.title.trim() && Number(t.duration) > 0).length / testTarget);
   const qTarget = exp?.questions || 10;
@@ -278,58 +334,62 @@ export function topicSuggestions(series) {
   return [...used, ...extra];
 }
 
-// Question validation — returns an array of plain-English problems.
+// Test type shown read-only on the Classification step (same wording as the admin wizard).
+export function derivedTestLabel(series) {
+  const tests = allTests(series);
+  if (!tests.length) return "—";
+  const qs = tests.flatMap((t) => t.questions);
+  const kinds = new Set(qs.map((q) => (isSubjective(q.type) ? "subjective" : "objective")));
+  const mix = kinds.size === 0 ? "no questions yet" : kinds.size === 2 ? "objective + subjective" : kinds.has("objective") ? "objective" : "subjective";
+  return `${tests.length === 1 ? "Single test" : `Multi-test series (${tests.length} tests)`} · ${mix}`;
+}
+
+const questionKeyOf = (q) => stripHtml(q.text).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+// Question validation (admin rules) — returns an array of plain-English problems.
 export function questionErrors(q) {
   const errs = [];
   if (!stripHtml(q.text)) errs.push("Question text is required.");
-  if (!(Number(q.points) > 0)) errs.push("Points must be greater than 0.");
-  if (q.type === "mcq_single" || q.type === "mcq_multi") {
-    const opts = q.options || [];
-    if (opts.length < 2) errs.push("Add at least two options.");
-    if (opts.some((o) => !o.text.trim() && !o.image)) errs.push("Every option needs text or an image.");
-    const correct = opts.filter((o) => o.correct).length;
-    if (correct === 0) errs.push("Mark at least one correct answer.");
-    if (q.type === "mcq_single" && correct > 1) errs.push("Single-answer questions can have only one correct option.");
-  }
-  if (q.type === "true_false" && !(q.options || []).some((o) => o.correct)) errs.push("Pick the correct answer.");
-  if (q.type === "numerical") {
-    if (q.correctAnswer === "" || q.correctAnswer === undefined || Number.isNaN(Number(q.correctAnswer))) errs.push("Enter the correct numeric answer.");
-    if (Number(q.tolerance) < 0) errs.push("Tolerance can't be negative.");
-  }
-  if (q.type === "fill_blank" && !String(q.correctAnswer || "").trim()) errs.push("Enter the accepted answer.");
   if (isSubjective(q.type)) {
-    const rubric = q.rubric || [];
-    if (rubric.length) {
-      if (rubric.some((r) => !r.label.trim())) errs.push("Every rubric criterion needs a label.");
-      if (rubric.some((r) => !(Number(r.points) > 0))) errs.push("Rubric points must be greater than 0.");
-      const total = rubric.reduce((s, r) => s + (Number(r.points) || 0), 0);
-      if (total !== Number(q.points)) errs.push(`Rubric totals ${total} pts but the question is worth ${Number(q.points) || 0} pts.`);
-    }
+    /* subjective: question text and marks only */
+  } else if (q.type === "mcq_single") {
+    const opts = q.options || [];
+    if (opts.length !== 4 || opts.some((o) => !String(o.text || "").trim() && !o.image)) errs.push("All four options are required.");
+    if (opts.filter((o) => o.correct).length !== 1) errs.push("Pick the correct answer.");
+  } else {
+    errs.push("Only objective (MCQ) and subjective questions are supported. Edit this question to convert it.");
   }
+  if (!(Number(q.points) > 0)) errs.push("Marks must be above 0.");
   return errs;
 }
 
-// Step 1 validation — keyed by field so the form can show inline errors.
+// Step 1 validation (admin "Details" step) — keyed by field for inline errors.
 export function detailsErrors(series) {
   const e = {};
-  if (series.title.trim().length < 5) e.title = "Give your series a title (at least 5 characters).";
-  if (!series.shortDescription.trim()) e.shortDescription = "Add a one-line summary for the series card.";
-  if (series.grades.length === 0) e.grades = "Select at least one class / grade.";
-  if (series.subjects.length === 0) e.subjects = "Select at least one subject.";
-  if (series.exams.length === 0) e.exams = "Select at least one exam / goal.";
-  if (series.languages.length === 0) e.languages = "Select at least one language.";
-  if (series.scope === "course" && !series.courseId) e.course = "Pick the course this series belongs to.";
-  if (series.pricing.model === "paid" && !(Number(series.pricing.price) > 0)) e.price = "Enter a price greater than 0.";
-  if (series.negativeMarking.enabled && !series.negativeMarking.scheme.trim()) e.negativeScheme = "Describe the scheme, e.g. -0.25 per wrong answer.";
+  if (!String(series.title || "").trim()) e.title = "Series name is required.";
+  if (!series.audienceLevel) e.audienceLevel = "Target audience is required.";
+  if (series.pricing.model === "paid" && !(Number(series.pricing.price) > 0)) e.price = "Enter a valid price for a paid series.";
   return e;
 }
+// Step 3 validation (admin "Classification" step).
+export function classificationErrors(series) {
+  const e = {};
+  if (series.grades.length === 0) e.grades = "Class / Grade is required.";
+  if (series.subjects.length === 0) e.subjects = "Subject is required.";
+  if (series.exams.length === 0) e.exams = "Exam / Goal is required.";
+  if (!series.difficulty) e.difficulty = "Difficulty level is required.";
+  if (series.languages.length === 0) e.languages = "Select at least one language.";
+  return e;
+}
+// Step 2 validation (admin "Structure" step): tests need a name and a duration.
 export function structureErrors(series) {
   const e = [];
-  if (series.sections.length === 0) e.push("Add at least one section.");
-  if (series.sections.some((s) => !s.title.trim())) e.push("Every section needs a name.");
-  if (seriesTestCount(series) === 0) e.push("Add at least one test.");
-  if (allTests(series).some((t) => !t.title.trim())) e.push("Every test needs a title.");
-  if (allTests(series).some((t) => !(Number(t.duration) > 0))) e.push("Every test needs a duration.");
+  const tests = allTests(series);
+  if (tests.length === 0) e.push("Add at least one test.");
+  tests.forEach((t, i) => {
+    if (!String(t.title || "").trim()) e.push(`Test ${i + 1} needs a name.`);
+    if (!(Number(t.duration) > 0)) e.push(`${t.title || `Test ${i + 1}`} needs a duration above 0.`);
+  });
   return e;
 }
 export function questionsStepErrors(series) {
@@ -340,84 +400,79 @@ export function questionsStepErrors(series) {
   });
   return e;
 }
-// Does this question carry a correct answer (objective) or a rubric / model answer (subjective)?
+// Objective questions need four options and one correct answer; subjective ones need no key.
 export function hasAnswerKey(q) {
-  if (isSubjective(q.type)) return (q.rubric || []).length > 0 || Boolean(stripHtml(q.modelAnswer || ""));
-  if (q.type === "numerical") return q.correctAnswer !== "" && q.correctAnswer !== undefined && !Number.isNaN(Number(q.correctAnswer));
-  if (q.type === "fill_blank") return Boolean(String(q.correctAnswer || "").trim());
-  return (q.options || []).some((o) => o.correct);
+  if (isSubjective(q.type)) return true;
+  if (q.type !== "mcq_single") return false;
+  const opts = q.options || [];
+  return opts.length === 4 && opts.every((o) => String(o.text || "").trim() || o.image) && opts.filter((o) => o.correct).length === 1;
 }
 
-// Completeness checklist for the Review step + publish gating.
+// Review checklist + publish gating. Mirrors the admin wizard's review checks.
 // Each item: { id, label, ok, required, detail, fix: { step, testId?, questionId?, anchor? } }.
+// Builder steps: 0 Details, 1 Structure, 2 Classification, 3 Availability, 4 Review.
 export function completenessChecklist(series) {
   const tests = allTests(series);
   const qs = tests.flatMap((t) => t.questions);
   const exp = series.assignment?.expected;
-  const minQ = exp?.questions || MIN_QUESTIONS;
-  const dErrs = Object.values(detailsErrors(series));
-  const sErrs = structureErrors(series).filter((m) => !m.includes("duration"));
-  const noDuration = tests.filter((t) => !(Number(t.duration) > 0));
+  const dErrs = detailsErrors(series);
+  const cErrs = Object.values(classificationErrors(series));
+  const sErrs = structureErrors(series);
   const firstEmpty = tests.find((t) => t.questions.length === 0);
-  const firstBad = tests.find((t) => t.questions.some((q) => questionErrors(q).length));
-  const badQ = firstBad?.questions.find((q) => questionErrors(q).length);
+  const badTextTest = tests.find((t) => t.questions.some((q) => !stripHtml(q.text) || !(Number(q.points) > 0)));
+  const badTextQ = badTextTest?.questions.find((q) => !stripHtml(q.text) || !(Number(q.points) > 0));
   const noKeyTest = tests.find((t) => t.questions.some((q) => !hasAnswerKey(q)));
   const noKeyQ = noKeyTest?.questions.find((q) => !hasAnswerKey(q));
   const noKeyCount = qs.filter((q) => !hasAnswerKey(q)).length;
+  const seen = new Set();
+  let dupCount = 0;
+  qs.forEach((q) => {
+    const k = questionKeyOf(q);
+    if (!k) return;
+    if (seen.has(k)) dupCount += 1;
+    else seen.add(k);
+  });
   const timing = deadlineErrors(series);
   const build = effectiveBuildDeadline(series);
+  const paid = series.pricing.model === "paid";
   const items = [];
-  items.push({ id: "details", label: "Series details are complete", ok: dErrs.length === 0, required: true, detail: dErrs[0] || "", fix: { step: 0, anchor: series.scope === "course" && !series.courseId ? "ts-scope" : undefined } });
-  items.push({ id: "structure", label: "Sections and tests are set up", ok: sErrs.length === 0, required: true, detail: sErrs[0] || "", fix: { step: 1 } });
-  items.push({
-    id: "durations",
-    label: "Every test has a duration",
-    ok: tests.length > 0 && noDuration.length === 0,
-    required: true,
-    detail: tests.length === 0 ? "Add a test first." : noDuration.length ? `${noDuration.length} test${noDuration.length === 1 ? "" : "s"} missing a duration` : "",
-    fix: { step: 1 },
-  });
-  items.push({ id: "min-questions", label: `At least ${minQ} questions`, ok: qs.length >= minQ, required: true, detail: `${qs.length} of ${minQ} added`, fix: { step: 2, testId: firstEmpty?.id } });
+  items.push({ id: "details", label: "Name & audience", ok: !dErrs.title && !dErrs.audienceLevel, required: true, detail: dErrs.title || dErrs.audienceLevel || "", fix: { step: 0 } });
+  items.push({ id: "structure", label: "Tests have a name and duration", ok: sErrs.length === 0, required: true, detail: sErrs[0] || "", fix: { step: 1 } });
   items.push({
     id: "tests-filled",
-    label: "No test is empty or has broken questions",
-    ok: tests.length > 0 && !firstEmpty && !firstBad,
+    label: "Tests & questions",
+    ok: tests.length > 0 && !firstEmpty && !badTextTest,
     required: true,
-    detail: firstEmpty ? `"${firstEmpty.title || "Untitled test"}" has no questions` : firstBad ? `"${firstBad.title || "Untitled test"}" has questions to fix` : "",
-    fix: { step: 2, testId: (firstEmpty || firstBad)?.id, questionId: firstEmpty ? undefined : badQ?.id },
+    detail: tests.length === 0 ? "Add a test first." : firstEmpty ? `"${firstEmpty.title || "Untitled test"}" has no questions.` : badTextTest ? `"${badTextTest.title || "Untitled test"}" has a question with no text or marks.` : `${tests.length} test${tests.length === 1 ? "" : "s"}, ${qs.length} questions`,
+    fix: { step: 1, testId: (firstEmpty || badTextTest)?.id, questionId: firstEmpty ? undefined : badTextQ?.id },
   });
   items.push({
     id: "answer-keys",
-    label: "Every question has a correct answer or rubric",
+    label: "Answers complete",
     ok: qs.length > 0 && noKeyCount === 0,
     required: true,
-    detail: noKeyCount ? `${noKeyCount} question${noKeyCount === 1 ? "" : "s"} without an answer key` : qs.length === 0 ? "Add questions first." : "",
-    fix: { step: 2, testId: noKeyTest?.id, questionId: noKeyQ?.id },
+    detail: noKeyCount ? `${noKeyCount} objective question${noKeyCount === 1 ? " is" : "s are"} missing options or a correct answer.` : qs.length === 0 ? "No questions yet." : "",
+    fix: { step: 1, testId: noKeyTest?.id, questionId: noKeyQ?.id },
   });
+  items.push({ id: "duplicates", label: "Duplicate check", ok: dupCount === 0, required: false, detail: dupCount ? `${dupCount} duplicate question${dupCount === 1 ? "" : "s"} found across the series.` : "", fix: { step: 1 } });
+  items.push({ id: "classification", label: "Classification", ok: cErrs.length === 0, required: true, detail: cErrs[0] || "", fix: { step: 2 } });
+  items.push({ id: "pricing", label: "Pricing", ok: !dErrs.price, required: true, detail: dErrs.price || (paid ? `Paid · ₹${Number(series.pricing.price)}` : "Free"), fix: { step: 0 } });
   items.push({
     id: "deadline",
     label: "Build deadline is set",
     ok: Boolean(build),
     required: series.origin === "assigned",
     detail: build ? "" : series.origin === "assigned" ? "The admin's deadline is missing." : "Optional for your own series, but it helps you finish on time.",
-    fix: { step: 0, anchor: "ts-deadlines" },
+    fix: { step: 3 },
   });
-  items.push({
-    id: "timing",
-    label: "Deadlines and go-live dates don't conflict",
-    ok: timing.length === 0,
-    required: true,
-    detail: timing[0]?.msg || "",
-    fix: { step: 0, anchor: "ts-deadlines" },
-  });
+  items.push({ id: "timing", label: "Availability", ok: timing.length === 0, required: true, detail: timing[0]?.msg || "", fix: { step: 3 } });
   if (exp) {
-    const secs = series.sections.length;
     const marks = seriesPoints(series);
     const gaps = [];
-    if (exp.sections && secs !== exp.sections) gaps.push(`${secs}/${exp.sections} sections`);
     if (exp.tests && tests.length !== exp.tests) gaps.push(`${tests.length}/${exp.tests} tests`);
+    if (exp.questions && qs.length !== exp.questions) gaps.push(`${qs.length}/${exp.questions} questions`);
     if (exp.marks && marks !== exp.marks) gaps.push(`${marks}/${exp.marks} marks`);
-    items.push({ id: "expected", label: "Matches the admin's expected structure", ok: gaps.length === 0, required: false, detail: gaps.length ? `Currently ${gaps.join(", ")}. Not blocking, but the admin asked for this shape.` : "", fix: { step: 1 } });
+    items.push({ id: "expected", label: "Matches the admin's expected size", ok: gaps.length === 0, required: false, detail: gaps.length ? `Currently ${gaps.join(", ")}. Not blocking, but the admin asked for this size.` : "", fix: { step: 1 } });
   }
   return items;
 }
@@ -444,7 +499,7 @@ export function primaryAction(series) {
         ? { key: "submit", label: "Submit for review", to: `${base}?step=review` }
         : { key: "resume", label: pct > 0 ? `Resume (${pct}%)` : "Resume", to: `${base}?resume=1` };
     case "ready":
-      return { key: "publish", label: "Publish", to: `${base}?step=review` };
+      return { key: "review", label: "View submission", to: `${base}?step=review` };
     default:
       return { key: "view", label: "View", to: `${base}/detail` };
   }
@@ -752,8 +807,8 @@ const S_CS_VIKRAM = {
 };
 
 // ---------------------------------------------------------------------
-// Part 6 seeds: 4 series ASSIGNED by an admin (not started / ~40% drafted /
-// ready for review / overdue vs. the mock TODAY 2026-09-20) and 3 of the
+// Part 6 seeds: 7 series ASSIGNED by an admin (not started x2 / ~40% drafted /
+// fully built / ready for review / published / overdue vs. the mock TODAY 2026-09-20) and 3 of the
 // educator's OWN series (course-wise on real seeded course ids c1/c2, plus
 // one standalone). Existing seeds above are migrated by normalizeSeries().
 const ADMIN_KAVITA = { name: "Dr. Kavita Rao", role: "Academic Head" };
@@ -784,8 +839,8 @@ const S_A1 = mkSeries({
   draftPayload: { startCompleted: false, stepIndex: 0, activeTestId: null, activeQuestionId: null },
   assignment: {
     assignedBy: ADMIN_KAVITA, assignedOn: "2026-09-18", requiredDeadline: "2026-10-12",
-    adminBrief: "Build a chapter-test series for the new Class 9 Biology syllabus covering 'The Fundamental Unit of Life' and 'Tissues'.\nStudents are Class 9 CBSE learners, so keep language simple and use NCERT terminology. Two sections: one for skill checks, one for full chapter tests.",
-    expected: { sections: 2, tests: 4, questions: 40, marks: 120 },
+    adminBrief: "Build a chapter-test series for the new Class 9 Biology syllabus covering 'The Fundamental Unit of Life' and 'Tissues'.\nStudents are Class 9 CBSE learners, so keep language simple and use NCERT terminology. Four tests: two skill checks and two full chapter tests.",
+    expected: { tests: 4, questions: 40, marks: 120 },
     taxonomy: { grades: ["Class 9"], subjects: ["Biology"], exams: ["School Exams"], difficulty: "Beginner" },
     adminNotes: "No negative marking. Every question needs an explanation. Diagrams are not supported yet, so describe them in words.",
   },
@@ -809,9 +864,9 @@ const S_A2 = mkSeries({
   grades: ["Other"], subjects: ["Computer Science"], exams: ["Skill Tests"], difficulty: "Advanced",
   whoFor: "Learners enrolled in Modern React Patterns for Production.",
   sections: [A2_S1],
-  stepReached: 2, lastEditedStep: 2, startMethod: "scratch",
+  stepReached: 1, lastEditedStep: 1, startMethod: "scratch",
   lastEditedPointer: { sectionId: A2_S1.id, testId: A2_T1.id, questionId: A2_Q5.id },
-  draftPayload: { startCompleted: true, stepIndex: 2, activeTestId: A2_T1.id, activeQuestionId: A2_Q5.id },
+  draftPayload: { startCompleted: true, stepIndex: 1, activeTestId: A2_T1.id, activeQuestionId: A2_Q5.id },
   createdAt: "2026-09-11", updatedAt: "2026-09-19", lastSavedAt: "2026-09-19T16:40:00.000Z",
   assignment: {
     assignedBy: ADMIN_SANDEEP, assignedOn: "2026-09-11", requiredDeadline: "2026-09-26",
@@ -826,16 +881,16 @@ const S_A2 = mkSeries({
 const OPT_Q = [
   mcq("A concave mirror has a focal length of 20 cm. Its radius of curvature is:", ["10 cm", "20 cm", "40 cm", "80 cm"], 2, "Ray Optics"),
   mcq("The refractive index of glass is 1.5. The speed of light in glass is (c = 3×10⁸ m/s):", ["2×10⁸ m/s", "4.5×10⁸ m/s", "1.5×10⁸ m/s", "3×10⁸ m/s"], 0, "Ray Optics"),
-  num("An object is placed 30 cm from a convex lens of focal length 10 cm. Find the image distance in cm.", 15, 0.1, "Ray Optics"),
+  mcq("An object is placed 30 cm from a convex lens of focal length 10 cm. The image distance is:", ["15 cm", "30 cm", "10 cm", "7.5 cm"], 0, "Ray Optics"),
   mcq("The critical angle is smallest for the medium with:", ["Highest refractive index", "Lowest refractive index", "Equal indices", "Zero density"], 0, "Ray Optics"),
-  tf("A convex lens always forms a real image.", false, "Ray Optics", 4),
+  mcq("Which statement about a convex lens is correct?", ["It can form both real and virtual images", "It always forms a real image", "It always forms a virtual image", "It never forms a magnified image"], 0, "Ray Optics"),
   mcq("The power of a lens of focal length 50 cm is:", ["+2 D", "+0.5 D", "+5 D", "−2 D"], 0, "Ray Optics"),
   mcq("Interference of light confirms its:", ["Wave nature", "Particle nature", "Speed", "Polarisation only"], 0, "Wave Optics"),
   mcq("In Young's double slit experiment, fringe width is proportional to:", ["λD/d", "d/λD", "λd/D", "D/λ"], 0, "Wave Optics"),
-  num("Light of wavelength 600 nm, slit separation 1 mm, screen at 1 m. Fringe width in mm?", 0.6, 0.01, "Wave Optics"),
-  tf("Diffraction is most pronounced when the obstacle size is comparable to the wavelength.", true, "Wave Optics", 4),
+  mcq("Light of wavelength 600 nm, slit separation 1 mm, screen at 1 m. The fringe width is:", ["0.6 mm", "0.06 mm", "6 mm", "1.2 mm"], 0, "Wave Optics"),
+  mcq("Diffraction is most pronounced when the obstacle size is:", ["Comparable to the wavelength", "Much larger than the wavelength", "Much smaller than the wavelength", "Zero"], 0, "Wave Optics"),
   mcq("Polarisation proves that light waves are:", ["Transverse", "Longitudinal", "Stationary", "Mechanical"], 0, "Wave Optics"),
-  fill("The bending of light around an obstacle is called ______.", "diffraction", "Wave Optics", 4),
+  mcq("The bending of light around an obstacle is called:", ["Diffraction", "Refraction", "Reflection", "Dispersion"], 0, "Wave Optics"),
 ];
 const S_A3 = mkSeries({
   id: "ts-assign-optics",
@@ -847,7 +902,7 @@ const S_A3 = mkSeries({
   grades: ["Class 12"], subjects: ["Physics"], exams: ["Board Exams", "Entrance Exams"], difficulty: "Intermediate",
   pricing: { model: "paid", price: 349 },
   sections: [section("Sectional Tests", [test("Ray Optics Sectional", "Sectional", 30, true, OPT_Q.slice(0, 6)), test("Wave Optics Sectional", "Sectional", 30, true, OPT_Q.slice(6))])],
-  stepReached: 3, lastEditedStep: 3, startMethod: "scratch",
+  stepReached: 4, lastEditedStep: 4, startMethod: "scratch",
   createdAt: "2026-09-08", updatedAt: "2026-09-19", lastSavedAt: "2026-09-19T11:05:00.000Z",
   assignment: {
     assignedBy: ADMIN_KAVITA, assignedOn: "2026-09-08", requiredDeadline: "2026-09-22",
@@ -868,7 +923,7 @@ const S_A4 = mkSeries({
     mcq("Which colour model do screens use?", ["RGB", "CMYK", "Pantone", "RYB"], 0, "Color Models", 4, "Beginner"),
     tf("Complementary colours sit opposite each other on the colour wheel.", true, "Color Wheel", 4),
   ])])],
-  stepReached: 2, lastEditedStep: 2,
+  stepReached: 1, lastEditedStep: 1,
   createdAt: "2026-09-03", updatedAt: "2026-09-12", lastSavedAt: "2026-09-12T09:30:00.000Z",
   assignment: {
     assignedBy: ADMIN_SANDEEP, assignedOn: "2026-09-03", requiredDeadline: "2026-09-15",
@@ -876,6 +931,94 @@ const S_A4 = mkSeries({
     expected: { sections: 1, tests: 4, questions: 20, marks: 80 },
     taxonomy: { grades: ["Other"], subjects: ["Other"], exams: ["Skill Tests"], difficulty: "Intermediate" },
     adminNotes: "One quiz per course module. Link every question to a lesson topic.",
+  },
+});
+
+// A5 -- assigned, standalone, fully built (drafting): "Submit for review" is
+// enabled, so the whole Submit for review -> Publish flow can be walked through.
+const S_A5 = mkSeries({
+  id: "ts-assign-acids",
+  title: "Class 10 Chemistry — Acids, Bases & Salts Tests",
+  origin: "assigned", scope: "standalone", status: "drafting",
+  shortDescription: "Two chapter tests on acids, bases, indicators and salts for Class 10 boards.",
+  about: "<p>Chapter tests on acids, bases, pH and common salts, written in NCERT terminology with an explanation for every key concept.</p>",
+  whoFor: "Class 10 CBSE students revising Chapter 2 before school and board exams.",
+  grades: ["Class 10"], subjects: ["Chemistry"], exams: ["School Exams", "Board Exams"], difficulty: "Beginner",
+  sections: [section("Chapter Tests", [
+    test("Acids & Bases", "Chapter", 20, true, [
+      mcq("Which of the following is a strong acid?", ["HCl", "CH₃COOH", "H₂CO₃", "Citric acid"], 0, "Acids & Bases", 4, "Beginner", "Hydrochloric acid ionises completely in water, so it is a strong acid."),
+      mcq("The pH of a neutral solution at 25 °C is:", ["7", "0", "14", "1"], 0, "pH Scale", 4, "Beginner", "Pure water has equal H⁺ and OH⁻ concentrations, giving pH 7."),
+      mcq("Phenolphthalein turns which colour in a basic solution?", ["Pink", "Colourless", "Red", "Green"], 0, "Indicators", 4, "Beginner", "Phenolphthalein is colourless in acids and pink in bases."),
+      mcq("The reaction between an acid and a base to form salt and water is called:", ["Neutralisation", "Oxidation", "Displacement", "Decomposition"], 0, "Neutralisation", 4, "Beginner"),
+    ]),
+    test("Salts & Their Uses", "Chapter", 20, true, [
+      mcq("The chemical formula of baking soda is:", ["NaHCO₃", "Na₂CO₃", "NaOH", "NaCl"], 0, "Salts", 4, "Beginner", "Baking soda is sodium hydrogencarbonate."),
+      mcq("Plaster of Paris is prepared by heating:", ["Gypsum", "Limestone", "Washing soda", "Bleaching powder"], 0, "Salts", 4, "Beginner", "Heating gypsum at 373 K removes water of crystallisation."),
+      mcq("Common salt is the raw material for making:", ["Washing soda", "Plaster of Paris", "Baking powder only", "Gypsum"], 0, "Salts", 4, "Beginner"),
+      mcq("A solution has [H⁺] = 1×10⁻³ mol/L. Its pH is:", ["3", "11", "7", "0.001"], 0, "pH Scale", 4, "Intermediate", "pH = −log[H⁺] = 3."),
+    ]),
+  ])],
+  stepReached: 4, lastEditedStep: 4, startMethod: "scratch",
+  draftPayload: { startCompleted: true, stepIndex: 4, activeTestId: null, activeQuestionId: null },
+  createdAt: "2026-09-12", updatedAt: "2026-09-19", lastSavedAt: "2026-09-19T18:10:00.000Z",
+  assignment: {
+    assignedBy: ADMIN_KAVITA, assignedOn: "2026-09-12", requiredDeadline: "2026-10-02",
+    adminBrief: "Build two chapter tests for Class 10 Chemistry, Acids, Bases and Salts. Keep every question aligned to the NCERT chapter and add a short explanation to each.\nThis series will be offered free to all Class 10 students.",
+    expected: { sections: 1, tests: 2, questions: 8 },
+    taxonomy: { grades: ["Class 10"], subjects: ["Chemistry"], exams: ["School Exams", "Board Exams"], difficulty: "Beginner" },
+    adminNotes: "No negative marking. Use SI units and standard chemical notation.",
+  },
+});
+
+// A6 -- assigned, standalone, not started, due in 10 days
+const S_A6 = mkSeries({
+  id: "ts-assign-mensuration",
+  title: "Class 8 Mathematics — Mensuration Practice Tests",
+  origin: "assigned", scope: "standalone", status: "assigned",
+  grades: ["Class 8"], subjects: ["Mathematics"], exams: ["School Exams"], difficulty: "Intermediate",
+  createdAt: "2026-09-19", updatedAt: "2026-09-19", lastSavedAt: null,
+  draftPayload: { startCompleted: false, stepIndex: 0, activeTestId: null, activeQuestionId: null },
+  assignment: {
+    assignedBy: ADMIN_SANDEEP, assignedOn: "2026-09-19", requiredDeadline: "2026-09-30",
+    adminBrief: "Create practice tests on Mensuration for Class 8: area of trapezium, general quadrilaterals and polygons, surface area and volume of cubes, cuboids and cylinders.\nStart with easy recall questions and finish with word problems.",
+    expected: { sections: 2, tests: 3, questions: 30, marks: 90 },
+    taxonomy: { grades: ["Class 8"], subjects: ["Mathematics"], exams: ["School Exams"], difficulty: "Intermediate" },
+    adminNotes: "Numerical answers must accept a 1% tolerance. Mention the formula used in each explanation.",
+  },
+});
+
+// A7 -- assigned, standalone, PUBLISHED (live); shows the post-publish state
+const S_A7 = mkSeries({
+  id: "ts-assign-grammar",
+  title: "English Grammar Essentials — Class 7 Skill Tests",
+  origin: "assigned", scope: "standalone", status: "published",
+  shortDescription: "Short skill tests on tenses, articles and prepositions for Class 7.",
+  about: "<p>Quick skill checks that build grammar confidence one topic at a time.</p>",
+  whoFor: "Class 7 students who want regular grammar practice.",
+  grades: ["Class 7"], subjects: ["English"], exams: ["School Exams"], difficulty: "Beginner",
+  pricing: { model: "paid", price: 199 },
+  sections: [section("Skill Tests", [
+    test("Tenses", "Topic", 15, true, [
+      mcq("Choose the correct sentence:", ["She has finished her homework.", "She have finished her homework.", "She finish her homework.", "She finishing her homework."], 0, "Tenses", 4, "Beginner", "'Has' agrees with the singular subject 'she'."),
+      mcq("Which sentence is grammatically correct?", ["I will go to school.", "I will went to school.", "I will going to school.", "I will goes to school."], 0, "Tenses", 4, "Beginner"),
+      mcq("Yesterday, the children ____ in the park.", ["played", "play", "plays", "playing"], 0, "Tenses", 4, "Beginner"),
+    ]),
+    test("Articles & Prepositions", "Topic", 15, true, [
+      mcq("Fill in the blank: She is ____ honest girl.", ["an", "a", "the", "no article"], 0, "Articles", 4, "Beginner", "'Honest' begins with a vowel sound, so we use 'an'."),
+      mcq("The cat is sitting ____ the table.", ["under", "among", "between", "since"], 0, "Prepositions", 4, "Beginner"),
+      mcq("'Between' is used when talking about:", ["Two people or things", "More than two people or things", "A whole crowd", "A single object"], 0, "Prepositions", 4, "Beginner"),
+    ]),
+  ])],
+  enrollments: 38, attempts: 71, stepReached: 4, lastEditedStep: 4, startMethod: "scratch",
+  publishedAt: "2026-09-14",
+  draftPayload: { startCompleted: true, stepIndex: 4, activeTestId: null, activeQuestionId: null },
+  createdAt: "2026-09-01", updatedAt: "2026-09-14", lastSavedAt: "2026-09-14T12:00:00.000Z",
+  assignment: {
+    assignedBy: ADMIN_KAVITA, assignedOn: "2026-09-01", requiredDeadline: "2026-09-16",
+    adminBrief: "Prepare short skill tests on core Class 7 grammar. Keep each test under 15 minutes.",
+    expected: { sections: 1, tests: 2, questions: 6 },
+    taxonomy: { grades: ["Class 7"], subjects: ["English"], exams: ["School Exams"], difficulty: "Beginner" },
+    adminNotes: "Use simple sentences and everyday vocabulary.",
   },
 });
 
@@ -897,9 +1040,9 @@ const S_O1 = mkSeries({
   whoFor: "Students of Advanced UI Principles & Color Theory.",
   grades: ["Other"], subjects: ["Other"], exams: ["Skill Tests"], difficulty: "Intermediate",
   sections: [section("Course Tests", [O1_T1, test("Accessible Palettes", "Chapter", 20, false, [])])],
-  stepReached: 2, lastEditedStep: 2, startMethod: "scratch",
+  stepReached: 1, lastEditedStep: 1, startMethod: "scratch",
   lastEditedPointer: { sectionId: null, testId: O1_T1.id, questionId: O1_T1.questions[5].id },
-  draftPayload: { startCompleted: true, stepIndex: 2, activeTestId: null, activeQuestionId: null },
+  draftPayload: { startCompleted: true, stepIndex: 1, activeTestId: null, activeQuestionId: null },
   createdAt: "2026-09-14", updatedAt: "2026-09-19", lastSavedAt: "2026-09-19T20:15:00.000Z",
 });
 
@@ -925,7 +1068,7 @@ const S_O2 = mkSeries({
       num("A suite runs 120 tests and 6 fail. What percentage pass?", 95, 0.1, "Testing"),
     ]),
   ])],
-  enrollments: 56, attempts: 120, stepReached: 3, lastEditedStep: 3, startMethod: "scratch",
+  enrollments: 56, attempts: 120, stepReached: 4, lastEditedStep: 4, startMethod: "scratch",
   publishedAt: "2026-09-01", finalizedAt: "2026-09-12",
   deadlines: { publishMode: "now", windowMode: "window", windowOpen: "2026-09-01", windowClose: "2026-11-30", late: { policy: "penalty", penaltyPct: 10, graceHours: 48 } },
   createdAt: "2026-08-25", updatedAt: "2026-09-12", lastSavedAt: "2026-09-12T14:20:00.000Z",
@@ -951,7 +1094,11 @@ const S_O3 = mkSeries({
   deadlines: { attemptExpiryDays: 30 },
 });
 
-export const SEED_SERIES = [S_A1, S_A2, S_A3, S_A4, S_O1, S_O2, S_O3, S_JEE, S_CHEM_DRAFT, S_MATH_ARCHIVED, S_NEET_MEERA, S_CS_VIKRAM].map(normalizeSeries);
+const SEED_AUDIENCE = {
+  "ts-assign-optics": "Class 12", "ts-assign-acids": "Class 10", "ts-assign-grammar": "General",
+  "ts-jee-physics": "JEE Aspirants", "ts-neet-chem": "NEET Aspirants", "ts-own-react-final": "General",
+};
+export const SEED_SERIES = [S_A1, S_A2, S_A3, S_A4, S_A5, S_A6, S_A7, S_O1, S_O2, S_O3, S_JEE, S_CHEM_DRAFT, S_MATH_ARCHIVED, S_NEET_MEERA, S_CS_VIKRAM].map((x) => normalizeSeries({ ...x, audienceLevel: x.audienceLevel || SEED_AUDIENCE[x.id] || "" }));
 
 // ---------------------------------------------------------------------
 // Seeded subjective submissions -> Grading queue. Same shape as a course

@@ -76,9 +76,14 @@ export function defaultDeadlines() {
     windowMode: "always", // "always" | "window"
     windowOpen: "",
     windowClose: "",
-    testWindows: {}, // { [testId]: { mode: "inherit" | "custom", open, close } }
-    late: { policy: "none", penaltyPct: 10, graceHours: 24 }, // policy: "none" | "penalty"
-    attemptExpiryDays: "", // standalone only: attempt expires N days after the student starts
+    testWindows: {}, // { [testId]: { mode: "inherit" | "custom", open, close } } (date-times)
+    // Late submissions (admin wizard): policy "none" = not allowed, anything else = allowed with a grace period.
+    late: { policy: "none", graceMinutes: 10, penaltyPct: 10, graceHours: 24 },
+    monthlyLimited: false, // how many tests one student can open per calendar month
+    monthlyLimit: 5,
+    accessLimited: false, // days a student keeps access after joining / buying
+    accessDays: 90,
+    attemptExpiryDays: "",
     reminders: { edu7: true, edu3: true, edu1: true, students: true },
   };
 }
@@ -114,64 +119,43 @@ export function timelineEvents(series) {
   if (assignedOn) out.push({ key: "assigned", order: 0, label: series.origin === "assigned" ? "Assigned" : "Created", date: assignedOn });
   const build = effectiveBuildDeadline(series);
   if (build) out.push({ key: "build", order: 1, label: "Build deadline", date: build });
-  if (d.publishMode === "scheduled" && d.goLiveAt) out.push({ key: "publish", order: 2, label: "Go-live", date: d.goLiveAt });
+  if (d.publishMode === "scheduled" && d.goLiveAt) out.push({ key: "publish", order: 2, label: "Go-live", date: String(d.goLiveAt).slice(0, 10) });
   if (d.windowMode === "window" && d.windowOpen) out.push({ key: "open", order: 3, label: "Window opens", date: d.windowOpen });
   if (d.windowMode === "window" && d.windowClose) out.push({ key: "close", order: 4, label: "Window closes", date: d.windowClose });
   return out;
 }
 
-// Validates the deadline fields against each other.
+// Validates the availability fields (same rules as the admin wizard's Availability step).
 // Returns [{ id, level: "error" | "warning", field, msg }].
 export function deadlineIssues(series) {
   const d = series.deadlines || defaultDeadlines();
   const issues = [];
   const push = (id, level, field, msg) => issues.push({ id, level, field, msg });
   const build = effectiveBuildDeadline(series);
-  const standalone = series.scope === "standalone";
+  const day = (v) => String(v || "").slice(0, 10);
 
   if (series.origin === "assigned" && !build) push("build-missing", "error", "buildDeadline", "An assigned series needs a build deadline.");
   if (d.publishMode === "scheduled") {
-    if (!isIsoDate(d.goLiveAt)) push("golive-missing", "error", "goLiveAt", "Pick the go-live date for scheduled publishing.");
-    else if (build && daysBetween(build, d.goLiveAt) < 0) push("golive-before-build", "error", "goLiveAt", `Go-live (${d.goLiveAt}) is before the build deadline (${build}). You can't go live before the series is built.`);
-    else if (daysUntil(d.goLiveAt) < 0) push("golive-past", "warning", "goLiveAt", "The go-live date is in the past, so the series will publish as soon as you publish it.");
+    if (!d.goLiveAt) push("golive-missing", "error", "goLiveAt", "Choose the go-live date and time.");
+    else if (!(Date.parse(d.goLiveAt) > mockNowMs())) push("golive-past", "error", "goLiveAt", "Go-live must be in the future.");
   }
+  if (d.monthlyLimited && !(Number.isInteger(Number(d.monthlyLimit)) && Number(d.monthlyLimit) >= 1)) push("monthly", "error", "monthlyLimit", "Monthly access limit must be a whole number of 1 or more.");
+  if (d.accessLimited && !(Number.isInteger(Number(d.accessDays)) && Number(d.accessDays) >= 1)) push("access", "error", "accessDays", "Access duration must be a whole number of days, 1 or more.");
   if (d.windowMode === "window") {
-    const hasOpen = isIsoDate(d.windowOpen);
-    const hasClose = isIsoDate(d.windowClose);
-    if (!hasOpen) push("open-missing", "error", "windowOpen", "Pick when the window opens.");
-    if (!hasClose) push("close-missing", "error", "windowClose", "Pick when the window closes.");
-    if (hasOpen && hasClose && daysBetween(d.windowOpen, d.windowClose) <= 0) push("close-before-open", "error", "windowClose", "The window must close after it opens.");
-    if (hasOpen && build && daysBetween(build, d.windowOpen) < 0) push("open-before-build", "error", "windowOpen", `The window opens (${d.windowOpen}) before the build deadline (${build}).`);
-    if (hasOpen && d.publishMode === "scheduled" && isIsoDate(d.goLiveAt) && daysBetween(d.goLiveAt, d.windowOpen) < 0) push("open-before-golive", "error", "windowOpen", `The window opens (${d.windowOpen}) before go-live (${d.goLiveAt}).`);
-    if (hasClose && daysUntil(d.windowClose) < 0) push("close-past", "error", "windowClose", "The window closes in the past.");
+    if (!d.windowOpen || !d.windowClose) push("window-missing", "error", "windowOpen", "Set both the open and close dates.");
+    else if (day(d.windowOpen) > day(d.windowClose)) push("close-before-open", "error", "windowClose", "The open date must be before the close date.");
   }
-  // Per-test windows must sit inside the series window.
+  // Per-test windows (date-times) must be complete, ordered and inside the series window.
   Object.entries(d.testWindows || {}).forEach(([testId, w]) => {
     if (!w || w.mode !== "custom") return;
     const test = (series.sections || []).flatMap((s) => s.tests).find((t) => t.id === testId);
     if (!test) return;
     const label = test.title || "Untitled test";
-    if (!isIsoDate(w.open) || !isIsoDate(w.close)) {
-      push(`tw-missing-${testId}`, "error", `tw-${testId}`, `"${label}": set both open and close dates, or switch it back to inherit.`);
-      return;
-    }
-    if (daysBetween(w.open, w.close) <= 0) push(`tw-order-${testId}`, "error", `tw-${testId}`, `"${label}" closes before it opens.`);
-    if (d.windowMode === "window" && isIsoDate(d.windowOpen) && daysBetween(d.windowOpen, w.open) < 0) push(`tw-early-${testId}`, "error", `tw-${testId}`, `"${label}" opens before the series window does.`);
-    if (d.windowMode === "window" && isIsoDate(d.windowClose) && daysBetween(w.close, d.windowClose) < 0) push(`tw-late-${testId}`, "error", `tw-${testId}`, `"${label}" closes after the series window does.`);
+    if (!w.open || !w.close) push(`tw-${testId}`, "error", `tw-${testId}`, `${label}: set both window times or switch to "Inherit".`);
+    else if (w.open >= w.close) push(`tw-${testId}`, "error", `tw-${testId}`, `${label}: window must open before it closes.`);
+    else if (d.windowMode === "window" && (day(w.open) < day(d.windowOpen) || day(w.close) > day(d.windowClose))) push(`tw-${testId}`, "error", `tw-${testId}`, `${label}: window must fall inside the series window.`);
   });
-  if (d.late.policy === "penalty") {
-    const pct = Number(d.late.penaltyPct);
-    const hrs = Number(d.late.graceHours);
-    if (!(pct > 0 && pct <= 100)) push("late-pct", "error", "latePct", "Late penalty must be between 1% and 100%.");
-    if (!(hrs >= 1 && hrs <= 720)) push("late-hours", "error", "lateHours", "Late submissions can be accepted for 1 to 720 hours.");
-    if (d.windowMode !== "window") push("late-needs-window", "warning", "latePolicy", "A late-submission policy only applies once a close date is set.");
-  }
-  if (standalone && d.attemptExpiryDays !== "" && d.attemptExpiryDays !== null) {
-    const n = Number(d.attemptExpiryDays);
-    if (!(Number.isInteger(n) && n >= 1 && n <= 365)) push("expiry", "error", "attemptExpiry", "Attempt expiry must be a whole number of days between 1 and 365.");
-  }
-  const ext = series.extensionRequest;
-  if (ext && ext.status === "pending" && isIsoDate(ext.newDate) && build && daysBetween(build, ext.newDate) <= 0) push("ext-order", "warning", "extension", "The requested extension date isn't after the current deadline.");
+  if (d.late && d.late.policy !== "none" && !(Number(d.late.graceMinutes) > 0)) push("late-grace", "error", "lateGrace", "Enter a grace period in minutes for late submissions.");
   return issues;
 }
 export function deadlineErrors(series) {

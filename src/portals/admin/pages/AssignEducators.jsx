@@ -25,7 +25,8 @@ import {
   REQUEST_STATUS_LABEL,
   REQUEST_STATUS_BADGE_CLASS,
 } from "../data/testAssignmentsMock";
-import { SUBJECT_OPTIONS } from "../data/testSeriesMock";
+import { SUBJECT_OPTIONS, AUDIENCE_OPTIONS } from "../data/testSeriesMock";
+import { GRADE_OPTIONS, EXAM_OPTIONS } from "../data/testSeriesWizard";
 import { useRpc } from "../hooks/useRpc";
 import { assignmentsApi } from "../services/assignmentsApi";
 import { IconSearch, IconClose, IconChevronDown, IconMore, IconPlus, IconBell } from "../components/icons";
@@ -70,6 +71,10 @@ const EMPTY_FORM = {
   topicsText: "",
   educatorIds: [],
   testName: "",
+  testCount: 1,
+  grade: "",
+  exam: "",
+  audience: "",
   questionCount: 20,
   questionTypeMix: QUESTION_TYPE_MIX.MIXED,
   difficulty: "Medium",
@@ -222,6 +227,10 @@ export default function AssignEducators() {
       topicsText: (a.topics || []).join(", "),
       educatorIds: [a.educatorId],
       testName: a.testName,
+      testCount: a.testCount || 1,
+      grade: a.grade || "",
+      exam: a.exam || "",
+      audience: a.audience || "",
       questionCount: a.questionCount,
       questionTypeMix: a.questionTypeMix,
       difficulty: a.difficulty,
@@ -245,7 +254,9 @@ export default function AssignEducators() {
     if (!f.testName.trim()) errors.push("Test / question paper name is required.");
     if (f.educatorIds.length === 0) errors.push("Select at least one educator.");
     if (!f.deadline) errors.push("A deadline is required.");
+    if (!Number.isInteger(Number(f.testCount)) || Number(f.testCount) < 1) errors.push("Number of tests must be a whole number of 1 or more.");
     if (!f.questionCount || Number(f.questionCount) <= 0) errors.push("Question count must be a positive number.");
+    else if (Number(f.testCount) > 0 && Number(f.questionCount) < Number(f.testCount)) errors.push("Question count must be at least the number of tests.");
     if (!f.totalMarks || Number(f.totalMarks) <= 0) errors.push("Total marks must be a positive number.");
     if (!f.duration || Number(f.duration) <= 0) errors.push("Duration must be a positive number.");
     return errors;
@@ -269,6 +280,10 @@ export default function AssignEducators() {
         subject: form.subject,
         topics,
         testName: form.testName.trim(),
+        testCount: Number(form.testCount),
+        grade: form.grade,
+        exam: form.exam,
+        audience: form.audience,
         questionCount: Number(form.questionCount),
         questionTypeMix: form.questionTypeMix,
         difficulty: form.difficulty,
@@ -287,6 +302,10 @@ export default function AssignEducators() {
         topics,
         educatorIds: form.educatorIds,
         testName: form.testName.trim(),
+        testCount: Number(form.testCount),
+        grade: form.grade,
+        exam: form.exam,
+        audience: form.audience,
         questionCount: Number(form.questionCount),
         questionTypeMix: form.questionTypeMix,
         difficulty: form.difficulty,
@@ -621,6 +640,30 @@ export default function AssignEducators() {
                   </div>
                 </div>
 
+                <div className="ul-ts-form-grid-2">
+                  <div className="ul-ts-form-row">
+                    <label>Class / Grade</label>
+                    <select value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })}>
+                      <option value="">Select class / grade…</option>
+                      {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div className="ul-ts-form-row">
+                    <label>Exam / Goal</label>
+                    <select value={form.exam} onChange={(e) => setForm({ ...form, exam: e.target.value })}>
+                      <option value="">Select exam / goal…</option>
+                      {EXAM_OPTIONS.map((x) => <option key={x} value={x}>{x}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="ul-ts-form-row">
+                  <label>Target Audience</label>
+                  <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
+                    <option value="">Select audience…</option>
+                    {AUDIENCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+
                 <div className="ul-ts-form-row">
                   <label>Test / Question Paper Name</label>
                   <input type="text" value={form.testName} onChange={(e) => setForm({ ...form, testName: e.target.value })} placeholder="e.g. Full Mock Test 3 — Thermodynamics" />
@@ -652,9 +695,21 @@ export default function AssignEducators() {
 
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
-                    <label>Question Count</label>
+                    <label>Number of Tests</label>
+                    <input type="number" min="1" step="1" value={form.testCount} onChange={(e) => setForm({ ...form, testCount: e.target.value })} />
+                  </div>
+                  <div className="ul-ts-form-row">
+                    <label>Question Count (all tests)</label>
                     <input type="number" min="1" value={form.questionCount} onChange={(e) => setForm({ ...form, questionCount: e.target.value })} />
                   </div>
+                </div>
+                {Number(form.testCount) > 0 && Number(form.questionCount) > 0 && (
+                  <p style={{ margin: "-4px 0 0", fontSize: 11.5, color: "var(--color-text-muted)" }}>
+                    {Number(form.testCount)} test{Number(form.testCount) === 1 ? "" : "s"} · about {Math.ceil(Number(form.questionCount) / Number(form.testCount))} question{Math.ceil(Number(form.questionCount) / Number(form.testCount)) === 1 ? "" : "s"}
+                    {Number(form.totalMarks) > 0 ? ` and ${Math.round((Number(form.totalMarks) / Number(form.testCount)) * 10) / 10} marks` : ""} per test. Question count and total marks cover the whole series.
+                  </p>
+                )}
+                <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Question Type</label>
                     <select value={form.questionTypeMix} onChange={(e) => setForm({ ...form, questionTypeMix: e.target.value })}>
@@ -670,13 +725,13 @@ export default function AssignEducators() {
                     </select>
                   </div>
                   <div className="ul-ts-form-row">
-                    <label>Total Marks</label>
+                    <label>Total Marks (all tests)</label>
                     <input type="number" min="1" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} />
                   </div>
                 </div>
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
-                    <label>Duration (minutes)</label>
+                    <label>Duration per Test (minutes)</label>
                     <input type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
                   </div>
                   <div className="ul-ts-form-row">
@@ -904,6 +959,10 @@ export default function AssignEducators() {
             </div>
 
             <div className="ul-mgmt-detail-list">
+              <div className="ul-mgmt-detail-list__row"><span>Number of Tests</span><span>{detailAssignment.testCount || 1}</span></div>
+              <div className="ul-mgmt-detail-list__row"><span>Class / Grade</span><span>{detailAssignment.grade || "—"}</span></div>
+              <div className="ul-mgmt-detail-list__row"><span>Exam / Goal</span><span>{detailAssignment.exam || "—"}</span></div>
+              <div className="ul-mgmt-detail-list__row"><span>Target Audience</span><span>{detailAssignment.audience || "—"}</span></div>
               <div className="ul-mgmt-detail-list__row"><span>Question Count</span><span>{detailAssignment.questionCount}</span></div>
               <div className="ul-mgmt-detail-list__row"><span>Question Type</span><span>{QUESTION_TYPE_MIX_LABEL[detailAssignment.questionTypeMix]}</span></div>
               <div className="ul-mgmt-detail-list__row"><span>Difficulty</span><span>{detailAssignment.difficulty}</span></div>

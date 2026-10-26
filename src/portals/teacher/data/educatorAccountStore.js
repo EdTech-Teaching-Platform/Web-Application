@@ -327,6 +327,29 @@ export async function resubmitEducator(id, form) {
   return next;
 }
 
+// Any signed-in educator (including an approved one) edits their own profile
+// from "My profile". Same record, same status: an approved educator stays
+// approved, nothing is sent back to review and the session is untouched.
+export async function updateEducatorProfile(id, form) {
+  await new Promise((r) => setTimeout(r, 600));
+  const existing = state.accounts.find((a) => a.id === id);
+  if (!existing) throw new Error("not_found");
+  const parts = await buildRecordParts(form);
+  const next = {
+    ...existing,
+    profile: { ...existing.profile, ...parts.profile },
+    photoUrl: parts.photoUrl ?? existing.photoUrl,
+    documents: {
+      govId: parts.documents.govId ?? existing.documents.govId,
+      certificate: parts.documents.certificate ?? existing.documents.certificate,
+      backgroundCheck: parts.documents.backgroundCheck ?? (form.noBackgroundCheck ? null : existing.documents.backgroundCheck),
+      resume: parts.documents.resume ?? existing.documents.resume,
+    },
+  };
+  commit(state.accounts.map((a) => (a.id === id ? next : a)));
+  return next;
+}
+
 // ---- Login / session -------------------------------------------------------
 // Returns the account on success, null if no educator matches this
 // identifier (caller falls through to the normal student login), or throws

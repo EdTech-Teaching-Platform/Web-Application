@@ -1,39 +1,45 @@
-// Step 4 — Review & Publish: series-level settings (passing %, attempts,
-// access rules, certificate), auto-generated Quick Facts, live "Topics
-// covered" grid (topicsCovered(series) is recomputed from the current
-// questions on every render), the student-facing preview and the list of
-// blocking errors that must be cleared before Publish enables.
-import Input from "../../../components/ui/Input";
-import Switch from "../../../components/ui/Switch";
-import TestSeriesPreview, { QuickFactsList, TopicsGrid } from "./TestSeriesPreview";
-import TestSeriesQuestionPreview from "./TestSeriesQuestionPreview";
+// Step 5 — Review. Publish checklist + a final preview that lists the same
+// facts as the admin wizard's review step.
 import ProgressRing from "../../../components/ui/ProgressRing";
-import { AlertTriangleIcon, CheckIcon, ArrowRightIcon, XIcon, } from "../../../components/ui/icons";
+import { AlertTriangleIcon, CheckIcon, ArrowRightIcon, XIcon } from "../../../components/ui/icons";
 import { LifecycleStepper } from "./TestSeriesStatus";
-import { completenessChecklist, topicsCovered, isStructureLocked, formatDate, visibilityNote } from "../data/testSeriesData";
-
-const STEP_NAMES = ["Details", "Structure", "Questions", "Review"];
-
-function Card({ title, description, children, className = "" }) {
-  return (
-    <section className={`rounded-3xl bg-surface p-6 shadow-soft sm:p-7 ${className}`}>
-      <h2 className="text-lg font-bold text-text">{title}</h2>
-      {description && <p className="mt-1 text-sm text-muted">{description}</p>}
-      <div className="mt-5">{children}</div>
-    </section>
-  );
-}
+import { completenessChecklist, isStructureLocked, allTests, derivedTestLabel, formatDate } from "../data/testSeriesData";
+import { effectiveBuildDeadline } from "../data/testSeriesDeadlines";
 
 export default function TestSeriesReviewStep({ series, onChange, onFix }) {
-  const s = series.settings;
   const items = completenessChecklist(series);
   const required = items.filter((i) => i.required);
   const doneRequired = required.filter((i) => i.ok).length;
   const blocked = required.length - doneRequired;
   const locked = isStructureLocked(series);
   const d = series.deadlines;
-  const set = (patch) => onChange({ settings: { ...s, ...patch } });
-  const topicCount = topicsCovered(series).length;
+  const tests = allTests(series);
+  const qs = tests.flatMap((t) => t.questions);
+  const marks = qs.reduce((n, q) => n + (Number(q.points) || 0), 0);
+  const mins = tests.reduce((n, t) => n + (Number(t.duration) || 0), 0);
+  const build = effectiveBuildDeadline(series);
+  const list = (a) => (a && a.length ? a.join(", ") : "");
+  const facts = [
+    ["Offered as", series.pricing.model === "paid" ? "Paid" : "Free"],
+    ["Target audience", series.audienceLevel],
+    ["Subject", list(series.subjects)],
+    ["Class / Grade", list(series.grades)],
+    ["Exam / Goal", list(series.exams)],
+    ["Difficulty", series.difficulty],
+    ["Language", list(series.languages)],
+    ["Test type", derivedTestLabel(series)],
+    ["Tests", String(tests.length)],
+    ["Questions", String(qs.length)],
+    ["Total marks", String(marks)],
+    ["Total duration", `${mins} min`],
+    ["Pricing", series.pricing.model === "paid" ? `₹${series.pricing.price || 0}` : "Free"],
+    ["Publishing", d.publishMode === "scheduled" && d.goLiveAt ? `Scheduled · ${String(d.goLiveAt).replace("T", " ")}` : "Publish now"],
+    ["Student availability", d.windowMode === "window" && d.windowOpen && d.windowClose ? `${formatDate(d.windowOpen)} – ${formatDate(d.windowClose)}` : "Always open"],
+    ["Days of access", d.accessLimited ? `${d.accessDays} days` : "Lifetime"],
+    ["Monthly access limit", d.monthlyLimited ? `${d.monthlyLimit} tests / month` : "Unlimited"],
+    ["Late submissions", d.late.policy === "none" ? "Not allowed" : `Grace ${d.late.graceMinutes} min`],
+    ["Build deadline", build ? formatDate(build) : ""],
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -70,66 +76,18 @@ export default function TestSeriesReviewStep({ series, onChange, onFix }) {
         </ul>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <fieldset disabled={locked} className="contents">
-        <Card title="Series settings" description={locked ? "Final published: these rules are locked." : "Rules that apply to every test in this series."}>
-          <div className="flex flex-col gap-5">
-            <div>
-              <div className="mb-1.5 flex items-center justify-between text-sm">
-                <span className="font-medium text-text">Passing score</span>
-                <span className="font-semibold text-primary">{s.passingPct}%</span>
-              </div>
-              <input type="range" min={0} max={100} step={5} value={s.passingPct} onChange={(e) => set({ passingPct: Number(e.target.value) })} aria-label="Passing score percentage" className="w-full accent-[color:var(--color-primary)]" />
+      <section className="rounded-3xl bg-surface p-6 shadow-soft sm:p-7">
+        <h2 className="text-lg font-bold text-text">Final preview</h2>
+        <p className="mt-1 text-sm text-muted">Everything students and admins will see for this series.</p>
+        <dl className="mt-5 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          {facts.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-4 border-b border-text/[0.06] pb-2">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{k}</dt>
+              <dd className="text-right text-sm font-semibold text-text">{v || "—"}</dd>
             </div>
-
-            <div>
-              <Switch checked={s.attemptsUnlimited} onChange={(v) => set({ attemptsUnlimited: v })} label="Unlimited attempts" description="Students can retake any test" />
-              {!s.attemptsUnlimited && (
-                <Input
-                  containerClassName="mt-3 block"
-                  label="Attempts per test"
-                  type="number"
-                  min={1}
-                  value={s.attemptLimit}
-                  onChange={(e) => set({ attemptLimit: e.target.value === "" ? "" : Number(e.target.value) })}
-                  error={!(Number(s.attemptLimit) >= 1) ? "Enter at least 1 attempt." : undefined}
-                  shape="rect"
-                />
-              )}
-            </div>
-
-            <div>
-              <span className="mb-2 block text-sm font-medium text-text">Timing</span>
-              <ul className="flex flex-col gap-1 rounded-2xl bg-bg px-4 py-3 text-xs text-muted">
-                <li>{d.publishMode === "scheduled" && d.goLiveAt ? `Goes live ${formatDate(d.goLiveAt)}` : "Goes live as soon as you publish"}</li>
-                <li>{d.windowMode === "window" && d.windowOpen && d.windowClose ? `Students can take tests ${formatDate(d.windowOpen)} to ${formatDate(d.windowClose)}` : "Open to students at any time"}</li>
-                <li>{d.late.policy === "penalty" ? `Late submissions: ${d.late.penaltyPct}% penalty, accepted for ${d.late.graceHours} h` : "Late submissions are not allowed"}</li>
-                <li>Status: {visibilityNote(series)}</li>
-              </ul>
-              <button type="button" onClick={() => onFix({ step: 0, anchor: "ts-deadlines" })} className="mt-2 text-xs font-bold text-primary underline">Edit deadlines</button>
-            </div>
-
-            <Switch checked={s.certificate} onChange={(v) => set({ certificate: v })} label="Certificate on completion" description="Issued when a student finishes every test" />
-          </div>
-        </Card>
-        </fieldset>
-
-        <Card title="Quick facts" description="Generated automatically from what you've built.">
-          <QuickFactsList series={series} />
-        </Card>
-      </div>
-
-      <Card title="Topics covered" description={topicCount ? `${topicCount} topic${topicCount === 1 ? "" : "s"}, aggregated live from your question tags.` : "Aggregated live from your question tags."}>
-        <TopicsGrid series={series} />
-      </Card>
-
-      <Card title="Question preview" description="Every question as students will see it, including any images. The keyed answer is marked for you.">
-        <TestSeriesQuestionPreview series={series} />
-      </Card>
-
-      <Card title="Student preview">
-        <TestSeriesPreview series={series} />
-      </Card>
+          ))}
+        </dl>
+      </section>
     </div>
   );
 }

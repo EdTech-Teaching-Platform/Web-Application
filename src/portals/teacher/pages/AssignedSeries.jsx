@@ -16,13 +16,14 @@ import { QuizIcon, FlagIcon, PencilIcon, CheckIcon, AlertTriangleIcon, SearchIco
 import { TS_SUBJECTS } from "../data/testSeriesData";
 import { daysUntil, effectiveBuildDeadline } from "../data/testSeriesDeadlines";
 
+const TODO = ["assigned", "drafting", "ready"];
 const STATUS_FILTERS = [
+  ["todo", "To work on"],
   ["all", "All statuses"],
   ["assigned", "Not started"],
   ["drafting", "In progress"],
-  ["ready", "Ready for review"],
+  ["ready", "Under review"],
   ["published", "Published"],
-  ["final", "Final published"],
   ["declined", "Declined"],
 ];
 const DEADLINE_FILTERS = [
@@ -37,7 +38,7 @@ const SORTS = [
   ["progress", "Least progress first"],
 ];
 
-const selectCls = "w-full rounded-full border border-text/12 bg-surface py-2.5 pl-4 pr-10 text-sm text-text";
+const selectCls = "w-full rounded-full border border-text/12 bg-white py-2.5 pl-4 pr-10 text-sm text-text";
 
 function matchesDeadline(series, f) {
   if (f === "all") return true;
@@ -50,7 +51,7 @@ function matchesDeadline(series, f) {
 
 export default function AssignedSeries() {
   const { series, currentTeacher, requestExtension, withdrawExtension, declineAssignment } = useTestSeries();
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("todo");
   const [deadline, setDeadline] = useState("all");
   const [subject, setSubject] = useState("all");
   const [sort, setSort] = useState("deadline");
@@ -71,10 +72,10 @@ export default function AssignedSeries() {
     const q = query.trim().toLowerCase();
     const list = mine.filter((s) => {
       if (status === "declined" ? !s.declined : s.declined) return false;
-      if (status !== "all" && status !== "declined" && s.status !== status) return false;
+      if (status === "todo" ? !TODO.includes(s.status) : status !== "all" && status !== "declined" && s.status !== status) return false;
       if (!matchesDeadline(s, deadline)) return false;
       if (subject !== "all" && !(s.assignment.taxonomy?.subjects || s.subjects).includes(subject)) return false;
-      if (q && !`${s.title} ${s.assignment.assignedBy.name}`.toLowerCase().includes(q)) return false;
+      if (q && !`${s.title}`.toLowerCase().includes(q)) return false;
       return true;
     });
     const needs = (s) => (["assigned", "drafting", "ready"].includes(s.status) ? 0 : 1);
@@ -87,9 +88,9 @@ export default function AssignedSeries() {
     });
   }, [mine, status, deadline, subject, sort, query]);
 
-  const filtered = status !== "all" || deadline !== "all" || subject !== "all" || query.trim() !== "";
+  const filtered = status !== "todo" || deadline !== "all" || subject !== "all" || query.trim() !== "";
   function reset() {
-    setStatus("all");
+    setStatus("todo");
     setDeadline("all");
     setSubject("all");
     setQuery("");
@@ -104,13 +105,13 @@ export default function AssignedSeries() {
         </NavLink>
         <div className="eyebrow mb-1.5">Test Series</div>
         <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">Assigned to me</h1>
-        <p className="mt-1.5 text-sm text-muted">Series an admin has asked you to build, with their deadlines. Finish them on time or request more.</p>
+        <p className="mt-1.5 text-sm text-muted">Every series an admin has assigned for you to build, with deadlines. Finished and published ones move to Test Series.</p>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={FlagIcon} tone="maroon" label="Assigned" value={counts.assigned} />
         <StatCard icon={PencilIcon} tone="blue" label="In progress" value={counts.progress} />
-        <StatCard icon={CheckIcon} tone="sage" label="Awaiting publish" value={counts.awaiting} />
+        <StatCard icon={CheckIcon} tone="sage" label="Under review" value={counts.awaiting} />
         <StatCard icon={AlertTriangleIcon} tone="pink" label="Overdue" value={counts.overdue} />
       </div>
 
@@ -122,8 +123,8 @@ export default function AssignedSeries() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title or admin"
-            className="w-full rounded-full border border-text/12 bg-surface py-2.5 pl-10 pr-4 text-sm text-text outline-none placeholder:text-muted/80 focus:border-primary focus:ring-2 focus:ring-primary/15"
+            placeholder="Search by title"
+            className="w-full rounded-full border border-text/12 bg-white py-2.5 pl-10 pr-4 text-sm text-text outline-none placeholder:text-muted/80 focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
         </label>
         <Select wrapperClassName="block w-full" aria-label="Filter by status" className={selectCls} value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -145,9 +146,9 @@ export default function AssignedSeries() {
         {mine.length === 0 ? (
           <EmptyState icon={QuizIcon} heading="Nothing has been assigned to you" message="When an admin assigns you a test series to build, it will show up here with its brief and deadline." action={<NavLink to="/teacher/testseries/new" className="inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-soft">Create your own series</NavLink>} />
         ) : rows.length === 0 ? (
-          <EmptyState icon={QuizIcon} heading="No assigned series match" message="Try clearing a filter or searching for something else." action={filtered ? <Button variant="secondary" fullWidth={false} className="px-5 py-2" onClick={reset}>Clear filters</Button> : null} />
+          <EmptyState icon={QuizIcon} heading={filtered ? "No assigned series match" : "You're all caught up"} message={filtered ? "Try clearing a filter or searching for something else." : "Nothing is waiting on you. Choose All statuses to see series you've already published."} action={filtered ? <Button variant="secondary" fullWidth={false} className="px-5 py-2" onClick={reset}>Clear filters</Button> : null} />
         ) : (
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {rows.map((s) => (
               <AssignedSeriesCard
                 key={s.id}

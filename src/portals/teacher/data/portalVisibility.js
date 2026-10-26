@@ -24,7 +24,6 @@ export const HIDDEN_PREFIXES = [
   "/teacher/mentorshiphub",
   "/teacher/requests",
   "/teacher/messaging",
-  "/teacher/earnings",
   "/teacher/analytics",
   "/teacher/grading",
   "/teacher/bookingmanage",

@@ -1,4 +1,4 @@
-// Test Series Builder — 4 steps (Details, Structure, Questions, Review)
+// Test Series Builder — the admin wizard's steps: Start, (Source for CSV / AI), Details, Structure, Classification, Availability, Review
 // behind ProgressSteps (collapsing to a compact mobile stepper). Series state
 // lives in TestSeriesContext (above the route tree) and every edit writes
 // straight through by :seriesId, so nothing is lost navigating away and back.
@@ -22,26 +22,30 @@ import ConfirmationCard from "../../../components/ui/ConfirmationCard";
 import { QuizIcon, EyeIcon, XIcon, ArrowRightIcon, LockIcon } from "../../../components/ui/icons";
 import TestSeriesDetailsStep from "../components/TestSeriesDetailsStep";
 import TestSeriesStructureStep from "../components/TestSeriesStructureStep";
-import TestSeriesQuestionsStep from "../components/TestSeriesQuestionsStep";
+import { StartMethodStep, StartSourceStep, SOURCE_LABEL } from "../components/TestSeriesStartStep";
+import TestSeriesClassificationStep from "../components/TestSeriesClassificationStep";
+import TestSeriesAvailabilityStep from "../components/TestSeriesAvailabilityStep";
 import TestSeriesReviewStep from "../components/TestSeriesReviewStep";
-import TestQuestionBuilder from "../components/TestQuestionBuilder";
 import SaveIndicator from "../components/SaveIndicator";
 import UnsavedChangesModal from "../components/UnsavedChangesModal";
 import { ExtensionRequestModal } from "../components/AssignedSeriesActions";
 import { LifecycleStepper, OriginTags, OverdueBanner, SeriesStatusBadge } from "../components/TestSeriesStatus";
 import useUnsavedGuard from "../hooks/useUnsavedGuard";
-import { detailsErrors, formatDate, isStructureLocked, publishBlockers, questionsStepErrors, structureErrors, topicSuggestions, visibilityNote } from "../data/testSeriesData";
+import { allTests, classificationErrors, detailsErrors, formatDate, isStructureLocked, publishBlockers, stripHtml, structureErrors } from "../data/testSeriesData";
+import { deadlineErrors } from "../data/testSeriesDeadlines";
 
-const STEPS = ["Details", "Structure", "Questions", "Review"];
-const STEP_PARAM = { details: 0, structure: 1, questions: 2, review: 3 };
+const STEPS = ["Details", "Structure", "Classification", "Availability", "Review"];
+const STEP_PARAM = { details: 0, structure: 1, classification: 2, availability: 3, review: 4 };
+const LAST = STEPS.length - 1;
 
 function useSteps(series) {
   return useMemo(() => {
-    if (!series) return [false, false, false];
+    if (!series) return [false, false, false, false];
     return [
       Object.keys(detailsErrors(series)).length === 0,
       structureErrors(series).length === 0,
-      questionsStepErrors(series).length === 0,
+      Object.keys(classificationErrors(series)).length === 0,
+      deadlineErrors(series).length === 0,
     ];
   }, [series]);
 }
@@ -71,9 +75,9 @@ function resumeSummary(series) {
   const test = ptr?.testId ? tests.find((t) => t.id === ptr.testId) : null;
   if (test) {
     const qi = ptr.questionId ? test.questions.findIndex((q) => q.id === ptr.questionId) : -1;
-    return `Questions · ${test.title || "Untitled test"}${qi >= 0 ? ` · Question ${qi + 1}` : ""}`;
+    return `Structure · ${test.title || "Untitled test"}${qi >= 0 ? ` · Question ${qi + 1}` : ""}`;
   }
-  return `${STEPS[Math.min(series.lastEditedStep ?? 0, 3)]} step`;
+  return `${STEPS[Math.min(series.lastEditedStep ?? 0, LAST)]} step`;
 }
 
 export default function TestSeriesBuilder() {
@@ -88,15 +92,21 @@ export default function TestSeriesBuilder() {
   const [stepIndex, setStepIndex] = useState(() => {
     const p = search.get("step");
     if (p && p in STEP_PARAM) return STEP_PARAM[p];
-    if (autoResume) return 2;
-    return Math.min(series?.draftPayload?.stepIndex ?? series?.lastEditedStep ?? 0, 3);
+    if (autoResume) return 1;
+    return Math.min(series?.draftPayload?.stepIndex ?? series?.lastEditedStep ?? 0, LAST);
   });
+  // Start / Source stage (same as the admin wizard). A series that has never been started
+  // opens here; every series can come back to it with Back from the Details step.
+  const [pre, setPre] = useState(() => {
+    if (search.get("step") || autoResume || !series) return null;
+    const started = series.draftPayload?.startCompleted || Math.round(series.builderProgress || 0) > 0;
+    return !started && ["assigned", "drafting"].includes(series.status) ? "method" : null;
+  });
+  const [method, setMethod] = useState(() => series?.startMethod || "scratch");
   const [showErrors, setShowErrors] = useState(false);
-  const [activeTestId, setActiveTestId] = useState(() => (autoResume ? series.lastEditedPointer.testId : null));
-  const [focusQuestionId, setFocusQuestionId] = useState(() => (autoResume ? series.lastEditedPointer.questionId || null : null));
-  const [done, setDone] = useState(null); // "ready" | "published" | "final"
-  const [confirmFinal, setConfirmFinal] = useState(false);
-  const [actionError, setActionError] = useState("");
+  const [focus, setFocus] = useState(() => (autoResume ? { testId: series.lastEditedPointer.testId, questionId: series.lastEditedPointer.questionId || null, nonce: 1 } : null));
+  const [done, setDone] = useState(null); // "ready" once submitted for review
+    const [actionError, setActionError] = useState("");
   const [extOpen, setExtOpen] = useState(false);
   const [resumeDismissed, setResumeDismissed] = useState(autoResume);
   const [anchor, setAnchor] = useState(null);
@@ -117,28 +127,14 @@ export default function TestSeriesBuilder() {
     return () => clearTimeout(id);
   }, [anchor, stepIndex]);
 
-  // An assigned series that hasn't been started moves straight to drafting (origin stays locked).
-  const needsAutoStart = Boolean(series && !series.declined && series.origin === "assigned" && series.status === "assigned" && !series.draftPayload?.startCompleted);
-  const autoStartId = needsAutoStart ? series.id : null;
-  useEffect(() => {
-    if (!autoStartId) return;
-    updateSeries(autoStartId, {
-      startMethod: "scratch",
-      status: "drafting",
-      stepReached: 0,
-      lastEditedStep: 0,
-      draftPayload: { startCompleted: true, stepIndex: 0, activeTestId: null, activeQuestionId: null },
-    });
-    setStepIndex(0);
-  }, [autoStartId, updateSeries]);
-
   const dirty = saveStatus !== "saved";
   const guard = useUnsavedGuard(dirty);
 
   const patch = useCallback(
     (p) => {
       setResumeDismissed(true);
-      updateSeries(seriesId, (s) => ({ ...p, lastEditedStep: stepIndex, draftPayload: { ...s.draftPayload, stepIndex } }));
+      const extra = p.about !== undefined ? { shortDescription: stripHtml(p.about).slice(0, 140) } : {};
+      updateSeries(seriesId, (s) => ({ ...p, ...extra, lastEditedStep: stepIndex, draftPayload: { ...s.draftPayload, stepIndex } }));
     },
     [updateSeries, seriesId, stepIndex]
   );
@@ -173,15 +169,11 @@ export default function TestSeriesBuilder() {
     );
   }
 
-  if (needsAutoStart) return null; // the effect above flips it to drafting on the next render
-
   const locked = isStructureLocked(series);
-  const activeSection = activeTestId ? series.sections.find((s) => s.tests.some((t) => t.id === activeTestId)) : null;
-  const activeTest = activeSection ? activeSection.tests.find((t) => t.id === activeTestId) : null;
   const blockers = publishBlockers(series);
-  const canContinue = stepIndex < 3 && stepValid[stepIndex];
+  const canContinue = stepIndex < LAST && stepValid[stepIndex];
   const isAssigned = series.origin === "assigned";
-  const showResume = !resumeDismissed && !locked && ["assigned", "drafting"].includes(series.status) && (series.lastEditedStep > 0 || series.lastEditedPointer);
+  const showResume = !pre && !resumeDismissed && !locked && ["assigned", "drafting"].includes(series.status) && (series.lastEditedStep > 0 || series.lastEditedPointer);
 
   function goTo(i) {
     setStepIndex(i);
@@ -190,53 +182,62 @@ export default function TestSeriesBuilder() {
     updateSeries(series.id, (s) => ({
       stepReached: Math.max(s.stepReached ?? 0, i),
       lastEditedStep: i,
-      draftPayload: { ...s.draftPayload, stepIndex: i, activeTestId: null },
+      draftPayload: { ...s.draftPayload, stepIndex: i },
     }));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function openTest(testId, questionId = null) {
+  const hasSource = method !== "scratch";
+  const labels = ["Start", ...(hasSource ? [SOURCE_LABEL[method]] : []), ...STEPS];
+  const off = labels.length - STEPS.length;
+  const shownIndex = pre === "method" ? 0 : pre === "source" ? 1 : off + stepIndex;
+  const questionTotal = allTests(series).reduce((n, t) => n + t.questions.length, 0);
+  const sourceReady = method === "csv" ? questionTotal > 0 : allTests(series).length > 0;
+
+  function chooseMethod(m) {
+    setMethod(m);
+    updateSeries(series.id, { startMethod: m });
+  }
+  // Leave the Start / Source stage and begin the Details step (assigned series move to drafting).
+  function beginBuilding() {
+    updateSeries(series.id, (s) => ({
+      startMethod: method,
+      ...(s.status === "assigned" ? { status: "drafting" } : {}),
+      draftPayload: { ...s.draftPayload, startCompleted: true, stepIndex: 0, activeTestId: null, activeQuestionId: null },
+      lastEditedStep: 0,
+    }));
+    setPre(null);
+    setStepIndex(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Remember the test / question being edited so "Resume" lands back on it.
+  function recordPointer(testId, questionId = null) {
     pointerRef.current = { questionId };
-    setFocusQuestionId(questionId);
-    setActiveTestId(testId);
-    if (!locked) {
-      updateSeries(series.id, (s) => ({
-        lastEditedStep: 2,
-        lastEditedPointer: { sectionId: s.sections.find((sec) => sec.tests.some((t) => t.id === testId))?.id ?? null, testId, questionId },
-        draftPayload: { ...s.draftPayload, stepIndex: 2, activeTestId: testId, activeQuestionId: questionId },
-      }));
-    }
+    if (locked) return;
+    updateSeries(series.id, (s) => ({
+      lastEditedStep: 1,
+      lastEditedPointer: { sectionId: s.sections.find((sec) => sec.tests.some((t) => t.id === testId))?.id ?? null, testId, questionId },
+      draftPayload: { ...s.draftPayload, stepIndex: 1, activeTestId: testId, activeQuestionId: questionId },
+    }));
   }
-  function closeTest() {
-    setActiveTestId(null);
-    updateSeries(series.id, (s) => ({ draftPayload: { ...s.draftPayload, activeTestId: null } }));
-    flush();
-  }
-  function changeQuestions(testId, questions) {
-    setResumeDismissed(true);
-    updateSeries(series.id, (s) => {
-      const sectionId = s.sections.find((sec) => sec.tests.some((t) => t.id === testId))?.id ?? null;
-      return {
-        sections: s.sections.map((sec) => ({ ...sec, tests: sec.tests.map((t) => (t.id === testId ? { ...t, questions } : t)) })),
-        lastEditedStep: 2,
-        lastEditedPointer: { sectionId, testId, questionId: pointerRef.current.questionId },
-        draftPayload: { ...s.draftPayload, stepIndex: 2, activeTestId: testId, activeQuestionId: pointerRef.current.questionId },
-      };
-    });
+  function openTest(testId, questionId = null) {
+    recordPointer(testId, questionId);
+    setFocus({ testId, questionId, nonce: Date.now() });
   }
   // "Fix this": jump to the step (and test / question / section of the page) that needs attention.
   function fix(f) {
     goTo(f.step);
     if (f.anchor) setAnchor(f.anchor);
-    if (f.step === 2 && f.testId) openTest(f.testId, f.questionId || null);
+    if (f.step === 1 && f.testId) openTest(f.testId, f.questionId || null);
   }
   function jumpToPointer() {
     const ptr = series.lastEditedPointer;
     setResumeDismissed(true);
     if (ptr?.testId && series.sections.some((s) => s.tests.some((t) => t.id === ptr.testId))) {
-      setStepIndex(2);
+      setStepIndex(1);
       openTest(ptr.testId, ptr.questionId || null);
     } else {
-      goTo(Math.min(series.lastEditedStep ?? 0, 3));
+      goTo(Math.min(series.lastEditedStep ?? 0, LAST));
     }
   }
 
@@ -253,61 +254,15 @@ export default function TestSeriesBuilder() {
     if (flush()) navigate(isAssigned ? "/teacher/testseries/assigned" : "/teacher/testseries");
   }
 
-  if (confirmFinal) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center pb-16">
-        <ConfirmationCard
-          state="warning"
-          heading="Final publish this series?"
-          message="This locks the structure: sections, tests, questions and marks become read-only for good. You can still edit the title, description, tags and pricing, and extend deadlines. Students who already enrolled keep their access."
-          primaryAction={
-            <Button
-              onClick={() => {
-                if (move("final")) {
-                  setConfirmFinal(false);
-                  setDone("final");
-                }
-              }}
-            >
-              Yes, final publish
-            </Button>
-          }
-          secondaryAction={<Button variant="secondary" onClick={() => setConfirmFinal(false)}>Not yet</Button>}
-        />
-      </div>
-    );
-  }
-
   if (done) {
-    const copy = {
-      ready: { heading: "Submitted for review", message: `"${series.title}" is ready for review. When you're happy with it, publish it to make it visible to students.` },
-      published: { heading: "Your test series is published!", message: `"${series.title}" is published. ${visibilityNote(series)}. Final publish it later to lock the structure.` },
-      final: { heading: "Final published", message: `"${series.title}" is live and its structure is locked. You can still extend deadlines and edit its details.` },
-    }[done];
     return (
       <div className="flex min-h-[60vh] items-center justify-center pb-16">
         <ConfirmationCard
           state="success"
-          heading={copy.heading}
-          message={copy.message}
-          primaryAction={
-            done === "ready" ? (
-              <Button
-                onClick={() => {
-                  if (move("published")) setDone("published");
-                }}
-              >
-                Publish now
-              </Button>
-            ) : (
-              <Button onClick={() => navigate(isAssigned ? "/teacher/testseries/assigned" : "/teacher/testseries")}>Back to Test Series</Button>
-            )
-          }
-          secondaryAction={
-            <Button variant="secondary" onClick={() => (done === "ready" ? navigate("/teacher/testseries") : setDone(null))}>
-              {done === "ready" ? "Back to Test Series" : "Keep editing"}
-            </Button>
-          }
+          heading="Submitted for review"
+          message={`"${series.title}" is now under review. The admin will check it and approve it, and it goes live for students once approved. You'll find it under Test Series → Under review.`}
+          primaryAction={<Button onClick={() => navigate("/teacher/testseries")}>Go to Under review</Button>}
+          secondaryAction={<Button variant="secondary" onClick={() => navigate(isAssigned ? "/teacher/testseries/assigned" : "/teacher/testseries")}>{isAssigned ? "Back to Assigned to me" : "Back to Test Series"}</Button>}
         />
       </div>
     );
@@ -358,7 +313,7 @@ export default function TestSeriesBuilder() {
         {status === "final" && (
           <div className="flex items-start gap-3 rounded-3xl bg-pastel-lavender px-5 py-4 text-pastel-lavender-ink">
             <LockIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="text-sm font-semibold">Final published{series.finalizedAt ? ` on ${formatDate(series.finalizedAt)}` : ""}. Sections, tests, questions and marks are locked. You can still edit details and extend deadlines.</p>
+            <p className="text-sm font-semibold">Final published{series.finalizedAt ? ` on ${formatDate(series.finalizedAt)}` : ""}. Tests, questions and marks are locked. You can still edit details and extend deadlines.</p>
           </div>
         )}
         {status === "archived" && (
@@ -376,38 +331,59 @@ export default function TestSeriesBuilder() {
 
       {/* Desktop: full ProgressSteps. Mobile: compact stepper with a progress bar. */}
       <div className="mt-4 hidden overflow-x-auto rounded-3xl bg-surface px-5 py-5 shadow-soft sm:block sm:px-8">
-        <ProgressSteps steps={STEPS} currentIndex={stepIndex} />
+        <ProgressSteps steps={labels} currentIndex={shownIndex} />
       </div>
       <div className="mt-4 rounded-3xl bg-surface px-5 py-4 shadow-soft sm:hidden">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold text-text">
-            Step {stepIndex + 1} of {STEPS.length}
+            Step {shownIndex + 1} of {labels.length}
           </span>
-          <span className="text-muted">{STEPS[stepIndex]}</span>
+          <span className="text-muted">{labels[shownIndex]}</span>
         </div>
         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-text/[0.08]">
-          <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${((shownIndex + 1) / labels.length) * 100}%` }} />
         </div>
       </div>
 
       <div className="mt-8">
-        {stepIndex === 0 && <TestSeriesDetailsStep series={series} onChange={patch} showErrors={showErrors} onRequestExtension={() => setExtOpen(true)} />}
-        {stepIndex === 1 && (
+        {pre === "method" && <StartMethodStep value={method} onChange={chooseMethod} />}
+        {pre === "source" && <StartSourceStep method={method} series={series} onChange={patch} />}
+        {!pre && stepIndex === 0 && <TestSeriesDetailsStep series={series} onChange={patch} showErrors={showErrors} />}
+        {!pre && stepIndex === 1 && (
           <div inert={locked} className={locked ? "opacity-70" : undefined}>
-            <TestSeriesStructureStep series={series} onChange={patch} onOpenQuestions={(id) => openTest(id)} />
+            <TestSeriesStructureStep series={series} onChange={patch} readOnly={locked} focus={focus} onPointer={recordPointer} />
           </div>
         )}
-        {stepIndex === 2 && <TestSeriesQuestionsStep series={series} onOpenQuestions={(id) => openTest(id)} onGoStep={goTo} readOnly={locked} />}
-        {stepIndex === 3 && <TestSeriesReviewStep series={series} onChange={patch} onFix={fix} />}
+        {!pre && stepIndex === 2 && <TestSeriesClassificationStep series={series} onChange={patch} showErrors={showErrors} />}
+        {!pre && stepIndex === 3 && <TestSeriesAvailabilityStep series={series} onChange={patch} onRequestExtension={() => setExtOpen(true)} />}
+        {!pre && stepIndex === 4 && <TestSeriesReviewStep series={series} onChange={patch} onFix={fix} />}
       </div>
 
       {actionError && <p role="alert" className="mt-6 rounded-2xl bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">{actionError}</p>}
 
+      {pre ? (
+        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-text/[0.07] pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <Button variant="secondary" fullWidth={false} className="px-6" onClick={() => (pre === "source" ? setPre("method") : guard.go(isAssigned ? "/teacher/testseries/assigned" : "/teacher/testseries"))}>
+            {pre === "source" ? "Back" : "Back to dashboard"}
+          </Button>
+          {pre === "method" && (
+            <Button fullWidth={false} className="px-8" onClick={() => (hasSource ? setPre("source") : beginBuilding())}>
+              Continue to {hasSource ? SOURCE_LABEL[method] : "Details"}
+            </Button>
+          )}
+          {pre === "source" && (
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <Button fullWidth={false} className="px-8" disabled={!sourceReady} onClick={beginBuilding}>Continue to Details</Button>
+              {!sourceReady && <span className="text-xs text-muted">{method === "csv" ? "Import at least one question to continue." : "Create an outline to continue."}</span>}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="mt-8 flex flex-col-reverse gap-3 border-t border-text/[0.07] pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="secondary" fullWidth={false} className="px-6" onClick={() => (stepIndex === 0 ? guard.go(isAssigned ? "/teacher/testseries/assigned" : "/teacher/testseries") : goTo(stepIndex - 1))}>
-          {stepIndex === 0 ? "Back to dashboard" : "Back"}
+        <Button variant="secondary" fullWidth={false} className="px-6" onClick={() => (stepIndex === 0 ? setPre(hasSource ? "source" : "method") : goTo(stepIndex - 1))}>
+          Back
         </Button>
-        {stepIndex < 3 ? (
+        {stepIndex < LAST ? (
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
             {/* Wrapper catches clicks on the (pointer-events-none) disabled
                 button so a blocked Continue reveals the inline field errors. */}
@@ -428,36 +404,16 @@ export default function TestSeriesBuilder() {
             )}
             {status === "ready" && (
               <>
-                <Button variant="secondary" fullWidth={false} className="px-6" onClick={() => move("drafting")}>Back to drafting</Button>
-                <Button fullWidth={false} className="px-8" disabled={blockers.length > 0} onClick={() => { if (move("published")) setDone("published"); }}>Publish</Button>
+                <span className="text-sm font-semibold text-pastel-orange-ink">Waiting for admin approval</span>
+                <Button variant="secondary" fullWidth={false} className="px-6" onClick={() => move("drafting")}>Withdraw &amp; keep editing</Button>
               </>
             )}
-            {status === "published" && (
-              <>
-                <Button variant="secondary" fullWidth={false} className="px-6" onClick={() => move("drafting")}>Revert to draft</Button>
-                <Button fullWidth={false} className="px-8" onClick={() => setConfirmFinal(true)}>Final publish…</Button>
-              </>
-            )}
-            {(status === "final" || status === "archived") && <Button variant="secondary" fullWidth={false} className="px-6" onClick={saveAndExit}>Save &amp; exit</Button>}
-            {blockers.length > 0 && (status === "assigned" || status === "drafting" || status === "ready") && <span className="text-xs text-muted">{blockers.length} item{blockers.length === 1 ? "" : "s"} to fix first.</span>}
+            {status === "published" && <Button variant="secondary" fullWidth={false} className="px-6" onClick={saveAndExit}>Save &amp; exit</Button>}
+            {status === "archived" && <Button variant="secondary" fullWidth={false} className="px-6" onClick={saveAndExit}>Save &amp; exit</Button>}
+            {blockers.length > 0 && (status === "assigned" || status === "drafting") && <span className="text-xs text-muted">{blockers.length} item{blockers.length === 1 ? "" : "s"} to fix first.</span>}
           </div>
         )}
       </div>
-
-      {activeTest && (
-        <TestQuestionBuilder
-          key={activeTest.id}
-          test={activeTest}
-          sectionTitle={activeSection.title}
-          topics={topicSuggestions(series)}
-          readOnly={locked}
-          initialExpandedId={focusQuestionId}
-          onFocusQuestion={(qid) => {
-            pointerRef.current = { questionId: qid };
-          }}
-          onChangeQuestions={(qs) => changeQuestions(activeTest.id, qs)}
-          onClose={closeTest}
-        />
       )}
 
       <ExtensionRequestModal key={`ext-${extOpen}`} open={extOpen} series={series} onClose={() => setExtOpen(false)} onSubmit={(p) => requestExtension(series.id, p)} />

@@ -69,7 +69,7 @@ export default function DropdownPanel({
     <div
       role="dialog"
       aria-label={label}
-      className={`fixed inset-x-3 top-[4.25rem] z-30 origin-top overflow-hidden rounded-3xl bg-surface shadow-card ring-1 ring-text/[0.06] transition-all duration-150 ease-out sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 ${
+      className={`fixed inset-x-3 top-[4.25rem] z-30 origin-top overflow-hidden rounded-3xl bg-white shadow-[0_24px_60px_-20px_rgba(15,17,21,0.35)] ring-1 ring-(--lp-line) transition-all duration-150 ease-out sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 ${
         align === "right" ? "sm:right-0 sm:origin-top-right" : "sm:left-0 sm:origin-top-left"
       } ${widthClass} ${entered ? "translate-y-0 scale-100 opacity-100" : "-translate-y-1 scale-95 opacity-0"} ${className}`}
     >
