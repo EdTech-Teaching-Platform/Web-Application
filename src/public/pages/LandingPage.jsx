@@ -17,10 +17,7 @@ import { prefetchPublicList } from "../../portals/student/services/studentSeries
 import StatCard from "../../components/ui/StatCard";
 import Marquee from "../../components/ui/Marquee";
 import { imageForPerson, imgFallback, heroPhoto } from "../../utils/stockImages";
-import { COURSE_CATEGORIES } from "../../utils/constants";
 import {
-  UsersIcon,
-  CheckCircleIcon,
   GoogleIcon,
   AppleIcon,
   PlayIcon,
@@ -37,7 +34,7 @@ import TestSeriesShowcase from "../components/landing/TestSeriesShowcase";
 import EducatorsCarousel from "../components/landing/EducatorsCarousel";
 import FaqSection from "../components/landing/FaqSection";
 import DeviceMockup from "../components/landing/DeviceMockup";
-import { Reveal, PillButton, SectionHead } from "../components/landing/LandingUI";
+import { Reveal, PillButton, SectionHead, Squiggle } from "../components/landing/LandingUI";
 
 // No course/educator preview video is speced for this page today. If one
 // is added later: design.md bans auto-play everywhere — render a static
@@ -61,33 +58,33 @@ const TESTIMONIALS_ROW_2 = [
 const FAQ_ITEMS = [
   {
     id: "f1",
-    question: "How do online courses and live classes work?",
+    question: "How does a test series work?",
     answer:
-      "Courses are self-paced video/PDF/text lessons you complete on your own schedule. Live classes are scheduled sessions you book with an educator and join through a single-use link generated fresh at join time.",
+      "A test series is a package of timed tests for a class and subject, such as chapter tests, full-length tests and mock exams. Enrol, and the tests unlock in your dashboard. Each one runs against a timer and is scored the moment you submit.",
   },
   {
     id: "f2",
-    question: "Can I get a refund if the course isn't right for me?",
+    question: "Can I retake a test?",
     answer:
-      "Yes — refunds are handled through Orders in your dashboard, subject to the platform's refund policy and any limits set for the specific course.",
+      "Yes. Every attempt is saved in your attempt history, so you can retake a test and compare scores over time. How many attempts a test allows can vary, so check the test details before you start.",
   },
   {
     id: "f3",
-    question: "Are the certificates accredited and recognized?",
+    question: "What do I get in my report after a test?",
     answer:
-      "Certificates confirm course completion on Universal Learning with a unique certificate number. Accreditation varies by course — check the specific course's details page for accreditation status before enrolling.",
+      "A detailed report after every attempt: your score, how many answers were correct, wrong or skipped, and a topic-wise breakdown that shows what to revise next. Pass marks vary by test.",
   },
   {
     id: "f4",
-    question: "How do 1-on-1 mentor sessions work?",
+    question: "Which classes and exams are covered?",
     answer:
-      "You book an available slot directly with an educator; the platform prevents double-booking at the database level, and you can reschedule or cancel from Manage Booking.",
+      "Test series are organised by class and subject, from Class 6 to Class 12, with practice for board, entrance and competitive exams too. Browse the list or search by subject or exam to see what's available.",
   },
   {
     id: "f5",
-    question: "Can I access the materials on mobile or offline?",
+    question: "Are test series free or paid, and can I get a refund?",
     answer:
-      "The web platform works on mobile browsers today. A dedicated mobile app with offline access is on the roadmap but not part of the current build.",
+      "Some series are free and others are paid, with the price shown on each series. Where a refund applies, it is handled through Orders in your dashboard, subject to the platform's refund policy.",
   },
 ];
 
@@ -109,19 +106,7 @@ export default function LandingPage() {
       {/* ──────────────────── BOARD EXAM COUNTDOWN ───────────────────── */}
       <ExamCountdownBanner />
 
-      {/* ───────────── SUBJECT STRIP + STATS + PLATFORM ───────────── */}
-      <section className="hidden border-y border-(--lp-line) bg-white sm:block">
-        <div className={`${SHELL} flex flex-wrap items-center justify-center gap-x-2 gap-y-2 py-5 text-sm text-(--lp-muted)`} aria-label="Subjects offered">
-          <span className="mr-2 font-semibold text-(--lp-ink)">Learn</span>
-          {COURSE_CATEGORIES.filter((c) => c !== "Other").map((c, i, arr) => (
-            <span key={c} className="flex items-center gap-2">
-              {c}
-              {i < arr.length - 1 && <span className="h-1 w-1 rounded-full bg-(--lp-yellow)" aria-hidden="true" />}
-            </span>
-          ))}
-        </div>
-      </section>
-
+      {/* ───────────────── STATS + PLATFORM ───────────────── */}
       <section className="bg-(--lp-blue-tint) py-12 md:py-14">
         <div className={SHELL}>
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-0 md:divide-x md:divide-(--lp-blue)/15">
@@ -238,25 +223,42 @@ export default function LandingPage() {
             <div className="pointer-events-none absolute inset-0" aria-hidden="true">
               <div className="absolute -left-20 -top-24 h-80 w-80 rounded-full bg-(--lp-blue)/80 blur-2xl" />
               <div className="absolute -bottom-28 right-10 h-72 w-72 rounded-full bg-(--lp-yellow)/45 blur-2xl" />
+              <div
+                className="absolute inset-0 opacity-60"
+                style={{
+                  backgroundImage: "radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1.3px)",
+                  backgroundSize: "26px 26px",
+                  maskImage: "radial-gradient(ellipse at 70% 50%, black 0%, transparent 70%)",
+                  WebkitMaskImage: "radial-gradient(ellipse at 70% 50%, black 0%, transparent 70%)",
+                }}
+              />
             </div>
             <div className="relative grid items-center gap-8 sm:gap-10 md:grid-cols-2">
               <Reveal className="relative order-2 mx-auto w-full max-w-xl md:order-1 md:max-w-none">
                 <DeviceMockup />
               </Reveal>
               <Reveal delay={100} className="order-1 flex flex-col items-start md:order-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold tracking-wide sm:px-3.5 sm:text-xs">
-                  <UsersIcon className="h-3.5 w-3.5" />
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold tracking-wide ring-1 ring-white/15 sm:px-3.5 sm:text-xs">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 text-(--lp-yellow)" aria-hidden="true">
+                    <rect x="2.5" y="5" width="14" height="10" rx="1.6" />
+                    <path d="M1 18.5h17" />
+                    <rect x="16.5" y="9" width="5" height="9.5" rx="1.2" />
+                  </svg>
                   Any Device
                 </span>
-                <h2 className="mt-4 font-(family-name:--lp-font) text-[1.9rem] font-bold leading-[1.08] tracking-tight sm:mt-5 sm:text-5xl">
-                  Learn anytime, <span className="text-(--lp-yellow)">anywhere.</span>
+                <h2 className="mt-4 font-(family-name:--lp-font) text-[2.1rem] font-bold leading-[1.05] tracking-[-0.025em] sm:mt-5 sm:text-6xl">
+                  Practise anytime,{" "}
+                  <span className="relative inline-block text-(--lp-yellow)">
+                    anywhere.
+                    <Squiggle className="absolute -bottom-2 left-0 h-3 w-full text-(--lp-blue) sm:-bottom-3 sm:h-4" />
+                  </span>
                 </h2>
                 <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70 sm:mt-5 sm:text-base">
-                  The web platform works across desktop and mobile browsers today, so you can pick up a course or join a live class from whatever device is in front of you.
+                  The web platform works across desktop and mobile browsers today, so you can start a test series, sit a timed test or read your report from whatever device is in front of you.
                 </p>
                 <div className="mt-5 grid w-full grid-cols-2 gap-2.5 sm:mt-6 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-3">
                   {/* Presentational only -- no dedicated mobile app exists yet
-                      (see FAQ_ITEMS f5 above). Not links: no real store URLs to
+                      (no FAQ entry covers it now). Not links: no real store URLs to
                       point at, so these render as static badges. */}
                   <span className="inline-flex min-w-0 items-center gap-2.5 rounded-2xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15 sm:min-w-[150px] sm:gap-3 sm:px-4" title="Coming soon -- no mobile app yet">
                     <GoogleIcon className="h-5 w-5 shrink-0" />
@@ -267,19 +269,23 @@ export default function LandingPage() {
                     <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/65 sm:text-[9px]">Coming soon on</span><span className="block text-[13px] font-semibold sm:text-sm">App Store</span></span>
                   </span>
                 </div>
-                <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-2.5 sm:mt-8 sm:gap-x-6 sm:gap-y-3">
+                <div className="mt-6 grid w-full grid-cols-2 gap-2 sm:mt-8 sm:gap-2.5">
                   {[
-                    "Sync across devices",
-                    "Continue where you left off",
-                    "Downloadable resources",
-                    "Topic-based learning",
-                    "Live class access",
-                    "Daily learning goals",
-                  ].map((item) => (
-                    <div key={item} className="flex items-start gap-2 text-[13px] leading-snug text-white/90 sm:items-center sm:gap-2.5 sm:text-sm">
-                      <CheckCircleIcon className="mt-px h-4 w-4 shrink-0 text-(--lp-yellow) sm:mt-0 sm:h-5 sm:w-5" />
-                      {item}
-                    </div>
+                    "Timed practice tests",
+                    "Instant scoring",
+                    "Detailed reports",
+                    "Attempt history",
+                    "Retake and compare",
+                    "Works on any browser",
+                  ].map((item, i) => (
+                    <Reveal key={item} delay={i * 60}>
+                      <div className="flex h-full items-start gap-2 rounded-xl bg-white/[0.06] px-2.5 py-2 text-[13px] leading-snug text-white/90 ring-1 ring-white/10 transition-[background-color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:bg-white/10 sm:items-center sm:gap-2.5 sm:px-3 sm:py-2.5 sm:text-sm">
+                        <span className="mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink) sm:mt-0 sm:h-5 sm:w-5">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="h-2.5 w-2.5 sm:h-3 sm:w-3" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+                        </span>
+                        {item}
+                      </div>
+                    </Reveal>
                   ))}
                 </div>
                 <div className="mt-7 w-full sm:mt-9 sm:w-auto">

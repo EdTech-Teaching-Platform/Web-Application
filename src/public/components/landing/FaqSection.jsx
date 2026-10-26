@@ -8,14 +8,14 @@
 // there is no fixed max-height clipping long answers.
 import { useState } from "react";
 import {
-  AwardIcon,
+  BarChartIcon,
   BookOpenIcon,
+  ClockIcon,
   HelpCircleIcon,
   MailIcon,
   PlusIcon,
   RefreshIcon,
-  UsersIcon,
-  VideoIcon,
+  TagIcon,
 } from "../../../components/ui/icons";
 import { ArrowUpRight, Reveal, SectionHead } from "./LandingUI";
 
@@ -23,11 +23,11 @@ const SHELL = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
 
 // Topic icon + tile colour per question id (fixed order, never random).
 const TOPICS = {
-  f1: { icon: VideoIcon, tile: "bg-(--lp-yellow) text-(--lp-ink)" },
+  f1: { icon: ClockIcon, tile: "bg-(--lp-yellow) text-(--lp-ink)" },
   f2: { icon: RefreshIcon, tile: "bg-(--lp-blue-soft) text-(--lp-blue-deep)" },
-  f3: { icon: AwardIcon, tile: "bg-(--lp-yellow-soft) text-(--lp-ink)" },
-  f4: { icon: UsersIcon, tile: "bg-(--lp-blue-soft) text-(--lp-blue-deep)" },
-  f5: { icon: BookOpenIcon, tile: "bg-(--lp-yellow) text-(--lp-ink)" },
+  f3: { icon: BarChartIcon, tile: "bg-(--lp-yellow-soft) text-(--lp-ink)" },
+  f4: { icon: BookOpenIcon, tile: "bg-(--lp-blue-soft) text-(--lp-blue-deep)" },
+  f5: { icon: TagIcon, tile: "bg-(--lp-yellow) text-(--lp-ink)" },
 };
 const FALLBACK_TOPIC = { icon: HelpCircleIcon, tile: "bg-(--lp-grey) text-(--lp-ink)" };
 
@@ -96,7 +96,7 @@ export default function FaqSection({ items }) {
         <Reveal className="lg:sticky lg:top-28 lg:self-start">
           <SectionHead align="left" eyebrow="Frequently Asked Questions" title="Answers to your most common questions." />
           <p className="mt-5 max-w-sm text-base leading-relaxed text-(--lp-muted)">
-            Quick answers about courses, live classes, refunds and certificates. Can't find yours? Just drop us an email.
+            Quick answers about test series, timed tests, reports and refunds. Can't find yours? Just drop us an email.
           </p>
 
           <div className="relative mt-8 -rotate-1 overflow-hidden rounded-[28px] bg-(--lp-yellow) p-6 shadow-[0_16px_36px_rgba(255,216,77,0.45)]">
