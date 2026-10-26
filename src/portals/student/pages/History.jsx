@@ -7,6 +7,7 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, FileTextIcon } from "../../../components/ui/icons";
 import { EmptyPanel, ErrorState, LoadingState, PAGE } from "../components/PageState";
 import PageHero from "../components/PageHero";
+import { Rise } from "../components/StudentKit";
 import { useStudentData } from "../hooks/useStudentData";
 import { studentSeriesApi } from "../services/studentSeriesApi";
 import { attemptStatus, formatDate, formatPercent, formatScore, formatSeconds } from "../utils/format";
@@ -61,8 +62,8 @@ function HistoryRow({ item, onOpen }) {
     <Wrapper
       type={target ? "button" : undefined}
       onClick={target ? () => onOpen(target) : undefined}
-      className={`group flex w-full items-center gap-4 rounded-3xl bg-white p-4 text-left ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-200 ease-out sm:px-5 sm:py-5 ${
-        target ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgb(15_17_21/0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" : ""
+      className={`group flex w-full items-center gap-4 rounded-[1.75rem] bg-white p-4 text-left shadow-[0_20px_36px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out sm:px-5 sm:py-5 ${
+        target ? "cursor-pointer hover:-translate-y-1 hover:shadow-[0_26px_44px_-26px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" : ""
       }`}
     >
       <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${iconTone}`} aria-hidden="true">
@@ -104,7 +105,7 @@ export default function History() {
   const { data, error, loading, reload } = useStudentData(() => studentSeriesApi.history({ page, size: PAGE_SIZE }), page);
 
   return (
-    <div className={`${PAGE} space-y-10 pb-10`}>
+    <div className={`${PAGE} space-y-8 pb-10`}>
       <PageHero
         compact
         theme="peach"
@@ -127,7 +128,7 @@ export default function History() {
       ) : (
         <>
           <ul className="space-y-3">
-            {data.items.map((item) => <li key={item.attempt_id}><HistoryRow item={item} onOpen={navigate} /></li>)}
+            {data.items.map((item, i) => <li key={item.attempt_id}><Rise delay={Math.min(i, 8) * 50}><HistoryRow item={item} onOpen={navigate} /></Rise></li>)}
           </ul>
           {data.total_pages > 1 && (
             <nav className="flex items-center justify-center gap-3" aria-label="Pages">

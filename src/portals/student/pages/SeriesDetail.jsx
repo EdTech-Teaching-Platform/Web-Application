@@ -153,6 +153,7 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
 
       <PageHero
         compact
+        showEyebrow
         theme="blue"
         art="shelf"
         eyebrow={[series.exam, series.subject, series.level].filter(Boolean).join(" · ") || "Test series"}

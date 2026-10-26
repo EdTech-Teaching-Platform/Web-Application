@@ -255,7 +255,8 @@ describe("ResetPassword page states", () => {
 describe("AuthCallback redirects by role", () => {
   beforeEach(() => vi.resetModules());
 
-  async function renderCallback(user, url = "/auth/callback") {
+  async function renderCallback(user, url = "/auth/callback", needsOnboarding = false) {
+    vi.doMock("../src/portals/student/utils/onboarding", () => ({ needsGoogleOnboarding: async () => needsOnboarding }));
     vi.doMock("../src/hooks/useAuth", () => ({ useAuth: () => ({ user, loading: false, error: "" }) }));
     vi.doMock("../src/services/supabaseClient", () => ({ supabase: {} }));
     const { default: AuthCallback } = await import("../src/auth/pages/AuthCallback");
@@ -264,6 +265,7 @@ describe("AuthCallback redirects by role", () => {
         <Routes>
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/student/dashboard" element={<p>student home</p>} />
+          <Route path="/student/onboarding" element={<p>student onboarding</p>} />
           <Route path="/admin/logindashboard" element={<p>admin home</p>} />
           <Route path="/student/test-series" element={<p>series list</p>} />
         </Routes>
@@ -273,7 +275,7 @@ describe("AuthCallback redirects by role", () => {
 
   it("sends students to the student dashboard", async () => {
     await renderCallback({ id: "u", role: "student", dbRole: "student" });
-    expect(screen.getByText("student home")).toBeInTheDocument();
+    expect(await screen.findByText("student home")).toBeInTheDocument();
   });
 
   it("sends admins and super admins to the admin portal", async () => {
@@ -283,7 +285,12 @@ describe("AuthCallback redirects by role", () => {
 
   it("honours a same-site redirect", async () => {
     await renderCallback({ id: "u", role: "student" }, "/auth/callback?redirect=%2Fstudent%2Ftest-series");
-    expect(screen.getByText("series list")).toBeInTheDocument();
+    expect(await screen.findByText("series list")).toBeInTheDocument();
+  });
+
+  it("sends a new Google student through onboarding first", async () => {
+    await renderCallback({ id: "u", role: "student" }, "/auth/callback", true);
+    expect(await screen.findByText("student onboarding")).toBeInTheDocument();
   });
 
   it("explains a failed Google sign-in", async () => {

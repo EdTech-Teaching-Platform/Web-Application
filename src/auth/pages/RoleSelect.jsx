@@ -30,14 +30,14 @@ const ROLES = [
   {
     key: "student",
     title: "I'm a Student",
-    description: "Browse courses, join live classes and track your progress.",
+    description: "Attempt timed mock tests, review your answers and track your progress.",
     icon: StudentIcon,
     to: "/login",
   },
   {
     key: "educator",
     title: "I'm an Educator",
-    description: "Create courses, host live classes and manage your learners.",
+    description: "Create test series, assign them to students and track every attempt.",
     icon: EducatorIcon,
     to: "/teacher/login",
   },

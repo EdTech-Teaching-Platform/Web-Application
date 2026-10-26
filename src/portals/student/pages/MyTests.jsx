@@ -6,6 +6,7 @@ import Button from "../../../components/ui/Button";
 import { rotationClassFor } from "../../../components/ui/ColorBlockCard";
 import { BookOpenIcon, ChevronRightIcon, ClockIcon, FileTextIcon, TargetIcon } from "../../../components/ui/icons";
 import { COVER_ART, MetaChip } from "../components/SeriesShowcaseCard";
+import { CoverDots, CoverGlyph, Rise, glyphFor } from "../components/StudentKit";
 import { EmptyPanel, ErrorState, LoadingState, PAGE } from "../components/PageState";
 import PageHero, { HERO_BTN_YELLOW } from "../components/PageHero";
 import { useStudentData } from "../hooks/useStudentData";
@@ -32,12 +33,14 @@ function MySeriesCard({ s, index, onOpen }) {
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(e); }}
-      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_22px_48px_rgb(15_17_21/0.13)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       <div className={`relative aspect-[16/8] w-full overflow-hidden ${rotationClassFor(index)}`}>
         <svg className="absolute inset-0 h-full w-full text-white transition-transform duration-500 ease-out group-hover:scale-105" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
           {COVER_ART[index % COVER_ART.length]}
         </svg>
+        <CoverDots />
+        <CoverGlyph className="right-24">{glyphFor(s, index)}</CoverGlyph>
         {badge && (
           <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary shadow-sm">
             {badge}
@@ -68,12 +71,12 @@ function MySeriesCard({ s, index, onOpen }) {
             aria-valuemax={100}
             aria-valuenow={Math.round(pct)}
           >
-            <div className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-(--lp-blue) transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
           </div>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpen(e); }}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-(--lp-ink) px-4 py-2.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-(--lp-ink) px-4 py-2.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-(--lp-blue-deep) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Open
             <ChevronRightIcon className="h-3.5 w-3.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
@@ -96,7 +99,7 @@ export default function MyTests() {
   const { data, error, loading, reload } = useStudentData(() => studentSeriesApi.mySeries(), "my-series");
 
   return (
-    <div className={`${PAGE} space-y-10 pb-10`}>
+    <div className={`${PAGE} space-y-8 pb-10`}>
       <PageHero
         compact
         theme="blue"
@@ -124,7 +127,9 @@ export default function MyTests() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {data.map((s, i) => (
-            <MySeriesCard key={s.id} s={s} index={i} onOpen={() => navigate(`/student/my-tests/${s.id}`)} />
+            <Rise key={s.id} delay={Math.min(i, 8) * 80} className="h-full">
+              <MySeriesCard s={s} index={i} onOpen={() => navigate(`/student/my-tests/${s.id}`)} />
+            </Rise>
           ))}
         </div>
       )}

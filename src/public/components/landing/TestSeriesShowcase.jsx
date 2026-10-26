@@ -9,9 +9,8 @@
 // shell. Motion is transform/opacity/stroke only and is disabled for
 // prefers-reduced-motion.
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { BookOpenIcon, CheckCircleIcon, ClockIcon, FileTextIcon } from "../../../components/ui/icons";
-import { ArrowUpRight, PillButton, Reveal } from "./LandingUI";
+import { ArrowUpRight, Reveal } from "./LandingUI";
 
 const SHELL = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
 
@@ -273,7 +272,6 @@ function FeatureCards() {
 }
 
 export default function TestSeriesShowcase() {
-  const navigate = useNavigate();
   const [stageRef, stageSeen] = useInView();
 
   return (
@@ -317,9 +315,6 @@ export default function TestSeriesShowcase() {
               <FeatureCards />
 
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-                <PillButton tone="ink" onClick={() => navigate("/test-series")}>
-                  Explore Test Series
-                </PillButton>
                 <span className="inline-flex items-center gap-1.5 text-sm font-medium text-(--lp-ink)/70">
                   <CheckCircleIcon className="h-4 w-4 text-(--lp-blue)" />
                   Instant report after every test

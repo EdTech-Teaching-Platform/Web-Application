@@ -13,52 +13,34 @@
 // Item 12 in the previous revision): the Community column's Future-Scope
 // entries, Career/Internships/AI Study Assistant, About Us/Accessibility.
 import { Link } from "react-router-dom";
-import {
-  LinkedInIcon,
-  YoutubeIcon,
-  InstagramIcon,
-  XSocialIcon,
-  GoogleIcon,
-  AppleIcon,
-} from "../../components/ui/icons";
+import { InstagramIcon, LinkedInIcon, MailIcon } from "../../components/ui/icons";
 
+// Social links. Paste the real profile URLs into LINKEDIN_URL / INSTAGRAM_URL;
+// until then those two icons stay visible but inactive (no made-up URLs).
+const SUPPORT_EMAIL = "support@universallearning.app";
+const LINKEDIN_URL = "";
+const INSTAGRAM_URL = "";
 const SOCIAL_LINKS = [
-  { label: "LinkedIn", icon: LinkedInIcon },
-  { label: "YouTube", icon: YoutubeIcon },
-  { label: "Instagram", icon: InstagramIcon },
-  { label: "X / Twitter", icon: XSocialIcon },
+  { label: "LinkedIn", icon: LinkedInIcon, href: LINKEDIN_URL },
+  { label: "Instagram", icon: InstagramIcon, href: INSTAGRAM_URL },
+  { label: "Email", icon: MailIcon, href: `mailto:${SUPPORT_EMAIL}` },
 ];
 
+// Only destinations that exist today are listed: the product is test series
+// (public list + the student portal), plus the legal pages and support email.
 const FOOTER_COLUMNS = [
   {
     title: "Learn",
     links: [
-      { label: "Explore Courses", href: "/explore" },
-      { label: "My Learning", href: "/student/my-learning" },
-      { label: "Live Classes", href: "/student/live-classes" },
-      { label: "Test Series", href: "/student/assessments/test-series" },
-      { label: "Certificates", href: "/student/certificates" },
-    ],
-  },
-  {
-    title: "Community",
-    links: [
-      { label: "Discussions", href: "/student/messages" },
-      { label: "Events", href: "/student/calendar" },
-      { label: "Q&A", href: "/student/messages" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { label: "Learning Resources", href: "/student/explore" },
-      { label: "Help Center", href: "/student/help-complaints" },
+      { label: "Test Series", href: "/test-series" },
+      { label: "My Tests", href: "/student/my-tests" },
+      { label: "History", href: "/student/history" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "Contact Support", href: "mailto:support@universallearning.app" },
+      { label: "Contact Support", href: `mailto:${SUPPORT_EMAIL}` },
       { label: "Terms of Service", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
     ],
@@ -98,7 +80,7 @@ export default function SiteFooter() {
       </div>
 
       <div className="relative mx-auto w-full max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
-        <div className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1fr_1fr] lg:gap-x-6">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr] lg:gap-x-10">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1 lg:max-w-xs">
             <Link to="/" className="inline-flex items-center gap-2.5 font-(family-name:--lp-font) text-xl font-bold">
@@ -114,17 +96,24 @@ export default function SiteFooter() {
               Learn from expert educators, build practical skills, and grow at your own pace.
             </p>
             <div className="mt-6 flex items-center gap-2.5">
-              {SOCIAL_LINKS.map(({ label, icon: Icon }) => (
-                <span
-                  key={label}
-                  aria-label={label}
-                  aria-disabled="true"
-                  title={`${label} link coming soon`}
-                  className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/60"
-                >
-                  <Icon className="h-[15px] w-[15px]" />
-                </span>
-              ))}
+              {SOCIAL_LINKS.map(({ label, icon: Icon, href }) => {
+                const cls = "grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/70";
+                return href ? (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    {...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className={`${cls} transition-[background-color,color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:bg-(--lp-yellow) hover:text-(--lp-ink)`}
+                  >
+                    <Icon className="h-[15px] w-[15px]" />
+                  </a>
+                ) : (
+                  <span key={label} aria-label={label} aria-disabled="true" title={`${label} link coming soon`} className={`${cls} opacity-60`}>
+                    <Icon className="h-[15px] w-[15px]" />
+                  </span>
+                );
+              })}
             </div>
           </div>
 
@@ -142,22 +131,6 @@ export default function SiteFooter() {
             </div>
           ))}
 
-          {/* Download App -- presentational only, no real mobile app exists
-              yet (see LandingPage's Learn Anywhere section and FAQ f5). Not
-              links: no real store URLs to point at yet. */}
-          <div>
-            <p className="font-(family-name:--lp-font) text-sm font-bold">Download App</p>
-            <div className="mt-4 flex flex-col items-start gap-2.5">
-              <span className="inline-flex min-w-[124px] items-center gap-2 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10" title="Coming soon -- no mobile app yet">
-                <GoogleIcon className="h-4 w-4 shrink-0" />
-                <span className="text-xs font-semibold">Google Play</span>
-              </span>
-              <span className="inline-flex min-w-[124px] items-center gap-2 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/10" title="Coming soon -- no mobile app yet">
-                <AppleIcon className="h-4 w-4 shrink-0" />
-                <span className="text-xs font-semibold">App Store</span>
-              </span>
-            </div>
-          </div>
         </div>
 
         <p className="pointer-events-none mt-12 select-none overflow-hidden whitespace-nowrap text-center font-(family-name:--lp-font) text-[clamp(2.5rem,11.5vw,9.5rem)] font-extrabold leading-[0.9] tracking-tighter text-white/[0.07]" aria-hidden="true">
@@ -176,7 +149,6 @@ export default function SiteFooter() {
             <Link to="/terms" className="transition-colors duration-150 hover:text-(--lp-yellow)">
               Terms
             </Link>
-            <span aria-disabled="true" title="Cookie settings coming soon">Cookies</span>
           </nav>
         </div>
       </div>

@@ -14,10 +14,9 @@
 // shift+wheel), mouse click-and-drag, prev/next buttons and ←/→ keys. Pure
 // presentation — no routes, auth or data are touched.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { EDUCATORS } from "../../../data/catalogMock";
 import { BookOpenIcon, CheckCircleIcon, ChevronRightIcon, StarIcon } from "../../../components/ui/icons";
-import { PillButton, Reveal, SectionHead } from "./LandingUI";
+import { Reveal, SectionHead } from "./LandingUI";
 
 const SHELL = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
 
@@ -108,7 +107,6 @@ function EducatorCard({ educator, index }) {
 }
 
 export default function EducatorsCarousel() {
-  const navigate = useNavigate();
   const scroller = useRef(null);
   const drag = useRef(null);
   const [dragging, setDragging] = useState(false);
@@ -245,9 +243,6 @@ export default function EducatorsCarousel() {
             style={{ width: `${pos.thumb * 100}%`, marginLeft: `${pos.progress * (1 - pos.thumb) * 100}%` }}
           />
         </div>
-        <Reveal>
-          <PillButton tone="ink" onClick={() => navigate("/test-series")}>Explore their test series</PillButton>
-        </Reveal>
       </div>
     </section>
   );

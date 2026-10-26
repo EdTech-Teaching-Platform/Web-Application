@@ -8,7 +8,7 @@ export function LoadingState({ label = "Loading…", rows = 3 }) {
   return (
     <div role="status" aria-label={label} className="space-y-3">
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="h-20 animate-pulse rounded-2xl bg-text/5" />
+        <div key={i} className="h-24 animate-pulse rounded-[1.75rem] bg-white/80 ring-1 ring-(--lp-line)" />
       ))}
       <span className="sr-only">{label}</span>
     </div>

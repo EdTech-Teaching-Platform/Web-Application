@@ -3,8 +3,6 @@
 // illustrative (placeholder data), not live app screens. Colours come from
 // the --lp-* variables set by landingTheme.js on the landing wrapper.
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { PillButton } from "./LandingUI";
 import { FileTextIcon, BarChartIcon, ClockIcon, CheckIcon } from "../../../components/ui/icons";
 
 const DISPLAY = "font-(family-name:--lp-font)";
@@ -150,13 +148,11 @@ const SHOWCASE = [
     label: "Progress tracking",
     text: "Per-question time and accuracy turn into a clear list of what to revise next, so practice always has a direction.",
     points: ["Score trend across every test", "Accuracy and time per question", "A revise-next list by topic"],
-    cta: { label: "Start practising", to: "/register" },
     Preview: ProgressPreview,
   },
 ];
 
 export function ProductShowcase() {
-  const navigate = useNavigate();
   const [active, setActive] = useState("tests");
   const current = SHOWCASE.find((s) => s.id === active) ?? SHOWCASE[0];
   const Preview = current.Preview;
@@ -218,13 +214,6 @@ export function ProductShowcase() {
               );
             })}
           </div>
-          {current.cta && (
-            <div className="mt-8 lg:mt-auto lg:pt-8">
-              <PillButton tone="ink" onClick={() => navigate(current.cta.to)}>
-                {current.cta.label}
-              </PillButton>
-            </div>
-          )}
         </div>
 
         {/* right: product window */}

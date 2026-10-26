@@ -200,6 +200,7 @@ export default function TestReport() {
     <div className={`${PAGE} space-y-8 pb-10`}>
       <PageHero
         compact
+        showEyebrow
         theme="blue"
         art="chart"
         eyebrow={report.series_title || "Report"}

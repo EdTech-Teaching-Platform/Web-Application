@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import { BookOpenIcon, ClockIcon, CompassIcon, FileTextIcon, HomeIcon, UsersIcon } from "../components/ui/icons";
@@ -48,20 +49,44 @@ function MobileNav() {
   );
 }
 
+// Page-to-page transition: the incoming page fades in (opacity only, so nothing
+// shifts or jumps) and the scroller returns to the top of the new page.
+const PAGE_TRANSITION_CSS = `
+@keyframes ul-page-in { from { opacity: 0; } to { opacity: 1; } }
+.ul-page-in { animation: ul-page-in 0.32s ease-out backwards; }
+@media (prefers-reduced-motion: reduce) { .ul-page-in { animation: none; } }
+`;
+
 export default function StudentLayout() {
   const location = useLocation();
+  const mainRef = useRef(null);
+  // New page = start at its top (not wherever the previous page was scrolled to).
+  // Only the pathname counts, so typing in a search box (?q=) never scrolls.
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [location.pathname]);
   const { user } = useAuth();
   const signOut = useSignOut();
   const isCoursePlayer = location.pathname === "/student/courseplayer";
 
   return (
     <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">
-      <Navbar
-        title="Universal Learning"
-        navEntries={navEntries}
-        onSignOut={signOut}
-        user={user}
-      />
+      {/* The navbar floats over the scrolling page (instead of sitting above
+          it), so content that scrolls up behind it softens through a frosted
+          fade. The page content below gets matching top padding. Wrapper is
+          click-through; only the navbar itself (and its modal) take clicks. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 [&>*]:pointer-events-auto">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.25rem)] bg-linear-to-b from-[#f3f6fd]/80 via-[#f3f6fd]/40 to-transparent backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_55%,transparent)] [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+          aria-hidden="true"
+        />
+        <Navbar
+          title="Universal Learning"
+          navEntries={navEntries}
+          onSignOut={signOut}
+          user={user}
+        />
+      </div>
       <div className="relative z-10 flex min-h-0 flex-1">
         {/* No global "Back" button here on purpose — it used to show on
             every page except Dashboard, which put it on plain sidebar
@@ -70,7 +95,7 @@ export default function StudentLayout() {
             into something else (a course, a live session, a booking)
             render their own BackButton / contextual "Back to X" action
             instead, scoped to where that specific page was entered from. */}
-        <main className={`student-main min-w-0 flex-1 pb-24 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
+        <main ref={mainRef} className={`student-main min-w-0 flex-1 pb-24 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
           {/* SectionShapes used to sit directly on the outer h-screen/
               overflow-hidden shell above, which never scrolls — only this
               <main> does (overflow-y-auto) -- so those shapes stayed glued
@@ -83,9 +108,12 @@ export default function StudentLayout() {
               scrolls up together with the page exactly like Landing. */}
           <div className="relative min-h-full">
             <StudentBackdrop />
-            <div className="relative z-10">
+            <div className="relative z-10 pt-[76px]">
+              <style>{PAGE_TRANSITION_CSS}</style>
               <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
-                <Outlet />
+                <div key={location.pathname} className="ul-page-in">
+                  <Outlet />
+                </div>
               </StudentErrorBoundary>
             </div>
           </div>

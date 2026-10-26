@@ -13,6 +13,7 @@ import { AlertTriangleIcon, AwardIcon, BookOpenIcon, CheckIcon, ClockIcon, FileT
 import PageHero, { HERO_BTN_LIGHT } from "../components/PageHero";
 import StatBlock, { STAT_BLOCK_LABEL, STAT_BLOCK_VALUE_COMPACT } from "../components/StatBlock";
 import { ErrorState, LoadingState, PAGE } from "../components/PageState";
+import { Rise, Squiggle } from "../components/StudentKit";
 import { useStudentData } from "../hooks/useStudentData";
 import { profileApi } from "../services/profileApi";
 import { studentSeriesApi } from "../services/studentSeriesApi";
@@ -116,9 +117,12 @@ function ProfileFields({ user, email, initial, reload, message, setMessage }) {
   };
 
   return (
-    <form onSubmit={save} noValidate className="space-y-6 rounded-[2rem] bg-white p-6 ring-1 ring-(--lp-line) sm:p-8">
+    <form onSubmit={save} noValidate className="space-y-6 rounded-[2rem] bg-white p-6 shadow-[0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-text sm:text-3xl">Profile</h2>
+        <h2 className="relative inline-block font-display text-2xl font-bold tracking-tight text-text sm:text-3xl">
+          Profile
+          <Squiggle className="absolute -bottom-2.5 left-0 h-2 w-full text-(--lp-blue)/70" />
+        </h2>
         <p className="inline-flex max-w-full items-center gap-2 rounded-full bg-(--lp-grey) px-4 py-2 text-sm text-text/70">
           <MailIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <span className="truncate">Signed in as {email}</span>
@@ -185,8 +189,8 @@ export default function Account() {
           Sign out
         </button>
       </PageHero>
-      <StatsSection />
-      {user && <ProfileForm user={user} />}
+      <Rise><StatsSection /></Rise>
+      {user && <Rise delay={80}><ProfileForm user={user} /></Rise>}
     </div>
   );
 }

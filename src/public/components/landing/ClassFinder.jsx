@@ -97,16 +97,16 @@ export default function ClassFinder() {
                 key={s}
                 type="button"
                 onClick={() => go(s)}
-                className="group flex items-center gap-3 rounded-2xl bg-white p-3.5 text-left ring-1 ring-(--lp-line) outline-none transition-all duration-200 ease-out hover:-translate-y-0.5 hover:ring-(--lp-ink) focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35"
+                className="group flex flex-col items-start gap-2.5 rounded-2xl bg-white p-3.5 text-left sm:flex-row sm:items-center sm:gap-3 ring-1 ring-(--lp-line) outline-none transition-all duration-200 ease-out hover:-translate-y-0.5 hover:ring-(--lp-ink) focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35"
               >
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-(--lp-blue-soft) text-(--lp-blue-deep) transition-colors duration-200 group-hover:bg-(--lp-ink) group-hover:text-white">
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`${DISPLAY} block truncate text-base font-bold tracking-tight`}>{s}</span>
+                  <span className={`${DISPLAY} block text-[15px] font-bold leading-tight tracking-tight sm:truncate sm:text-base`}>{s}</span>
                   <span className="block text-[11px] text-(--lp-muted)">Test series</span>
                 </span>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-(--lp-muted) transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-(--lp-ink)" />
+                <ArrowUpRight className="hidden h-4 w-4 shrink-0 text-(--lp-muted) sm:block transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-(--lp-ink)" />
               </button>
             );
           })}

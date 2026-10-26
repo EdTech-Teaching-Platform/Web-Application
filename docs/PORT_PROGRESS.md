@@ -1440,3 +1440,10 @@ All three parse offline as 1, 1 and 15 statements, and no line starts with a
 backslash.
 
 **GATE: ready for the human trial run and push.**
+
+## Student onboarding after Google sign-in (2026-10-26)
+- New: `src/portals/student/pages/StudentOnboarding.jsx` (3 steps: Basics, Details, Interests; skippable), `src/portals/student/utils/onboarding.js`.
+- `/student/onboarding/*` now renders the wizard for signed-in students (was a redirect to /student/account). Signed-out still goes to /register.
+- `AuthCallback` sends a student whose Google account was just created (first sign-in) and who has no profile details (no grade, school, phone or city) and no prior skip to onboarding, then to `?redirect=` or the dashboard.
+- Saves through the existing `profileApi.save` (profiles + student_profiles, own row, existing RLS). No migrations, no new columns. "Skipped" is a localStorage flag (`ul.onboarding.skipped.<userId>`).
+- Not collected (no column): parent phone, learning goal, ID upload.

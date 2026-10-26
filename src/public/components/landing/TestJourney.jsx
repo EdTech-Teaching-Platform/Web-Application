@@ -3,6 +3,7 @@
 // sit the test, read the detailed report, improve. Each step shows a small,
 // illustrative UI preview (placeholder data, not live screens). Colours come
 // from the --lp-* variables set by landingTheme.js on the landing wrapper.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircleIcon, ClockIcon, TrendingUpIcon } from "../../../components/ui/icons";
 
 const DISPLAY = "font-(family-name:--lp-font)";
@@ -136,13 +137,32 @@ const STEPS = [
 ];
 
 export default function TestJourney() {
+  // Phones scroll this row sideways; the bar below shows where you are in it.
+  const listRef = useRef(null);
+  const [pos, setPos] = useState({ thumb: 1, progress: 0 });
+  const measure = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setPos({
+      thumb: el.scrollWidth > 0 ? Math.min(1, el.clientWidth / el.scrollWidth) : 1,
+      progress: max > 0 ? Math.min(1, Math.max(0, el.scrollLeft / max)) : 0,
+    });
+  }, []);
+  useEffect(() => {
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
+
   return (
     <div className="mt-14">
-      <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5">
+      {/* phones: a swipeable row of cards (keeps the page short); sm+: the grid */}
+      <ol ref={listRef} onScroll={measure} className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-8 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5 lg:gap-5 [&::-webkit-scrollbar]:hidden">
         {STEPS.map(({ title, text, Preview }, i) => {
           const last = i === STEPS.length - 1;
           return (
-            <li key={title} className="relative flex flex-col">
+            <li key={title} className="relative flex w-[80%] shrink-0 snap-center flex-col sm:w-auto sm:shrink">
               {!last && (
                 <span
                   className={`pointer-events-none absolute left-10 top-5 hidden h-0.5 w-[calc(100%_-_1.25rem)] lg:block ${i === STEPS.length - 2 ? "bg-gradient-to-r from-(--lp-blue) to-(--lp-yellow)" : "bg-(--lp-blue)"}`}
@@ -165,6 +185,12 @@ export default function TestJourney() {
           );
         })}
       </ol>
+      <div className="mx-auto mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-(--lp-ink)/10 sm:hidden" aria-hidden="true">
+        <div
+          className="h-full rounded-full bg-(--lp-ink) transition-[margin] duration-150 ease-out"
+          style={{ width: `${pos.thumb * 100}%`, marginLeft: `${pos.progress * (1 - pos.thumb) * 100}%` }}
+        />
+      </div>
     </div>
   );
 }

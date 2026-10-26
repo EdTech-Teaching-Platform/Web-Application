@@ -1,6 +1,7 @@
 import { rotationClassFor } from "../../../components/ui/ColorBlockCard";
 import { BookOpenIcon, CheckIcon, ChevronRightIcon, ClockIcon, FileTextIcon, TargetIcon } from "../../../components/ui/icons";
 import { formatMinutes, priceLabel } from "../utils/format";
+import { CoverDots, CoverGlyph, glyphFor } from "./StudentKit";
 
 // Presentation-only card for the "Find a test series" grid. Same props and
 // behaviour as SeriesCard (series, index, onOpen, actionLabel, onAction,
@@ -68,12 +69,14 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(e); }}
-      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_22px_48px_rgb(15_17_21/0.13)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       <div className={`relative aspect-[2/1] w-full overflow-hidden ${rotationClassFor(index)}`}>
         <svg className="absolute inset-0 h-full w-full text-white transition-transform duration-500 ease-out group-hover:scale-105" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
           {COVER_ART[index % COVER_ART.length]}
         </svg>
+        <CoverDots />
+        <CoverGlyph className="right-24">{glyphFor(series, index)}</CoverGlyph>
         {badge && (
           <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary shadow-sm">
             {badge}
@@ -110,7 +113,7 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
                   ? "cursor-not-allowed bg-(--lp-grey) text-(--lp-muted)"
                   : enrolled
                     ? "bg-success/15 text-success hover:bg-success/25"
-                    : "bg-primary text-white hover:bg-(--lp-ink)"
+                    : "bg-(--lp-ink) text-white hover:bg-(--lp-blue-deep)"
               }`}
             >
               {enrolled && !actionDisabled && <CheckIcon className="h-3.5 w-3.5" aria-hidden="true" />}

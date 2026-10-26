@@ -10,12 +10,24 @@ export default function ProtectedRoute({ role, children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) {
+    // Blue-tinted backdrop + logo mark, same as the student/landing pages (no old
+    // cream/pink flash on refresh).
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg px-6">
-        <div className="w-full max-w-sm space-y-3" role="status" aria-label="Restoring your session">
-          <div className="h-3 w-32 animate-pulse rounded-full bg-text/10" />
-          <div className="h-10 w-full animate-pulse rounded-2xl bg-text/10" />
-          <div className="h-3 w-48 animate-pulse rounded-full bg-text/10" />
+      <div className="flex min-h-screen items-center justify-center bg-[#f3f6fd] px-6" role="status" aria-label="Restoring your session">
+        <div className="flex flex-col items-center gap-5">
+          <span className="relative grid h-14 w-14 place-items-center" aria-hidden="true">
+            <span className="absolute inset-0 rounded-full bg-[#3d7bf7]/30 motion-safe:animate-ping" />
+            <span className="relative grid h-14 w-14 place-items-center rounded-full bg-[#0f1115]">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#3d7bf7] text-white">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="M3 8l9-4 9 4-9 4-9-4Z" />
+                  <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
+                </svg>
+              </span>
+            </span>
+          </span>
+          <span className="h-1.5 w-28 rounded-full bg-[#dfe6f7] motion-safe:animate-pulse" aria-hidden="true" />
+          <span className="sr-only">Restoring your session</span>
         </div>
       </div>
     );

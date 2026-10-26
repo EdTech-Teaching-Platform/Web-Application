@@ -10,6 +10,8 @@ import History from "./pages/History";
 import MyTests from "./pages/MyTests";
 import Account from "./pages/Account";
 import ComingSoon from "./pages/ComingSoon";
+import StudentOnboarding from "./pages/StudentOnboarding";
+import { homePathForUser } from "../../utils/roles";
 
 // The student portal is test series only for now. Course discovery (Explore,
 // course details, live / recorded classes) and the other mock-backed screens
@@ -29,16 +31,21 @@ function ToSeriesDetail() {
   return <Navigate to={`/student/test-series/${seriesId}`} replace />;
 }
 
-// The old multi-step sign-up wizard created demo accounts. Real sign-up is
-// /register; profile details are edited on the Account page.
-function OnboardingRedirect() {
+// The old multi-step sign-up wizard created demo accounts and stays retired:
+// real sign-up is /register. /student/onboarding is now the short profile
+// wizard students see after their first Google sign-in (see
+// auth/pages/AuthCallback.jsx); it only saves profile details. Signed-out
+// visitors still go to /register and other roles to their own home.
+function OnboardingEntry() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return <Navigate to={user ? "/student/account" : "/register"} replace />;
+  if (!user) return <Navigate to="/register" replace />;
+  if (user.role !== "student") return <Navigate to={homePathForUser(user)} replace />;
+  return <StudentOnboarding />;
 }
 
 export const studentOnboardingRoutes = (
-  <Route path="/student/onboarding/*" element={<OnboardingRedirect />} />
+  <Route path="/student/onboarding/*" element={<OnboardingEntry />} />
 );
 
 const COMING_SOON = [

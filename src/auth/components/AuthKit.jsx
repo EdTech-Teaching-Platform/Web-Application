@@ -64,14 +64,14 @@ const SHOWCASE = {
     sub: "text-white/80",
     headline: (
       <>
-        Learn anything.
+        Practice tests.
         <br />
-        From <Highlight bg="bg-(--lp-yellow)" text="text-(--lp-ink)">anyone.</Highlight>
+        Real <Highlight bg="bg-(--lp-yellow)" text="text-(--lp-ink)">progress.</Highlight>
       </>
     ),
-    copy: "Courses, live classes and mentors — all in one place, right where you left off.",
+    copy: "Timed mock tests, instant scoring and detailed reports — all in one place, right where you left off.",
     chipLabel: "Student sign in",
-    quote: { id: "t1", text: "The live classes completely changed how I study for exams.", name: "Ananya", role: "Grade 11 student" },
+    quote: { id: "t1", text: "The mock tests and score reports showed me exactly which topics to fix before the exam.", name: "Ananya", role: "Grade 11 student" },
   },
   educator: {
     line: "rgba(15,17,21,0.1)",
@@ -83,14 +83,14 @@ const SHOWCASE = {
     sub: "text-(--lp-ink)/75",
     headline: (
       <>
-        Teach what you know.
+        Set the tests.
         <br />
-        <Highlight bg="bg-(--lp-blue)" text="text-white">Reach every learner.</Highlight>
+        <Highlight bg="bg-(--lp-blue)" text="text-white">Lift every score.</Highlight>
       </>
     ),
-    copy: "Manage courses, live classes and earnings from one dashboard.",
+    copy: "Create test series, assign them to students and track every attempt from one dashboard.",
     chipLabel: "Educator sign in",
-    perks: ["Teach your way", "Reach more students", "Request payouts anytime"],
+    perks: ["Build test series", "Assign to students", "Track every attempt"],
   },
   signup: {
     line: "rgba(255,255,255,0.1)",
@@ -102,14 +102,14 @@ const SHOWCASE = {
     sub: "text-white/70",
     headline: (
       <>
-        Start learning
+        Start practising
         <br />
         <Highlight bg="bg-(--lp-yellow)" text="text-(--lp-ink)">today.</Highlight>
       </>
     ),
-    copy: "Join Universal Learning and build skills with experienced educators.",
+    copy: "Join Universal Learning and sharpen your exam prep with test series built by experienced educators.",
     chipLabel: "Create account",
-    quote: { id: "t2", text: "Found an educator who actually explains things clearly.", name: "Karan", role: "Parent" },
+    quote: { id: "t2", text: "The test series feel just like the real exam, and the reports are super clear.", name: "Karan", role: "Parent" },
   },
 };
 

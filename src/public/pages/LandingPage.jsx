@@ -95,7 +95,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div style={LANDING_THEME_VARS} className="overflow-x-clip bg-white font-body text-(--lp-ink)">
+    <div style={LANDING_THEME_VARS} className="overflow-x-clip bg-white font-body text-(--lp-ink) selection:bg-(--lp-yellow) selection:text-(--lp-ink)">
       <HeroSection />
 
       {/* ──────────────────── BOARD EXAM COUNTDOWN ───────────────────── */}

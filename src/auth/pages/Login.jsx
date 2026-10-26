@@ -106,7 +106,7 @@ export default function Login({ role = "student" }) {
       <p className="mt-3 text-sm leading-relaxed text-text/60">
         {isEducator ? (
           <>
-            Sign in to manage your courses and learners. New here?{" "}
+            Sign in to manage your test series and students. New here?{" "}
             <Link to="/teacher/registration" className="font-medium text-primary hover:underline">
               Create an educator account
             </Link>

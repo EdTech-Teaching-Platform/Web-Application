@@ -91,7 +91,14 @@ export function AuthProvider({ children }) {
         setTimeout(() => loadProfile(authUser), 0);
       }
     });
-    return () => data?.subscription?.unsubscribe();
+    // Safety net: if the session can't be read (a stuck auth lock after hot
+    // reloads, a hung network call), stop the "loading" state after 8s so the
+    // public pages show Log in / Sign up instead of staying blank.
+    const watchdog = setTimeout(() => setLoading(false), 8000);
+    return () => {
+      clearTimeout(watchdog);
+      data?.subscription?.unsubscribe();
+    };
   }, [loadProfile]);
 
   const logout = useCallback(async (scope = "local") => {
