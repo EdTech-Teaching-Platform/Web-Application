@@ -13,6 +13,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { toAppUser } from "../../context/AuthContext";
 import { homePathForUser } from "../../utils/roles";
 import { AuthSplitLayout } from "../components/AuthKit";
+import { loginEducator, useCurrentEducator } from "../../portals/teacher/data/educatorAccountStore";
 
 function RoleSwitch({ isEducator, redirect }) {
   const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
@@ -41,8 +42,9 @@ export default function Login({ role = "student" }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = safeRedirect(searchParams.get("redirect"));
-  const { user, loading, error: sessionError } = useAuth();
+  const { user, loading, error: sessionError, setUser } = useAuth();
   const isEducator = role === "teacher";
+  const educatorSession = useCurrentEducator();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [touched, setTouched] = useState({});
@@ -62,7 +64,8 @@ export default function Login({ role = "student" }) {
   const shown = (field) => (touched[field] ? errors[field] : undefined);
 
   // Already signed in (e.g. back button after login): go home.
-  if (!loading && user && !submitting) {
+  // (An educator user with no educator session has nothing to go back to; stay on the form.)
+  if (!loading && user && !submitting && !(isEducator && user.role === "teacher" && !educatorSession)) {
     return <Navigate to={redirect || homePathForUser(user)} replace />;
   }
 
@@ -74,11 +77,42 @@ export default function Login({ role = "student" }) {
     setSubmitting(true);
     setFormError("");
     try {
+      if (isEducator) {
+        // Existing educators sign in here and go straight to the dashboard: no
+        // onboarding again. (Until an admin approves them, the portal shows the
+        // "under review" screen instead of the dashboard.)
+        let educator = null;
+        try {
+          educator = loginEducator(email, password);
+        } catch (educatorErr) {
+          if (educatorErr?.code === "bad_password") {
+            setFormError("Incorrect email or password.");
+            setSubmitting(false);
+            return;
+          }
+          throw educatorErr;
+        }
+        if (educator) {
+          setUser({
+            id: educator.id,
+            name: educator.profile.fullName,
+            identifier: educator.email,
+            role: "teacher",
+            onboardingComplete: true,
+          });
+          navigate(redirect && redirect.startsWith("/teacher") ? redirect : "/teacher/dashboard", { replace: true });
+          return;
+        }
+      }
       const data = await login({ email, password });
       const profile = await ensureProfile(data.user);
       navigate(redirect || homePathForUser(toAppUser(data.user, profile)), { replace: true });
     } catch (err) {
-      setFormError(err.message || "Incorrect email or password.");
+      setFormError(
+        isEducator
+          ? "We couldn't find an educator account with these details. Check your email and password, or create an educator account."
+          : err.message || "Incorrect email or password."
+      );
       setSubmitting(false);
     }
   };
@@ -100,10 +134,10 @@ export default function Login({ role = "student" }) {
     <AuthSplitLayout variant={isEducator ? "educator" : "student"}>
       <RoleSwitch isEducator={isEducator} redirect={redirect} />
 
-      <h1 className="mt-8 font-display text-3xl font-bold leading-tight tracking-tight text-text sm:text-4xl">
+      <h1 className="mt-4 font-display text-2xl font-bold leading-tight tracking-tight text-text sm:mt-8 sm:text-4xl">
         {isEducator ? "Welcome back, Educator." : "Hi, welcome back."}
       </h1>
-      <p className="mt-3 text-sm leading-relaxed text-text/60">
+      <p className="mt-1.5 text-[13px] leading-snug text-text/60 sm:mt-3 sm:text-sm sm:leading-relaxed">
         {isEducator ? (
           <>
             Sign in to manage your test series and students. New here?{" "}
@@ -124,7 +158,7 @@ export default function Login({ role = "student" }) {
         )}
       </p>
 
-      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+      <form className="mt-4 space-y-3 sm:mt-6 sm:space-y-5" onSubmit={handleSubmit} noValidate>
         {shownError && (
           <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">{shownError}</p>
         )}
@@ -177,7 +211,7 @@ export default function Login({ role = "student" }) {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-text/40">
+      <p className="mt-4 text-center text-[11px] leading-snug text-text/40 sm:mt-6 sm:text-xs">
         By continuing, you agree to our{" "}
         <Link to="/terms" className="underline hover:text-text/60">
           Terms of Service

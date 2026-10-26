@@ -60,7 +60,7 @@ function QuoteMark() {
   );
 }
 
-function MarqueeRow({ items, direction = "left", durationSeconds = 40, cardClassName = "bg-white", starClassName = "text-(--lp-yellow)" }) {
+function MarqueeRow({ items, direction = "left", durationSeconds = 40, cardClassName = "bg-white", starClassName = "text-(--lp-yellow)", compact = false }) {
   const [paused, setPaused] = useState(false);
   // 4 copies (scroll distance = 2 copies = -50%) so the row still fills very
   // wide screens when there are only a few cards.
@@ -68,19 +68,22 @@ function MarqueeRow({ items, direction = "left", durationSeconds = 40, cardClass
 
   return (
     <div
-      className="marquee-track flex w-max gap-5"
+      className={`marquee-track flex w-max ${compact ? "gap-4" : "gap-5"}`}
       style={{
         animation: `marquee-${direction} ${durationSeconds}s linear infinite`,
         animationPlayState: paused ? "paused" : "running",
       }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setPaused(false)}
+      onTouchCancel={() => setPaused(false)}
     >
       {copies.map((item, i) => (
         <figure
           key={`${item.id}-${i}`}
           aria-hidden={i >= items.length ? "true" : undefined}
-          className={`group flex h-56 w-[22rem] shrink-0 flex-col justify-between rounded-3xl border border-(--lp-line) ${item.cardClassName ?? cardClassName} p-6 text-(--lp-ink) transition-[transform,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-(--lp-blue)/40`}
+          className={`group flex shrink-0 flex-col justify-between rounded-3xl border border-(--lp-line) ${compact ? "h-[15.5rem] w-[17rem] p-5" : "h-56 w-[22rem] p-6"} ${item.cardClassName ?? cardClassName} text-(--lp-ink) transition-[transform,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-(--lp-blue)/40`}
         >
           <div>
             <div className="flex items-center justify-between">
@@ -100,7 +103,7 @@ function MarqueeRow({ items, direction = "left", durationSeconds = 40, cardClass
                 </div>
               )}
             </div>
-            <blockquote className="mt-4 line-clamp-4 text-[1.0625rem] font-medium leading-relaxed tracking-tight text-(--lp-ink)">
+            <blockquote className={`mt-4 font-medium leading-relaxed tracking-tight text-(--lp-ink) ${compact ? "line-clamp-5 text-base" : "line-clamp-4 text-[1.0625rem]"}`}>
               {item.quote}
             </blockquote>
           </div>
@@ -117,12 +120,37 @@ function MarqueeRow({ items, direction = "left", durationSeconds = 40, cardClass
   );
 }
 
+// Both rows interleaved into one list (for the single phone row).
+function mergeRows(rows) {
+  const a = rows[0] ?? [];
+  const b = rows[1] ?? [];
+  const out = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if (a[i]) out.push(a[i]);
+    if (b[i]) out.push(b[i]);
+  }
+  return out;
+}
+
 // Optional `cardClassName` / `starClassName` restyle the cards; the defaults
 // give the clean white-card look used on the Landing page.
 export default function Marquee({ rows, cardClassName, starClassName }) {
   return (
+    <>
+    {/* Phones: ONE continuously moving row of narrower cards (two offset rows of
+        wide cards don't fit a ~350px screen). Pauses while touched; with reduced
+        motion it becomes a normal swipeable row. */}
     <div
-      className="marquee-mask flex flex-col gap-5 overflow-hidden py-1"
+      className="marquee-mask overflow-hidden py-1 md:hidden"
+      style={{
+        maskImage: "linear-gradient(to right, transparent, black 6%, black 94%, transparent)",
+        WebkitMaskImage: "linear-gradient(to right, transparent, black 6%, black 94%, transparent)",
+      }}
+    >
+      <MarqueeRow items={mergeRows(rows)} direction="left" durationSeconds={90} compact cardClassName={cardClassName} starClassName={starClassName} />
+    </div>
+    <div
+      className="marquee-mask hidden flex-col gap-5 overflow-hidden py-1 md:flex"
       style={{
         maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
         WebkitMaskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
@@ -145,5 +173,6 @@ export default function Marquee({ rows, cardClassName, starClassName }) {
       <MarqueeRow items={rows[0] ?? []} direction="left" durationSeconds={110} cardClassName={cardClassName} starClassName={starClassName} />
       <MarqueeRow items={rows[1] ?? rows[0] ?? []} direction="right" durationSeconds={120} cardClassName={cardClassName} starClassName={starClassName} />
     </div>
+    </>
   );
 }

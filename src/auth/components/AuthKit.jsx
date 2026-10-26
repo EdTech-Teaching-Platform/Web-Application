@@ -182,13 +182,70 @@ function Showcase({ variant }) {
 // -------------------------------------------------------- AuthSplitLayout
 // Full-page two-panel layout for Login / Sign Up: story panel on the left
 // (lg+), form on the right. Children are the form-panel contents.
+const MOBILE_CHIPS = {
+  student: ["Timed mock tests", "Instant scoring", "Detailed reports"],
+  educator: ["Build test series", "Assign to students", "Track attempts"],
+  signup: ["Free to join", "Real exam feel", "Expert educators"],
+};
+
+// Phone / small-tablet hero band (hidden on lg+, where the full Showcase
+// panel takes over). Same accent colour per role as the desktop panel.
+function MobileHero({ variant }) {
+  const cfg = SHOWCASE[variant] ?? SHOWCASE.student;
+  return (
+    <header className={`relative isolate overflow-hidden px-6 pb-9 pt-4 sm:px-12 sm:pb-14 sm:pt-5 lg:hidden ${cfg.panel}`}>
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 opacity-60"
+        aria-hidden="true"
+        style={{
+          backgroundImage: `linear-gradient(${cfg.line} 1px, transparent 1px), linear-gradient(90deg, ${cfg.line} 1px, transparent 1px)`,
+          backgroundSize: "36px 36px",
+          maskImage: "linear-gradient(180deg, #000 0%, transparent 90%)",
+          WebkitMaskImage: "linear-gradient(180deg, #000 0%, transparent 90%)",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+        <div className={`absolute -right-16 -top-16 h-52 w-52 rounded-full ${cfg.blob}`} />
+        <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full border ${cfg.ring}`} />
+        <div className={`absolute -bottom-16 -left-12 h-40 w-40 rounded-full border-[18px] ${cfg.ring}`} />
+        <Sparkle className={`absolute right-8 top-16 h-5 w-5 sm:top-24 sm:h-6 sm:w-6 opacity-90 ${variant === "educator" ? "text-(--lp-blue)" : "text-(--lp-yellow)"}`} />
+      </div>
+
+      <div className="mx-auto max-w-md">
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/" className="inline-flex items-center gap-2.5 font-(family-name:--lp-font) text-base font-bold tracking-tight">
+            <BrandMark className="h-9 w-9 ring-2 ring-white/30" />
+            Universal Learning
+          </Link>
+          <Link to="/" aria-label="Back to home" className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold ${cfg.chip}`}>
+            <span aria-hidden="true">←</span> Home
+          </Link>
+        </div>
+
+        <h2 className="mt-4 font-(family-name:--lp-font) text-[1.65rem] font-bold leading-[1.1] tracking-tight sm:mt-7 sm:text-[1.9rem]">{cfg.headline}</h2>
+        <p className={`mt-2.5 hidden text-sm leading-relaxed sm:block ${cfg.sub}`}>{cfg.copy}</p>
+
+        <div className="mt-4 hidden flex-wrap gap-2 sm:flex">
+          {(MOBILE_CHIPS[variant] ?? MOBILE_CHIPS.student).map((c) => (
+            <span key={c} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold ${cfg.chip}`}>
+              <CheckCircleIcon className="h-3.5 w-3.5" />
+              {c}
+            </span>
+          ))}
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export function AuthSplitLayout({ variant = "student", children }) {
   return (
-    <div style={AUTH_THEME_VARS} className="min-h-screen bg-white font-body text-text lg:grid lg:grid-cols-[1.05fr_1fr] lg:gap-4 lg:p-4">
+    <div style={AUTH_THEME_VARS} className="flex min-h-screen flex-col bg-white font-body text-text lg:grid lg:grid-cols-[1.05fr_1fr] lg:gap-4 lg:p-4">
+      <MobileHero variant={variant} />
       <Showcase variant={variant} />
-      <div className="flex min-h-screen flex-col px-6 py-6 sm:px-12 lg:min-h-0 lg:px-10 xl:px-16">
-        <div className="flex items-center justify-between gap-3">
-          <Link to="/" className="inline-flex items-center gap-2.5 font-(family-name:--lp-font) text-base font-bold tracking-tight text-(--lp-ink) lg:invisible">
+      <div className="relative -mt-6 flex flex-1 flex-col rounded-t-[28px] bg-white px-6 pb-5 pt-5 sm:-mt-8 sm:rounded-t-[32px] sm:pb-8 sm:pt-8 shadow-[0_-18px_40px_-20px_rgba(15,17,21,0.25)] sm:px-12 lg:mt-0 lg:min-h-0 lg:rounded-none lg:px-10 lg:py-6 lg:shadow-none xl:px-16">
+        <div className="hidden items-center justify-between gap-3 lg:flex">
+          <Link to="/" className="invisible inline-flex items-center gap-2.5 font-(family-name:--lp-font) text-base font-bold tracking-tight text-(--lp-ink)">
             <BrandMark className="h-9 w-9" />
             <span className="hidden sm:inline">Universal Learning</span>
           </Link>
@@ -199,7 +256,7 @@ export function AuthSplitLayout({ variant = "student", children }) {
             <span aria-hidden="true">←</span> Back to home
           </Link>
         </div>
-        <div className="flex flex-1 items-center py-8">
+        <div className="flex flex-1 items-start py-2 lg:items-center lg:py-8">
           <div className="mx-auto w-full max-w-md">{children}</div>
         </div>
       </div>

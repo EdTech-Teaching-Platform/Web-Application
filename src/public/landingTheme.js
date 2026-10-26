@@ -18,5 +18,11 @@ export const LANDING_THEME_VARS = {
   "--lp-grey": "#f5f6f8",
   "--lp-line": "#e6e8ee",
   "--lp-muted": "#5d6472",
+  // Shared components (Select, Chip, Button, Accordion...) draw from the
+  // design.md "primary" token, which is maroon. Inside the landing / public
+  // pages it resolves to the theme blue instead, so no maroon leaks in.
+  // (Same value the student portal and auth pages already use.)
+  "--color-primary": "#2557d6",
+  "--color-danger": "#e5484d",
   "--lp-font": "'Bricolage Grotesque', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
 };

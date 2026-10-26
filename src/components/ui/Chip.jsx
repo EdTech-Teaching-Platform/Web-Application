@@ -3,15 +3,26 @@
 // Password/One-Time Code method switcher on Login are the same visual
 // language (active = filled primary, inactive = outlined primary), just
 // different data. Don't fork a separate component for either use.
-export default function Chip({ active, children, className = "", ...props }) {
+const TONES = {
+  primary: {
+    on: "border-primary bg-primary text-white",
+    off: "border-primary bg-bg text-primary hover:bg-primary/5",
+  },
+  // Blue landing / test-series theme (--lp-* variables).
+  blue: {
+    on: "border-(--lp-blue-deep) bg-(--lp-blue-deep) text-white",
+    off: "border-(--lp-blue) bg-white text-(--lp-blue-deep) hover:bg-(--lp-blue-soft)",
+  },
+};
+
+export default function Chip({ active, tone = "primary", children, className = "", ...props }) {
+  const t = TONES[tone] ?? TONES.primary;
   return (
     <button
       type="button"
       aria-pressed={active}
       className={`rounded-full border px-5 py-2 text-sm font-medium transition-colors duration-150 ${
-        active
-          ? "border-primary bg-primary text-white"
-          : "border-primary bg-bg text-primary hover:bg-primary/5"
+        active ? t.on : t.off
       } ${className}`}
       {...props}
     >

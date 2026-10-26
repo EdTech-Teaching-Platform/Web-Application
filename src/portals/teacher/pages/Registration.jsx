@@ -34,7 +34,6 @@
 // and sets it back to pending.
 import { useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../../hooks/useAuth";
 import Input from "../../../components/ui/Input";
 import Checkbox from "../../../components/ui/Checkbox";
 import FileDropzone from "../../../components/ui/FileDropzone";
@@ -58,7 +57,7 @@ import {
   REFERENCE_FIELDS, createInitialForm,
 } from "../data/educatorRegistrationData";
 import {
-  registerEducator, resubmitEducator, findEducatorByIdentifier, useCurrentEducator, toIdCardProfile,
+  registerEducator, resubmitEducator, findEducatorByIdentifier, useCurrentEducator, toIdCardProfile, endEducatorSession,
   EDUCATOR_STATUS, EDUCATOR_STATUS_META,
 } from "../data/educatorAccountStore";
 
@@ -178,7 +177,6 @@ export default function Registration() {
 
 function RegistrationFlow({ resubmitAccount }) {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
   const isResubmit = Boolean(resubmitAccount);
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -312,13 +310,9 @@ function RegistrationFlow({ resubmitAccount }) {
     try {
       // ONE call saves the account details AND the profile details together.
       const account = isResubmit ? await resubmitEducator(resubmitAccount.id, form) : await registerEducator(form);
-      setUser({
-        id: account.id,
-        name: account.profile.fullName,
-        identifier: account.email,
-        role: "teacher",
-        onboardingComplete: true,
-      });
+      // The application now waits for admin approval: end the session so the
+      // dashboard is only reachable by logging in after they approve.
+      endEducatorSession();
       setCompleted(account);
     } catch (err) {
       setSubmitError(err?.code === "email_taken" ? "email_taken" : "generic");
@@ -345,12 +339,12 @@ function RegistrationFlow({ resubmitAccount }) {
               <div>
                 <StatusBadge status={meta.badgeStatus}>{meta.label}</StatusBadge>
                 <h1 className="mt-2 font-display text-xl text-text">
-                  {isResubmit ? "Profile resubmitted" : "You're registered — welcome aboard"}
+                  {isResubmit ? "Application resubmitted" : "Application sent to our admin team"}
                 </h1>
                 <p className="mt-2 text-sm text-muted">
-                  We've received your account, profile and documents in one go. You're already signed in and can
-                  explore the portal; your dashboard content unlocks as soon as our team approves your profile
-                  (usually within 2–3 business days).
+                  We've received your account, profile and documents. Our admin team will review them, usually
+                  within 2–3 business days. You can't open the dashboard until your application is approved. Once it
+                  is, log in with your email and password and you'll go straight to your dashboard.
                 </p>
                 <div className="mt-3 flex items-start gap-2.5 rounded-2xl bg-pastel-blue px-4 py-3 text-xs text-pastel-blue-ink">
                   <InfoIcon className="mt-0.5 h-4 w-4 shrink-0" />
@@ -359,11 +353,11 @@ function RegistrationFlow({ resubmitAccount }) {
                   </span>
                 </div>
                 <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <Button variant="ink" shape="rect" fullWidth={false} className="px-6" onClick={() => navigate("/teacher")}>
-                    Go to my portal
+                  <Button variant="ink" shape="rect" fullWidth={false} className="px-6" onClick={() => navigate("/")}>
+                    Back to home
                   </Button>
-                  <Link to="/teacher/profilesetup" className="text-sm font-semibold text-primary hover:underline">
-                    View ID card
+                  <Link to="/teacher/login" className="text-sm font-semibold text-primary hover:underline">
+                    Log in
                   </Link>
                 </div>
               </div>
@@ -1158,7 +1152,7 @@ function RegistrationFlow({ resubmitAccount }) {
                           <>
                             <p className="font-semibold">That email is already registered.</p>
                             <p className="mt-0.5 text-danger/80">
-                              <Link to="/login" className="font-semibold underline">Log in</Link> instead, or go back and use a different email.
+                              <Link to="/teacher/login" className="font-semibold underline">Log in</Link> instead, or go back and use a different email.
                             </p>
                           </>
                         ) : (

@@ -12,7 +12,7 @@ import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
 // and the other mock-backed screens are hidden (see src/portals/student/routes.jsx).
 const navEntries = [
   { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
-  { href: "/student/test-series", label: "Test Series", icon: CompassIcon, exact: true },
+  { href: "/student/test-series", label: "Test Series", icon: CompassIcon },
   { href: "/student/my-tests", label: "My Tests", icon: FileTextIcon },
   { href: "/student/history", label: "History", icon: ClockIcon, alsoActive: ["/student/report"] },
   { href: "/student/account", label: "Account", icon: UsersIcon },
@@ -22,7 +22,7 @@ function MobileNav() {
   const { pathname } = useLocation();
   const items = [
     { href: "/student/dashboard", label: "Dashboard", icon: HomeIcon },
-    { href: "/student/test-series", label: "Series", icon: BookOpenIcon, exact: true },
+    { href: "/student/test-series", label: "Series", icon: BookOpenIcon },
     { href: "/student/my-tests", label: "My Tests", icon: BookOpenIcon },
     { href: "/student/history", label: "History", icon: ClockIcon, alsoActive: ["/student/report"] },
     { href: "/student/account", label: "Account", icon: UsersIcon },

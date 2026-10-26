@@ -8,6 +8,7 @@ import { SearchIcon, ClockIcon, CheckIcon } from "../../../components/ui/icons";
 import { Reveal, PillButton, ArrowUpRight, Squiggle } from "./LandingUI";
 import { useAuth } from "../../../hooks/useAuth";
 import { homePathForUser } from "../../../utils/roles";
+import { educatorEntryPath } from "../../../portals/teacher/data/educatorAccountStore";
 
 // Gentle float for the cards; respects reduced-motion.
 const FLOAT_CSS = `
@@ -258,18 +259,138 @@ function RightCards() {
   );
 }
 
+// ─────────── Mobile / tablet hero extras (hidden from xl up, where the two
+// floating card clusters take over). Decorative only, sample figures.
+
+function MobileAmbient() {
+  return (
+    <div className="absolute inset-0 overflow-hidden sm:hidden">
+      {[
+        { ch: "π", pos: "left-[5%] top-[2%]", size: "text-5xl", tone: "text-(--lp-blue) opacity-[0.2]", dx: 10, dy: -12, r: -8, dur: 22, delay: 0 },
+        { ch: "∑", pos: "right-[5%] top-[13%]", size: "text-6xl", tone: "text-(--lp-ink) opacity-[0.07]", dx: -10, dy: 12, r: 6, dur: 26, delay: -6 },
+        { ch: "Δ", pos: "left-[4%] top-[47%]", size: "text-4xl", tone: "text-(--lp-blue) opacity-[0.16]", dx: 8, dy: -10, r: -6, dur: 24, delay: -9 },
+        { ch: "%", pos: "right-[6%] top-[55%]", size: "text-5xl", tone: "text-(--lp-yellow) opacity-70", dx: -8, dy: -10, r: 8, dur: 21, delay: -4 },
+      ].map((g) => (
+        <span
+          key={g.ch}
+          className={`ul-drift absolute select-none font-(family-name:--lp-font) font-bold leading-none ${g.pos} ${g.size} ${g.tone}`}
+          style={{ "--dx": `${g.dx}px`, "--dy": `${g.dy}px`, "--r": `${g.r}deg`, "--dur": `${g.dur}s`, "--delay": `${g.delay}s` }}
+        >
+          {g.ch}
+        </span>
+      ))}
+      <Sparkle className="ul-drift absolute left-[16%] top-[22%] h-4 w-4 text-(--lp-blue)/60" style={{ "--dx": "6px", "--dy": "-10px", "--dur": "17s" }} />
+      <Sparkle className="ul-drift absolute right-[12%] top-[36%] h-5 w-5 text-(--lp-yellow)" style={{ "--dx": "-6px", "--dy": "10px", "--dur": "20s", "--delay": "-4s" }} />
+      <span className="ul-drift absolute right-[22%] top-[3%] h-3 w-3 rounded-full bg-(--lp-yellow)" style={{ "--dx": "6px", "--dy": "12px", "--dur": "19s" }} />
+    </div>
+  );
+}
+
+// Small live-dot pill that sits above the headline on phones.
+function MobileEyebrow() {
+  return (
+    <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-(--lp-ink) shadow-[0_8px_20px_-10px_rgba(37,87,214,0.45)] ring-1 ring-(--lp-line) sm:hidden">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full rounded-full bg-(--lp-blue) opacity-60 motion-safe:animate-ping" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-(--lp-blue)" />
+      </span>
+      Timed · Scored · Reviewed
+    </span>
+  );
+}
+
+// A compact version of the desktop product cards: the live question with a
+// result report tucked underneath, plus two floating chips. Gives phones the
+// same "this is what you get" moment the desktop hero has.
+function MobileShowcase() {
+  return (
+    <div className="relative mx-auto mt-12 h-[468px] w-full max-w-[340px] text-left xl:hidden" aria-hidden="true">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-(--lp-blue)/15 blur-3xl" />
+      <div className="pointer-events-none absolute -right-6 top-4 h-28 w-28 rounded-full bg-(--lp-yellow)/60 blur-2xl" />
+
+      {/* live question */}
+      <div className={`ul-float-a absolute left-0 top-4 w-[276px] p-3.5 ${CARD}`} style={{ "--r": "-3deg" }}>
+        <div className="flex items-center justify-between">
+          <span className="rounded-full bg-(--lp-blue-soft) px-2.5 py-1 text-[10.5px] font-bold text-(--lp-blue-deep)">Physics</span>
+          <span className="text-[10.5px] font-semibold text-(--lp-muted)">Question 12 of 40</span>
+        </div>
+        <span className="mt-2.5 block h-1 rounded-full bg-(--lp-grey)"><span className="block h-full w-[30%] rounded-full bg-(--lp-blue)" /></span>
+        <p className="mt-3 text-[13.5px] font-semibold leading-snug tracking-[-0.01em] text-(--lp-ink)">
+          A 2 kg mass accelerates at 3 m/s². What is the net force acting on it?
+        </p>
+        <ul className="mt-3 space-y-1.5">
+          {OPTIONS.map((o) => (
+            <li
+              key={o.key}
+              className={`flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[12px] font-semibold ${
+                o.selected ? "bg-(--lp-blue-soft) text-(--lp-blue-deep) ring-[1.5px] ring-(--lp-blue)" : "text-(--lp-ink) ring-1 ring-(--lp-line)"
+              }`}
+            >
+              <span className={`grid h-5 w-5 place-items-center rounded-md text-[10px] font-bold ${o.selected ? "bg-(--lp-blue-deep) text-white" : "bg-(--lp-grey) text-(--lp-muted)"}`}>{o.key}</span>
+              <span className="flex-1">{o.text}</span>
+              {o.selected && <CheckIcon className="h-3.5 w-3.5" />}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* result report */}
+      <div className={`ul-float-b absolute bottom-0 right-0 z-10 w-[256px] p-3.5 ${CARD}`} style={{ "--r": "2.5deg" }}>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[12px] font-bold tracking-[-0.01em] text-(--lp-ink)">Mock Test 3 · Physics</p>
+            <p className="mt-0.5 text-[10px] font-medium text-(--lp-muted)">40 questions · 42:10 of 60:00</p>
+          </div>
+          <span className="rounded-full bg-[#e6f5ee] px-2 py-0.5 text-[10px] font-bold text-[#17794f]">Passed</span>
+        </div>
+        <div className="mt-3 flex items-center gap-3.5">
+          <div className="relative h-[72px] w-[72px] shrink-0">
+            <svg viewBox="0 0 88 88" className="h-full w-full -rotate-90">
+              <circle cx="44" cy="44" r={DONUT_R} fill="none" stroke="var(--lp-grey)" strokeWidth="9" />
+              <circle
+                cx="44" cy="44" r={DONUT_R} fill="none" stroke="var(--lp-blue)" strokeWidth="9" strokeLinecap="round"
+                strokeDasharray={`${(DONUT_C * SCORE_PCT) / 100} ${DONUT_C}`}
+              />
+            </svg>
+            <div className="absolute inset-0 grid place-content-center text-center">
+              <span className="font-(family-name:--lp-font) text-[18px] font-bold leading-none tracking-tight text-(--lp-ink)">{SCORE_PCT}%</span>
+              <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wider text-(--lp-muted)">Score</span>
+            </div>
+          </div>
+          <div className="flex-1 space-y-2">
+            {BREAKDOWN.slice(0, 3).map((row) => (
+              <div key={row.label} className="flex items-center gap-2 text-[10.5px] font-semibold">
+                <span className="w-[74px] truncate text-(--lp-muted)">{row.label}</span>
+                <span className="h-1.5 flex-1 rounded-full bg-(--lp-grey)"><span className="block h-full rounded-full bg-(--lp-ink)" style={{ width: `${row.pct}%` }} /></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* floating chips */}
+      <span className="ul-float-b absolute right-1 top-0 z-20 inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-3 py-1.5 text-[11px] font-bold tabular-nums text-white shadow-[0_14px_28px_-12px_rgba(15,17,21,0.6)]" style={{ "--r": "3deg" }}>
+        <ClockIcon className="h-3 w-3 text-(--lp-yellow)" /> 42:10 left
+      </span>
+      <span className="ul-float-a absolute bottom-3 left-0 z-20 inline-flex items-center gap-1 rounded-full bg-(--lp-yellow) px-3 py-1.5 text-[11px] font-bold text-(--lp-ink) shadow-[0_14px_28px_-12px_rgba(15,17,21,0.45)] ring-2 ring-white" style={{ "--r": "-4deg" }}>
+        <ArrowUpRight className="h-3 w-3" /> +14%
+      </span>
+    </div>
+  );
+}
+
 export default function HeroSection() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
-  // Search and the "Popular" chips lead to the student's test series list:
-  // straight there when signed in as a student, through Log in first (which
-  // returns here afterwards) when signed out. Other roles keep the public list.
+  // Search and the "Popular" chips lead to the test series list. Signed-in
+  // students go straight to their portal's list (where they can enrol);
+  // everyone else, signed out or another role, browses the public list, where
+  // enrolling asks them to log in first.
   const goToSeries = (query) => {
     const q = String(query ?? "").trim();
     const suffix = q ? `?q=${encodeURIComponent(q)}` : "";
     if (user?.role === "student") return navigate(`/student/test-series${suffix}`);
-    if (!user && !authLoading) return navigate(`/login?redirect=${encodeURIComponent(`/student/test-series${suffix}`)}`);
     return navigate(`/test-series${suffix}`);
   };
   return (
@@ -277,13 +398,14 @@ export default function HeroSection() {
     // the space above the ticker strip. Natural height on short/mobile screens.
     <div className="flex flex-col xl:min-h-[calc(100svh-4.5rem)]">
       {/* ───────────────────────────── HERO ───────────────────────────── */}
-      <section className="relative isolate flex flex-1 items-start overflow-hidden px-5 pb-10 pt-8 sm:px-8 md:pb-14 md:pt-10 xl:items-center xl:pt-8">
+      <section className="relative isolate flex flex-1 items-start overflow-hidden px-5 pb-12 pt-8 sm:px-8 md:pb-14 md:pt-10 xl:items-center xl:pt-8">
         {/* soft washes + faint dotted grid, static */}
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <style>{FLOAT_CSS}</style>
           <div className="ul-drift absolute -left-40 top-[10%] h-[460px] w-[460px] rounded-full bg-(--lp-blue-soft) opacity-70 blur-3xl" style={{ "--dx": "60px", "--dy": "40px", "--dur": "34s" }} />
           <div className="ul-drift absolute -right-40 top-[18%] h-[420px] w-[420px] rounded-full bg-(--lp-yellow) opacity-25 blur-3xl" style={{ "--dx": "-50px", "--dy": "50px", "--dur": "40s", "--delay": "-12s" }} />
           <AmbientLayer />
+          <MobileAmbient />
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-(--lp-blue-tint) to-transparent" />
           <div
             className="absolute inset-0 opacity-[0.5]"
@@ -302,6 +424,7 @@ export default function HeroSection() {
 
           <div className="relative z-10 mx-auto flex max-w-[780px] flex-col items-center text-center">
             <Reveal delay={40}><LogoMark /></Reveal>
+            <Reveal delay={70}><MobileEyebrow /></Reveal>
 
             <Reveal delay={100}>
               <h1 className="mt-6 font-(family-name:--lp-font) text-[2.4rem] font-bold leading-[1.04] tracking-[-0.03em] sm:text-6xl lg:text-[4.4rem]">
@@ -327,7 +450,7 @@ export default function HeroSection() {
 
             <Reveal delay={230}>
               <div className="mt-8 flex min-h-[56px] flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-x-4">
-                {authLoading ? null : user ? (
+                {user ? (
                   <PillButton tone="ink" className="w-full max-w-[300px] sm:w-auto sm:max-w-none [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => navigate(homePathForUser(user))}>
                     Go to Dashboard
                   </PillButton>
@@ -336,13 +459,13 @@ export default function HeroSection() {
                     <PillButton tone="ink" className="w-full max-w-[300px] sm:w-auto sm:max-w-none [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => navigate("/register")}>
                       I'm a Student
                     </PillButton>
-                    <PillButton tone="outline" className="w-full max-w-[300px] sm:w-auto sm:max-w-none [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => navigate("/teacher/registration")}>
+                    <PillButton tone="outline" className="w-full max-w-[300px] sm:w-auto sm:max-w-none [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => navigate(educatorEntryPath())}>
                       I'm an Educator
                     </PillButton>
                   </>
                 )}
               </div>
-              {!authLoading && !user && (
+              {!user && (
                 <button
                   type="button"
                   onClick={() => navigate("/admin/login")}
@@ -393,6 +516,10 @@ export default function HeroSection() {
               </div>
             </Reveal>
           </div>
+
+          <Reveal delay={360} className="w-full xl:hidden">
+            <MobileShowcase />
+          </Reveal>
         </div>
       </section>
 

@@ -5,6 +5,7 @@ import { useSessionRequests } from "../portals/teacher/context/SessionRequestsCo
 import { useTestSeries } from "../context/TestSeriesContext";
 import { useCurrentEducator, dismissApprovedNotice, endEducatorSession, EDUCATOR_STATUS } from "../portals/teacher/data/educatorAccountStore";
 import EducatorStatusBanner from "../portals/teacher/components/EducatorStatusBanner";
+import EducatorApprovalGate from "../portals/teacher/components/EducatorApprovalGate";
 import HeaderActions from "../portals/teacher/components/HeaderActions";
 import LockedSection from "../components/ui/LockedSection";
 import {
@@ -101,6 +102,13 @@ export default function TeacherLayout() {
   // No educator signed in -> back to login. (The portal shell is shown to
   // every signed-in educator, pending or not; only CONTENT is locked below.)
   if (!account) return <Navigate to="/teacher/login" replace />;
+
+  // Not approved yet (pending / changes requested / rejected): no dashboard.
+  // The gate screen explains the status; approval re-renders this straight
+  // into the portal.
+  if (account.status !== EDUCATOR_STATUS.APPROVED) {
+    return <EducatorApprovalGate account={account} onLogout={() => { endEducatorSession(); logout(); }} />;
+  }
 
   // The single verification-status check for the whole portal: every screen
   // rendered through <Outlet/> is locked/unlocked here, not per screen.

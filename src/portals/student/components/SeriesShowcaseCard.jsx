@@ -52,7 +52,7 @@ export const COVER_ART = [
 export function MetaChip({ icon: Icon, children }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-(--lp-grey) px-2.5 py-1 text-[11px] font-semibold text-text/70">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+      <Icon className="h-3.5 w-3.5 shrink-0 text-(--lp-blue-deep)" aria-hidden="true" />
       {children}
     </span>
   );
@@ -69,7 +69,7 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(e); }}
-      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue)"
     >
       <div className={`relative aspect-[2/1] w-full overflow-hidden ${rotationClassFor(index)}`}>
         <svg className="absolute inset-0 h-full w-full text-white transition-transform duration-500 ease-out group-hover:scale-105" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
@@ -78,11 +78,11 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
         <CoverDots />
         <CoverGlyph className="right-24">{glyphFor(series, index)}</CoverGlyph>
         {badge && (
-          <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary shadow-sm">
+          <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-(--lp-blue-deep) shadow-sm">
             {badge}
           </span>
         )}
-        <span className="absolute -bottom-5 right-5 grid h-14 w-14 place-items-center rounded-2xl bg-white text-primary shadow-[0_8px_20px_rgb(15_17_21/0.14)]" aria-hidden="true">
+        <span className="absolute -bottom-5 right-5 grid h-14 w-14 place-items-center rounded-2xl bg-white text-(--lp-blue-deep) shadow-[0_8px_20px_rgb(15_17_21/0.14)]" aria-hidden="true">
           <BookOpenIcon className="h-6 w-6" />
         </span>
       </div>
@@ -108,7 +108,7 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
               type="button"
               disabled={actionDisabled}
               onClick={(e) => { e.stopPropagation(); onAction?.(); }}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold transition-[background-color,transform] duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold transition-[background-color,transform] duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue) ${
                 actionDisabled
                   ? "cursor-not-allowed bg-(--lp-grey) text-(--lp-muted)"
                   : enrolled

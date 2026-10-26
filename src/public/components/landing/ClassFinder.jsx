@@ -47,13 +47,13 @@ export default function ClassFinder() {
   };
 
   return (
-    <div className="mt-12">
+    <div className="mt-8 sm:mt-12">
       {/* step 1 — class */}
       <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
         <span className={`${DISPLAY} grid h-6 w-6 place-items-center rounded-full bg-(--lp-ink) text-xs font-bold text-white`}>1</span>
         Choose your class
       </p>
-      <div role="tablist" aria-label="Class" className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-9">
+      <div role="tablist" aria-label="Class" className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-2.5 lg:grid-cols-9">
         {levels.map((l) => {
           const on = l === level;
           const t = tileFor(l);
@@ -65,30 +65,30 @@ export default function ClassFinder() {
               aria-selected={on}
               aria-label={l}
               onClick={() => setLevel(l)}
-              className={`flex flex-col items-center justify-center rounded-2xl py-4 outline-none transition-all duration-200 ease-out focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35 ${
+              className={`flex flex-col items-center justify-center rounded-xl py-3 outline-none transition-all sm:rounded-2xl sm:py-4 duration-200 ease-out focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35 ${
                 on ? "-translate-y-0.5 bg-(--lp-ink) text-white shadow-[0_16px_30px_-16px_rgba(15,17,21,0.7)]" : "bg-(--lp-grey) text-(--lp-ink) hover:bg-(--lp-blue-soft)"
               }`}
             >
-              <span className={`${DISPLAY} text-3xl font-bold leading-none tracking-tight ${on ? "text-(--lp-yellow)" : ""}`}>{t.big}</span>
-              <span className={`mt-1.5 text-[11px] font-semibold uppercase tracking-wider ${on ? "text-white/70" : "text-(--lp-muted)"}`}>{t.small}</span>
+              <span className={`${DISPLAY} text-2xl font-bold leading-none tracking-tight sm:text-3xl ${on ? "text-(--lp-yellow)" : ""}`}>{t.big}</span>
+              <span className={`mt-1 text-[10px] font-semibold uppercase tracking-wider sm:mt-1.5 sm:text-[11px] ${on ? "text-white/70" : "text-(--lp-muted)"}`}>{t.small}</span>
             </button>
           );
         })}
       </div>
 
       {/* step 2 — subject */}
-      <div className="mt-8 rounded-[28px] bg-(--lp-blue-tint) p-5 ring-1 ring-(--lp-blue)/10 sm:p-8">
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="mt-6 rounded-[22px] bg-(--lp-blue-tint) p-4 sm:mt-8 sm:rounded-[28px] ring-1 ring-(--lp-blue)/10 sm:p-8">
+        <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
           <p className="flex items-center gap-2 text-sm font-semibold">
             <span className={`${DISPLAY} grid h-6 w-6 place-items-center rounded-full bg-(--lp-ink) text-xs font-bold text-white`}>2</span>
             Pick a subject for <span className="rounded-md bg-(--lp-yellow) px-1.5 py-0.5">{level}</span>
           </p>
-          <PillButton tone="ink" size="sm" onClick={() => go()}>
+          <PillButton tone="ink" size="sm" className="w-full sm:w-auto [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => go()}>
             All {level} test series
           </PillButton>
         </div>
 
-        <div key={level} className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 motion-safe:animate-[lp-fade_0.4s_ease-out]">
+        <div key={level} className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-6 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4 motion-safe:animate-[lp-fade_0.4s_ease-out]">
           <style>{`@keyframes lp-fade { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: none; } }`}</style>
           {subjects.map((s) => {
             const Icon = SUBJECT_ICONS[s] ?? BookOpenIcon;
@@ -97,13 +97,13 @@ export default function ClassFinder() {
                 key={s}
                 type="button"
                 onClick={() => go(s)}
-                className="group flex flex-col items-start gap-2.5 rounded-2xl bg-white p-3.5 text-left sm:flex-row sm:items-center sm:gap-3 ring-1 ring-(--lp-line) outline-none transition-all duration-200 ease-out hover:-translate-y-0.5 hover:ring-(--lp-ink) focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35"
+                className="group flex flex-col items-start gap-2 rounded-xl bg-white p-3 text-left sm:rounded-2xl sm:p-3.5 sm:flex-row sm:items-center sm:gap-3 ring-1 ring-(--lp-line) outline-none transition-all duration-200 ease-out hover:-translate-y-0.5 hover:ring-(--lp-ink) focus-visible:ring-4 focus-visible:ring-(--lp-blue)/35"
               >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-(--lp-blue-soft) text-(--lp-blue-deep) transition-colors duration-200 group-hover:bg-(--lp-ink) group-hover:text-white">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-11 sm:w-11 sm:rounded-xl bg-(--lp-blue-soft) text-(--lp-blue-deep) transition-colors duration-200 group-hover:bg-(--lp-ink) group-hover:text-white">
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`${DISPLAY} block text-[15px] font-bold leading-tight tracking-tight sm:truncate sm:text-base`}>{s}</span>
+                  <span className={`${DISPLAY} block text-sm font-bold leading-tight tracking-tight sm:truncate sm:text-base`}>{s}</span>
                   <span className="block text-[11px] text-(--lp-muted)">Test series</span>
                 </span>
                 <ArrowUpRight className="hidden h-4 w-4 shrink-0 text-(--lp-muted) sm:block transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-(--lp-ink)" />

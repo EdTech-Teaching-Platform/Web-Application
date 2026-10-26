@@ -1,16 +1,43 @@
+import { useEffect, useState } from "react";
 import Button from "../../../components/ui/Button";
-import EmptyState from "../../../components/ui/EmptyState";
 import { BookOpenIcon } from "../../../components/ui/icons";
 
 // Shared loading / error / empty states for the student test-series screens.
 
 export function LoadingState({ label = "Loading…", rows = 3 }) {
+  // After a few seconds, say so: a slow connection should read as "still
+  // working", not as a frozen page.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setSlow(true), 6000);
+    return () => clearTimeout(id);
+  }, []);
+  const text = `${String(label).replace(/[….]+$/, "")}…`;
+
   return (
-    <div role="status" aria-label={label} className="space-y-3">
+    <div role="status" aria-live="polite" aria-label={text} className="space-y-3">
+      <div className="flex items-center justify-center gap-3 py-2 text-sm font-semibold text-(--lp-muted)">
+        <span className="flex items-center gap-1.5" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="h-2.5 w-2.5 rounded-full bg-(--lp-blue) motion-safe:animate-pulse" style={{ animationDelay: `${i * 180}ms` }} />
+          ))}
+        </span>
+        <span>{text}</span>
+      </div>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="h-24 animate-pulse rounded-[1.75rem] bg-white/80 ring-1 ring-(--lp-line)" />
+        <div key={i} className="flex h-24 animate-pulse items-center gap-4 rounded-[1.75rem] bg-white/80 px-6 ring-1 ring-(--lp-line)">
+          <span className="h-12 w-12 shrink-0 rounded-2xl bg-slate-200/70" />
+          <span className="flex-1 space-y-2.5">
+            <span className="block h-3.5 w-1/3 rounded-full bg-slate-200/70" />
+            <span className="block h-3 w-2/3 rounded-full bg-slate-200/70" />
+          </span>
+        </div>
       ))}
-      <span className="sr-only">{label}</span>
+      {slow && (
+        <p className="pt-1 text-center text-xs font-medium text-(--lp-muted)">
+          Still working on it. This is taking a little longer than usual.
+        </p>
+      )}
     </div>
   );
 }
@@ -29,8 +56,17 @@ export function ErrorState({ error, onRetry, title = "Something went wrong" }) {
   );
 }
 
-export function EmptyPanel({ heading, message, action, icon = BookOpenIcon }) {
-  return <EmptyState icon={icon} heading={heading} message={message} action={action} />;
+export function EmptyPanel({ heading, message, action, icon: Icon = BookOpenIcon }) {
+  return (
+    <div className="flex flex-col items-center rounded-[1.75rem] bg-white px-6 py-14 text-center ring-1 ring-(--lp-line)">
+      <span className="grid h-16 w-16 place-items-center rounded-full bg-(--lp-blue-soft) text-(--lp-blue-deep)" aria-hidden="true">
+        <Icon className="h-7 w-7" />
+      </span>
+      <p className="mt-5 font-display text-lg font-bold text-text">{heading}</p>
+      {message && <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-text/60">{message}</p>}
+      {action && <div className="mt-5">{action}</div>}
+    </div>
+  );
 }
 
 export function PageHeader({ eyebrow, title, subtitle, actions }) {

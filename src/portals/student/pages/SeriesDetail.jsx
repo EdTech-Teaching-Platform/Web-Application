@@ -7,12 +7,13 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronRightIcon, ClockIcon, FileTextIcon, BookOpenIcon, TargetIcon } from "../../../components/ui/icons";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import { ErrorState, LoadingState, PAGE } from "../components/PageState";
+import { EmptyPanel, ErrorState, LoadingState, PAGE } from "../components/PageState";
 import PageHero, { HERO_BTN_YELLOW } from "../components/PageHero";
 import StatBlock, { STAT_BLOCK_LABEL, STAT_BLOCK_VALUE_COMPACT } from "../components/StatBlock";
 import { useStudentData } from "../hooks/useStudentData";
 import { studentSeriesApi } from "../services/studentSeriesApi";
 import { isNotAvailable, isNotFound } from "../services/studentRpc";
+import LoginPrompt from "../../../public/components/LoginPrompt";
 import { ATTEMPT_STATUS, formatDate, formatMinutes, formatPercent, priceLabel } from "../utils/format";
 
 function testState(test, enrolled) {
@@ -99,12 +100,13 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
   const navigate = useNavigate();
   const [enrolling, setEnrolling] = useState(false);
   const [notice, setNotice] = useState("");
+  const [loginOpen, setLoginOpen] = useState(false);
   const { data: series, error, loading, reload } = useStudentData(
     () => (publicMode ? studentSeriesApi.publicGet(seriesId) : studentSeriesApi.get(seriesId)),
     `${publicMode}|${seriesId}`,
   );
 
-  const loginFirst = () => navigate(`/login?redirect=${encodeURIComponent(`/student/test-series/${seriesId}`)}`);
+  const loginFirst = () => setLoginOpen(true);
 
   const enroll = async () => {
     if (publicMode) return loginFirst();
@@ -210,7 +212,9 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
           <span className="h-px flex-1 bg-(--lp-line)" aria-hidden="true" />
         </div>
         {tests.length === 0 ? (
-          <p className="mt-4 text-sm text-text/60">No tests have been published in this series yet.</p>
+          <div className="mt-5">
+            <EmptyPanel heading="No tests yet" message="Tests will appear here as soon as they're published in this series." />
+          </div>
         ) : (
           <ol className="mt-5 space-y-3">
             {tests.map((t, i) => (
@@ -220,6 +224,15 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
           </ol>
         )}
       </section>
+
+      {publicMode && (
+        <LoginPrompt
+          open={loginOpen}
+          onClose={() => setLoginOpen(false)}
+          redirect={`/student/test-series/${seriesId}`}
+          title="Log in to enrol"
+        />
+      )}
     </div>
   );
 }

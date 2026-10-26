@@ -36,9 +36,9 @@ const compact = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")
 
 function Stat({ value, label }) {
   return (
-    <div className="rounded-2xl bg-(--lp-grey) px-2 py-3 text-center transition-colors duration-200 group-hover:bg-(--lp-blue-tint)">
-      <dd className="font-(family-name:--lp-font) text-lg font-bold leading-none text-(--lp-ink)">{value}</dd>
-      <dt className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-(--lp-muted)">{label}</dt>
+    <div className="rounded-xl bg-(--lp-grey) px-1.5 py-2.5 text-center sm:rounded-2xl sm:px-2 sm:py-3 transition-colors duration-200 group-hover:bg-(--lp-blue-tint)">
+      <dd className="font-(family-name:--lp-font) text-base font-bold leading-none text-(--lp-ink) sm:text-lg">{value}</dd>
+      <dt className="mt-1 text-[9px] font-semibold uppercase tracking-[0.08em] sm:mt-1.5 sm:text-[10px] sm:tracking-[0.12em] text-(--lp-muted)">{label}</dt>
     </div>
   );
 }
@@ -47,11 +47,11 @@ function EducatorCard({ educator, index }) {
   const tone = TONES[index % TONES.length];
   return (
     <article
-      className="group relative flex w-[288px] shrink-0 snap-start flex-col overflow-hidden rounded-[2rem] bg-white shadow-[0_1px_2px_rgb(15_17_21/0.04),0_14px_34px_-18px_rgb(15_17_21/0.22)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-2 hover:shadow-[0_30px_60px_-20px_rgb(15_17_21/0.28)] sm:w-[348px]"
+      className="group relative flex w-[256px] shrink-0 snap-start flex-col overflow-hidden rounded-[1.5rem] sm:w-[348px] sm:rounded-[2rem] bg-white shadow-[0_1px_2px_rgb(15_17_21/0.04),0_14px_34px_-18px_rgb(15_17_21/0.22)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-2 hover:shadow-[0_30px_60px_-20px_rgb(15_17_21/0.28)]"
       aria-label={educator.name}
     >
       {/* colour block: soft circles + dot grid */}
-      <div className={`relative h-36 overflow-hidden ${tone.block} ${tone.ink}`}>
+      <div className={`relative h-28 overflow-hidden sm:h-36 ${tone.block} ${tone.ink}`}>
         <span className={`absolute -right-12 -top-16 h-48 w-48 rounded-full ${tone.ring}`} aria-hidden="true" />
         <span className={`absolute -bottom-20 left-28 h-44 w-44 rounded-full ${tone.ring}`} aria-hidden="true" />
         <span
@@ -59,43 +59,43 @@ function EducatorCard({ educator, index }) {
           style={{ backgroundImage: "radial-gradient(currentColor 1.1px, transparent 1.1px)", backgroundSize: "16px 16px" }}
           aria-hidden="true"
         />
-        <span className="absolute left-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-(--lp-ink) shadow-sm backdrop-blur">
+        <span className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] sm:left-5 sm:top-5 sm:gap-1.5 sm:px-3 sm:text-[11px] font-bold text-(--lp-ink) shadow-sm backdrop-blur">
           <CheckCircleIcon className="h-3.5 w-3.5 text-(--lp-blue)" aria-hidden="true" />
           Verified educator
         </span>
-        <span className="absolute right-5 top-5 inline-flex items-center gap-1 rounded-full bg-(--lp-ink) px-3 py-1 text-[11px] font-bold text-white shadow-sm">
+        <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-(--lp-ink) px-2.5 py-1 text-[10px] sm:right-5 sm:top-5 sm:px-3 sm:text-[11px] font-bold text-white shadow-sm">
           <StarIcon className="h-3.5 w-3.5 text-(--lp-yellow)" aria-hidden="true" />
           {educator.rating.toFixed(1)}
         </span>
       </div>
       <span
-        className="absolute left-6 top-[5.5rem] grid h-[4.75rem] w-[4.75rem] place-items-center rounded-full bg-(--lp-ink) font-(family-name:--lp-font) text-[1.65rem] font-bold text-(--lp-yellow) shadow-[0_10px_24px_-8px_rgb(15_17_21/0.5)] ring-[5px] ring-white transition-transform duration-300 ease-out group-hover:scale-105 group-hover:-rotate-3"
+        className="absolute left-5 top-[4.5rem] grid h-16 w-16 place-items-center rounded-full bg-(--lp-ink) font-(family-name:--lp-font) text-xl sm:left-6 sm:top-[5.5rem] sm:h-[4.75rem] sm:w-[4.75rem] sm:text-[1.65rem] font-bold text-(--lp-yellow) shadow-[0_10px_24px_-8px_rgb(15_17_21/0.5)] ring-4 ring-white transition-transform sm:ring-[5px] duration-300 ease-out group-hover:scale-105 group-hover:-rotate-3"
         aria-hidden="true"
       >
         {initialsOf(educator.name)}
       </span>
 
-      <div className="flex flex-1 flex-col px-6 pb-6 pt-12">
-        <h3 className="font-(family-name:--lp-font) text-[1.35rem] font-bold leading-tight tracking-tight text-(--lp-ink)">{educator.name}</h3>
-        <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-(--lp-blue-deep)">{educator.headline}</p>
-        <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-(--lp-muted)">{educator.bio}</p>
+      <div className="flex flex-1 flex-col px-5 pb-5 pt-10 sm:px-6 sm:pb-6 sm:pt-12">
+        <h3 className="font-(family-name:--lp-font) text-lg font-bold leading-tight tracking-tight sm:text-[1.35rem] text-(--lp-ink)">{educator.name}</h3>
+        <p className="mt-0.5 line-clamp-1 text-[13px] font-semibold leading-5 sm:mt-1 sm:line-clamp-2 sm:min-h-[2.5rem] sm:text-sm text-(--lp-blue-deep)">{educator.headline}</p>
+        <p className="mt-2 line-clamp-3 min-h-[3.75rem] text-[13px] leading-5 sm:min-h-[4.5rem] sm:text-sm sm:leading-6 text-(--lp-muted)">{educator.bio}</p>
 
-        <ul className="mt-4 flex min-h-[3.75rem] flex-wrap content-start gap-1.5" aria-label="Subjects">
+        <ul className="mt-3 flex min-h-[3.75rem] flex-wrap content-start gap-1.5 sm:mt-4" aria-label="Subjects">
           {educator.subjects.slice(0, 3).map((s) => (
-            <li key={s} className="h-fit rounded-full bg-(--lp-blue-tint) px-3 py-1 text-xs font-semibold text-(--lp-blue-deep) ring-1 ring-(--lp-blue)/15">{s}</li>
+            <li key={s} className="h-fit rounded-full bg-(--lp-blue-tint) px-2.5 py-1 text-[11px] font-semibold text-(--lp-blue-deep) ring-1 sm:px-3 sm:text-xs ring-(--lp-blue)/15">{s}</li>
           ))}
         </ul>
 
-        <div className="mt-auto pt-5">
+        <div className="mt-auto pt-4 sm:pt-5">
           {educator.qualifications?.[0] && (
-            <p className="mb-4 flex items-center gap-2 text-xs font-medium text-(--lp-muted)">
+            <p className="mb-3 flex items-center gap-2 text-xs sm:mb-4 font-medium text-(--lp-muted)">
               <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--lp-yellow-soft) text-(--lp-ink)" aria-hidden="true">
                 <BookOpenIcon className="h-3.5 w-3.5" />
               </span>
               <span className="line-clamp-1">{educator.qualifications[0]}</span>
             </p>
           )}
-          <dl className="grid grid-cols-3 gap-2">
+          <dl className="grid grid-cols-3 gap-1.5 sm:gap-2">
             <Stat value={`${educator.experienceYears}+`} label="Years" />
             <Stat value={compact(educator.studentsCount)} label="Students" />
             <Stat value={compact(educator.reviewCount)} label="Reviews" />
@@ -145,7 +145,7 @@ export default function EducatorsCarousel() {
     const el = scroller.current;
     if (!el) return;
     const card = el.firstElementChild;
-    const amount = (card ? card.getBoundingClientRect().width : 320) + 20;
+    const amount = (card ? card.getBoundingClientRect().width : 320) + (parseFloat(getComputedStyle(el).columnGap) || 20);
     const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollBy({ left: dir * amount, behavior: reduce ? "auto" : "smooth" });
   };
@@ -176,7 +176,7 @@ export default function EducatorsCarousel() {
   if (FEATURED.length === 0) return null;
 
   const arrowBase =
-    "grid h-12 w-12 place-items-center rounded-full ring-1 ring-(--lp-line) transition-[transform,background-color,color,opacity] duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue)";
+    "grid h-10 w-10 place-items-center rounded-full ring-1 sm:h-12 sm:w-12 ring-(--lp-line) transition-[transform,background-color,color,opacity] duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue)";
 
   return (
     <section id="educators" className="scroll-mt-24 overflow-x-clip bg-(--lp-grey) py-16 md:py-24" aria-labelledby="educators-title">
@@ -202,15 +202,15 @@ export default function EducatorsCarousel() {
         </Reveal>
       </div>
 
-      <Reveal delay={80} className="relative mt-10">
+      <Reveal delay={80} className="relative mt-8 sm:mt-10">
         {/* Blurred, fading edges: cards dissolve into the section background and
             the edge only shows when there is more to scroll in that direction. */}
         <div
-          className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-14 bg-gradient-to-r from-(--lp-grey) via-(--lp-grey)/70 to-transparent backdrop-blur-[6px] transition-opacity duration-300 [mask-image:linear-gradient(to_right,black_35%,transparent)] sm:w-28 ${pos.start ? "opacity-0" : "opacity-100"}`}
+          className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-(--lp-grey) via-(--lp-grey)/70 to-transparent backdrop-blur-[6px] transition-opacity duration-300 [mask-image:linear-gradient(to_right,black_35%,transparent)] sm:w-28 ${pos.start ? "opacity-0" : "opacity-100"}`}
           aria-hidden="true"
         />
         <div
-          className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-14 bg-gradient-to-l from-(--lp-grey) via-(--lp-grey)/70 to-transparent backdrop-blur-[6px] transition-opacity duration-300 [mask-image:linear-gradient(to_left,black_35%,transparent)] sm:w-28 ${pos.end ? "opacity-0" : "opacity-100"}`}
+          className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-(--lp-grey) via-(--lp-grey)/70 to-transparent backdrop-blur-[6px] transition-opacity duration-300 [mask-image:linear-gradient(to_left,black_35%,transparent)] sm:w-28 ${pos.end ? "opacity-0" : "opacity-100"}`}
           aria-hidden="true"
         />
         <div
@@ -224,7 +224,7 @@ export default function EducatorsCarousel() {
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-          className={`flex gap-5 overflow-x-auto px-5 pb-10 pt-3 outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-(--lp-blue)/40 sm:px-8 [&::-webkit-scrollbar]:hidden ${
+          className={`flex gap-4 overflow-x-auto px-5 pb-8 pt-3 sm:gap-5 sm:pb-10 outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-(--lp-blue)/40 sm:px-8 [&::-webkit-scrollbar]:hidden ${
             dragging ? "cursor-grabbing select-none snap-none scroll-auto" : "cursor-grab snap-x snap-mandatory scroll-smooth"
           } scroll-pl-5 sm:scroll-pl-8 xl:pl-[max(2rem,calc((100vw_-_1200px)/2_+_2rem))] xl:scroll-pl-[max(2rem,calc((100vw_-_1200px)/2_+_2rem))]`}
         >

@@ -36,14 +36,19 @@ export default function PublicLayout() {
   const { user, loading: authLoading } = useAuth();
   useScrollToHash();
   const isHome = location.pathname === "/";
+  // The public test series pages (/test-series, /test-series/:id) share the
+  // landing look so browsing from the landing page feels like one product.
+  const isSeriesBrowse = location.pathname === "/test-series" || location.pathname.startsWith("/test-series/");
   const communityHref = user
     ? "/student/messages"
     : `/register?redirect=${encodeURIComponent("/student/messages")}`;
 
-  if (isHome) {
+  if (isHome || isSeriesBrowse) {
+    // Off the landing page the section anchors point back to "/#section".
+    const links = isHome ? NAV_LINKS : NAV_LINKS.map((l) => ({ ...l, href: `/${l.href}` }));
     return (
       <div style={LANDING_THEME_VARS} className="relative min-h-screen bg-white font-body text-text selection:bg-(--lp-yellow) selection:text-(--lp-ink)">
-        <LandingHeader links={NAV_LINKS} communityHref={communityHref} />
+        <LandingHeader links={links} communityHref={communityHref} />
         <main className="public-page-content relative z-10">
           <Outlet />
         </main>

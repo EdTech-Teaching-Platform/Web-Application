@@ -22,7 +22,7 @@ export function SectionTitle({ eyebrow, title, subtitle, dark = false, className
   return (
     <div className={className}>
       <Eyebrow dark={dark}>{eyebrow}</Eyebrow>
-      <h2 className={`${DISPLAY} mt-4 max-w-2xl text-balance text-[2rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-4xl md:text-[2.75rem] ${dark ? "text-white" : "text-(--lp-ink)"}`}>
+      <h2 className={`${DISPLAY} mt-3 max-w-2xl text-balance text-[1.75rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-4xl md:text-[2.75rem] ${dark ? "text-white" : "text-(--lp-ink)"}`}>
         {title}
       </h2>
       {subtitle && <p className={`mt-4 max-w-xl text-base leading-relaxed ${dark ? "text-white/70" : "text-(--lp-muted)"}`}>{subtitle}</p>}

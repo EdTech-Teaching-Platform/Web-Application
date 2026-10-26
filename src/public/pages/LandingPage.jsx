@@ -11,7 +11,9 @@
 // Data below is mock/placeholder shaped to match discoveryApi's response
 // contract (see src/services/discoveryApi.js) — wire up the real fetches
 // once those endpoints exist.
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { prefetchPublicList } from "../../portals/student/services/studentSeriesApi";
 import StatCard from "../../components/ui/StatCard";
 import Marquee from "../../components/ui/Marquee";
 import { imageForPerson, imgFallback, heroPhoto } from "../../utils/stockImages";
@@ -94,6 +96,12 @@ const SHELL = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
 export default function LandingPage() {
   const navigate = useNavigate();
 
+  // Warm the public test-series list so "Explore Test Series" opens instantly.
+  useEffect(() => {
+    const id = window.setTimeout(() => prefetchPublicList(50), 600);
+    return () => window.clearTimeout(id);
+  }, []);
+
   return (
     <div style={LANDING_THEME_VARS} className="overflow-x-clip bg-white font-body text-(--lp-ink) selection:bg-(--lp-yellow) selection:text-(--lp-ink)">
       <HeroSection />
@@ -102,7 +110,7 @@ export default function LandingPage() {
       <ExamCountdownBanner />
 
       {/* ───────────── SUBJECT STRIP + STATS + PLATFORM ───────────── */}
-      <section className="border-y border-(--lp-line) bg-white">
+      <section className="hidden border-y border-(--lp-line) bg-white sm:block">
         <div className={`${SHELL} flex flex-wrap items-center justify-center gap-x-2 gap-y-2 py-5 text-sm text-(--lp-muted)`} aria-label="Subjects offered">
           <span className="mr-2 font-semibold text-(--lp-ink)">Learn</span>
           {COURSE_CATEGORIES.filter((c) => c !== "Other").map((c, i, arr) => (
@@ -116,21 +124,21 @@ export default function LandingPage() {
 
       <section className="bg-(--lp-blue-tint) py-12 md:py-14">
         <div className={SHELL}>
-          <div className="grid grid-cols-2 gap-y-10 md:grid-cols-4 md:divide-x md:divide-(--lp-blue)/15">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-0 md:divide-x md:divide-(--lp-blue)/15">
             {[
               { value: 50000, suffix: "+", label: "Students learning", bar: "bg-(--lp-blue)" },
               { value: 250, suffix: "+", label: "Verified mentors", bar: "bg-(--lp-yellow)" },
               { value: 92, suffix: "%", label: "Student satisfaction", bar: "bg-(--lp-ink)" },
               { value: 8, suffix: "+", label: "Years of experience", bar: "bg-(--lp-blue)" },
             ].map((s, i) => (
-              <Reveal key={s.label} delay={i * 70} className="md:px-8 md:first:pl-0 md:last:pr-0">
+              <Reveal key={s.label} delay={i * 70} className="min-w-0 md:px-8 md:first:pl-0 md:last:pr-0">
                 <span className={`mb-4 block h-1 w-10 rounded-full ${s.bar}`} aria-hidden="true" />
                 <StatCard
                   value={s.value}
                   suffix={s.suffix}
                   label={s.label}
                   className="items-start gap-1.5"
-                  valueClassName="font-(family-name:--lp-font) text-5xl font-bold leading-none tracking-[-0.03em] text-(--lp-ink) sm:text-6xl"
+                  valueClassName="whitespace-nowrap font-(family-name:--lp-font) text-[clamp(1.75rem,9.5vw,2.5rem)] font-bold leading-none tracking-[-0.03em] text-(--lp-ink) sm:text-6xl"
                   labelClassName="text-sm font-medium normal-case tracking-normal text-(--lp-muted)"
                 />
               </Reveal>
@@ -139,7 +147,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="platform" className="scroll-mt-24 bg-white py-16 md:py-24">
+      {/* Hidden on phones for now (the tabbed product showcase is too heavy at that width). */}
+      <section id="platform" className="hidden scroll-mt-24 bg-white py-16 md:block md:py-24">
         <div className={SHELL}>
           <Reveal>
             <div className="grid items-end gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:gap-16">
@@ -178,9 +187,9 @@ export default function LandingPage() {
       </section>
 
       {/* ────────────── FIND YOUR TEST SERIES ("Courses" anchor) ────────────── */}
-      <section id="courses" className="scroll-mt-24 py-14 md:py-20">
+      <section id="courses" className="scroll-mt-24 py-12 md:py-20">
         <div className={SHELL}>
-          <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+          <Reveal className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:gap-6">
             <SectionTitle eyebrow="Find your test series" title="Pick your class, then your subject." />
             <p className="max-w-sm text-sm leading-relaxed text-(--lp-muted)">
               Test series are organised by class and subject, so you only see what is relevant to what you are studying right now.
@@ -225,40 +234,40 @@ export default function LandingPage() {
           flagged rather than linked to fabricated store URLs. */}
       <section className="pb-20 pt-10 md:pb-28 md:pt-14">
         <div className={SHELL}>
-          <div className="relative overflow-hidden rounded-[44px] bg-(--lp-ink) p-6 text-white sm:p-10 lg:p-14">
+          <div className="relative overflow-hidden rounded-[32px] bg-(--lp-ink) p-5 text-white sm:rounded-[44px] sm:p-10 lg:p-14">
             <div className="pointer-events-none absolute inset-0" aria-hidden="true">
               <div className="absolute -left-20 -top-24 h-80 w-80 rounded-full bg-(--lp-blue)/80 blur-2xl" />
               <div className="absolute -bottom-28 right-10 h-72 w-72 rounded-full bg-(--lp-yellow)/45 blur-2xl" />
             </div>
-            <div className="relative grid items-center gap-10 md:grid-cols-2">
+            <div className="relative grid items-center gap-8 sm:gap-10 md:grid-cols-2">
               <Reveal className="relative order-2 mx-auto w-full max-w-xl md:order-1 md:max-w-none">
                 <DeviceMockup />
               </Reveal>
               <Reveal delay={100} className="order-1 flex flex-col items-start md:order-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold tracking-wide sm:px-3.5 sm:text-xs">
                   <UsersIcon className="h-3.5 w-3.5" />
                   Any Device
                 </span>
-                <h2 className="mt-5 font-(family-name:--lp-font) text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+                <h2 className="mt-4 font-(family-name:--lp-font) text-[1.9rem] font-bold leading-[1.08] tracking-tight sm:mt-5 sm:text-5xl">
                   Learn anytime, <span className="text-(--lp-yellow)">anywhere.</span>
                 </h2>
-                <p className="mt-5 max-w-md text-base leading-relaxed text-white/70">
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70 sm:mt-5 sm:text-base">
                   The web platform works across desktop and mobile browsers today, so you can pick up a course or join a live class from whatever device is in front of you.
                 </p>
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="mt-5 grid w-full grid-cols-2 gap-2.5 sm:mt-6 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-3">
                   {/* Presentational only -- no dedicated mobile app exists yet
                       (see FAQ_ITEMS f5 above). Not links: no real store URLs to
                       point at, so these render as static badges. */}
-                  <span className="inline-flex min-w-[150px] items-center gap-3 rounded-2xl bg-white/10 px-4 py-2.5 ring-1 ring-white/15" title="Coming soon -- no mobile app yet">
+                  <span className="inline-flex min-w-0 items-center gap-2.5 rounded-2xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15 sm:min-w-[150px] sm:gap-3 sm:px-4" title="Coming soon -- no mobile app yet">
                     <GoogleIcon className="h-5 w-5 shrink-0" />
-                    <span className="text-left leading-tight"><span className="block text-[9px] font-medium uppercase tracking-wide text-white/65">Coming soon on</span><span className="block text-sm font-semibold">Google Play</span></span>
+                    <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/65 sm:text-[9px]">Coming soon on</span><span className="block text-[13px] font-semibold sm:text-sm">Google Play</span></span>
                   </span>
-                  <span className="inline-flex min-w-[150px] items-center gap-3 rounded-2xl bg-white/10 px-4 py-2.5 ring-1 ring-white/15" title="Coming soon -- no mobile app yet">
+                  <span className="inline-flex min-w-0 items-center gap-2.5 rounded-2xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15 sm:min-w-[150px] sm:gap-3 sm:px-4" title="Coming soon -- no mobile app yet">
                     <AppleIcon className="h-5 w-5 shrink-0" />
-                    <span className="text-left leading-tight"><span className="block text-[9px] font-medium uppercase tracking-wide text-white/65">Coming soon on</span><span className="block text-sm font-semibold">App Store</span></span>
+                    <span className="text-left leading-tight"><span className="block text-[8px] font-medium uppercase tracking-wide text-white/65 sm:text-[9px]">Coming soon on</span><span className="block text-[13px] font-semibold sm:text-sm">App Store</span></span>
                   </span>
                 </div>
-                <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-2.5 sm:mt-8 sm:gap-x-6 sm:gap-y-3">
                   {[
                     "Sync across devices",
                     "Continue where you left off",
@@ -267,14 +276,14 @@ export default function LandingPage() {
                     "Live class access",
                     "Daily learning goals",
                   ].map((item) => (
-                    <div key={item} className="flex items-center gap-2.5 text-sm text-white/90">
-                      <CheckCircleIcon className="h-5 w-5 shrink-0 text-(--lp-yellow)" />
+                    <div key={item} className="flex items-start gap-2 text-[13px] leading-snug text-white/90 sm:items-center sm:gap-2.5 sm:text-sm">
+                      <CheckCircleIcon className="mt-px h-4 w-4 shrink-0 text-(--lp-yellow) sm:mt-0 sm:h-5 sm:w-5" />
                       {item}
                     </div>
                   ))}
                 </div>
-                <div className="mt-9">
-                  <PillButton tone="yellow" onClick={() => navigate("/register")}>
+                <div className="mt-7 w-full sm:mt-9 sm:w-auto">
+                  <PillButton tone="yellow" className="w-full sm:w-auto [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => navigate("/register")}>
                     Join Universal Learning
                   </PillButton>
                 </div>

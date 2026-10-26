@@ -97,17 +97,17 @@ function ClockCard({ label, value, tone, grow }) {
   return (
     <div className={grow ? "flex-[1.55]" : "flex-1"}>
       <div className={`relative overflow-hidden rounded-2xl sm:rounded-3xl ${tone}`}>
-        <div className="relative z-10 bg-inherit font-(family-name:--lp-font) text-3xl font-extrabold leading-none tabular-nums tracking-tight sm:text-5xl lg:text-6xl">
+        <div className="relative z-10 bg-inherit font-(family-name:--lp-font) text-2xl font-extrabold leading-none tabular-nums tracking-tight sm:text-5xl lg:text-6xl">
           {/* invisible copy gives the card its height; FlipValue fills it */}
-          <div className="invisible grid place-items-center py-6 sm:py-9">{pad2(value)}</div>
+          <div className="invisible grid place-items-center py-4 sm:py-9">{pad2(value)}</div>
           <FlipValue value={value} />
         </div>
         {/* hinge line and side pins, above the flipping leaves */}
         <span className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-[2px] -translate-y-1/2 bg-black/35" aria-hidden="true" />
-        <span className="pointer-events-none absolute -left-1.5 top-1/2 z-20 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink)" aria-hidden="true" />
-        <span className="pointer-events-none absolute -right-1.5 top-1/2 z-20 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink)" aria-hidden="true" />
+        <span className="pointer-events-none absolute -left-1.5 top-1/2 z-20 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink) max-sm:bg-white" aria-hidden="true" />
+        <span className="pointer-events-none absolute -right-1.5 top-1/2 z-20 h-3 w-3 -translate-y-1/2 rounded-full bg-(--lp-ink) max-sm:bg-white" aria-hidden="true" />
       </div>
-      <p className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-xs">{label}</p>
+      <p className="mt-2 text-center text-[9px] font-semibold uppercase tracking-[0.1em] sm:mt-3 sm:text-xs sm:tracking-[0.16em] text-white/60 max-sm:text-(--lp-muted)">{label}</p>
     </div>
   );
 }
@@ -118,7 +118,7 @@ function Roadmap({ activeIdx, fraction }) {
 
   return (
     <div className="relative">
-      <div className="absolute left-[12.5%] right-[12.5%] top-4 h-[3px] -translate-y-1/2 rounded-full bg-white/15" aria-hidden="true">
+      <div className="absolute left-[12.5%] right-[12.5%] top-4 h-[3px] -translate-y-1/2 rounded-full bg-white/15 max-sm:bg-(--lp-ink)/10" aria-hidden="true">
         <div
           className="h-full origin-left rounded-full bg-(--lp-yellow) transition-transform duration-1000 ease-out"
           style={{ transform: `scaleX(${fill})` }}
@@ -134,21 +134,21 @@ function Roadmap({ activeIdx, fraction }) {
               <span className="relative grid h-8 w-8 place-items-center">
                 {active && <span className="absolute inset-0 rounded-full bg-(--lp-yellow)/50 motion-safe:animate-ping" aria-hidden="true" />}
                 <span
-                  className={`relative grid h-8 w-8 place-items-center rounded-full ring-4 ring-(--lp-ink) ${
+                  className={`relative grid h-8 w-8 place-items-center rounded-full ring-4 ring-(--lp-ink) max-sm:ring-(--lp-grey) ${
                     isBoards
                       ? "bg-(--lp-blue) text-white"
                       : done || active
                         ? "bg-(--lp-yellow) text-(--lp-ink)"
-                        : "border-2 border-white/25 bg-(--lp-ink-soft) text-white/40"
+                        : "border-2 border-white/25 bg-(--lp-ink-soft) text-white/40 max-sm:border-(--lp-ink)/20 max-sm:bg-white max-sm:text-(--lp-ink)/40"
                   }`}
                 >
                   {isBoards ? <TargetIcon className="h-4 w-4" /> : done ? <CheckCircleIcon className="h-4 w-4" /> : <span className="h-2 w-2 rounded-full bg-current" />}
                 </span>
               </span>
-              <span className={`mt-2.5 text-xs font-bold leading-tight sm:text-[13px] ${active ? "text-(--lp-yellow)" : done ? "text-white/80" : "text-white/55"}`}>
+              <span className={`mt-2.5 text-xs font-bold leading-tight sm:text-[13px] ${active ? "text-(--lp-yellow) max-sm:text-(--lp-blue-deep)" : done ? "text-white/80 max-sm:text-(--lp-ink)" : "text-white/55 max-sm:text-(--lp-muted)"}`}>
                 {n.label}
               </span>
-              <span className="mt-0.5 text-[10px] font-medium text-white/45 sm:text-xs">{n.note}</span>
+              <span className="mt-0.5 text-[10px] font-medium text-white/45 max-sm:text-(--lp-muted) sm:text-xs">{n.note}</span>
             </li>
           );
         })}
@@ -289,6 +289,43 @@ function HangingClock({ now }) {
   );
 }
 
+// Small alarm clock beside the headline, phones only (the large hanging clock
+// above covers lg+). Live hands, gentle ring-wobble, static under reduced motion.
+function MobileClock({ now }) {
+  const date = new Date(now);
+  const secAngle = Math.floor(now / 1000) * 6;
+  const minAngle = date.getMinutes() * 6 + date.getSeconds() * 0.1;
+  const hourAngle = (date.getHours() % 12) * 30 + date.getMinutes() * 0.5;
+  const rot = (deg) => ({ transformOrigin: "60px 60px", transform: `rotate(${deg}deg)` });
+  return (
+    <div className="pointer-events-none absolute right-1 top-1/2 h-[88px] w-[88px] -translate-y-1/2 sm:hidden" aria-hidden="true">
+      <style>{`
+        @keyframes ul-m-wobble { 0%, 86%, 100% { transform: rotate(0deg); } 89% { transform: rotate(-6deg); } 92% { transform: rotate(6deg); } 95% { transform: rotate(-4deg); } 98% { transform: rotate(3deg); } }
+        .ul-m-clock { animation: ul-m-wobble 6s ease-in-out infinite; transform-origin: 50% 85%; }
+        .ul-m-sec { transition: transform 0.3s cubic-bezier(0.34, 1.7, 0.5, 1); }
+        @media (prefers-reduced-motion: reduce) { .ul-m-clock { animation: none; } .ul-m-sec { transition: none; } }
+      `}</style>
+      <div className="ul-m-clock relative h-full w-full drop-shadow-[0_10px_12px_rgba(15,17,21,0.22)]">
+        <span className="absolute left-[7px] top-[2px] h-3 w-6 -rotate-[26deg] rounded-t-full bg-(--lp-yellow) shadow-[inset_0_-3px_0_rgba(15,17,21,0.18)]" />
+        <span className="absolute right-[7px] top-[2px] h-3 w-6 rotate-[26deg] rounded-t-full bg-(--lp-yellow) shadow-[inset_0_-3px_0_rgba(15,17,21,0.18)]" />
+        <span className="absolute bottom-0 left-[16px] h-2.5 w-1.5 rotate-[22deg] rounded-b-full bg-(--lp-ink)" />
+        <span className="absolute bottom-0 right-[16px] h-2.5 w-1.5 -rotate-[22deg] rounded-b-full bg-(--lp-ink)" />
+        <svg className="relative block h-full w-full" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="58" fill="var(--lp-yellow)" />
+          <circle cx="60" cy="60" r="50" fill="#fff" />
+          {FACE_TICKS.filter((i) => i % 5 === 0).map((i) => (
+            <line key={i} x1="60" x2="60" y1="13" y2="22" stroke="var(--lp-ink)" strokeWidth="3" strokeLinecap="round" transform={`rotate(${i * 6} 60 60)`} />
+          ))}
+          <g style={rot(hourAngle)}><rect x="58.2" y="32" width="3.6" height="30" rx="1.8" fill="var(--lp-ink)" /></g>
+          <g style={rot(minAngle)}><rect x="58.6" y="21" width="2.8" height="41" rx="1.4" fill="var(--lp-ink)" /></g>
+          <g className="ul-m-sec" style={rot(secAngle)}><rect x="59.2" y="19" width="1.6" height="52" rx="0.8" fill="var(--lp-blue-deep)" /></g>
+          <circle cx="60" cy="60" r="4.6" fill="var(--lp-yellow)" stroke="var(--lp-ink)" strokeWidth="1.8" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 export default function ExamCountdownBanner() {
   const navigate = useNavigate();
   const now = useNow();
@@ -319,7 +356,7 @@ export default function ExamCountdownBanner() {
   ];
 
   return (
-    <section className="py-10 md:py-14" aria-labelledby="exam-countdown-title">
+    <section className="py-8 md:py-14" aria-labelledby="exam-countdown-title">
       <style>{`
         .ul-leaf-top { transform-origin: 50% 100%; backface-visibility: hidden; animation: ul-leaf-top 0.3s cubic-bezier(0.55, 0, 1, 0.8) both; }
         .ul-leaf-bot { transform-origin: 50% 0%; backface-visibility: hidden; transform: rotateX(90deg); animation: ul-leaf-bot 0.36s cubic-bezier(0.1, 0.8, 0.3, 1) 0.28s both; }
@@ -336,12 +373,12 @@ export default function ExamCountdownBanner() {
       <div className={SHELL}>
         <Reveal className="relative">
           <HangingClock now={now} />
-          <div className="relative overflow-hidden rounded-[40px] bg-(--lp-ink) px-6 py-12 text-white sm:px-12 sm:py-14">
+          <div className="relative overflow-hidden rounded-[28px] bg-(--lp-ink) px-5 py-8 text-white max-sm:bg-transparent max-sm:px-0 max-sm:py-2 max-sm:text-(--lp-ink) sm:rounded-[40px] sm:px-12 sm:py-14">
             {/* background atmosphere */}
-            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            <div className="pointer-events-none absolute inset-0 max-sm:hidden" aria-hidden="true">
               <div className="absolute -right-32 -top-32 h-[26rem] w-[26rem] rounded-full border border-white/10" />
               <div className="absolute -right-16 -top-16 h-[18rem] w-[18rem] rounded-full border border-white/10" />
-              <div className="absolute -right-4 -top-4 h-[10rem] w-[10rem] rounded-full bg-(--lp-blue)/80" />
+              <div className="absolute -right-4 -top-4 h-28 w-28 rounded-full sm:h-[10rem] sm:w-[10rem] bg-(--lp-blue)/80" />
               <div className="absolute -bottom-40 left-[22%] h-80 w-80 rounded-full bg-(--lp-blue)/20" />
               <div className="absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-(--lp-yellow)/[0.07] blur-3xl" />
               <div
@@ -355,34 +392,37 @@ export default function ExamCountdownBanner() {
               />
             </div>
 
-            <div className="relative grid items-center gap-10 lg:grid-cols-[1fr_auto_1.15fr] lg:gap-12">
+            <div className="relative grid items-center gap-8 sm:gap-10 lg:grid-cols-[1fr_auto_1.15fr] lg:gap-12">
               {/* ───────── left: the message ───────── */}
               <div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-(--lp-yellow) px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-(--lp-ink)">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-(--lp-yellow) px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider sm:gap-2 sm:px-3.5 sm:text-xs text-(--lp-ink)">
                   <ClockIcon className="h-3.5 w-3.5" />
                   Board exams are coming up
                 </span>
 
-                <h2 id="exam-countdown-title" className="mt-5 max-w-md text-balance font-(family-name:--lp-font) text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+                <div className="relative">
+                  <h2 id="exam-countdown-title" className="mt-4 max-w-md max-sm:pr-24 text-balance font-(family-name:--lp-font) text-[1.75rem] font-bold leading-[1.05] tracking-tight sm:text-5xl">
                   Boards are <span className="text-(--lp-yellow)">{days} days</span> away.
-                  <span className="mt-1 block text-white/90">Practise like it.</span>
+                  <span className="mt-1 block text-white/90 max-sm:text-(--lp-ink)">Practise like it.</span>
                 </h2>
+                  <MobileClock now={now} />
+                </div>
 
-                <p className="mt-4 max-w-sm text-sm leading-6 text-white/65 sm:text-base">
+                <p className="mt-3 max-w-sm max-sm:hidden text-[13px] leading-5 text-white/65 max-sm:text-(--lp-muted) sm:mt-4 sm:text-base sm:leading-6">
                   Get exam ready with focused test series practice — every test you take now is one less surprise on exam day.
                 </p>
 
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-1.5 max-sm:hidden sm:mt-5 sm:gap-2">
                   {["Chapter-wise tests", "Full-length mocks", "Per-question reports"].map((perk) => (
-                    <span key={perk} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/85 ring-1 ring-white/10">
+                    <span key={perk} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/85 max-sm:bg-(--lp-grey) max-sm:text-(--lp-ink) max-sm:ring-0 sm:px-3 sm:py-1.5 sm:text-xs ring-1 ring-white/10">
                       <CheckCircleIcon className="h-3.5 w-3.5 text-(--lp-yellow)" />
                       {perk}
                     </span>
                   ))}
                 </div>
 
-                <div className="mt-8">
-                  <PillButton tone="yellow" onClick={() => navigate("/test-series")}>
+                <div className="mt-6 max-sm:hidden sm:mt-8">
+                  <PillButton tone="yellow" className="w-full sm:w-auto [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => navigate("/test-series")}>
                     Start practising today
                   </PillButton>
                 </div>
@@ -398,12 +438,12 @@ export default function ExamCountdownBanner() {
                 </p>
 
                 {phase && (
-                  <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/[0.07] px-3.5 py-1.5 text-xs font-semibold text-white/80 ring-1 ring-white/10">
+                  <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/[0.07] px-3 py-1.5 text-[11px] font-semibold sm:mb-4 sm:px-3.5 sm:text-xs text-white/80 ring-1 ring-white/10 max-sm:bg-(--lp-grey) max-sm:text-(--lp-ink)/80 max-sm:ring-(--lp-line)">
                     <span className="relative grid h-2 w-2 place-items-center" aria-hidden="true">
                       <span className="absolute inset-0 rounded-full bg-(--lp-yellow) motion-safe:animate-ping" />
                       <span className="relative h-2 w-2 rounded-full bg-(--lp-yellow)" />
                     </span>
-                    {weeks} weeks to go · Right now: <span className="text-(--lp-yellow)">{phase.label}</span>
+                    {weeks} weeks to go · Right now: <span className="text-(--lp-yellow) max-sm:text-(--lp-blue-deep)">{phase.label}</span>
                   </p>
                 )}
 
@@ -413,12 +453,12 @@ export default function ExamCountdownBanner() {
                   ))}
                 </div>
 
-                <div className="mt-8 rounded-3xl bg-white/[0.04] px-3 pb-4 pt-5 ring-1 ring-white/10 sm:px-5">
-                  <p className="mb-4 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 sm:text-xs">Your prep roadmap</p>
+                <div className="mt-6 rounded-2xl bg-white/[0.04] px-3 pb-4 pt-4 sm:mt-8 sm:rounded-3xl sm:pt-5 ring-1 ring-white/10 max-sm:bg-(--lp-grey) max-sm:ring-(--lp-line) sm:px-5">
+                  <p className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 max-sm:text-(--lp-muted) sm:text-xs">Your prep roadmap</p>
                   <Roadmap activeIdx={activeIdx} fraction={fraction} />
                 </div>
 
-                <p className="mt-4 text-xs leading-5 text-white/50">Expected CBSE exam season start: 15 Feb 2027; official dates may change. Roadmap is a suggested plan.</p>
+                <p className="mt-3 text-[11px] leading-4 text-white/50 max-sm:text-(--lp-muted) sm:mt-4 sm:text-xs sm:leading-5">Expected CBSE exam season start: 15 Feb 2027; official dates may change. Roadmap is a suggested plan.</p>
               </div>
             </div>
           </div>

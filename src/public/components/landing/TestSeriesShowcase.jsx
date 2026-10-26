@@ -107,7 +107,7 @@ function ExamMock() {
   const [picked, setPicked] = useState(null);
 
   return (
-    <div className="rounded-[32px] bg-white p-5 shadow-[0_30px_70px_rgba(37,87,214,0.18)] ring-1 ring-(--lp-line) sm:p-7">
+    <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(37,87,214,0.18)] ring-1 ring-(--lp-line) sm:rounded-[32px] sm:p-7">
       <div className="flex items-center justify-between text-sm font-semibold">
         <span>Question 12 / 50</span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-3 py-1 text-xs tabular-nums text-white">
@@ -123,11 +123,11 @@ function ExamMock() {
         <div className="h-full w-[24%] rounded-full bg-(--lp-blue)" />
       </div>
 
-      <p className="mt-5 text-[15px] font-semibold leading-snug text-(--lp-ink)">
+      <p className="mt-4 text-sm font-semibold leading-snug text-(--lp-ink) sm:mt-5 sm:text-[15px]">
         A 2 kg block slides down a frictionless incline of 30°. What is its acceleration along the plane?
       </p>
 
-      <div className="mt-4 grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label="Sample answer options (demo)">
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-2.5" role="radiogroup" aria-label="Sample answer options (demo)">
         {OPTIONS.map((o) => {
           const on = picked === o.key;
           return (
@@ -137,7 +137,7 @@ function ExamMock() {
               role="radio"
               aria-checked={on}
               onClick={() => setPicked(o.key)}
-              className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-left text-sm font-medium ring-1 transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 ${
+              className={`flex items-center gap-2 rounded-2xl px-2.5 py-2 text-left text-[13px] font-medium ring-1 sm:gap-2.5 sm:px-3.5 sm:py-2.5 sm:text-sm transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 ${
                 on ? "bg-(--lp-blue-soft) text-(--lp-blue-deep) ring-2 ring-(--lp-blue)" : "bg-white text-(--lp-ink) ring-(--lp-line) hover:ring-(--lp-blue)/40"
               }`}
             >
@@ -150,8 +150,8 @@ function ExamMock() {
 
       <p className="mt-2.5 text-[11px] text-(--lp-muted)/80">Tap an answer to try it — the palette updates.</p>
 
-      <p className="mt-5 text-[11px] font-bold uppercase tracking-wider text-(--lp-muted)">Question palette</p>
-      <div className="mt-3 grid grid-cols-8 gap-2 sm:grid-cols-12">
+      <p className="mt-4 text-[11px] font-bold uppercase tracking-wider text-(--lp-muted) sm:mt-5">Question palette</p>
+      <div className="mt-2.5 grid grid-cols-8 gap-1.5 sm:mt-3 sm:grid-cols-12 sm:gap-2">
         {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
           <span
             key={n}
@@ -161,7 +161,7 @@ function ExamMock() {
           </span>
         ))}
       </div>
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-(--lp-muted)">
+      <div className="mt-4 hidden flex-wrap gap-x-4 gap-y-2 text-[11px] text-(--lp-muted) sm:flex">
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-(--lp-blue)" />Answered</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-(--lp-blue-soft)" />Unanswered</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-(--lp-yellow)" />Marked</span>
@@ -179,7 +179,7 @@ function ResultCard({ active }) {
     ["Speed", 64],
   ];
   return (
-    <div className="relative z-10 -mt-4 ml-auto w-[94%] -rotate-1 rounded-[28px] bg-(--lp-ink) p-5 text-white shadow-[0_24px_60px_rgba(15,17,21,0.35)] sm:p-6">
+    <div className="relative z-10 -mt-3 ml-auto w-[96%] -rotate-1 rounded-[24px] bg-(--lp-ink) p-4 sm:-mt-4 sm:w-[94%] sm:rounded-[28px] text-white shadow-[0_24px_60px_rgba(15,17,21,0.35)] sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-white/55">Python Programming</p>
@@ -188,7 +188,7 @@ function ResultCard({ active }) {
         <span className="rounded-full bg-(--lp-yellow) px-3 py-1 text-[11px] font-bold text-(--lp-ink)">PASSED</span>
       </div>
 
-      <div className="mt-5 flex items-center gap-5">
+      <div className="mt-4 flex items-center gap-4 sm:mt-5 sm:gap-5">
         <div className="relative h-[88px] w-[88px] shrink-0">
           <svg viewBox="0 0 88 88" className="h-full w-full -rotate-90" aria-hidden="true">
             <circle cx="44" cy="44" r={RING_R} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="9" />
@@ -232,30 +232,30 @@ function ResultCard({ active }) {
 
 function FeatureCards() {
   return (
-    <div className="mt-8 grid gap-4 sm:grid-cols-2">
-      <article className="group rounded-3xl bg-white p-5 shadow-[0_10px_30px_rgba(37,87,214,0.08)] transition-transform duration-300 ease-out hover:-translate-y-1">
+    <div className="mt-8 hidden gap-4 sm:grid sm:grid-cols-2">
+      <article className="group rounded-3xl bg-white p-4 shadow-[0_10px_30px_rgba(37,87,214,0.08)] transition-transform duration-300 ease-out hover:-translate-y-1 sm:p-5">
         <div className="flex items-center justify-between">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-(--lp-yellow) text-(--lp-ink)"><FileTextIcon className="h-5 w-5" /></span>
           <span className="font-(family-name:--lp-font) text-sm font-bold text-(--lp-muted)/60">01</span>
         </div>
-        <h3 className="mt-4 font-(family-name:--lp-font) text-base font-bold">Structured Test Series</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-(--lp-muted)">Chapter, subject and full-length mock exams, timed just like the real thing.</p>
-        <div className="mt-4 flex flex-wrap gap-1.5" aria-hidden="true">
+        <h3 className="mt-3 font-(family-name:--lp-font) text-base font-bold sm:mt-4">Structured Test Series</h3>
+        <p className="mt-1 text-[13px] leading-relaxed text-(--lp-muted) sm:mt-1.5 sm:text-sm">Chapter, subject and full-length mock exams, timed just like the real thing.</p>
+        <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-4" aria-hidden="true">
           {["Chapter", "Subject", "Full-length"].map((t, i) => (
             <span key={t} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${i === 2 ? "bg-(--lp-ink) text-white" : "bg-(--lp-grey) text-(--lp-muted)"}`}>{t}</span>
           ))}
         </div>
       </article>
 
-      <article className="group rounded-3xl bg-white p-5 shadow-[0_10px_30px_rgba(37,87,214,0.08)] transition-transform duration-300 ease-out hover:-translate-y-1">
+      <article className="group rounded-3xl bg-white p-4 shadow-[0_10px_30px_rgba(37,87,214,0.08)] transition-transform duration-300 ease-out hover:-translate-y-1 sm:p-5">
         <div className="flex items-center justify-between">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-(--lp-blue) text-white"><BookOpenIcon className="h-5 w-5" /></span>
           <span className="font-(family-name:--lp-font) text-sm font-bold text-(--lp-muted)/60">02</span>
         </div>
-        <h3 className="mt-4 font-(family-name:--lp-font) text-base font-bold">Per-Question Reporting</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-(--lp-muted)">Detailed breakdowns of time spent and accuracy per question, so you know exactly where to improve.</p>
-        <div className="mt-4" aria-hidden="true">
-          <div className="flex h-10 items-end gap-1">
+        <h3 className="mt-3 font-(family-name:--lp-font) text-base font-bold sm:mt-4">Per-Question Reporting</h3>
+        <p className="mt-1 text-[13px] leading-relaxed text-(--lp-muted) sm:mt-1.5 sm:text-sm">Detailed breakdowns of time spent and accuracy per question, so you know exactly where to improve.</p>
+        <div className="mt-3 sm:mt-4" aria-hidden="true">
+          <div className="flex h-8 items-end gap-1 sm:h-10">
             {TIME_BARS.map((s, i) => (
               <span
                 key={i}
@@ -275,14 +275,14 @@ export default function TestSeriesShowcase() {
   const [stageRef, stageSeen] = useInView();
 
   return (
-    <section className="py-10 md:py-14" aria-labelledby="test-series-title">
+    <section className="py-6 md:py-14" aria-labelledby="test-series-title">
       <style>{`
         @keyframes ts-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-8px) rotate(var(--r, 0deg)); } }
         .ts-float { animation: ts-float 6s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) { .ts-float { animation: none; } }
       `}</style>
       <div className={SHELL}>
-        <div className="relative overflow-hidden rounded-[44px] bg-(--lp-yellow-soft) p-6 ring-1 ring-(--lp-yellow) sm:p-10 lg:p-14">
+        <div className="relative overflow-hidden rounded-[32px] bg-(--lp-yellow-soft) p-5 ring-1 ring-(--lp-yellow) sm:rounded-[44px] sm:p-10 lg:p-14">
           {/* atmosphere */}
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-(--lp-yellow)/60" />
@@ -298,23 +298,23 @@ export default function TestSeriesShowcase() {
             />
           </div>
 
-          <div className="relative grid items-center gap-12 lg:grid-cols-[1fr_0.95fr]">
+          <div className="relative grid items-center gap-8 sm:gap-12 lg:grid-cols-[1fr_0.95fr]">
             <Reveal>
               <span className="inline-flex rounded-full bg-(--lp-ink) px-3.5 py-1.5 text-xs font-semibold tracking-wide text-white">Test Series</span>
-              <h2 id="test-series-title" className="mt-5 max-w-lg font-(family-name:--lp-font) text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+              <h2 id="test-series-title" className="mt-4 max-w-lg font-(family-name:--lp-font) text-[2rem] font-bold leading-[1.05] tracking-tight sm:mt-5 sm:text-5xl">
                 Prepare. Practice.{" "}
                 <span className="relative inline-block text-white">
                   <span className="absolute -inset-x-2 bottom-[0.02em] top-[0.12em] -rotate-1 rounded-2xl bg-(--lp-blue)" aria-hidden="true" />
                   <span className="relative">Perform.</span>
                 </span>
               </h2>
-              <p className="mt-5 max-w-lg text-base leading-relaxed text-(--lp-muted)">
+              <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-(--lp-muted) sm:mt-5 sm:text-base">
                 Practice with topic-wise, subject-wise and full-length test series designed to help you understand your preparation, improve your speed and identify areas that need more work.
               </p>
 
               <FeatureCards />
 
-              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 sm:mt-8">
                 <span className="inline-flex items-center gap-1.5 text-sm font-medium text-(--lp-ink)/70">
                   <CheckCircleIcon className="h-4 w-4 text-(--lp-blue)" />
                   Instant report after every test

@@ -12,8 +12,9 @@ import PageHero from "../components/PageHero";
 import { Rise } from "../components/StudentKit";
 import { EmptyPanel, ErrorState, LoadingState, PAGE } from "../components/PageState";
 import { useStudentData } from "../hooks/useStudentData";
-import { studentSeriesApi } from "../services/studentSeriesApi";
+import { peekPublicList, studentSeriesApi } from "../services/studentSeriesApi";
 import { isNotAvailable } from "../services/studentRpc";
+import LoginPrompt from "../../../public/components/LoginPrompt";
 
 const PAGE_SIZE = 12;
 const LEVEL_ORDER = ["beginner", "intermediate", "advanced"];
@@ -45,6 +46,7 @@ export default function SeriesList({ publicMode = false }) {
   const [draft, setDraft] = useState(q);
   const [busyId, setBusyId] = useState(null);
   const [notice, setNotice] = useState("");
+  const [loginFor, setLoginFor] = useState(null);
 
   // Debounce typing into ?q= (page resets to 1).
   useEffect(() => {
@@ -59,12 +61,21 @@ export default function SeriesList({ publicMode = false }) {
   }, [draft, q, params, setParams]);
 
   const key = publicMode ? "public" : `${q}|${category}`;
-  const { data, error, loading, reload, setData } = useStudentData(
+  // Repeat visitors see the last known list immediately; the fresh one swaps in
+  // when it arrives, and a failed refresh never replaces a list that is showing.
+  const [snapshot] = useState(() => {
+    const items = publicMode ? peekPublicList() : null;
+    return items ? { items, total: items.length, total_pages: 1, categories: [] } : null;
+  });
+  const { data: fetched, error: fetchError, loading: fetching, reload, setData } = useStudentData(
     () => (publicMode
-      ? studentSeriesApi.publicList(50).then((items) => ({ items, total: items.length, total_pages: 1, categories: [] }))
+      ? studentSeriesApi.publicListCached(50).then((items) => ({ items, total: items.length, total_pages: 1, categories: [] }))
       : listAll({ search: q, category })),
     key,
   );
+  const data = fetched ?? snapshot;
+  const loading = fetching && !data;
+  const error = data ? null : fetchError;
 
   // Options for the filter dropdowns come from the series actually loaded.
   const subjects = useMemo(
@@ -108,7 +119,7 @@ export default function SeriesList({ publicMode = false }) {
 
   const enroll = async (series) => {
     if (publicMode) {
-      navigate(`/login?redirect=${encodeURIComponent(`/student/test-series/${series.id}`)}`);
+      setLoginFor(series.id);
       return;
     }
     setBusyId(series.id);
@@ -136,7 +147,7 @@ export default function SeriesList({ publicMode = false }) {
 
       <div className="flex flex-col gap-4">
         <div className="relative max-w-xl">
-          <SearchIcon className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+          <SearchIcon className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-(--lp-blue)" />
           <input
             type="search"
             aria-label="Search test series"
@@ -148,9 +159,9 @@ export default function SeriesList({ publicMode = false }) {
         </div>
         {!publicMode && (data?.categories?.length ?? 0) > 0 && (
           <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by exam type">
-            <Chip active={!category} onClick={() => setParam("category", "")}>All exams</Chip>
+            <Chip tone="blue" active={!category} onClick={() => setParam("category", "")}>All exams</Chip>
             {data.categories.map((c) => (
-              <Chip key={c.id} active={category === c.id} onClick={() => setParam("category", c.id)}>{c.name}</Chip>
+              <Chip tone="blue" key={c.id} active={category === c.id} onClick={() => setParam("category", c.id)}>{c.name}</Chip>
             ))}
           </div>
         )}
@@ -174,7 +185,7 @@ export default function SeriesList({ publicMode = false }) {
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text/60">Price</span>
               <div className="flex gap-2" role="group" aria-label="Price">
                 {[["", "All"], ["free", "Free"], ["paid", "Paid"]].map(([value, label]) => (
-                  <Chip key={label} active={price === value} onClick={() => setParam("price", value)} className="h-11 px-5">{label}</Chip>
+                  <Chip tone="blue" key={label} active={price === value} onClick={() => setParam("price", value)} className="h-11 px-5">{label}</Chip>
                 ))}
               </div>
             </div>
@@ -186,7 +197,7 @@ export default function SeriesList({ publicMode = false }) {
                   ["subject", "level", "price", "category", "page"].forEach((k) => next.delete(k));
                   setParams(next);
                 }}
-                className="h-11 px-2 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                className="h-11 px-2 text-sm font-semibold text-(--lp-blue-deep) underline-offset-4 hover:underline"
               >
                 Clear filters
               </button>
@@ -203,8 +214,9 @@ export default function SeriesList({ publicMode = false }) {
         <ErrorState error={error} onRetry={reload} title="Couldn't load test series" />
       ) : items.length === 0 ? (
         <EmptyPanel
-          heading={q || filtersActive ? "No series match your search" : "No test series yet"}
-          message={q || filtersActive ? "Try another word or clear the filters." : "New test series appear here as soon as they're published."}
+          icon={q || filtersActive ? SearchIcon : undefined}
+          heading={q ? `Nothing found for “${q}”` : filtersActive ? "No series match these filters" : "No test series yet"}
+          message={q || filtersActive ? "We couldn't find a test series that matches. Try a different keyword or clear your filters." : "New test series appear here as soon as they're published."}
           action={(q || filtersActive) && (
             <Button variant="secondary" fullWidth={false} onClick={() => { setDraft(""); setParams(new URLSearchParams()); }}>
               Clear search and filters
@@ -214,7 +226,7 @@ export default function SeriesList({ publicMode = false }) {
       ) : (
         <>
           {(filtersActive || q) && (
-            <p className="-mb-2 text-sm text-text/60" role="status">
+            <p className="mb-3 text-sm text-text/60" role="status">
               {filtered.length} series found
             </p>
           )}
@@ -244,6 +256,14 @@ export default function SeriesList({ publicMode = false }) {
             </nav>
           )}
         </>
+      )}
+      {publicMode && (
+        <LoginPrompt
+          open={Boolean(loginFor)}
+          onClose={() => setLoginFor(null)}
+          redirect={loginFor ? `/student/test-series/${loginFor}` : ""}
+          title="Log in to enrol"
+        />
       )}
     </div>
   );

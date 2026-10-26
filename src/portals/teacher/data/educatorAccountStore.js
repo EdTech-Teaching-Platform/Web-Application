@@ -24,6 +24,9 @@ import { generateEducatorId, uid } from "./educatorRegistrationData";
 
 const ACCOUNTS_KEY = "ul.educator.accounts.v1";
 const SESSION_KEY = "ul.educator.session.v1";
+// Set once an educator has registered or signed in on this device, so the
+// landing page sends them to Log in instead of the onboarding again.
+const SEEN_KEY = "ul.educator.seen.v1";
 
 export const EDUCATOR_STATUS = {
   PENDING: "pending",
@@ -167,6 +170,7 @@ function commit(nextAccounts, nextSessionId = state.sessionId) {
   state = { accounts: nextAccounts, sessionId: nextSessionId };
   safeSet(ACCOUNTS_KEY, JSON.stringify(nextAccounts));
   safeSet(SESSION_KEY, nextSessionId);
+  if (nextSessionId) safeSet(SEEN_KEY, "1");
   listeners.forEach((l) => l());
 }
 
@@ -354,6 +358,17 @@ export function startEducatorSessionForIdentifier(identifier) {
   if (!account) return null;
   commit(state.accounts, account.id);
   return account;
+}
+
+// Where "I'm an Educator" should lead:
+//   signed in as an educator        -> the dashboard (the portal itself shows the
+//                                      "under review" screen until approved)
+//   known educator, signed out      -> Log in (no onboarding again)
+//   brand-new visitor               -> the onboarding / registration
+export function educatorEntryPath() {
+  const signedIn = Boolean(state.sessionId) && state.accounts.some((a) => a.id === state.sessionId);
+  if (signedIn) return "/teacher/dashboard";
+  return safeGet(SEEN_KEY) ? "/teacher/login" : "/teacher/registration";
 }
 
 export function endEducatorSession() {
