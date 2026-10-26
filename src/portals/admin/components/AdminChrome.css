@@ -684,3 +684,13 @@
                        out of the way entirely on the narrowest phones */
   }
 }
+
+/* "Coming soon" controls (AI-assisted building, subjective question types). */
+.ul-coming-soon { margin-left: 6px; font-size: 10px; padding: 2px 8px; vertical-align: middle; white-space: nowrap; }
+.ul-td-type-card.is-disabled,
+.ul-tsw-opt.is-disabled,
+.ul-qtype-pills button.is-disabled { opacity: 0.55; cursor: not-allowed; }
+.ul-td-type-card.is-active { outline: 2px solid var(--ul-primary, #4a0e0e); outline-offset: 2px; }
+.ul-qtype-pills { flex-wrap: wrap; }
+.ul-aitb-lock { border: 0; padding: 0; margin: 0; min-width: 0; }
+.ul-aitb-lock:disabled { opacity: 0.6; }

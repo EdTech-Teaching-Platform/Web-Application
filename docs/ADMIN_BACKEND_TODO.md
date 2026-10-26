@@ -109,7 +109,7 @@ complete contract for them:
 - Course approval
 - Regional heads
 - Escalations
-- Content moderation
+- Content moderation: wired on 2026-10-27 to test feedback (`moderationApi.js`, `20261027100*_feedback_*`); the Regional Head content-issue mock (`contentIssuesMock.js`) is no longer shown there
 - Settings and permissions
 - Audit logs (except auth-event data where available)
 - Institution management

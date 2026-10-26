@@ -15,6 +15,7 @@ import { studentSeriesApi } from "../services/studentSeriesApi";
 import { isNotAvailable, isNotFound } from "../services/studentRpc";
 import LoginPrompt from "../../../public/components/LoginPrompt";
 import { ATTEMPT_STATUS, formatDate, formatMinutes, formatPercent, priceLabel } from "../utils/format";
+import { MyFeedbackList } from "../components/FeedbackForm";
 
 function testState(test, enrolled) {
   const now = Date.now();
@@ -224,6 +225,8 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
           </ol>
         )}
       </section>
+
+      {!publicMode && enrolled && <MyFeedbackList seriesId={seriesId} />}
 
       {publicMode && (
         <LoginPrompt

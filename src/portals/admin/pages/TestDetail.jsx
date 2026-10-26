@@ -1,6 +1,8 @@
 // Test Series -> Tests -> Questions. Third and final level of the
-// strict hierarchy. Manages the Question Builder for one Test: choose
-// Objective or Subjective first, then fill in the type-specific form.
+// strict hierarchy. Manages the Question Builder for one Test: choose the
+// question type first (MCQ single / multiple, true / false, fill in the
+// blank; short / long / subjective are "Coming soon"), then fill in the
+// type-specific form. Existing subjective questions are read-only.
 //
 // Reuses the same shared admin CSS classes as TestSeries.jsx (see that
 // file's header comment) plus .ul-ts-*/.ul-tsd-* and .ul-td-* from
@@ -11,8 +13,6 @@ import { useNavigate, useParams } from "react-router-dom";
 // Constants and pure readiness checks only; data loads and saves through
 // testSeriesApi (question / option / test-status / publish RPCs).
 import {
-  QUESTION_TYPE,
-  QUESTION_TYPE_LABEL,
   DIFFICULTY,
   DIFFICULTY_LABEL,
   DIFFICULTY_BADGE_CLASS,
@@ -24,6 +24,12 @@ import {
   validateSeriesForPublish,
 } from "../data/testSeriesMock";
 import { testSeriesApi } from "../services/testSeriesApi";
+import {
+  QTYPE, SUBJECTIVE_BLOCKED_MESSAGE, TRUE_FALSE_OPTIONS, blankQuestionFields, isBlockedQuestionType, isChoiceType,
+  questionPayload, questionTypeLabel, validateQuestionDraft,
+} from "../data/questionTypes";
+import QuestionTypePicker, { QuestionAnswerFields } from "../components/QuestionTypePicker";
+import ComingSoonBadge from "../components/ComingSoonBadge";
 import { IconClose, IconPlus, IconEdit, IconChevronLeft, IconEye } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import QuestionImageField from "../components/QuestionImageField";
@@ -35,13 +41,13 @@ import "./TestSeries.css";
 import "./TestSeriesDetail.css";
 import "./TestDetail.css";
 
-const EMPTY_OBJECTIVE = {
-  text: "", image: "", optionA: "", optionB: "", optionC: "", optionD: "", correctAnswer: "A",
-  marks: 4, negativeMarks: 1, difficulty: DIFFICULTY.MEDIUM, subject: "", explanation: "",
-};
-const EMPTY_SUBJECTIVE = {
-  text: "", image: "", answerInstructions: "", modelAnswer: "", marks: 5, difficulty: DIFFICULTY.MEDIUM, subject: "", rubric: "",
-};
+function emptyQuestionForm(type = QTYPE.MCQ_SINGLE) {
+  return {
+    text: "", image: "", ...blankQuestionFields(type),
+    marks: 4, negativeMarks: type === QTYPE.MCQ_SINGLE || type === QTYPE.MCQ_MULTI ? 1 : 0,
+    difficulty: DIFFICULTY.MEDIUM, subject: "", explanation: "",
+  };
+}
 
 export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp, onBack, onSeriesPublished } = {}) {
   const routeParams = useParams();
@@ -97,10 +103,10 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   }, [toast]);
 
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [builderStep, setBuilderStep] = useState("type"); // "type" | "form"
+  const [builderStep, setBuilderStep] = useState("type"); // "type" | "form" | "locked"
   const [questionType, setQuestionType] = useState(null);
   const [editingQuestionId, setEditingQuestionId] = useState(null);
-  const [form, setForm] = useState(EMPTY_OBJECTIVE);
+  const [form, setForm] = useState(() => emptyQuestionForm());
   const [formErrors, setFormErrors] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -130,20 +136,26 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
     setBuilderOpen(true);
   };
 
+  // Subjective questions (short / long / subjective) can't be edited yet:
+  // they open read-only. Deleting them still works.
   const openEditQuestion = (q) => {
     setQuestionType(q.type);
     setEditingQuestionId(q.id);
     setFormErrors([]);
-    setForm(q.type === QUESTION_TYPE.OBJECTIVE
-      ? { text: q.text, image: q.image || "", optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD, correctAnswer: q.correctAnswer, marks: q.marks, negativeMarks: q.negativeMarks, difficulty: q.difficulty, subject: q.subject, explanation: q.explanation || "" }
-      : { text: q.text, image: q.image || "", answerInstructions: q.answerInstructions, modelAnswer: q.modelAnswer || "", marks: q.marks, difficulty: q.difficulty, subject: q.subject, rubric: q.rubric || "" });
-    setBuilderStep("form");
+    setForm({
+      ...emptyQuestionForm(q.type),
+      text: q.text, image: q.image || "", optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD,
+      correctAnswer: q.correctAnswer, correctAnswers: q.correctAnswers || [], acceptedAnswer: q.acceptedAnswer || "",
+      marks: q.marks, negativeMarks: q.negativeMarks, difficulty: q.difficulty, subject: q.subject, explanation: q.explanation || "",
+    });
+    setBuilderStep(isBlockedQuestionType(q.type) ? "locked" : "form");
     setBuilderOpen(true);
   };
 
   const chooseType = (type) => {
+    if (isBlockedQuestionType(type)) return;
     setQuestionType(type);
-    setForm(type === QUESTION_TYPE.OBJECTIVE ? EMPTY_OBJECTIVE : EMPTY_SUBJECTIVE);
+    setForm((prev) => ({ ...emptyQuestionForm(type), text: prev.text, image: prev.image, difficulty: prev.difficulty, subject: prev.subject }));
     setBuilderStep("form");
   };
 
@@ -152,36 +164,17 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
     setFormErrors([]);
   };
 
-  const validateQuestionForm = () => {
-    const errors = [];
-    if (!form.text || !form.text.trim()) errors.push("Question text is required.");
-    if (!form.marks || Number(form.marks) <= 0) errors.push("Marks must be greater than 0.");
-    if (questionType === QUESTION_TYPE.OBJECTIVE) {
-      if (!form.optionA.trim() || !form.optionB.trim() || !form.optionC.trim() || !form.optionD.trim()) errors.push("All four options (A–D) are required.");
-      if (!form.correctAnswer) errors.push("Select the correct answer.");
-      if (form.negativeMarks && Number(form.negativeMarks) < 0) errors.push("Negative marking cannot be a negative value.");
-    } else if (!form.answerInstructions || !form.answerInstructions.trim()) {
-      errors.push("Answer instructions are required for a subjective question.");
-    }
-    return errors;
-  };
+  const draftErrors = validateQuestionDraft({ ...form, type: questionType });
 
   const saveQuestion = async () => {
-    const errors = validateQuestionForm();
-    if (errors.length > 0) {
-      setFormErrors(errors);
+    if (draftErrors.length > 0) {
+      setFormErrors(draftErrors);
       return;
     }
-    // Subjective covers short_answer / fill_blank / long_answer; modelAnswer
-    // becomes the question's single correct option (blank = manual grading).
-    const payload = questionType === QUESTION_TYPE.OBJECTIVE
-      ? { ...form, marks: Number(form.marks), negativeMarks: Number(form.negativeMarks) || 0 }
-      : { ...form, marks: Number(form.marks), modelAnswer: (form.modelAnswer || "").trim() };
-
+    const payload = questionPayload({ ...form, type: questionType });
     const ok = editingQuestionId
-      // the stored type is kept on edit (no "type" key), so short_answer stays short_answer
       ? await run(() => testSeriesApi.updateQuestion(editingQuestionId, payload), "Question updated.")
-      : await run(() => testSeriesApi.createQuestion({ ...payload, type: questionType, testId: test.id }), "Question added.");
+      : await run(() => testSeriesApi.createQuestion({ ...payload, testId: test.id }), "Question added.");
     if (ok) closeBuilder();
   };
 
@@ -286,7 +279,8 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                     <td data-label="#">{i + 1}</td>
                     <td className="ul-td-question-cell" data-label="Question">{q.text}</td>
                     <td data-label="Type">
-                      <span className="ul-td-type-tag">{QUESTION_TYPE_LABEL[q.type]}</span>
+                      <span className="ul-td-type-tag">{questionTypeLabel(q.type)}</span>
+                      {isBlockedQuestionType(q.type) && <> <ComingSoonBadge label="Read-only" /></>}
                       <br />
                       <span className={`ul-status-badge ${DIFFICULTY_BADGE_CLASS[q.difficulty]}`}>{DIFFICULTY_LABEL[q.difficulty]}</span>
                     </td>
@@ -313,126 +307,67 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
             <div className="ul-set-drawer__head">
               <div>
                 <h3 className="ul-set-drawer__title">{editingQuestionId ? "Edit Question" : "Add Question"}</h3>
-                <p className="ul-set-drawer__sub">{builderStep === "type" ? "Choose the question type to continue." : QUESTION_TYPE_LABEL[questionType]}</p>
+                <p className="ul-set-drawer__sub">{builderStep === "type" ? "Choose the question type to continue." : questionTypeLabel(questionType)}</p>
               </div>
               <button type="button" className="ul-set-drawer__close" onClick={closeBuilder} aria-label="Close"><IconClose size={15} /></button>
             </div>
             <div className="ul-set-drawer__body">
               {builderStep === "type" ? (
-                <div className="ul-td-type-choice">
-                  <button type="button" className="ul-td-type-card" onClick={() => chooseType(QUESTION_TYPE.OBJECTIVE)}>
-                    <strong>Objective</strong>
-                    <span>Multiple-choice question with 4 options and one correct answer.</span>
-                  </button>
-                  <button type="button" className="ul-td-type-card" onClick={() => chooseType(QUESTION_TYPE.SUBJECTIVE)}>
-                    <strong>Subjective</strong>
-                    <span>Free-text answer, manually evaluated against a rubric.</span>
-                  </button>
+                <QuestionTypePicker value={questionType} onChange={chooseType} />
+              ) : builderStep === "locked" ? (
+                <div className="ul-ts-form">
+                  <div className="ul-ts-errors" role="status">
+                    <strong>{questionTypeLabel(questionType)} questions can't be edited yet.</strong> <ComingSoonBadge />
+                    <p>{SUBJECTIVE_BLOCKED_MESSAGE} This question stays in the test, and students who answer it see "pending review". You can delete it from the list.</p>
+                  </div>
+                  <div className="ul-ts-form-row">
+                    <label>Question</label>
+                    <p className="ul-td-preview-answer-box">{form.text}</p>
+                  </div>
                 </div>
               ) : (
                 <div className="ul-ts-form">
                   {formErrors.length > 0 && (
-                    <div className="ul-ts-errors">
+                    <div className="ul-ts-errors" role="alert">
                       <strong>Fix the following:</strong>
                       <ul>{formErrors.map((err, i) => <li key={i}>{err}</li>)}</ul>
                     </div>
                   )}
 
                   <div className="ul-ts-form-row">
-                    <label>Question</label>
-                    <textarea value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} placeholder="Type the question here…" />
+                    <label htmlFor="q-text">Question</label>
+                    <textarea id="q-text" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} placeholder="Type the question here…" />
                   </div>
                   <QuestionImageField value={form.image} onChange={(image) => setForm({ ...form, image })} />
 
-                  {questionType === QUESTION_TYPE.OBJECTIVE ? (
-                    <>
-                      <div className="ul-ts-form-grid-2">
-                        <div className="ul-ts-form-row">
-                          <label>Option A</label>
-                          <input type="text" value={form.optionA} onChange={(e) => setForm({ ...form, optionA: e.target.value })} />
-                        </div>
-                        <div className="ul-ts-form-row">
-                          <label>Option B</label>
-                          <input type="text" value={form.optionB} onChange={(e) => setForm({ ...form, optionB: e.target.value })} />
-                        </div>
-                      </div>
-                      <div className="ul-ts-form-grid-2">
-                        <div className="ul-ts-form-row">
-                          <label>Option C</label>
-                          <input type="text" value={form.optionC} onChange={(e) => setForm({ ...form, optionC: e.target.value })} />
-                        </div>
-                        <div className="ul-ts-form-row">
-                          <label>Option D</label>
-                          <input type="text" value={form.optionD} onChange={(e) => setForm({ ...form, optionD: e.target.value })} />
-                        </div>
-                      </div>
-                      <div className="ul-ts-form-row">
-                        <label>Correct Answer</label>
-                        <div className="ul-td-correct-toggle">
-                          {["A", "B", "C", "D"].map((letter) => (
-                            <button key={letter} type="button" className={form.correctAnswer === letter ? "is-active" : ""} onClick={() => setForm({ ...form, correctAnswer: letter })}>{letter}</button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="ul-ts-form-grid-2">
-                        <div className="ul-ts-form-row">
-                          <label>Marks</label>
-                          <input type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} />
-                        </div>
-                        <div className="ul-ts-form-row">
-                          <label>Negative Marking</label>
-                          <input type="number" min="0" step="0.25" value={form.negativeMarks} onChange={(e) => setForm({ ...form, negativeMarks: e.target.value })} />
-                        </div>
-                      </div>
-                      <div className="ul-ts-form-grid-2">
-                        <div className="ul-ts-form-row">
-                          <label>Difficulty</label>
-                          <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
-                            {Object.values(DIFFICULTY).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
-                          </select>
-                        </div>
-                        <div className="ul-ts-form-row">
-                          <label>Subject / Topic</label>
-                          <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Mechanics" />
-                        </div>
-                      </div>
-                      <div className="ul-ts-form-row">
-                        <label>Explanation (shown after the attempt)</label>
-                        <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} placeholder="Optional explanation for the correct answer" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="ul-ts-form-row">
-                        <label>Answer / Instructions</label>
-                        <textarea value={form.answerInstructions} onChange={(e) => setForm({ ...form, answerInstructions: e.target.value })} placeholder="Model answer or instructions for the student" />
-                      </div>
-                      <div className="ul-ts-form-row">
-                        <label>Model Answer (short answer / fill in the blank / long answer)</label>
-                        <textarea value={form.modelAnswer} onChange={(e) => setForm({ ...form, modelAnswer: e.target.value })} placeholder="Accepted answer used for grading. Leave blank for manual grading." />
-                      </div>
-                      <div className="ul-ts-form-grid-2">
-                        <div className="ul-ts-form-row">
-                          <label>Marks</label>
-                          <input type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} />
-                        </div>
-                        <div className="ul-ts-form-row">
-                          <label>Difficulty</label>
-                          <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
-                            {Object.values(DIFFICULTY).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="ul-ts-form-row">
-                        <label>Subject / Topic</label>
-                        <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Mechanics" />
-                      </div>
-                      <div className="ul-ts-form-row">
-                        <label>Evaluation Criteria / Rubric</label>
-                        <textarea value={form.rubric} onChange={(e) => setForm({ ...form, rubric: e.target.value })} placeholder="How should this answer be graded?" />
-                      </div>
-                    </>
-                  )}
+                  <QuestionAnswerFields q={{ ...form, type: questionType }} onChange={(patch) => setForm({ ...form, ...patch })} />
+
+                  <div className="ul-ts-form-grid-2">
+                    <div className="ul-ts-form-row">
+                      <label htmlFor="q-marks">Marks</label>
+                      <input id="q-marks" type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} />
+                    </div>
+                    <div className="ul-ts-form-row">
+                      <label htmlFor="q-negative">Negative Marking</label>
+                      <input id="q-negative" type="number" min="0" step="0.25" value={form.negativeMarks} onChange={(e) => setForm({ ...form, negativeMarks: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="ul-ts-form-grid-2">
+                    <div className="ul-ts-form-row">
+                      <label>Difficulty</label>
+                      <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
+                        {Object.values(DIFFICULTY).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
+                      </select>
+                    </div>
+                    <div className="ul-ts-form-row">
+                      <label>Subject / Topic</label>
+                      <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Mechanics" />
+                    </div>
+                  </div>
+                  <div className="ul-ts-form-row">
+                    <label>Explanation (shown after the attempt)</label>
+                    <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} placeholder="Optional explanation for the correct answer" />
+                  </div>
                 </div>
               )}
             </div>
@@ -441,7 +376,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                 {!editingQuestionId && (
                   <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setBuilderStep("type")}>Back</button>
                 )}
-                <button type="button" className="ul-btn ul-btn--primary" onClick={saveQuestion} disabled={saving}>{editingQuestionId ? "Save Changes" : "Add Question"}</button>
+                <button type="button" className="ul-btn ul-btn--primary" onClick={saveQuestion} disabled={saving || draftErrors.length > 0}>{editingQuestionId ? "Save Changes" : "Add Question"}</button>
               </div>
             )}
           </div>
@@ -468,17 +403,22 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                     <div className="ul-td-preview-item" key={q.id}>
                       <strong>Q{i + 1}. {q.text}</strong>
                       {q.image && <img className="ul-qimg-view" src={q.image} alt={`Question ${i + 1} attachment`} />}
-                      {q.type === QUESTION_TYPE.OBJECTIVE ? (
+                      {q.type === QTYPE.TRUE_FALSE ? (
                         <ul className="ul-td-preview-options">
-                          <li className={q.correctAnswer === "A" ? "is-correct" : ""}>A. {q.optionA}</li>
-                          <li className={q.correctAnswer === "B" ? "is-correct" : ""}>B. {q.optionB}</li>
-                          <li className={q.correctAnswer === "C" ? "is-correct" : ""}>C. {q.optionC}</li>
-                          <li className={q.correctAnswer === "D" ? "is-correct" : ""}>D. {q.optionD}</li>
+                          {TRUE_FALSE_OPTIONS.map((o) => <li key={o.key} className={q.correctAnswer === o.key ? "is-correct" : ""}>{o.text}</li>)}
                         </ul>
+                      ) : isChoiceType(q.type) ? (
+                        <ul className="ul-td-preview-options">
+                          {["A", "B", "C", "D"].map((k) => (
+                            <li key={k} className={(q.correctAnswers || []).includes(k) ? "is-correct" : ""}>{k}. {q[`option${k}`]}</li>
+                          ))}
+                        </ul>
+                      ) : q.type === QTYPE.FILL_BLANK ? (
+                        <p className="ul-td-preview-answer-box">Typed answer. Accepted: {q.acceptedAnswer || "—"}</p>
                       ) : (
-                        <p className="ul-td-preview-answer-box">Answer box shown to the student.</p>
+                        <p className="ul-td-preview-answer-box">Answer box shown to the student (reviewed later; shows "pending review").</p>
                       )}
-                      <span className="ul-td-preview-marks">{q.marks} marks{q.type === QUESTION_TYPE.OBJECTIVE && q.negativeMarks ? ` · −${q.negativeMarks} negative` : ""}</span>
+                      <span className="ul-td-preview-marks">{q.marks} marks{q.negativeMarks ? ` · −${q.negativeMarks} negative` : ""}</span>
                     </div>
                   ))}
                 </div>

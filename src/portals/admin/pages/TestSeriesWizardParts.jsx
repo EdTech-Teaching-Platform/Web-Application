@@ -5,7 +5,10 @@
 import QuestionImageField from "../components/QuestionImageField";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { IconClose, IconUpload, IconDownload, IconSearch } from "../components/icons";
-import { QUESTION_TYPE, QUESTION_TYPE_LABEL, DIFFICULTY, DIFFICULTY_LABEL, SUBJECT_OPTIONS } from "../data/testSeriesMock";
+import { DIFFICULTY, DIFFICULTY_LABEL, SUBJECT_OPTIONS } from "../data/testSeriesMock";
+import { QTYPE, SUBJECTIVE_BLOCKED_MESSAGE, isBlockedQuestionType, questionTypeLabel, validateQuestionDraft } from "../data/questionTypes";
+import QuestionTypePicker, { QuestionAnswerFields } from "../components/QuestionTypePicker";
+import ComingSoonBadge from "../components/ComingSoonBadge";
 import {
   emptyQuestion, cloneQuestion, csvToRows, validateCsvRows, ROW_STATUS, CSV_TEMPLATE,
   generateOutline, topicSuggestions, OUTLINE_TYPES, OUTLINE_DIFFICULTY, wid,
@@ -93,99 +96,72 @@ export function RichText({ value, onChange, placeholder }) {
 // -------------------------------------------------------- Question editor
 
 export function QuestionEditor({ initial, defaults, onSave, onClose }) {
-  const [q, setQ] = useState(() => initial || emptyQuestion(QUESTION_TYPE.OBJECTIVE, defaults));
+  const [q, setQ] = useState(() => initial || emptyQuestion(QTYPE.MCQ_SINGLE, defaults));
   const set = (patch) => setQ((p) => ({ ...p, ...patch }));
-  const isObj = q.type === QUESTION_TYPE.OBJECTIVE;
-  const errs = [];
-  if (!q.text.trim()) errs.push("Question text is required.");
-  if (isObj) {
-    if (!q.optionA || !q.optionB || !q.optionC || !q.optionD) errs.push("All four options are required.");
-    if (!/^[A-D]$/.test(q.correctAnswer)) errs.push("Pick the correct answer.");
-  }
-  if (!(Number(q.marks) > 0)) errs.push("Marks must be above 0.");
-  const switchType = (type) => setQ((p) => ({ ...emptyQuestion(type), ...p, type, correctAnswer: type === QUESTION_TYPE.OBJECTIVE ? p.correctAnswer : "", marks: p.marks, negativeMarks: type === QUESTION_TYPE.OBJECTIVE ? p.negativeMarks : 0 }));
+  // Existing short / long / subjective questions can't be edited yet.
+  const locked = !!initial && isBlockedQuestionType(initial.type);
+  const errs = validateQuestionDraft(q);
+  const switchType = (type) => setQ((p) => ({
+    ...emptyQuestion(type),
+    wid: p.wid, text: p.text, image: p.image, marks: p.marks, difficulty: p.difficulty, subject: p.subject, topic: p.topic, explanation: p.explanation,
+  }));
   return (
     <WizModal
       title={initial ? "Edit question" : "Add question"}
       onClose={onClose}
       footer={<>
-        {errs.length > 0 && <span className="ul-tsw-hint">{errs[0]}</span>}
-        <button type="button" className="ul-btn ul-btn--ghost" onClick={onClose}>Cancel</button>
-        <button type="button" className="ul-btn ul-btn--primary" disabled={errs.length > 0} onClick={() => onSave(q)}>Save question</button>
+        {!locked && errs.length > 0 && <span className="ul-tsw-hint">{errs[0]}</span>}
+        <button type="button" className="ul-btn ul-btn--ghost" onClick={onClose}>{locked ? "Close" : "Cancel"}</button>
+        {!locked && <button type="button" className="ul-btn ul-btn--primary" disabled={errs.length > 0} onClick={() => onSave(q)}>Save question</button>}
       </>}
     >
-      <div className="ul-ts-form">
-        <div className="ul-ts-form-row">
-          <label>Question type</label>
-          <div className="ul-ts-pill-toggle">
-            {Object.values(QUESTION_TYPE).map((t) => (
-              <button key={t} type="button" className={q.type === t ? "is-active" : ""} onClick={() => switchType(t)}>{QUESTION_TYPE_LABEL[t]}</button>
-            ))}
+      {locked ? (
+        <div className="ul-ts-form">
+          <div className="ul-ts-errors" role="status">
+            <strong>{questionTypeLabel(q.type)} questions can't be edited yet.</strong> <ComingSoonBadge />
+            <p>{SUBJECTIVE_BLOCKED_MESSAGE} Remove this question from the test before saving the series.</p>
           </div>
+          <p className="ul-tsw-clip">{q.text}</p>
         </div>
-        <div className="ul-ts-form-row">
-          <label>Question</label>
-          <textarea value={q.text} onChange={(e) => set({ text: e.target.value })} placeholder="Type the question" />
-        </div>
-        <QuestionImageField value={q.image} onChange={(image) => set({ image })} />
-        {isObj ? (
-          <>
-            <div className="ul-ts-form-grid-2">
-              {["A", "B", "C", "D"].map((k) => (
-                <div className="ul-ts-form-row" key={k}>
-                  <label>Option {k}</label>
-                  <input type="text" value={q[`option${k}`]} onChange={(e) => set({ [`option${k}`]: e.target.value })} />
-                </div>
-              ))}
+      ) : (
+        <div className="ul-ts-form">
+          <QuestionTypePicker variant="pills" value={q.type} onChange={switchType} />
+          <div className="ul-ts-form-row">
+            <label htmlFor="wq-text">Question</label>
+            <textarea id="wq-text" value={q.text} onChange={(e) => set({ text: e.target.value })} placeholder="Type the question" />
+          </div>
+          <QuestionImageField value={q.image} onChange={(image) => set({ image })} />
+          <QuestionAnswerFields q={q} onChange={set} />
+          <div className="ul-ts-form-grid-2">
+            <div className="ul-ts-form-row">
+              <label htmlFor="wq-marks">Marks</label>
+              <input id="wq-marks" type="number" min="0" value={q.marks} onChange={(e) => set({ marks: e.target.value })} />
             </div>
             <div className="ul-ts-form-row">
-              <label>Correct answer</label>
-              <div className="ul-ts-pill-toggle">
-                {["A", "B", "C", "D"].map((k) => (
-                  <button key={k} type="button" className={q.correctAnswer === k ? "is-active" : ""} onClick={() => set({ correctAnswer: k })}>{k}</button>
-                ))}
-              </div>
+              <label htmlFor="wq-negative">Negative marks</label>
+              <input id="wq-negative" type="number" min="0" value={q.negativeMarks} onChange={(e) => set({ negativeMarks: e.target.value })} />
             </div>
-          </>
-        ) : (
-          <div className="ul-ts-form-row">
-            <label>Answer instructions / rubric (optional)</label>
-            <textarea value={q.rubric} onChange={(e) => set({ rubric: e.target.value })} />
-          </div>
-        )}
-        <div className="ul-ts-form-grid-2">
-          <div className="ul-ts-form-row">
-            <label>Marks</label>
-            <input type="number" min="0" value={q.marks} onChange={(e) => set({ marks: e.target.value })} />
-          </div>
-          {isObj && (
             <div className="ul-ts-form-row">
-              <label>Negative marks</label>
-              <input type="number" min="0" value={q.negativeMarks} onChange={(e) => set({ negativeMarks: e.target.value })} />
+              <label>Difficulty</label>
+              <select value={q.difficulty} onChange={(e) => set({ difficulty: e.target.value })}>
+                {Object.values(DIFFICULTY).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
+              </select>
             </div>
-          )}
-          <div className="ul-ts-form-row">
-            <label>Difficulty</label>
-            <select value={q.difficulty} onChange={(e) => set({ difficulty: e.target.value })}>
-              {Object.values(DIFFICULTY).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
-            </select>
+            <div className="ul-ts-form-row">
+              <label>Subject</label>
+              <input type="text" value={q.subject} onChange={(e) => set({ subject: e.target.value })} />
+            </div>
+            <div className="ul-ts-form-row">
+              <label>Topic</label>
+              <input type="text" value={q.topic} onChange={(e) => set({ topic: e.target.value })} />
+            </div>
           </div>
-          <div className="ul-ts-form-row">
-            <label>Subject</label>
-            <input type="text" value={q.subject} onChange={(e) => set({ subject: e.target.value })} />
-          </div>
-          <div className="ul-ts-form-row">
-            <label>Topic</label>
-            <input type="text" value={q.topic} onChange={(e) => set({ topic: e.target.value })} />
-          </div>
-        </div>
-        {isObj && (
           <div className="ul-ts-form-row">
             <label>Explanation (optional)</label>
             <textarea value={q.explanation} onChange={(e) => set({ explanation: e.target.value })} />
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </WizModal>
   );
 }
@@ -338,7 +314,7 @@ export function CsvImporter({ existingKeys, onImport }) {
 export function OutlineBuilder({ initialSubject, initialAudience, audienceOptions, onApply }) {
   const [cfg, setCfg] = useState({
     subject: initialSubject || "", topics: [], audience: initialAudience || "", difficulty: "Mixed",
-    numTests: 4, questionsPerTest: 20, types: [QUESTION_TYPE.OBJECTIVE], marksPerQuestion: 4, duration: 40,
+    numTests: 4, questionsPerTest: 20, types: [QTYPE.MCQ_SINGLE], marksPerQuestion: 4, duration: 40,
   });
   const [topicInput, setTopicInput] = useState("");
   const [outline, setOutline] = useState(null);
@@ -422,7 +398,7 @@ export function OutlineBuilder({ initialSubject, initialAudience, audienceOption
               <span className="ul-tsw-num">{i + 1}</span>
               <div className="ul-tsw-outlinemain">
                 <input value={t.name} onChange={(e) => patchItem(t.id, { name: e.target.value })} aria-label="Test name" />
-                <small>{t.topics.join(", ") || "No topics"} · {t.difficulty}{t.sections.length ? ` · ${t.sections.map((s) => `${s.count} ${s.type === QUESTION_TYPE.OBJECTIVE ? "objective" : "subjective"}`).join(" + ")}` : ""}</small>
+                <small>{t.topics.join(", ") || "No topics"} · {t.difficulty}{t.sections.length ? ` · ${t.sections.map((s) => `${s.count} ${questionTypeLabel(s.type)}`).join(" + ")}` : ""}</small>
               </div>
               <label className="ul-tsw-mini">Qs<input type="number" min="1" value={t.questionCount} onChange={(e) => patchItem(t.id, { questionCount: Number(e.target.value) || 0 })} /></label>
               <label className="ul-tsw-mini">Min<input type="number" min="1" value={t.duration} onChange={(e) => patchItem(t.id, { duration: Number(e.target.value) || 0 })} /></label>

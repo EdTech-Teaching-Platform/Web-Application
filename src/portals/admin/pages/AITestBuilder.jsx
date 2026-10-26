@@ -40,6 +40,8 @@ import "./AdminDashboard.css";
 import "./TestSeries.css";
 import "./SettingsPermissions.css";
 import "./AITestBuilder.css";
+import ComingSoonBadge from "../components/ComingSoonBadge";
+import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
 
 const EMPTY_AI_FORM = {
   testName: "",
@@ -205,8 +207,9 @@ export default function AITestBuilder() {
     Number(aiForm.numQuestions) > 0 &&
     Number(aiForm.numSections) >= 1;
 
+  // AI is coming soon: no generate / build / save path runs while AI_ENABLED is false.
   const handleGenerate = () => {
-    if (!canGenerate) return;
+    if (!AI_ENABLED || !canGenerate) return;
     const config = {
       testName: aiForm.testName.trim(),
       subject: aiForm.subject,
@@ -232,6 +235,7 @@ export default function AITestBuilder() {
   };
 
   const startManual = () => {
+    if (!AI_ENABLED) return;
     const t = createEmptyTest(aiForm.testName.trim() || "New Test");
     setTest(t);
     setTestMeta({ duration: 60, totalMarks: 0, passingMarks: 0, attemptLimit: 1, scheduledAt: "", shuffleQuestions: false, shuffleOptions: false });
@@ -335,6 +339,7 @@ export default function AITestBuilder() {
   }, [test]);
 
   const handleSaveConfirm = () => {
+    if (!AI_ENABLED) return;
     if (!test) return;
     let seriesId = existingSeriesId;
     if (saveTarget === "new") {
@@ -377,6 +382,7 @@ export default function AITestBuilder() {
   };
 
   const openSave = () => {
+    if (!AI_ENABLED) return;
     setNewSeriesForm((f) => ({ ...f, name: test?.name ? `${test.name} Series` : f.name, subject: test?.subject || f.subject }));
     setSaveOpen(true);
   };
@@ -390,10 +396,18 @@ export default function AITestBuilder() {
           <button type="button" className="ul-btn ul-btn--ghost ul-aitb-back" onClick={() => navigate("/admin/testseries")}>
             <IconChevronLeft size={14} /> Back to Test Series
           </button>
-          <h2 className="ul-dash-welcome__title"><IconSparkle size={20} /> AI Test Builder</h2>
+          <h2 className="ul-dash-welcome__title"><IconSparkle size={20} /> AI Test Builder {!AI_ENABLED && <ComingSoonBadge />}</h2>
           <p className="ul-dash-welcome__subtitle">Describe the test you need and generate a complete, editable structure and question set.</p>
         </div>
       </div>
+
+      {!AI_ENABLED && (
+        <div className="ul-ts-errors" role="status" style={{ marginBottom: 14 }}>
+          <strong>{AI_COMING_SOON}</strong> The builder below is shown for preview only; every control is disabled.
+        </div>
+      )}
+
+      <fieldset disabled={!AI_ENABLED} aria-disabled={!AI_ENABLED || undefined} className="ul-aitb-lock">
 
       {!test && (
         <div className="ul-card ul-aitb-form-card">
@@ -713,6 +727,7 @@ export default function AITestBuilder() {
           </div>
         </div>
       )}
+      </fieldset>
     </>
   );
 }

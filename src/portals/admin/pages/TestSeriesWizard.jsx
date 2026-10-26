@@ -13,16 +13,19 @@ import {
 } from "../components/icons";
 import {
   PRICING_TYPE, PRICING_TYPE_LABEL, AUDIENCE_OPTIONS,
-  QUESTION_TYPE, DIFFICULTY_LABEL,
+  DIFFICULTY_LABEL,
 } from "../data/testSeriesMock";
 import {
   START_METHOD, GRADE_OPTIONS, CLASS_SUBJECT_OPTIONS, EXAM_OPTIONS, LEVEL_OPTIONS, BASE_LANGUAGES,
-  initialWizardState, emptyTest, cloneQuestion, questionKey, testTotalMarks, derivedTestType,
+  initialWizardState, normalizeWizardState, emptyTest, cloneQuestion, questionKey, testTotalMarks, derivedTestType,
   stepErrors, applicableSteps, validateWizard, buildSeriesPayload, stripHtml, wid,
 } from "../data/testSeriesWizard";
 import { useRpc } from "../hooks/useRpc";
 import { testSeriesApi } from "../services/testSeriesApi";
 import { WizModal, RichText, QuestionEditor, CsvImporter, OutlineBuilder, sanitizeHtml } from "./TestSeriesWizardParts";
+import { isBlockedQuestionType, questionPayload, questionTypeLabel } from "../data/questionTypes";
+import ComingSoonBadge from "../components/ComingSoonBadge";
+import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./SettingsPermissions.css";
@@ -34,7 +37,7 @@ const METHOD_CARDS = [
   { key: START_METHOD.SCRATCH, icon: IconPencil, tone: "rose", title: "Build from scratch", text: "Start with an empty series and add tests and questions yourself." },
   { key: START_METHOD.DUPLICATE, hidden: true, icon: IconLayers, tone: "grey", title: "Duplicate an existing series", text: "Copy the tests and questions of a series you already made into a new, independent series." },
   { key: START_METHOD.CSV, icon: IconUpload, tone: "orange", title: "Import questions", text: "Upload a CSV and review a row-by-row validation report before anything is imported." },
-  { key: START_METHOD.AI, icon: IconSparkle, tone: "pink", title: "AI-assisted outline", text: "Get an editable, template-based outline of tests and topics from your requirements." },
+  { key: START_METHOD.AI, icon: IconSparkle, tone: "pink", title: "AI-assisted outline", text: "Get an editable, template-based outline of tests and topics from your requirements.", comingSoon: !AI_ENABLED },
 ];
 const SOURCE_TITLE = {
   [START_METHOD.DUPLICATE]: ["Duplicate an existing series", "Pick a series to copy. The original stays untouched — you get a new, independent copy to edit."],
@@ -47,13 +50,20 @@ function esc(s) { return String(s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;
 function money(n) { return `₹${Number(n || 0).toLocaleString("en-IN")}`; }
 function mapSubject(cat) { return CLASS_SUBJECT_OPTIONS.includes(cat) ? cat : "Other"; }
 
-function OptionCard({ icon: Icon, tone, title, text, points, selected, onClick }) {
+function OptionCard({ icon: Icon, tone, title, text, points, selected, onClick, comingSoon }) {
   return (
-    <button type="button" className={`ul-tsw-opt${selected ? " is-selected" : ""}`} onClick={onClick} aria-pressed={selected}>
+    <button
+      type="button"
+      className={`ul-tsw-opt${selected ? " is-selected" : ""}${comingSoon ? " is-disabled" : ""}`}
+      onClick={comingSoon ? undefined : onClick}
+      disabled={comingSoon}
+      aria-disabled={comingSoon || undefined}
+      aria-pressed={selected}
+    >
       <span className={`ul-tsw-opt__icon is-${tone}`}><Icon size={20} /></span>
       <span className="ul-tsw-opt__radio">{selected && <IconCheck size={12} />}</span>
-      <strong>{title}</strong>
-      {text && <span className="ul-tsw-opt__text">{text}</span>}
+      <strong>{title} {comingSoon && <ComingSoonBadge />}</strong>
+      {text && <span className="ul-tsw-opt__text">{comingSoon ? AI_COMING_SOON : text}</span>}
       {points && <ul>{points.map((p) => <li key={p}>{p}</li>)}</ul>}
     </button>
   );
@@ -105,7 +115,11 @@ export default function TestSeriesWizard() {
     const id = location.state?.seriesId;
     if (!id) return;
     testSeriesApi.get(id).then((series) => {
-      if (series?.wizard_state) setSt({ ...initialWizardState(), ...series.wizard_state, id });
+      if (!series?.wizard_state) return;
+      // Drafts saved with the AI start (coming soon) restart the method step;
+      // legacy objective / subjective questions move to the current types.
+      const restored = normalizeWizardState({ ...initialWizardState(), ...series.wizard_state, id });
+      setSt(!AI_ENABLED && restored.startMethod === START_METHOD.AI ? { ...restored, startMethod: "" } : restored);
     }).catch((error) => setRequestError(error.message));
   }, [location.state]);
 
@@ -141,7 +155,10 @@ export default function TestSeriesWizard() {
   const back = () => { if (stepIdx > 0) setStep(steps[stepIdx - 1]); };
 
   // ---- starting-method handlers
-  const chooseMethod = (key) => patch({ startMethod: key });
+  const chooseMethod = (key) => {
+    if (key === START_METHOD.AI && !AI_ENABLED) return;   // AI-assisted outline is coming soon
+    patch({ startMethod: key });
+  };
 
   const loadDuplicate = (src) => {
     const subj = (src.classification && src.classification.subject) || mapSubject(src.subject);
@@ -252,10 +269,9 @@ export default function TestSeriesWizard() {
         topics: t.topics || [],
         sections: [],
         questions: t.questions.map((q, index) => ({
-          ...q,
+          ...questionPayload(q),
+          answerInstructions: q.answerInstructions || "",
           sectionPosition: "",
-          options: ["A", "B", "C", "D"].map((key) => ({ key, text: q[`option${key}`] || "" })),
-          correctAnswers: q.correctAnswer ? [q.correctAnswer] : [],
           position: index + 1,
         })),
       })),
@@ -370,7 +386,7 @@ export default function TestSeriesWizard() {
               </>
             )}
 
-            {st.startMethod === START_METHOD.AI && (
+            {AI_ENABLED && st.startMethod === START_METHOD.AI && (
               <>
                 <OutlineBuilder initialSubject="" initialAudience={st.audience} audienceOptions={AUDIENCE_OPTIONS} onApply={applyOutline} />
                 {st.tests.length > 0 && <div className="ul-tsw-note is-ok" style={{ marginTop: 14 }}>{st.tests.length} draft test(s) created from the outline. Continue to configure them and add questions.</div>}
@@ -468,7 +484,7 @@ export default function TestSeriesWizard() {
                         <div key={q.wid} className="ul-tsw-qrow">
                           <span className="ul-tsw-num">{qi + 1}</span>
                           <span className="ul-tsw-clip">{q.text || <em>(no text)</em>}</span>
-                          <span className="ul-tsw-qmeta">{q.type === QUESTION_TYPE.OBJECTIVE ? "MCQ" : "Subj."} · {DIFFICULTY_LABEL[q.difficulty]} · {q.marks}m</span>
+                          <span className="ul-tsw-qmeta">{questionTypeLabel(q.type)}{isBlockedQuestionType(q.type) && <> <ComingSoonBadge label="Remove: coming soon" /></>} · {DIFFICULTY_LABEL[q.difficulty]} · {q.marks}m</span>
                           <button type="button" className="ul-tsw-iconbtn" onClick={() => setModal({ kind: "q", testWid: t.wid, qWid: q.wid })} aria-label="Edit question"><IconEdit size={13} /></button>
                           <button type="button" className="ul-tsw-iconbtn" disabled={qi === 0} onClick={() => moveQuestion(t.wid, qi, -1)} aria-label="Move up">↑</button>
                           <button type="button" className="ul-tsw-iconbtn" disabled={qi === t.questions.length - 1} onClick={() => moveQuestion(t.wid, qi, 1)} aria-label="Move down">↓</button>

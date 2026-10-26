@@ -337,6 +337,8 @@ describe("runner page", () => {
   beforeEach(() => vi.resetModules());
 
   it("asks the student to enter full screen before the questions appear", async () => {
+    // The runner shows the signed-in email as a watermark (EmailWatermark uses useAuth).
+    vi.doMock("../src/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "u-1", email: "student@test.local", role: "student" }, loading: false }) }));
     vi.doMock("../src/portals/student/services/attemptApi", async (orig) => ({
       ...(await orig()),
       attemptApi: fakeApi(),

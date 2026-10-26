@@ -6,7 +6,11 @@
 //    produces an outline only (test names, topics, counts) — never questions —
 //    and the UI says no external AI is connected.
 
-import { QUESTION_TYPE, DIFFICULTY, PRICING_TYPE, validateSeriesForPublish } from "./testSeriesMock";
+import { DIFFICULTY, PRICING_TYPE, validateSeriesForPublish } from "./testSeriesMock";
+import {
+  QTYPE, QUESTION_TYPE_OPTIONS, SUBJECTIVE_BLOCKED_MESSAGE, blankQuestionFields, isBlockedQuestionType, normalizeQuestionType,
+  questionTypeLabel, validateQuestionDraft,
+} from "./questionTypes";
 import { TOPIC_POOL } from "./aiTestBuilderMock";
 
 // Every series is standalone ("My own"): no link to any course.
@@ -39,18 +43,19 @@ export function questionKey(q) {
   return normalizeText(q && q.text);
 }
 
-export function emptyQuestion(type = QUESTION_TYPE.OBJECTIVE, defaults = {}) {
+// type: one of QTYPE (data/questionTypes.js). Legacy drafts used
+// "objective" / "subjective"; normalizeQuestionType maps them.
+export function emptyQuestion(type = QTYPE.MCQ_SINGLE, defaults = {}) {
+  const t = normalizeQuestionType(type) ?? QTYPE.MCQ_SINGLE;
   return {
     wid: wid("wq"),
-    type,
+    ...blankQuestionFields(t),
     text: "",
-    optionA: "", optionB: "", optionC: "", optionD: "",
-    correctAnswer: "",
     answerInstructions: "",
     rubric: "",
     image: "",
-    marks: type === QUESTION_TYPE.OBJECTIVE ? 4 : 5,
-    negativeMarks: type === QUESTION_TYPE.OBJECTIVE ? 1 : 0,
+    marks: 4,
+    negativeMarks: t === QTYPE.MCQ_SINGLE || t === QTYPE.MCQ_MULTI ? 1 : 0,
     difficulty: DIFFICULTY.MEDIUM,
     subject: "",
     topic: "",
@@ -62,7 +67,24 @@ export function emptyQuestion(type = QUESTION_TYPE.OBJECTIVE, defaults = {}) {
 // Wizard-local copy of a question from anywhere (bank / duplicated series / CSV).
 export function cloneQuestion(q) {
   const { id, bankId, key, source, ...rest } = q;
-  return { ...emptyQuestion(q.type), ...rest, wid: wid("wq") };
+  return normalizeWizardQuestion({ ...emptyQuestion(q.type), ...rest, wid: wid("wq") });
+}
+
+// Brings a saved / legacy wizard question onto the current type model.
+export function normalizeWizardQuestion(q) {
+  const type = normalizeQuestionType(q.type) ?? QTYPE.MCQ_SINGLE;
+  const correctAnswers = Array.isArray(q.correctAnswers) && q.correctAnswers.length
+    ? q.correctAnswers
+    : q.correctAnswer ? [q.correctAnswer] : [];
+  return { ...blankQuestionFields(type), ...q, type, correctAnswers, acceptedAnswer: q.acceptedAnswer || "" };
+}
+
+export function normalizeWizardState(state) {
+  return { ...state, tests: (state.tests || []).map((t) => ({ ...t, questions: (t.questions || []).map(normalizeWizardQuestion) })) };
+}
+
+export function blockedQuestionCount(tests) {
+  return (tests || []).reduce((n, t) => n + (t.questions || []).filter((q) => isBlockedQuestionType(q.type)).length, 0);
 }
 
 export function emptyTest(name = "") {
@@ -107,10 +129,15 @@ export function initialWizardState() {
 // ---------------------------------------------------------------- CSV import
 
 export const CSV_COLUMNS = ["question", "optionA", "optionB", "optionC", "optionD", "correct", "marks", "negative", "type", "difficulty", "subject", "topic", "explanation"];
+// type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C),
+// true_false (True / False, or A / B), fill_blank (the accepted answer in
+// "correct"). short_answer / long_answer / subjective rows are rejected (coming soon).
 export const CSV_TEMPLATE = [
   CSV_COLUMNS.join(","),
-  '"A body moving with uniform velocity has:","Zero acceleration","Uniform acceleration","Increasing acceleration","Decreasing acceleration",A,4,1,objective,easy,Physics,Kinematics,"Uniform velocity means no change in speed or direction."',
-  '"Explain Newton\'s second law with one example.",,,,,,5,0,subjective,medium,Physics,Laws of Motion,',
+  '"A body moving with uniform velocity has:","Zero acceleration","Uniform acceleration","Increasing acceleration","Decreasing acceleration",A,4,1,mcq,easy,Physics,Kinematics,"Uniform velocity means no change in speed or direction."',
+  '"Which of these are vector quantities?","Velocity","Speed","Force","Mass",A|C,4,1,mcq_multi,medium,Physics,Vectors,',
+  '"Light travels faster than sound.",,,,,True,2,0,true_false,easy,Physics,Waves,',
+  '"The SI unit of force is the ____.",,,,,newton,2,0,fill_blank,easy,Physics,Units,',
 ].join("\n");
 
 export function parseCsv(text) {
@@ -165,10 +192,18 @@ export function csvToRows(text) {
 export const ROW_STATUS = { VALID: "valid", INVALID: "invalid", INCOMPLETE: "incomplete", DUPLICATE: "duplicate" };
 
 function toType(v) {
+  return normalizeQuestionType(v);
+}
+
+// "A|C", "A;C", "A C", "AC" -> ["A", "C"]
+function letters(v) {
+  return [...new Set(String(v || "").toUpperCase().replace(/[^A-D]/g, "").split(""))].sort();
+}
+function trueFalseKey(v) {
   const t = String(v || "").trim().toLowerCase();
-  if (!t || t === "objective" || t === "mcq") return QUESTION_TYPE.OBJECTIVE;
-  if (t === "subjective") return QUESTION_TYPE.SUBJECTIVE;
-  return null;
+  if (t === "true" || t === "t" || t === "a") return "A";
+  if (t === "false" || t === "f" || t === "b") return "B";
+  return "";
 }
 function toDifficulty(v) {
   const d = String(v || "").trim().toLowerCase();
@@ -183,13 +218,23 @@ export function validateCsvRows(rows, existingKeys) {
     const incomplete = [];
     const invalid = [];
     const type = toType(r.type);
-    if (!type) invalid.push(`Unknown question type "${r.type}" (use objective or subjective).`);
+    const blocked = type && isBlockedQuestionType(type);
+    if (!type) invalid.push(`Unknown question type "${r.type}" (use mcq, mcq_multi, true_false or fill_blank).`);
+    else if (blocked) invalid.push(`Row type "${r.type}" is not supported yet. ${SUBJECTIVE_BLOCKED_MESSAGE}`);
     if (!r.question) incomplete.push("Question text is missing.");
-    if (type === QUESTION_TYPE.OBJECTIVE || (!type && r.optionA)) {
+    if (!blocked && (type === QTYPE.MCQ_SINGLE || type === QTYPE.MCQ_MULTI)) {
       ["optionA", "optionB", "optionC", "optionD"].forEach((k) => { if (!r[k]) incomplete.push(`${k.replace("option", "Option ")} is missing.`); });
       if (!r.correct) incomplete.push("Correct answer is missing.");
-      else if (!/^[A-D]$/i.test(r.correct)) invalid.push(`Correct answer "${r.correct}" must be A, B, C or D.`);
+      else if (type === QTYPE.MCQ_SINGLE && !/^[A-D]$/i.test(r.correct)) invalid.push(`Correct answer "${r.correct}" must be A, B, C or D.`);
+      else if (type === QTYPE.MCQ_MULTI && (letters(r.correct).length === 0 || /[^A-D|;,\s]/i.test(r.correct))) {
+        invalid.push(`Correct answers "${r.correct}" must be letters A–D, e.g. A|C.`);
+      }
     }
+    if (type === QTYPE.TRUE_FALSE) {
+      if (!r.correct) incomplete.push("Correct answer is missing (True or False).");
+      else if (!trueFalseKey(r.correct)) invalid.push(`Correct answer "${r.correct}" must be True or False.`);
+    }
+    if (type === QTYPE.FILL_BLANK && !r.correct) incomplete.push("Accepted answer is missing (put it in the correct column).");
     if (r.marks !== "" && !(Number(r.marks) > 0)) invalid.push(`Marks "${r.marks}" must be a positive number.`);
     if (r.negative !== "" && !(Number(r.negative) >= 0)) invalid.push(`Negative marks "${r.negative}" must be 0 or more.`);
     if (toDifficulty(r.difficulty) === null) invalid.push(`Difficulty "${r.difficulty}" must be easy, medium or hard.`);
@@ -206,13 +251,18 @@ export function validateCsvRows(rows, existingKeys) {
     }
     let question = null;
     if (status === ROW_STATUS.VALID) {
-      const isObj = type === QUESTION_TYPE.OBJECTIVE;
+      const isMcq = type === QTYPE.MCQ_SINGLE || type === QTYPE.MCQ_MULTI;
+      const keys = type === QTYPE.MCQ_MULTI ? letters(r.correct)
+        : type === QTYPE.MCQ_SINGLE ? [r.correct.toUpperCase()]
+        : type === QTYPE.TRUE_FALSE ? [trueFalseKey(r.correct)] : [];
       question = emptyQuestion(type, {
         text: r.question,
-        optionA: r.optionA, optionB: r.optionB, optionC: r.optionC, optionD: r.optionD,
-        correctAnswer: isObj ? r.correct.toUpperCase() : "",
-        marks: r.marks !== "" ? Number(r.marks) : isObj ? 4 : 5,
-        negativeMarks: r.negative !== "" ? Number(r.negative) : isObj ? 1 : 0,
+        optionA: isMcq ? r.optionA : "", optionB: isMcq ? r.optionB : "", optionC: isMcq ? r.optionC : "", optionD: isMcq ? r.optionD : "",
+        correctAnswer: keys[0] || "",
+        correctAnswers: keys,
+        acceptedAnswer: type === QTYPE.FILL_BLANK ? r.correct : "",
+        marks: r.marks !== "" ? Number(r.marks) : 4,
+        negativeMarks: r.negative !== "" ? Number(r.negative) : isMcq ? 1 : 0,
         difficulty: toDifficulty(r.difficulty),
         subject: r.subject, topic: r.topic, explanation: r.explanation,
       });
@@ -223,10 +273,8 @@ export function validateCsvRows(rows, existingKeys) {
 
 // ---------------------------------------------------------- Outline generator
 
-export const OUTLINE_TYPES = [
-  { value: QUESTION_TYPE.OBJECTIVE, label: "Objective (MCQ)" },
-  { value: QUESTION_TYPE.SUBJECTIVE, label: "Subjective" },
-];
+// Only the available question types (subjective ones are coming soon).
+export const OUTLINE_TYPES = QUESTION_TYPE_OPTIONS.filter((o) => o.available).map((o) => ({ value: o.value, label: o.label }));
 export const OUTLINE_DIFFICULTY = ["Easy", "Medium", "Hard", "Mixed"];
 
 export function topicSuggestions(subject) {
@@ -242,7 +290,9 @@ export function generateOutline(cfg, seed = 0) {
   const topics = baseTopics.length ? baseTopics : ["General"];
   const rot = topics.length ? seed % topics.length : 0;
   const ordered = [...topics.slice(rot), ...topics.slice(0, rot)];
-  const types = cfg.types && cfg.types.length ? cfg.types : [QUESTION_TYPE.OBJECTIVE];
+  const types = (cfg.types || []).filter((t) => !isBlockedQuestionType(t)).length
+    ? cfg.types.filter((t) => !isBlockedQuestionType(t))
+    : [QTYPE.MCQ_SINGLE];
   const perChunk = Math.max(1, Math.ceil(ordered.length / numTests));
   const out = [];
   for (let i = 0; i < numTests; i++) {
@@ -273,16 +323,18 @@ export function generateOutline(cfg, seed = 0) {
 export function derivedTestType(tests) {
   if (!tests.length) return "—";
   const qs = tests.flatMap((t) => t.questions);
-  const kinds = new Set(qs.map((q) => q.type));
-  const mix = kinds.size === 0 ? "no questions yet" : kinds.size === 2 ? "objective + subjective" : kinds.has(QUESTION_TYPE.OBJECTIVE) ? "objective" : "subjective";
+  const kinds = [...new Set(qs.map((q) => questionTypeLabel(q.type)))];
+  const mix = kinds.length === 0 ? "no questions yet" : kinds.join(" + ");
   return `${tests.length === 1 ? "Single test" : `Multi-test series (${tests.length} tests)`} · ${mix}`;
 }
 
 // ------------------------------------------------------------- Validation
 
+// Options / correct answer / accepted answer incomplete (subjective ones are
+// counted separately as blocked).
 function missingAnswer(q) {
-  if (q.type !== QUESTION_TYPE.OBJECTIVE) return false;
-  return !q.optionA || !q.optionB || !q.optionC || !q.optionD || !/^[A-D]$/.test(q.correctAnswer || "");
+  if (isBlockedQuestionType(q.type)) return false;
+  return validateQuestionDraft({ ...q, text: q.text || "x", marks: q.marks || 1 }).length > 0;
 }
 
 export function stripHtml(html) {
@@ -383,7 +435,13 @@ export function validateWizard(st, ctx) {
       if (missingAnswer(q)) missing += 1;
     });
   });
-  if (missing) errors.push(`${missing} objective question${missing === 1 ? " is" : "s are"} missing options or a correct answer.`);
+  if (missing) errors.push(`${missing} question${missing === 1 ? " is" : "s are"} missing options or a correct answer.`);
+  const blocked = blockedQuestionCount(st.tests);
+  if (blocked) {
+    const msg = `Remove the ${blocked} short / long / subjective question${blocked === 1 ? "" : "s"}: ${SUBJECTIVE_BLOCKED_MESSAGE}`;
+    errors.push(msg);
+    draftErrors.push(msg);
+  }
   if (dupCount) warnings.push(`${dupCount} duplicate question${dupCount === 1 ? "" : "s"} found across the series.`);
   const nameClash = (ctx.existingSeries || []).some((s) => s.name.trim().toLowerCase() === st.name.trim().toLowerCase());
   if (st.name.trim() && nameClash) warnings.push("Another series already uses this name.");

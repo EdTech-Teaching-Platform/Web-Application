@@ -19,6 +19,8 @@
 // admin chooses to save it as a real Test Series — nothing here touches
 // testSeriesMock.js itself.
 
+import { SUBJECTIVE_BLOCKED_MESSAGE, isBlockedQuestionType } from "./questionTypes";
+
 export const AI_QUESTION_TYPE = {
   MCQ: "mcq",
   MULTI_SELECT: "multi_select",
@@ -33,7 +35,26 @@ export const AI_QUESTION_TYPE_LABEL = {
   [AI_QUESTION_TYPE.SHORT_ANSWER]: "Short Answer",
   [AI_QUESTION_TYPE.LONG_ANSWER]: "Long Answer",
 };
-export const AI_QUESTION_TYPE_OPTIONS = Object.values(AI_QUESTION_TYPE);
+// Short / long answers are coming soon: they are not offered and are removed
+// from generated or pasted papers (see stripBlockedQuestions).
+export const AI_QUESTION_TYPE_OPTIONS = Object.values(AI_QUESTION_TYPE).filter((t) => !isBlockedQuestionType(t));
+
+// Removes short / long answer questions from a generated or parsed test and
+// says so in test.warnings (rejected, not silently dropped).
+export function stripBlockedQuestions(test) {
+  let removed = 0;
+  const sections = (test.sections || []).map((sec) => {
+    const kept = (sec.questions || []).filter((q) => !isBlockedQuestionType(q.type));
+    removed += (sec.questions || []).length - kept.length;
+    return { ...sec, questions: kept };
+  });
+  if (!removed) return test;
+  return {
+    ...test,
+    sections,
+    warnings: [...(test.warnings || []), `${removed} short / long answer question${removed === 1 ? " was" : "s were"} rejected. ${SUBJECTIVE_BLOCKED_MESSAGE}`],
+  };
+}
 
 export const EXAM_TYPE_OPTIONS = ["JEE", "NEET", "CBSE Board", "ICSE Board", "Bank PO", "SSC", "UPSC", "General / Custom"];
 export const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard", "Mixed"];
@@ -286,7 +307,7 @@ export function generateTest(config, existingStructure) {
       ? structure.sections
       : generateQuestionsForStructure(config, structure).sections;
 
-  return {
+  return stripBlockedQuestions({
     id: nextAiId("AITEST"),
     name: config.testName || "Untitled AI-Generated Test",
     subject: config.subject || "General",
@@ -301,7 +322,7 @@ export function generateTest(config, existingStructure) {
     sections,
     warnings: [],
     source: "ai",
-  };
+  });
 }
 
 export function createEmptyTest(name = "New Test") {
@@ -487,7 +508,7 @@ export function parseQuestionPaper(rawText) {
     warnings.push(anyAnswerFound ? "Some questions are missing an answer key — review before publishing." : "No answer key was found anywhere in the pasted text — correct answers are left blank for manual entry.");
   }
 
-  return {
+  return stripBlockedQuestions({
     id: nextAiId("AITEST"),
     name: "Pasted Question Paper",
     subject: "General",
@@ -502,7 +523,7 @@ export function parseQuestionPaper(rawText) {
     sections,
     warnings,
     source: "pasted",
-  };
+  });
 }
 
 function finalizeParsedQuestion(q, warnings) {

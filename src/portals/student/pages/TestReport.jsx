@@ -13,6 +13,7 @@ import { useStudentData } from "../hooks/useStudentData";
 import { attemptApi } from "../services/attemptApi";
 import { isRuleError } from "../services/studentRpc";
 import { formatDate, formatMinutes, formatPercent, formatScore, formatSeconds } from "../utils/format";
+import { FeedbackForm } from "../components/FeedbackForm";
 
 const STATUS = {
   correct: { label: "Correct", tone: "success" },
@@ -167,6 +168,7 @@ export default function TestReport() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { data: report, error, loading, reload } = useStudentData(() => attemptApi.report(attemptId), attemptId);
   const { data: intro } = useStudentData(
     () => (report?.test_id ? attemptApi.intro(report.test_id) : Promise.resolve(null)),
@@ -255,6 +257,17 @@ export default function TestReport() {
           </Tile>
         </div>
       </section>
+
+      <section className={`${CARD} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`} aria-label="Feedback">
+        <div>
+          <h2 className="font-display text-lg font-bold tracking-tight text-text">Something to tell us about this test?</h2>
+          <p className="text-sm text-text/60">Rate it, ask a question, or report a wrong answer or a problem.</p>
+        </div>
+        <button type="button" onClick={() => setFeedbackOpen(true)} className={HERO_BTN_YELLOW}>
+          Give feedback or report an issue
+        </button>
+      </section>
+      <FeedbackForm open={feedbackOpen} onClose={() => setFeedbackOpen(false)} attemptId={report.attempt_id ?? attemptId} questions={questions} />
 
       <section className="grid gap-6 lg:grid-cols-3">
         <div className={CARD}>

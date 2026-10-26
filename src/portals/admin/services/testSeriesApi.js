@@ -1,29 +1,36 @@
 import { callRpc, listResult } from "./adminApi";
+import { QTYPE, isBlockedQuestionType, normalizeQuestionType } from "../data/questionTypes";
 
 // Every read and write goes through SECURITY DEFINER RPCs: the lead's RLS
 // gives admins read-only access to test_series / quizzes / quiz_questions /
 // quiz_question_options, so direct table writes from the browser would fail.
 
-const OBJECTIVE_TYPES = ["objective", "mcq", "mcq_single", "single", "mcq_multi", "multi_select", "multiple_choice", "true_false"];
-// Text-answer questions store their accepted / model answer as the single
-// correct option; this placeholder means none was given (adm_text_answer).
+// Text-answer questions store their accepted answer as the single correct
+// option; this placeholder means none was given (adm_text_answer).
 const MANUAL_GRADING_PLACEHOLDER = "Manual grading: see rubric";
 
-function mapQuestion(question) {
+// type: one of QTYPE (data/questionTypes.js). A stored "mcq" / multiple_choice
+// with several correct options is an MCQ with multiple answers.
+// kind: "objective" | "subjective" (subjective = coming soon, read-only).
+export function mapQuestion(question) {
   const options = (question.options || []).slice().sort((a, b) => a.position - b.position);
-  const objective = OBJECTIVE_TYPES.includes(question.type);
-  const answerOption = options.find((o) => o.is_correct)?.label || "";
+  const correct = options.filter((o) => o.is_correct);
+  let type = normalizeQuestionType(question.type) ?? normalizeQuestionType(question.lead_type) ?? QTYPE.MCQ_SINGLE;
+  if (type === QTYPE.MCQ_SINGLE && correct.length > 1) type = QTYPE.MCQ_MULTI;
+  const answerLabel = correct[0]?.label || "";
   return {
     id: question.id,
-    type: objective ? "objective" : "subjective",
+    type,
+    kind: isBlockedQuestionType(type) ? "subjective" : "objective",
     storedType: question.type,
-    modelAnswer: objective || answerOption === MANUAL_GRADING_PLACEHOLDER ? "" : answerOption,
+    acceptedAnswer: type === QTYPE.FILL_BLANK && answerLabel !== MANUAL_GRADING_PLACEHOLDER ? answerLabel : "",
     text: question.body || "",
     optionA: options.find((o) => o.option_key === "A")?.label || "",
     optionB: options.find((o) => o.option_key === "B")?.label || "",
     optionC: options.find((o) => o.option_key === "C")?.label || "",
     optionD: options.find((o) => o.option_key === "D")?.label || "",
-    correctAnswer: options.find((o) => o.is_correct)?.option_key || "",
+    correctAnswer: correct[0]?.option_key || "",
+    correctAnswers: correct.map((o) => o.option_key),
     answerInstructions: question.answer_instructions || "",
     rubric: question.answer_instructions || "",
     marks: Number(question.marks || 0),

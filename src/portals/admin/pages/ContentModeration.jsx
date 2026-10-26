@@ -1,231 +1,148 @@
-// Content Moderation — issues handled by Regional Heads.
-//   • Resolved by Regional Heads — read-only view so the Admin can keep an eye
-//     on what Regional Heads resolved or rejected.
-//   • Escalated to Admin — issues Regional Heads escalated; the Admin resolves
-//     them (with a comment) and the Regional Head is notified.
-// Rows come from ../data/contentIssuesMock.js (one record per issue, with an
-// audit history).
+// Content Moderation — student feedback, queries and issue reports on tests.
+//   • Needs attention: new and in-review items.
+//   • Closed: resolved and dismissed items.
+// Data: services/moderationApi.js (list_moderation_items, get_moderation_stats,
+// get_moderation_item, set_moderation_status, get_moderation_filter_options).
+// Resolving or dismissing needs a note; the student sees it, and a resolved
+// item also sends the student a notification.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IconSearch, IconClose } from "../components/icons";
-import { REGIONS } from "../data/regionalHeadsMock";
-import {
-  CONTENT_TYPES,
-  ESCALATION_REASONS,
-  ISSUE_STATUS_LABEL,
-  ISSUE_STATUS_BADGE,
-  isResolvedSection,
-  isEscalatedSection,
-  useContentIssues,
-  adminResolve,
-} from "../data/contentIssuesMock";
+import { useRpc } from "../hooks/useRpc";
+import { KIND_LABEL, STATUS_ACTIONS, STATUS_LABEL, moderationApi } from "../services/moderationApi";
 import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./RegionalHeads.css";
 import "./ContentModeration.css";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
+const TAB_STATUSES = { open: ["new", "in_review"], closed: ["resolved", "dismissed"] };
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 const fmtDateTime = (d) =>
   d ? new Date(d).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+const stars = (n) => (n ? `${"★".repeat(n)}${"☆".repeat(5 - n)}` : "—");
 
-function StatusBadge({ status }) {
-  return <span className={`ul-status-badge ${ISSUE_STATUS_BADGE[status]}`}>{ISSUE_STATUS_LABEL[status]}</span>;
+function StatusBadge({ item }) {
+  return <span className={`ul-status-badge ${item.statusBadge}`}>{item.statusLabel}</span>;
 }
 
-const TABLES = {
-  resolved: {
-    statuses: ["resolved", "head_rejected"],
-    columns: [
-      { key: "id", label: "Issue ID", sort: (i) => i.id },
-      { key: "title", label: "Content", sort: (i) => i.title.toLowerCase() },
-      { key: "contentType", label: "Type", sort: (i) => i.contentType },
-      { key: "flaggedBy", label: "Flagged by", sort: (i) => i.flaggedBy.toLowerCase() },
-      { key: "headName", label: "Regional Head", sort: (i) => i.headName.toLowerCase() },
-      { key: "region", label: "Region", sort: (i) => i.region },
-      { key: "resolution", label: "Resolution", sort: null },
-      { key: "flaggedAt", label: "Flagged", sort: (i) => i.flaggedAt },
-      { key: "headResolvedAt", label: "Closed", sort: (i) => i.headResolvedAt || "" },
-      { key: "status", label: "Status", sort: (i) => i.status },
-    ],
-  },
-  escalated: {
-    statuses: ["escalated", "admin_resolved"],
-    columns: [
-      { key: "id", label: "Issue ID", sort: (i) => i.id },
-      { key: "title", label: "Content", sort: (i) => i.title.toLowerCase() },
-      { key: "contentType", label: "Type", sort: (i) => i.contentType },
-      { key: "flaggedBy", label: "Flagged by", sort: (i) => i.flaggedBy.toLowerCase() },
-      { key: "headName", label: "Escalated by", sort: (i) => i.headName.toLowerCase() },
-      { key: "region", label: "Region", sort: (i) => i.region },
-      { key: "escalationReason", label: "Reason", sort: (i) => i.escalationReason },
-      { key: "flaggedAt", label: "Flagged", sort: (i) => i.flaggedAt },
-      { key: "escalatedAt", label: "Escalated", sort: (i) => i.escalatedAt || "" },
-      { key: "resolution", label: "Resolution", sort: null },
-      { key: "status", label: "Status", sort: (i) => i.status },
-      { key: "action", label: "Action", sort: null },
-    ],
-  },
-};
-
-function cell(i, key, section) {
-  switch (key) {
-    case "id": return <span className="ul-rh-strong">{i.id}</span>;
-    case "title":
-      return (
-        <div className="ul-cmi-title">
-          <span className="ul-rh-strong">{i.title}</span>
-          <span className="ul-rh-sub">{i.contentRef}</span>
-        </div>
-      );
-    case "region": return <span className="ul-rh-region-chip">{i.region}</span>;
-    case "resolution": return <span className="ul-cmi-clip" title={i.resolution}>{i.resolution || "—"}</span>;
-    case "escalationReason": return <span className="ul-cmi-clip" title={i.escalationNote}>{i.escalationReason || "—"}</span>;
-    case "flaggedAt": return fmtDate(i.flaggedAt);
-    case "headResolvedAt": return fmtDate(i.headResolvedAt);
-    case "escalatedAt": return fmtDate(i.escalatedAt);
-    case "status": return <StatusBadge status={i.status} />;
-    case "action":
-      return (
-        <button type="button" className="ul-btn ul-btn--ghost ul-rh-btn">
-          {i.status === "escalated" ? "Resolve" : "View"}
-        </button>
-      );
-    default: return i[key];
-  }
-}
-
-function IssueTable({ section, issues, onOpen, setToast }) {
-  const cfg = TABLES[section];
+/* ---------------- list ---------------- */
+function ItemTable({ tab, onOpen, reloadKey }) {
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [region, setRegion] = useState("all");
-  const [head, setHead] = useState("all");
-  const [type, setType] = useState("all");
+  const [kind, setKind] = useState("all");
   const [status, setStatus] = useState("all");
-  const [reason, setReason] = useState("all");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [sort, setSort] = useState({ key: section === "escalated" ? "escalatedAt" : "headResolvedAt", dir: "desc" });
+  const [series, setSeries] = useState("all");
   const [page, setPage] = useState(1);
 
-  const heads = useMemo(() => [...new Set(issues.map((i) => i.headName))].sort(), [issues]);
-  const hasFilters = search || region !== "all" || head !== "all" || type !== "all" || status !== "all" || reason !== "all" || from || to;
+  // Debounced search.
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const fromMs = from ? new Date(from).getTime() : null;
-    const toMs = to ? new Date(to).getTime() + 86399999 : null;
-    const col = cfg.columns.find((c) => c.key === sort.key);
-    const list = issues.filter((i) => {
-      if (q && !`${i.id} ${i.title} ${i.contentRef} ${i.flaggedBy} ${i.headName} ${i.region} ${i.resolution} ${i.escalationReason} ${i.flagReason}`.toLowerCase().includes(q)) return false;
-      if (region !== "all" && i.region !== region) return false;
-      if (head !== "all" && i.headName !== head) return false;
-      if (type !== "all" && i.contentType !== type) return false;
-      if (status !== "all" && i.status !== status) return false;
-      if (reason !== "all" && i.escalationReason !== reason) return false;
-      const t = new Date(i.flaggedAt).getTime();
-      if (fromMs !== null && t < fromMs) return false;
-      if (toMs !== null && t > toMs) return false;
-      return true;
-    });
-    if (col && col.sort) {
-      list.sort((a, b) => {
-        const x = col.sort(a), y = col.sort(b);
-        return (x < y ? -1 : x > y ? 1 : 0) * (sort.dir === "asc" ? 1 : -1);
-      });
-    }
-    return list;
-  }, [issues, search, region, head, type, status, reason, from, to, sort, cfg]);
+  const options = useRpc(useCallback(() => moderationApi.filterOptions(), []));
+  const request = useCallback(
+    () => moderationApi.list({ search, kind, status: status === "all" ? tab : status, series, page, size: PAGE_SIZE }),
+    // reloadKey re-runs the list after a status change in the detail modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [search, kind, status, series, page, tab, reloadKey],
+  );
+  const list = useRpc(request);
 
-  useEffect(() => { setPage(1); }, [search, region, head, type, status, reason, from, to]);
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const current = Math.min(page, pageCount);
-  const visible = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const setFilter = (setter) => (e) => { setter(e.target.value); setPage(1); };
+  const hasFilters = searchInput || kind !== "all" || status !== "all" || series !== "all";
+  const clear = () => { setSearchInput(""); setSearch(""); setKind("all"); setStatus("all"); setSeries("all"); setPage(1); };
 
-  const clear = () => { setSearch(""); setRegion("all"); setHead("all"); setType("all"); setStatus("all"); setReason("all"); setFrom(""); setTo(""); };
-  const toggleSort = (c) => {
-    if (!c.sort) return;
-    setSort((s) => (s.key === c.key ? { key: c.key, dir: s.dir === "asc" ? "desc" : "asc" } : { key: c.key, dir: "asc" }));
-  };
+  const rows = list.data?.rows ?? [];
+  const total = list.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
       <div className="ul-edu-toolbar ul-cmi-toolbar">
         <label className="ul-edu-search">
           <IconSearch size={14} color="var(--color-text-muted)" />
-          <input type="text" placeholder="Search by ID, content, person or region…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          {search && (
-            <button type="button" className="ul-edu-search__clear" onClick={() => setSearch("")} aria-label="Clear search"><IconClose size={12} /></button>
+          <input type="text" placeholder="Search message, student, series or test…" value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)} aria-label="Search" />
+          {searchInput && (
+            <button type="button" className="ul-edu-search__clear" onClick={() => setSearchInput("")} aria-label="Clear search"><IconClose size={12} /></button>
           )}
         </label>
-        <select className="ul-edu-select" value={region} onChange={(e) => setRegion(e.target.value)}>
-          <option value="all">Region: All</option>
-          {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+        <select className="ul-edu-select" value={kind} onChange={setFilter(setKind)} aria-label="Kind">
+          <option value="all">Kind: All</option>
+          {Object.entries(KIND_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <select className="ul-edu-select" value={head} onChange={(e) => setHead(e.target.value)}>
-          <option value="all">Regional Head: All</option>
-          {heads.map((h) => <option key={h} value={h}>{h}</option>)}
+        <select className="ul-edu-select" value={status} onChange={setFilter(setStatus)} aria-label="Status">
+          <option value="all">Status: All</option>
+          {TAB_STATUSES[tab].map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
         </select>
-        <select className="ul-edu-select" value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="all">Type: All</option>
-          {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        <select className="ul-edu-select" value={series} onChange={setFilter(setSeries)} aria-label="Series">
+          <option value="all">Series: All</option>
+          {(options.data?.series ?? []).map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
         </select>
-        {(
-          <select className="ul-edu-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">Status: All</option>
-            {cfg.statuses.map((s) => <option key={s} value={s}>{ISSUE_STATUS_LABEL[s]}</option>)}
-          </select>
-        )}
-        {section === "escalated" && (
-          <select className="ul-edu-select" value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="all">Reason: All</option>
-            {ESCALATION_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-        )}
-        <label className="ul-cmi-date"><span>Flagged from</span><input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="ul-cmi-date"><span>to</span><input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></label>
         {hasFilters && <button type="button" className="ul-btn ul-btn--ghost ul-rh-btn" onClick={clear}>Clear</button>}
       </div>
 
       <div className="ul-card ul-edu-table-card">
-        {rows.length === 0 ? (
+        {list.loading && !list.data ? (
+          <div className="ul-edu-empty" role="status">Loading…</div>
+        ) : list.error ? (
+          <div className="ul-edu-empty" role="alert">
+            Couldn't load items: {list.error.message}{" "}
+            <button type="button" className="ul-btn ul-btn--ghost ul-rh-btn" onClick={() => list.refetch().catch(() => {})}>Retry</button>
+          </div>
+        ) : rows.length === 0 ? (
           <div className="ul-edu-empty">
-            {issues.length === 0
-              ? section === "resolved" ? "No issues have been resolved or rejected by Regional Heads yet." : "No issues have been escalated to Admin."
-              : "No issues match these filters."}
+            {hasFilters ? "No items match these filters."
+              : tab === "open" ? "Nothing needs attention. New feedback and reports from students appear here."
+              : "No resolved or dismissed items yet."}
           </div>
         ) : (
           <div className="ul-edu-table-scroll ul-cmi-scroll">
             <table className="ul-edu-table ul-cmi-table">
               <thead>
                 <tr>
-                  {cfg.columns.map((c) => (
-                    <th key={c.key} className={c.sort ? "is-sortable" : ""} aria-sort={sort.key === c.key ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}>
-                      {c.label}
-                    </th>
-                  ))}
+                  <th>Received</th>
+                  <th>Student</th>
+                  <th>Series / Test</th>
+                  <th>Kind</th>
+                  <th>Rating</th>
+                  <th>Message</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {visible.map((i) => (
+                {rows.map((i) => (
                   <tr key={i.id} className="ul-edu-row--clickable" onClick={() => onOpen(i.id)}>
-                    {cfg.columns.map((c) => <td key={c.key}>{cell(i, c.key, section)}</td>)}
+                    <td>{fmtDateTime(i.createdAt)}</td>
+                    <td><div className="ul-cmi-title"><span className="ul-rh-strong">{i.student.name}</span><span className="ul-rh-sub">{i.student.email}</span></div></td>
+                    <td><div className="ul-cmi-title"><span className="ul-rh-strong">{i.series.title}</span><span className="ul-rh-sub">{i.test.title || "—"}</span></div></td>
+                    <td>{i.kindLabel}{i.categoryLabel && <span className="ul-rh-sub"> · {i.categoryLabel}</span>}</td>
+                    <td aria-label={i.rating ? `${i.rating} of 5` : "No rating"}>{stars(i.rating)}</td>
+                    <td><span className="ul-cmi-clip" title={i.message}>{i.message}</span></td>
+                    <td><StatusBadge item={i} /></td>
+                    <td>
+                      <button type="button" className="ul-btn ul-btn--ghost ul-rh-btn" onClick={(e) => { e.stopPropagation(); onOpen(i.id); }}>
+                        {tab === "open" ? "Review" : "View"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        {rows.length > 0 && (
+        {total > 0 && (
           <div className="ul-edu-pagination">
-            <span className="ul-edu-pagination__info">Showing {(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, rows.length)} of {rows.length}</span>
+            <span className="ul-edu-pagination__info">Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}</span>
             <div className="ul-edu-pagination__controls">
-              <button type="button" disabled={current === 1} onClick={() => setPage(current - 1)}>Prev</button>
-              <span>{current} / {pageCount}</span>
-              <button type="button" disabled={current === pageCount} onClick={() => setPage(current + 1)}>Next</button>
+              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
+              <span>{page} / {pageCount}</span>
+              <button type="button" disabled={page >= pageCount} onClick={() => setPage(page + 1)}>Next</button>
             </div>
           </div>
         )}
@@ -234,106 +151,123 @@ function IssueTable({ section, issues, onOpen, setToast }) {
   );
 }
 
-/* ---------------- detail modal ---------------- */
+/* ---------------- detail ---------------- */
 function Fact({ label, children }) {
   return (<><dt>{label}</dt><dd>{children}</dd></>);
 }
 
-function IssueDetail({ issue, onClose, setToast }) {
-  const bodyRef = useRef(null);
-  const [resolving, setResolving] = useState(false);
-  const [comment, setComment] = useState("");
+export function ItemDetail({ id, onClose, onChanged, setToast, api = moderationApi }) {
+  const detail = useRpc(useCallback(() => api.get(id), [api, id]));
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState("");
   const [error, setError] = useState("");
+  const item = detail.data;
 
-  useEffect(() => { setResolving(false); setComment(""); setError(""); }, [issue.id, issue.status]);
-
-  const canResolve = issue.status === "escalated";
-
-  const submit = () => {
-    const res = adminResolve(issue.id, comment);
-    if (!res.ok) { setError(res.error); return; }
-    setToast(`${issue.id} resolved — ${issue.headName} has been notified.`);
-    if (bodyRef.current) bodyRef.current.scrollTop = 0;
-    setResolving(false); setComment(""); setError("");
+  const act = async (action) => {
+    if (action.needsNote && !note.trim()) { setError("Add a note for the student before you resolve or dismiss."); return; }
+    setSaving(action.status);
+    setError("");
+    try {
+      await api.setStatus(id, action.status, note);
+      setToast(`Marked ${STATUS_LABEL[action.status].toLowerCase()}.${action.status === "resolved" ? " The student has been notified." : ""}`);
+      setNote("");
+      await detail.refetch().catch(() => {});
+      onChanged?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving("");
+    }
   };
 
   return (
     <div className="ul-cmi-backdrop" onClick={onClose}>
-      <div className="ul-cmi-modal" role="dialog" aria-modal="true" aria-label={`Issue ${issue.id}`} onClick={(e) => e.stopPropagation()}>
+      <div className="ul-cmi-modal" role="dialog" aria-modal="true" aria-label="Moderation item" onClick={(e) => e.stopPropagation()}>
         <div className="ul-cmi-modal__head">
           <div>
-            <div className="ul-cmi-modal__id">{issue.id} · {issue.contentType}</div>
-            <h3 className="ul-cmi-modal__title">{issue.title}</h3>
+            <div className="ul-cmi-modal__id">{item ? `${item.kindLabel}${item.categoryLabel ? ` · ${item.categoryLabel}` : ""}` : "Loading…"}</div>
+            <h3 className="ul-cmi-modal__title">{item ? `${item.series.title}${item.test.title ? ` — ${item.test.title}` : ""}` : ""}</h3>
           </div>
           <div className="ul-cmi-modal__headright">
-            <StatusBadge status={issue.status} />
+            {item && <StatusBadge item={item} />}
             <button type="button" className="ul-cmi-x" onClick={onClose} aria-label="Close"><IconClose size={14} /></button>
           </div>
         </div>
 
-        <div className="ul-cmi-modal__body" ref={bodyRef}>
-          <dl className="ul-cmi-facts">
-            <Fact label="Content">{issue.contentRef || "—"}</Fact>
-            <Fact label="Region">{issue.region}</Fact>
-            <Fact label="Flagged by">{issue.flaggedBy}</Fact>
-            <Fact label="Regional Head">{issue.headName}</Fact>
-            <Fact label="Date flagged">{fmtDateTime(issue.flaggedAt)}</Fact>
-            {issue.status !== "escalated" && issue.status !== "admin_resolved" && <Fact label="Closed by head">{fmtDateTime(issue.headResolvedAt)}</Fact>}
-            {issue.escalatedAt && <Fact label="Date escalated">{fmtDateTime(issue.escalatedAt)}</Fact>}
-            {issue.closedAt && <Fact label="Resolved by Admin">{fmtDateTime(issue.closedAt)}</Fact>}
-          </dl>
-
-          {issue.resolution && (
-            <div className="ul-cmi-resolution">
-              <h4 className="ul-cmi-h">{issue.status === "head_rejected" ? "Rejection reason" : issue.status === "admin_resolved" ? "Resolution (by Admin)" : "Resolution"}</h4>
-              <p className="ul-cmi-p">{issue.resolution}</p>
-            </div>
-          )}
-          <h4 className="ul-cmi-h">Original flag reason</h4>
-          <p className="ul-cmi-p"><strong>{issue.flagReason}</strong>{issue.description ? ` — ${issue.description}` : ""}</p>
-
-          {issue.escalationReason && (
+        <div className="ul-cmi-modal__body">
+          {detail.loading && !item ? (
+            <p className="ul-cmi-p" role="status">Loading…</p>
+          ) : detail.error ? (
+            <p className="ul-rh-error" role="alert">Couldn't load this item: {detail.error.message}</p>
+          ) : item && (
             <>
-              <h4 className="ul-cmi-h">Escalation reason</h4>
-              <p className="ul-cmi-p"><strong>{issue.escalationReason}</strong>{issue.escalationNote ? ` — ${issue.escalationNote}` : ""}</p>
+              <dl className="ul-cmi-facts">
+                <Fact label="Student">{item.student.name}{item.student.email ? ` (${item.student.email})` : ""}</Fact>
+                <Fact label="Received">{fmtDateTime(item.createdAt)}</Fact>
+                {item.rating && <Fact label="Rating">{stars(item.rating)} ({item.rating}/5)</Fact>}
+                {item.attempt && (
+                  <Fact label="Attempt">
+                    #{item.attempt.number} · {item.attempt.percentage ?? "—"}% · submitted {fmtDateTime(item.attempt.submittedAt)}
+                  </Fact>
+                )}
+                {item.reviewedAt && <Fact label="Last reviewed">{fmtDateTime(item.reviewedAt)}{item.reviewedByName ? ` by ${item.reviewedByName}` : ""}</Fact>}
+              </dl>
+
+              <h4 className="ul-cmi-h">Message</h4>
+              <p className="ul-cmi-p" style={{ whiteSpace: "pre-line" }}>{item.message}</p>
+
+              {item.question && (
+                <>
+                  <h4 className="ul-cmi-h">Question {item.question.position}</h4>
+                  <p className="ul-cmi-p">{item.question.text}</p>
+                </>
+              )}
+
+              {item.adminNote && (
+                <div className="ul-cmi-resolution">
+                  <h4 className="ul-cmi-h">Note to the student</h4>
+                  <p className="ul-cmi-p">{item.adminNote}</p>
+                </div>
+              )}
+
+              <h4 className="ul-cmi-h">History</h4>
+              {item.history.length === 0 ? (
+                <p className="ul-cmi-muted">No actions yet.</p>
+              ) : (
+                <ol className="ul-cmi-history">
+                  {[...item.history].reverse().map((h, i) => (
+                    <li key={i}>
+                      <span className="ul-cmi-history__dot" />
+                      <div>
+                        <div className="ul-cmi-history__top"><strong>{h.from} → {h.to}</strong><span>{h.actorName}</span></div>
+                        {h.note && <div className="ul-cmi-history__note">{h.note}</div>}
+                        <small>{fmtDateTime(h.at)}</small>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </>
           )}
-
-          <h4 className="ul-cmi-h">History</h4>
-          <ol className="ul-cmi-history">
-            {[...issue.history].reverse().map((h) => (
-              <li key={h.id}>
-                <span className="ul-cmi-history__dot" />
-                <div>
-                  <div className="ul-cmi-history__top"><strong>{h.action}</strong><span>{h.actor} · {h.role}</span></div>
-                  {h.note && <div className="ul-cmi-history__note">{h.note}</div>}
-                  <small>{fmtDateTime(h.at)}</small>
-                </div>
-              </li>
-            ))}
-          </ol>
         </div>
 
-        {canResolve && (
-        <div className="ul-cmi-modal__foot">
-          {resolving ? (
+        {item && (
+          <div className="ul-cmi-modal__foot">
             <div className="ul-cmi-actionbox">
-              <div className="ul-cmi-actionbox__title">Resolve this issue</div>
-              <p className="ul-cmi-muted">{issue.headName} is notified with your comment.</p>
-              <label className="ul-cmi-label">Resolution comment *</label>
-              <textarea rows={3} value={comment} onChange={(e) => { setComment(e.target.value); setError(""); }} />
-              {error && <p className="ul-rh-error">{error}</p>}
+              <label className="ul-cmi-label" htmlFor="mod-note">Note to the student (required to resolve or dismiss)</label>
+              <textarea id="mod-note" rows={3} maxLength={2000} value={note} onChange={(e) => { setNote(e.target.value); setError(""); }} />
+              {error && <p className="ul-rh-error" role="alert">{error}</p>}
               <div className="ul-cmi-btnrow">
-                <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { setResolving(false); setError(""); }}>Cancel</button>
-                <button type="button" className="ul-btn ul-btn--primary" onClick={submit}>Resolve</button>
+                {STATUS_ACTIONS.filter((a) => a.status !== item.status).map((a) => (
+                  <button key={a.status} type="button"
+                    className={`ul-btn ${a.status === "resolved" ? "ul-btn--primary" : "ul-btn--ghost"}`}
+                    disabled={!!saving} onClick={() => act(a)}>
+                    {saving === a.status ? "Saving…" : a.label}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="ul-cmi-btnrow">
-              <button type="button" className="ul-btn ul-btn--primary" onClick={() => setResolving(true)}>Resolve</button>
-            </div>
-          )}
-        </div>
+          </div>
         )}
       </div>
     </div>
@@ -342,11 +276,12 @@ function IssueDetail({ issue, onClose, setToast }) {
 
 /* ---------------- page ---------------- */
 export default function ContentModeration() {
-  const issues = useContentIssues();
   const [params, setParams] = useSearchParams();
-  const [tab, setTab] = useState(["resolved", "escalated"].includes(params.get("tab")) ? params.get("tab") : "resolved");
-  const [openId, setOpenId] = useState(params.get("issue"));
+  const [tab, setTab] = useState(params.get("tab") === "closed" ? "closed" : "open");
+  const [openId, setOpenId] = useState(params.get("item"));
   const [toast, setToast] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const stats = useRpc(useCallback(() => moderationApi.stats(), []));
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -354,26 +289,20 @@ export default function ContentModeration() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const resolvedIssues = useMemo(() => issues.filter(isResolvedSection), [issues]);
-  const escalatedIssues = useMemo(() => issues.filter(isEscalatedSection), [issues]);
-  const stats = useMemo(() => ({
-    resolved: issues.filter((i) => i.status === "resolved").length,
-    rejected: issues.filter((i) => i.status === "head_rejected").length,
-    escalated: escalatedIssues.length,
-    awaiting: issues.filter((i) => i.status === "escalated").length,
-  }), [issues, escalatedIssues]);
-
-  const selected = openId ? issues.find((i) => i.id === openId) : null;
   const close = () => {
     setOpenId(null);
-    if (params.get("issue")) { const p = new URLSearchParams(params); p.delete("issue"); setParams(p, { replace: true }); }
+    if (params.get("item")) { const p = new URLSearchParams(params); p.delete("item"); setParams(p, { replace: true }); }
   };
+  const changed = () => { setReloadKey((k) => k + 1); stats.refetch().catch(() => {}); };
 
+  const s = stats.data;
   const cards = [
-    { key: "resolved", label: "Resolved by Regional Heads", value: stats.resolved, note: "View", go: "resolved" },
-    { key: "rejected", label: "Rejected by Regional Heads", value: stats.rejected, note: "View", go: "resolved" },
-    { key: "escalated", label: "Escalated to Admin", value: stats.escalated, note: "View", go: "escalated" },
-    { key: "awaiting", label: "Awaiting Admin Review", value: stats.awaiting, note: "Needs your action", go: "escalated" },
+    { key: "new", label: "New", value: s?.new, note: "Needs your action", go: "open" },
+    { key: "in_review", label: "In review", value: s?.in_review, note: "View", go: "open" },
+    { key: "resolved", label: "Resolved", value: s?.resolved, note: "View", go: "closed" },
+    { key: "dismissed", label: "Dismissed", value: s?.dismissed, note: "View", go: "closed" },
+    { key: "rating", label: "Average rating", value: s?.avg_rating != null ? `${Number(s.avg_rating).toFixed(1)} / 5` : "—",
+      note: s ? `${s.by_kind?.feedback ?? 0} feedback · ${s.by_kind?.query ?? 0} queries · ${s.by_kind?.issue ?? 0} issues` : "", go: null },
   ];
 
   return (
@@ -381,32 +310,32 @@ export default function ContentModeration() {
       <div className="ul-edu-header">
         <div>
           <h2 className="ul-edu-header__title">Content Moderation</h2>
-          <p className="ul-edu-header__subtitle">Keep an eye on what Regional Heads resolved or rejected, and resolve the issues they escalated to you.</p>
+          <p className="ul-edu-header__subtitle">Feedback, questions and issue reports that students sent about their tests. Review them, reply and close them.</p>
         </div>
       </div>
 
       <div className="ul-cm-quickstats">
         {cards.map((c) => (
-          <button key={c.key} type="button" className="ul-stat-card ul-cm-stat-card ul-cm-quickstat-button" onClick={() => setTab(c.go)}>
+          <button key={c.key} type="button" className="ul-stat-card ul-cm-stat-card ul-cm-quickstat-button"
+            onClick={() => c.go && setTab(c.go)} disabled={!c.go}>
             <span className="ul-stat-card__label">{c.label.toUpperCase()}</span>
-            <span className="ul-stat-card__value">{c.value}</span>
+            <span className="ul-stat-card__value">{stats.loading && !s ? "…" : stats.error ? "—" : c.value ?? 0}</span>
             <span className="ul-stat-card__trend is-up">{c.note}</span>
           </button>
         ))}
       </div>
+      {stats.error && <p className="ul-rh-error" role="alert">Couldn't load the counts: {stats.error.message}</p>}
 
       <div className="ul-edp-tabs" role="tablist">
-        <button type="button" role="tab" className={`ul-edp-tab${tab === "resolved" ? " is-active" : ""}`} onClick={() => setTab("resolved")}>Resolved by Regional Heads</button>
-        <button type="button" role="tab" className={`ul-edp-tab${tab === "escalated" ? " is-active" : ""}`} onClick={() => setTab("escalated")}>
-          Escalated to Admin{stats.awaiting > 0 && <span className="ul-edp-tab__dot" />}
-        </button>
+        <button type="button" role="tab" aria-selected={tab === "open"} className={`ul-edp-tab${tab === "open" ? " is-active" : ""}`} onClick={() => setTab("open")}>Needs attention</button>
+        <button type="button" role="tab" aria-selected={tab === "closed"} className={`ul-edp-tab${tab === "closed" ? " is-active" : ""}`} onClick={() => setTab("closed")}>Closed</button>
       </div>
 
-      {tab === "resolved" && <IssueTable key="resolved" section="resolved" issues={resolvedIssues} onOpen={setOpenId} setToast={setToast} />}
-      {tab === "escalated" && <IssueTable key="escalated" section="escalated" issues={escalatedIssues} onOpen={setOpenId} setToast={setToast} />}
+      <ItemTable key={tab} tab={tab} onOpen={setOpenId} reloadKey={reloadKey} />
 
-      {selected && <IssueDetail issue={selected} onClose={close} setToast={setToast} />}
-      {toast && <div className="ul-usr-toast">{toast}</div>}
+      {openId && <ItemDetail id={openId} onClose={close} onChanged={changed} setToast={setToast} />}
+      {toast && <div className="ul-set-toast" role="status">{toast}</div>}
     </div>
   );
 }
+

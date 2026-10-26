@@ -36,6 +36,8 @@ import {
   IconEyeOff, IconCheck, IconChevronLeft, IconChevronRight, IconSparkle,
 } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
+import ComingSoonBadge from "../components/ComingSoonBadge";
+import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
 import TestSeriesDetail from "./TestSeriesDetail";
 import TestDetail from "./TestDetail";
 import "./AdminDashboard.css";
@@ -278,9 +280,17 @@ export default function TestSeries() {
         </div>
         {tab === "series" && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <button type="button" className="ul-btn ul-btn--ghost" onClick={() => navigate("/admin/testseries/ai-builder")}>
+            {/* AI-assisted building is coming soon: the button stays visible but disabled. */}
+            <button
+              type="button"
+              className="ul-btn ul-btn--ghost"
+              disabled={!AI_ENABLED}
+              aria-disabled={!AI_ENABLED || undefined}
+              title={AI_ENABLED ? undefined : AI_COMING_SOON}
+              onClick={AI_ENABLED ? () => navigate("/admin/testseries/ai-builder") : undefined}
+            >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <IconSparkle size={14} /> AI Test Builder
+                <IconSparkle size={14} /> AI Test Builder {!AI_ENABLED && <ComingSoonBadge />}
               </span>
             </button>
             <button type="button" className="ul-btn ul-btn--primary" onClick={() => navigate("/admin/testseries/new")}>

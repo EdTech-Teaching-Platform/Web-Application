@@ -409,6 +409,49 @@ Definitions:
 - **`continue_learning`:** unexpired in-progress attempts, at most 5.
 - **`recent_history`:** finished attempts, at most 5.
 
+## Feedback, queries and issue reports
+
+Defined in `supabase/migrations/20261027100200_feedback_rpc_student.sql`. Admins
+handle the items on the Content Moderation page (`20261027100300`).
+
+### `student_submit_feedback(p_attempt_id uuid, p_kind text, p_rating int = null, p_category text = null, p_question_id uuid = null, p_message text = null)` → `uuid`
+
+Returns the new item's id.
+
+- **Attempt:** must be the caller's (`P0002` otherwise) and finished, meaning
+  `submitted` or `timed_out` (`P0001` "Submit the test before sending
+  feedback."). The series and test come from the attempt.
+- **`p_kind`:** `feedback` | `query` | `issue` (`22023` otherwise).
+- **`p_rating`:** 1–5, **required for `feedback`**, and ignored (stored as
+  null) for the other kinds.
+- **`p_category`** (optional): `wrong_answer` | `unclear_question` |
+  `technical_problem` | `other`.
+- **`p_question_id`** (optional): must be a question of the attempt's test.
+- **`p_message`:** trimmed, 5–2000 characters.
+- **Daily limit:** at most **5 per student per series per calendar day**
+  (Asia/Kolkata). The 6th gets `P0001` "You can send up to 5 messages per test
+  series each day. Try again tomorrow."
+- **Account:** signed in, has a profile, not blocked (`42501`).
+
+### `student_my_feedback(p_series_id uuid = null)` → `item[]`
+
+The caller's own items, newest first (at most 100). `null` means every
+series.
+
+```json
+[{ "id": "uuid", "kind": "feedback|query|issue", "rating": 4, "category": "wrong_answer|…|null",
+   "message": "text", "status": "new|in_review|resolved|dismissed", "admin_note": "text|null",
+   "series_id": "uuid", "series_title": "text", "test_id": "uuid|null", "test_title": "text|null",
+   "attempt_id": "uuid|null", "question_id": "uuid|null", "question_position": 3,
+   "created_at": "…", "reviewed_at": "…|null" }]
+```
+
+- **`admin_note`:** the admin's reply. It's required when an item is
+  resolved or dismissed.
+- **Notification:** a resolved item also notifies the student in the lead's
+  `notifications` (category `support_ticket`, `reference_type`
+  `test_feedback`).
+
 ## Not covered (by design, for now)
 
 - **Lesson quizzes outside a test series** (`quizzes.series_id` is null).

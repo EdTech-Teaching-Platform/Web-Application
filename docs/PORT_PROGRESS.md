@@ -99,6 +99,199 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-10-27: AI and subjective "coming soon", test feedback and moderation (written, nothing applied)
+
+### 1. AI-assisted building: coming soon
+
+- **Flag:** `src/portals/admin/utils/featureFlags.js` has `AI_ENABLED = false`.
+- **AI Test Builder button** (`TestSeries.jsx`): disabled, with a "Coming soon"
+  badge.
+- **AI Test Builder page** (`/admin/testseries/ai-builder`; route and file
+  kept):
+  - a "Coming soon" badge and notice;
+  - every control inside a disabled `<fieldset>`;
+  - `handleGenerate`, `startManual`, `openSave` and `handleSaveConfirm` return
+    early.
+- **Wizard "AI-assisted outline" start:** a disabled card with the badge.
+  `chooseMethod` refuses it, the outline panel is never rendered, and a saved
+  draft with `startMethod: "ai"` restarts at the method step.
+- **No code path starts an AI job:**
+  - nothing in `src/` invokes the `ai-generate-test` Edge Function, which isn't
+    deployed either;
+  - the AI Test Builder's generator is the local template mock, now unreachable.
+
+### 2. Subjective questions: coming soon (frontend)
+
+- **`src/portals/admin/data/questionTypes.js`:** the question types.
+  - Available: `mcq_single`, `mcq_multi`, `true_false`, `fill_blank`.
+  - Coming soon: `short_answer`, `long_answer`, `subjective`.
+  - Shared helpers: normalizing legacy names, `validateQuestionDraft`,
+    `questionPayload`, `rejectBlockedQuestions`.
+- **`components/QuestionTypePicker.jsx`:** cards or pills. The coming-soon types
+  are disabled, carry the badge, and can't be selected. `QuestionAnswerFields`
+  holds the per-type answer fields.
+- **Question editor (`TestDetail.jsx`):**
+  - uses the picker;
+  - MCQ (multiple) has multi-select correct answers;
+  - true / false has its own choice;
+  - fill in the blank takes an accepted answer;
+  - **the model-answer field is gone**;
+  - existing subjective questions open read-only, and can still be deleted.
+- **Wizard:** `TestSeriesWizardParts.jsx` (question editor) and
+  `TestSeriesWizard.jsx`:
+  - same picker;
+  - legacy drafts are normalized (`objective` → `mcq_single`);
+  - saving is blocked while a subjective question remains, with a "Remove the N
+    … question(s)" message;
+  - the payload comes from `questionPayload`.
+- **Imports:**
+  - **CSV** (`testSeriesWizard.js`): `mcq`, `mcq_multi` (`A|C`), `true_false`
+    (True / False) and `fill_blank` (accepted answer in the `correct` column).
+    `short_answer` / `long_answer` / `subjective` rows are **invalid** with the
+    message "… is not supported yet. Short answer, long answer and subjective
+    questions are coming soon …". The template is updated.
+  - **AI and paste** (`aiTestBuilderMock.js`): the type options no longer
+    include short / long answer. `generateTest` and `parseQuestionPaper` run
+    `stripBlockedQuestions`, which removes those questions and adds a warning
+    saying how many were rejected.
+- **`services/testSeriesApi.js` `mapQuestion`:**
+  - returns the real `type`: a stored `mcq` with several correct options is
+    `mcq_multi`;
+  - adds `kind`, `correctAnswers` and `acceptedAnswer`; `modelAnswer` is gone;
+  - this also fixes a latent bug: fill-in-the-blank questions used to come back
+    as "subjective", so re-saving them in the wizard turned them into
+    manually graded short answers.
+- **Student side:** unchanged. Existing subjective questions still show
+  "pending review" in the runner and the report, and no new content can contain
+  them.
+
+### 3. Server guard: `20261027090000_admin_block_subjective.sql`
+
+- **Preflight** (in the file): the replaced functions exist; the new helper
+  names don't.
+- **Helpers** (internal, revoked from every browser role):
+  - `adm_is_subjective_type(text)`;
+  - `adm_question_is_subjective(uuid)`: lead `short_answer`, a subjective
+    `admin_type`, or `needs_manual_grading`;
+  - `adm_assert_question_type_allowed(text)`.
+- **Replaced (ours only).** The 20261025 bodies are copied verbatim, plus
+  marked lines:
+  - `adm_insert_question` (`create_question`, `create_test`,
+    `upsert_test_series_full`): refuses subjective types. It also refuses a
+    fill-in-the-blank question **without an accepted answer**, which used to get
+    "Manual grading: see rubric" as its accepted answer.
+  - `adm_copy_quiz` (`duplicate_test`, `duplicate_test_series`): refuses a
+    source test that contains a subjective question.
+  - `update_question`, `create_question_option`, `update_question_option`:
+    refuse to edit an existing subjective question, or to change a question to
+    a subjective type.
+  - Errors are SQLSTATE `22023`. Existing rows stay readable, and
+    `delete_question` is unchanged, so they can still be deleted.
+- **Rollback:** `scripts/rollback_20261027090000_admin_block_subjective.sql`,
+  generated from the original files. It restores the five functions and drops
+  the helpers. **Checked:** after running it, the helpers are gone, all 5
+  functions exist, and the guard is absent.
+- **Trial:** `docs/trial_run_20261027090000.sql`.
+- **Tests:** `supabase/tests/admin_block_subjective.sql` (10 checks), local
+  only.
+
+### 4. Demo series with subjective questions
+
+- **`supabase/seed_dev.sql`:** written for the old standalone schema; 10
+  single-answer MCQs, **no subjective questions**.
+- **Frontend mock store `src/portals/admin/data/testSeriesMock.js`:** two demo
+  series contain a subjective question.
+  - "JEE Main Physics Test Series 2026": "Physics Full Mock Test 1 — Mechanics &
+    Waves" ("Derive the expression for the time period of a simple pendulum.").
+  - "Banking & SSC Reasoning Practice Series": "Practice Set 12 — Puzzles &
+    Seating Arrangement" ("Explain the approach you would use to solve a
+    circular seating arrangement puzzle.").
+
+  Only the disabled AI Test Builder reads that store.
+- **The live database:** I can't read it without approval. Run
+  **`scripts/admin_list_subjective_questions_editor.sql`** in the SQL editor
+  (read-only). It lists every series / test with short / long / subjective
+  questions, and whether students have answered them. No rows means none.
+
+### 5. Test feedback and moderation: `20261027100000`–`100300`
+
+| File | What |
+|---|---|
+| `20261027100000_feedback_preflight.sql` | Columns, helpers, clashes (`test_feedback` + 8 function names). A NOTICE if `notifications.category` doesn't allow `support_ticket`. |
+| `20261027100100_feedback_tables.sql` | `test_feedback` (columns as in the brief, plus `updated_at`). CHECKs on kind / rating / category / message length / status, and rating required for `feedback`. FKs: student → profiles CASCADE; series → test_series CASCADE; test, attempt and question SET NULL; reviewed_by SET NULL. All indexed. RLS on, no policies, no grants. |
+| `20261027100200_feedback_rpc_student.sql` | `student_submit_feedback`, `student_my_feedback` (rules in `docs/STUDENT_RPC_CONTRACT.md`). |
+| `20261027100300_feedback_rpc_admin.sql` | `list_moderation_items` (row_data, total_count), `get_moderation_stats`, `get_moderation_item`, `set_moderation_status`, `get_moderation_filter_options`, plus internal `adm_feedback_row`. |
+| `docs/trial_run_20261027_feedback.sql` | The 4 files in `begin; … rollback;`. |
+| `supabase/tests/feedback_rpcs.sql` | 19 checks, local only. |
+
+- **Admin rules:**
+  - every RPC calls `adm_require_admin()` first;
+  - status values are `in_review` / `resolved` / `dismissed` (never back to
+    `new`);
+  - resolve and dismiss need a note;
+  - every change writes `audit_logs` through `adm_audit` (`actor_id`,
+    `actor_role`, `action` = `moderation.status`, `target_type` =
+    `test_feedback`, `target_id`, `before_state`, `after_state`, `reason` = the
+    note).
+- **Notification:** a resolved item notifies the student (`notifications`,
+  category `support_ticket`, `reference_type` `test_feedback`). If the lead's
+  CHECK refused that category, only the notification would be skipped.
+- **List filters:** `p_status` also accepts `open` (new + in review) and
+  `closed` (resolved + dismissed).
+
+**Frontend:**
+- **Student:**
+  - `services/feedbackApi.js`;
+  - `components/FeedbackForm.jsx` (form and "Your feedback" list);
+  - `utils/feedback.js` (options and validation);
+  - `TestReport.jsx`: a "Give feedback or report an issue" strip after the
+    summary;
+  - `SeriesDetail.jsx`: "Your feedback" with status and reply, for enrolled
+    students.
+- **Admin:**
+  - `services/moderationApi.js`;
+  - `pages/ContentModeration.jsx`: rewritten on the RPCs, same layout and CSS.
+    Stat cards (new / in review / resolved / dismissed / average rating), tabs
+    (needs attention / closed), filters (search, kind, status, series),
+    server-side pagination, and a detail modal (message, question, attempt,
+    history, note, actions). No mock data; the old Regional Head content-issue
+    mock is no longer shown there.
+
+### Checks run (nothing applied)
+
+- **Postgres 17 parser:** every new SQL file; 0 errors.
+- **Hardening:** 285 function definitions; `search_path` pinned, and every
+  non-`adm_` function is SECURITY DEFINER.
+- **Executed in PGlite** (in-memory, scratchpad):
+  - all migrations apply, 41 files in total;
+  - `admin_block_subjective.sql` passes 10/10, `feedback_rpcs.sql` 19/19, and
+    `student_rpcs.sql` still passes 34/34;
+  - the rollback script restores cleanly;
+  - `scripts/admin_verify_push_editor.sql` is all PASS (34 tables, 276 function
+    names);
+  - both trial files succeed against the state they will be applied on.
+- **`npm run build`:** ✅ passes. **`npm test`:** ✅ 76/76, across:
+  - `tests/admin-question-types.test.jsx` (picker, rules, CSV / AI / paste
+    rejection, wizard drafts, mapping);
+  - `tests/feedback-moderation.test.jsx` (form validation and states, list
+    mapping, detail actions).
+- **Lint:** no new warnings in the changed files.
+
+### Open items
+
+1. **Push order:** `20261027090000` (block subjective), then
+   `20261027100000`–`100300` (feedback), after the student files
+   `20261026100*`. Run each trial file first.
+2. **Function names:** the new RPC names (`student_submit_feedback`,
+   `list_moderation_items`, …) aren't in `docs/ADMIN_ON_EXISTING_DB.md` §4. The
+   feedback preflight checks they don't clash.
+3. **Re-enabling subjective questions:** needs a grading workflow, then
+   `SUBJECTIVE_ENABLED = true` and the rollback script (or a new migration).
+4. **Re-enabling AI:** needs `ai-generate-test` deployed with a provider key,
+   then `AI_ENABLED = true`.
+
+---
+
 ## Student test series, auth and student portal (written, nothing applied)
 
 This covers three phases, all files only. None of the five `20261026100*_student_*`
