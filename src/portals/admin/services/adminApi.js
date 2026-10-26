@@ -1,4 +1,5 @@
 import { supabase } from "../../../services/supabaseClient";
+import { startTimer } from "../utils/debugTiming";
 
 export function normalizeRpcError(error) {
   const normalized = new Error(error?.message || "The admin request failed.");
@@ -8,9 +9,14 @@ export function normalizeRpcError(error) {
 }
 
 export async function callRpc(name, params = {}) {
-  const { data, error } = await supabase.rpc(name, params);
-  if (error) throw normalizeRpcError(error);
-  return data;
+  const stop = startTimer(`rpc ${name}`);   // off unless debug timing is on (utils/debugTiming.js)
+  try {
+    const { data, error } = await supabase.rpc(name, params);
+    if (error) throw normalizeRpcError(error);
+    return data;
+  } finally {
+    stop();
+  }
 }
 
 export function listResult(data) {

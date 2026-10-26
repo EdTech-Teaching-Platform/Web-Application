@@ -443,7 +443,8 @@ export function validateWizard(st, ctx) {
     draftErrors.push(msg);
   }
   if (dupCount) warnings.push(`${dupCount} duplicate question${dupCount === 1 ? "" : "s"} found across the series.`);
-  const nameClash = (ctx.existingSeries || []).some((s) => s.name.trim().toLowerCase() === st.name.trim().toLowerCase());
+  // ctx.nameTaken: the server's answer (series_name_exists); existingSeries: a loaded list, if any.
+  const nameClash = !!ctx.nameTaken || (ctx.existingSeries || []).some((s) => s.name.trim().toLowerCase() === st.name.trim().toLowerCase());
   if (st.name.trim() && nameClash) warnings.push("Another series already uses this name.");
   if (st.buildDeadline && st.buildDeadline < new Date().toISOString().slice(0, 10)) warnings.push("The build deadline has already passed.");
 

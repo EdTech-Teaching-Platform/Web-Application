@@ -5,7 +5,7 @@
 // the result is an ordinary Test Series that the existing list/detail/edit
 // pages already handle.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   IconPencil, IconLayers, IconUpload, IconSparkle,
@@ -25,6 +25,9 @@ import { testSeriesApi } from "../services/testSeriesApi";
 import { WizModal, RichText, QuestionEditor, CsvImporter, OutlineBuilder, sanitizeHtml } from "./TestSeriesWizardParts";
 import { isBlockedQuestionType, questionPayload, questionTypeLabel } from "../data/questionTypes";
 import ComingSoonBadge from "../components/ComingSoonBadge";
+import SaveProgress from "../components/SaveProgress";
+import { failedStepIndex, saveErrorMessage, saveSteps } from "../utils/saveProgress";
+import { startTimer } from "../utils/debugTiming";
 import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
@@ -94,10 +97,12 @@ function Errors({ list }) {
 export default function TestSeriesWizard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const listRequest = useCallback(() => testSeriesApi.list({ p_page: 1, p_size: 100 }), []);
-  const seriesListState = useRpc(listRequest);
-  const seriesList = seriesListState.data?.rows || [];
   const [st, setSt] = useState(initialWizardState);
+  // Only the duplicate start needs the series list (up to 100 rows with
+  // enrolment / attempt counts); the name check is its own RPC below.
+  const listRequest = useCallback(() => testSeriesApi.list({ p_page: 1, p_size: 100 }), []);
+  const seriesListState = useRpc(listRequest, { immediate: st.startMethod === START_METHOD.DUPLICATE });
+  const seriesList = useMemo(() => seriesListState.data?.rows || [], [seriesListState.data]);
   const [step, setStep] = useState("method");
   const [reached, setReached] = useState(() => new Set(["method"]));
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -110,6 +115,9 @@ export default function TestSeriesWizard() {
   const [submitted, setSubmitted] = useState(false);
   const [nameExists, setNameExists] = useState(false);
   const [requestError, setRequestError] = useState("");
+  // {title, steps, active, failed, error, publish} while saving or after a failed save.
+  const [progress, setProgress] = useState(null);
+  const inFlight = useRef(false);   // blocks a second click before React re-renders
 
   useEffect(() => {
     const id = location.state?.seriesId;
@@ -134,7 +142,15 @@ export default function TestSeriesWizard() {
     return () => clearTimeout(timer);
   }, [st.name, st.id]);
 
-  const ctx = useMemo(() => ({ existingSeries: seriesList }), [seriesList]);
+  const ctx = useMemo(() => ({ existingSeries: seriesList, nameTaken: nameExists }), [seriesList, nameExists]);
+
+  // Keep the admin on the page while a save is running.
+  useEffect(() => {
+    if (!saving) return undefined;
+    const warn = (event) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [saving]);
   const steps = applicableSteps(st);
   const stepIdx = Math.max(0, steps.indexOf(step));
   const errs = stepErrors(step, st, ctx);
@@ -229,9 +245,19 @@ export default function TestSeriesWizard() {
   };
 
   // ---- save
+  const publishLabel = st.availability.goLive === "schedule" ? "Schedule go-live" : "Publish now";
+  // One RPC per click: save_wizard_draft (draft of a saved series) or
+  // upsert_test_series_full (saves the questions and, for publish, validates
+  // and publishes in the same transaction).
   const save = (publish) => {
-    if (saving) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setSubmitted(true);
     setSaving(true);
+    const draftOnly = !publish && !!st.id;
+    const steps = saveSteps({ publish, scheduled: st.availability.goLive === "schedule", draftOnly });
+    const title = publish ? publishLabel : "Save as draft";
+    setProgress({ title, steps, active: 0, failed: -1, error: "", publish });
     const payload = buildSeriesPayload(st, ctx, publish);
     const rpcPayload = {
       id: st.id || null,
@@ -276,16 +302,24 @@ export default function TestSeriesWizard() {
         })),
       })),
     };
-    const saveRequest = !publish && st.id
+    const stopTimer = startTimer(`wizard ${publish ? "publish" : "save draft"} (${rpcPayload.tests.length} tests, ${totalQuestions} questions)`);
+    const saveRequest = draftOnly
       ? testSeriesApi.saveDraft(st.id, st)
       : testSeriesApi.saveWizard(rpcPayload, publish);
     saveRequest
       .then((id) => {
+        setProgress((p) => p && { ...p, active: p.steps.length });
         const msg = !publish ? "Test series saved as draft." : st.availability.goLive === "schedule" ? "Test series scheduled for go-live." : "Test series published.";
         navigate("/admin/testseries", { state: { toast: msg, seriesId: id } });
       })
-      .catch((error) => setRequestError(error.message))
-      .finally(() => setSaving(false));
+      .catch((error) => {
+        setProgress((p) => p && { ...p, failed: failedStepIndex(error, p.steps), error: saveErrorMessage(error) });
+      })
+      .finally(() => {
+        stopTimer();
+        inFlight.current = false;
+        setSaving(false);
+      });
   };
   // Discard everything entered and go back to the wizard's Start step.
   const discardAndRestart = () => {
@@ -304,17 +338,19 @@ export default function TestSeriesWizard() {
     setLeaveOpen(false);
     window.scrollTo({ top: 0 });
   };
-  const leave = () => (dirty && !submitted ? setLeaveOpen(true) : navigate("/admin/testseries"));
+  const leave = () => {
+    if (saving) return;
+    if (dirty && !submitted) setLeaveOpen(true); else navigate("/admin/testseries");
+  };
 
   const languageChoices = [...BASE_LANGUAGES, ...st.classification.languages.filter((l) => !BASE_LANGUAGES.includes(l))];
-  const publishLabel = st.availability.goLive === "schedule" ? "Schedule go-live" : "Publish now";
   const [sourceTitle, sourceSub] = SOURCE_TITLE[st.startMethod] || ["", ""];
   const dupList = seriesList.filter((s) => s.name.toLowerCase().includes(dupSearch.toLowerCase()));
 
   return (
     <div className="ul-tsw">
       <div className="ul-tsw-top">
-        <button type="button" className="ul-btn ul-btn--ghost" onClick={leave}>
+        <button type="button" className="ul-btn ul-btn--ghost" onClick={leave} disabled={saving}>
           <span className="ul-tsw-inline"><IconChevronLeft size={13} /> Test Series</span>
         </button>
         <div>
@@ -329,7 +365,7 @@ export default function TestSeriesWizard() {
           const clickable = reached.has(k) && k !== step;
           return (
             <li key={k} className={`ul-tsw-stepi${k === step ? " is-current" : ""}${done ? " is-done" : ""}`}>
-              <button type="button" disabled={!clickable} onClick={() => setStep(k)}>
+              <button type="button" disabled={!clickable || saving} onClick={() => setStep(k)}>
                 <span className="ul-tsw-stepi__n">{done ? <IconCheck size={12} /> : i + 1}</span>
                 <span className="ul-tsw-stepi__l">{k === "source" ? (SOURCE_TITLE[st.startMethod] ? { duplicate: "Choose series", csv: "Import", ai: "AI outline" }[st.startMethod] : "Source") : STEP_LABEL[k]}</span>
               </button>
@@ -690,19 +726,27 @@ export default function TestSeriesWizard() {
       </div>
 
       <div className="ul-tsw-footer">
-        <button type="button" className="ul-btn ul-btn--ghost" onClick={back} disabled={stepIdx === 0}>
+        {progress && (
+          <SaveProgress
+            {...progress}
+            running={saving}
+            onRetry={() => save(progress.publish)}
+            onDismiss={() => setProgress(null)}
+          />
+        )}
+        <button type="button" className="ul-btn ul-btn--ghost" onClick={back} disabled={stepIdx === 0 || saving}>
           <span className="ul-tsw-inline"><IconChevronLeft size={13} /> Back</span>
         </button>
         <span className="ul-tsw-spacer" />
         {stepIdx >= steps.indexOf("details") && steps.includes("details") && (
-          <button type="button" className="ul-btn ul-btn--ghost" disabled={review.draftErrors.length > 0 || saving} title={review.draftErrors[0] || ""} onClick={() => { setSubmitted(true); save(false); }}>Save as draft</button>
+          <button type="button" className="ul-btn ul-btn--ghost" disabled={review.draftErrors.length > 0 || saving} aria-busy={saving && !progress?.publish} title={review.draftErrors[0] || ""} onClick={() => save(false)}>{saving && !progress?.publish ? "Saving…" : "Save as draft"}</button>
         )}
         {step !== "review" ? (
           <button type="button" className="ul-btn ul-btn--primary" disabled={errs.length > 0} onClick={next}>
             <span className="ul-tsw-inline">Continue <IconChevronRight size={13} /></span>
           </button>
         ) : (
-          <button type="button" className="ul-btn ul-btn--primary" disabled={review.errors.length > 0 || saving} onClick={() => { setSubmitted(true); save(true); }}>{publishLabel}</button>
+          <button type="button" className="ul-btn ul-btn--primary" disabled={review.errors.length > 0 || saving} aria-busy={saving && !!progress?.publish} onClick={() => save(true)}>{saving && progress?.publish ? (st.availability.goLive === "schedule" ? "Scheduling…" : "Publishing…") : publishLabel}</button>
         )}
       </div>
 
