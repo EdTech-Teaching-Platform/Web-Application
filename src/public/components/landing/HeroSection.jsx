@@ -6,9 +6,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SearchIcon, ClockIcon, CheckIcon } from "../../../components/ui/icons";
-import { Reveal, PillButton, ArrowUpRight, Squiggle } from "./LandingUI";
+import { Reveal, ArrowUpRight, Squiggle } from "./LandingUI";
 import { useAuth } from "../../../hooks/useAuth";
-import { homePathForUser } from "../../../utils/roles";
 
 // Gentle float for the cards; respects reduced-motion.
 const FLOAT_CSS = `
@@ -607,16 +606,6 @@ export default function HeroSection() {
               <p className="mt-6 max-w-md text-base leading-relaxed text-(--lp-muted) md:text-lg">
                 Practice tests with a timer, instant scoring and a detailed report after every attempt.
               </p>
-            </Reveal>
-
-            <Reveal delay={230}>
-              {user && (
-                <div className="mt-8 flex min-h-[56px] flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-x-4">
-                  <PillButton tone="ink" className="w-full max-w-[300px] sm:w-auto sm:max-w-none [&>span:first-child]:flex-1 [&>span:first-child]:text-center sm:[&>span:first-child]:flex-none" onClick={() => navigate(homePathForUser(user))}>
-                    Go to Dashboard
-                  </PillButton>
-                </div>
-              )}
             </Reveal>
 
             <Reveal delay={290} className="w-full max-w-lg">
