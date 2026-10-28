@@ -51,8 +51,8 @@ export function requireServiceRole(req: Request) {
 
 export function fail(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  // Only auth failures are 403; validation messages ("userId is required") stay 400.
-  return json({ error: message }, /^(Authentication required|Admins only)$|forbidden/i.test(message) ? 403 : 400);
+  // Only auth failures (incl. "Educators only") are 403; validation messages ("userId is required") stay 400.
+  return json({ error: message }, /^(Authentication required|Admins only|Educators only)$|forbidden/i.test(message) ? 403 : 400);
 }
 
 export async function hmacValid(req: Request, body: string, secretName: string) {
