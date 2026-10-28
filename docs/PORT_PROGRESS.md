@@ -99,6 +99,257 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-10-28: teacher portal on the educator RPCs (frontend; needs 20261028* applied and educator-upload-url deployed)
+
+### Auth and onboarding
+
+- **`/teacher/register`** (`src/auth/pages/EducatorRegister.jsx`): email + password or Google.
+  - Before sign-up starts, it sets the educator intent: `sessionStorage`
+    `ul_educator_signup` and `user_metadata.signup_role = "educator"`.
+  - **`profileService.ensureProfile`:** with that intent and no profile, it
+    calls `educator_start_onboarding`, never the student insert.
+  - **`AuthCallback`:** if the intent lands on an account with another role,
+    it shows "This email is registered as a … account" and never changes the
+    role.
+  - **`/teacher/login`:** the same Supabase sign-in as everyone. A Google
+    sign-in started there also sets the intent.
+- **`/teacher/onboarding`** (`EducatorOnboarding.jsx`), full page, five steps:
+  - **saving:** each step is saved with `educator_save_onboarding_step`, and a
+    refresh resumes after the last saved step;
+  - **validation:** client checks mirror the server (`utils/onboarding.js`),
+    and server field errors (`error.details`) are shown on the fields;
+  - **ID step:** front, back and selfie, plus optional certificates, with
+    preview, upload progress, replace and remove. Uploads go
+    `educator-upload-url` → signed upload (XHR, for progress) →
+    `educator_register_document`;
+  - **review and submit:** `educator_submit_onboarding`.
+- **`educatorAccountStore`** (the localStorage accounts, with passwords) is no
+  longer used by any mounted code. Logout clears its `ul.educator.*` keys.
+
+### Gate (`src/layouts/TeacherLayout.jsx`)
+
+- **Who gets in:**
+  - not signed in → `/teacher/login`;
+  - not an educator → their own home;
+  - otherwise `educator_get_status`, on load, on window focus, and every 60 s
+    while pending.
+- **What each status shows:**
+  - `draft` → onboarding;
+  - pending / under review, changes requested (with the note and "Edit and
+    resubmit"), rejected (with the reason and "Update and resubmit"), and
+    suspended → a full-page screen with logout and no navigation, so a typed
+    feature URL lands there too;
+  - verified → the portal.
+
+### Verified portal
+
+The nav is Dashboard, Assigned, Test Series, Create Test Series, Stats and
+Profile.
+
+| Route | Page | Data |
+|---|---|---|
+| `/teacher/dashboard` | `EducatorDashboard` | `educator_get_dashboard` |
+| `/teacher/assigned`, `/teacher/assigned/:id` | `AssignedWork` | `educator_list_assignments`, `_get_assignment`, `_start_assignment`, `_add_assignment_comment`; Publish = `adm_publish_test_series` |
+| `/teacher/test-series` | `EducatorTestSeries` (tabs: Published, Drafts, Pending approval, Rejected with the reason) | `list_test_series` (role-aware) |
+| `/teacher/test-series/new`, `/:seriesId`, `/:seriesId/tests/:testId` | the **admin** `TestSeriesWizard`, `TestSeriesDetail`, `TestDetail` | shared RPCs |
+| `/teacher/stats` | `EducatorStats` (`TrendChart` and `DonutChart` reused) | `educator_get_stats` |
+| `/teacher/profile` | `EducatorProfilePage` | `educator_get_profile` / `educator_update_profile` |
+
+**Shared authoring code:** `src/portals/admin/context/authoringPortal.js`.
+TeacherLayout provides `EDUCATOR_AUTHORING`; the admin portal uses the default.
+
+- **What it parameterizes:** paths, back labels, and the publish action.
+  - On an educator's own series, the publish action is **"Submit for
+    approval"**. The wizard saves (`p_publish = false`), then calls
+    `educator_submit_series_for_approval`, keeping the new id so a retry
+    updates the same series.
+  - Per-test publish is hidden until the series is approved.
+- **`SeriesReviewBanner`:** "waiting for approval" (read-only), the rejection
+  reason, and Submit / Resubmit.
+- **`TestDetail`:**
+  - a re-score notice ("Changing a correct answer or the marks re-scores N
+    submitted attempts");
+  - after saving, a toast with the number of attempts re-scored.
+- **Unchanged:** the AI and subjective "Coming soon" flags, the progress steps,
+  Retry and the double-submit guard.
+
+### Admin additions
+
+- **Test Series → Approvals tab** (`SeriesApprovals.jsx`):
+  - `list_pending_series_approvals` with search and paging;
+  - Review / Approve / Reject, where Reject requires a reason.
+- **Pending badges:** on the tab and on the sidebar's Test Series item
+  (`usePendingApprovals`, refreshed every minute and on focus).
+- **Educator verification:**
+  - document names read "Government ID (front)", "Selfie", …;
+  - teaching languages and the application date are shown;
+  - `statusMaps` labels `draft` as "Not submitted";
+  - documents still open through `sign-educator-document`.
+- **`testSeriesMock.js`** status labels add "Pending approval" and "Rejected".
+
+### Unmounted (files kept, no route, no nav, not bundled)
+
+- **`src/portals/teacher/pages/`:** `Analytics`, `AssignedSeries`,
+  `BookingManage`, `ContentUpload`, `CourseBuilder`, `CourseManagement`,
+  `CoursePreview`, `Dashboard`, `Earnings`, `EditProfile`, `Grading`,
+  `LiveClasses`, `MentorshipHub`, `Messaging`, `MyCourses`,
+  `NotificationPrefs`, `ProfileSetup`, `PublishFlow`, `Registration`,
+  `Reviews`, `ReviewsAvailability`, `SessionRequests`, `StudentManagement`,
+  `TestSeries`, `TestSeriesBuilder`, `TestSeriesDetail`, `TestSeriesEarnings`,
+  `TestSeriesManage`, `TestSeriesStudentPreview`, and every component used
+  only by them.
+- **Providers:**
+  - `TestSeriesProvider`, removed from `App.jsx` (`src/context/TestSeriesContext.jsx` kept);
+  - `SessionRequestsProvider`, removed from `AppRoutes.jsx`;
+  - the teacher course, mentorship, messaging and availability providers.
+- **Data:** `src/portals/teacher/data/educatorAccountStore.js` and the other
+  teacher mock data modules.
+- **Removed files:** none.
+- **Old URLs:**
+  - `/teacher/testseries/*` → `/teacher/test-series`;
+  - `/teacher/profilesetup` and `/teacher/editprofile` → `/teacher/profile`;
+  - `/teacher/registration` → `/teacher/register`;
+  - anything else → `/teacher/dashboard`.
+
+### Checks
+
+- `npm run build` ✅. `npm test` ✅ 111/111, including:
+  - **`tests/educator-portal.test.jsx` (20):**
+    - each gate status renders the right screen and blocks feature routes;
+    - polling and focus re-check, and non-educators redirected;
+    - onboarding validation, resume, server field errors and upload errors;
+    - upload error stages;
+    - the series tabs mapping;
+    - role-based labels, including the wizard submitting for approval and
+      never publishing.
+  - **`tests/educator-upload-url.test.js` (8).**
+- **Lint:** the new files have the codebase's usual `set-state-in-effect`
+  (data loading) and `only-export-components` (route files) warnings; no
+  others.
+
+## 2026-10-28: educator document uploads (written, nothing deployed or applied)
+
+- **`supabase/functions/educator-upload-url/`:**
+  - `index.ts` (`verify_jwt` true) and `validate.ts` (pure validators: allow-list, content types, 5 MB, file-name sanitizing, path builder);
+  - returns `{path, signedUrl, token, bucket, expiresIn}`;
+  - the user id comes only from the JWT.
+- **`20261028110000_educator_upload_limit.sql`:**
+  - `educator_upload_requests` (ours, RLS on, FK CASCADE, indexed);
+  - `adm_claim_educator_upload_slot`: 20 per hour; refuses non-educators; granted to `authenticated` and allow-listed in verify.
+- **`20261028090100` (not applied yet, so edited in place):** `educator_register_document` also checks the stored object's size (≤ 5 MB) and MIME type.
+- **`sign-educator-document`:**
+  - path handling moved to `paths.ts`;
+  - `<educator id>/…` paths must be in the document owner's folder; `..` segments are refused;
+  - optional `download: true`;
+  - older forms unchanged.
+- **`_shared/auth.ts`:** "Educators only" is a 403.
+- **`supabase/config.toml`:** `[functions.educator-upload-url] verify_jwt = true`.
+- **`docs/EDGE_FUNCTIONS.md`:** the function, the secret `EDUCATOR_UPLOAD_LIMIT_PER_HOUR` and the deploy line.
+- **Checks:**
+  - `tests/educator-upload-url.test.js`: 8 tests (validators and the sign paths);
+  - `educator_onboarding.sql`: + size, type and rate-limit checks.
+  - Not type-checked with Deno, because there is no Deno in this environment; the pure modules are compiled and tested by Vitest.
+
+## 2026-10-28: educators on the shared test series authoring (written, nothing applied)
+
+The contract is in `docs/EDUCATOR_RPC_CONTRACT.md` → "Test series for
+educators".
+
+| File | What |
+|---|---|
+| `20261028100000_educator_series_preflight.sql` | Collects every clash: prerequisites, the 27 functions replaced, our columns, the status CHECK name, free new names. |
+| `20261028100100_educator_series_access.sql` | **`test_series_admin` (our table):** + `origin`, `rejection_reason`, `submitted_at`, `approved_by` (FK SET NULL, indexed), `approved_at`; the status CHECK adds `pending_approval` / `rejected`. **Guards:** `adm_actor_kind`, `adm_can_create_series`, `adm_can_manage_series`, `adm_require_author`, `adm_require_series_access`, `_access_or_new`, `_owner`, `adm_educator_series_ids`, `adm_series_is_independent_educator`. **Regrade:** `adm_regrade_quiz` (set-based: answers, attempts, reports), `adm_rebuild_attempt_report`, `adm_attempt_latest_answers`, `adm_question_grading_key`, `adm_update_options_in_place`. |
+| `20261028100200_educator_series_guards.sql` | **Generated.** The latest body of 26 shared RPCs, each with its `adm_require_admin()` line swapped for a guard, plus the marked edits (educator list filter, rejected drafts, per-test publish rule, in-place option edits and regrade in `update_question` / `update_question_option`, origin in `adm_new_house_series`). Also `adm_publish_test_series` → `adm_publish_series_core`, plus a role-aware wrapper. |
+| `20261028100300_educator_series_approval.sql` | `educator_submit_series_for_approval`, `list_pending_series_approvals`, `approve_educator_series`, `reject_educator_series`, `adm_series_content_problem`, `adm_notify_series_decision`. |
+| `20261028100400_educator_series_portal.sql` | `educator_list_assignments`, `_get_assignment`, `_start_assignment`, `_add_assignment_comment`, `educator_get_profile`, `_update_profile`, `_get_stats`, `_get_dashboard`. |
+| `scripts/rollback_20261028_educator_series.sql` | **Generated.** Restores the 27 previous bodies verbatim and drops the rest. |
+| `docs/trial_run_20261028_educator_series.sql` | All five files in `begin; … rollback;`. |
+| `supabase/tests/educator_series.sql` | 35 checks and 29 expected errors, local only. |
+
+**Generators** (scratchpad, kept for re-runs): `gen_educator_series.cjs` and
+`gen_educator_series_rollback.cjs`. Each replacement asserts exactly one match,
+so a changed source body fails loudly instead of being patched wrongly.
+
+**Decisions and assumptions:**
+- An **active assignment** is any status except `cancelled` / `rejected`. An
+  assignee can manage the series (not delete it) even after completion.
+- An **independent educator series** can't be published by
+  `adm_publish_test_series`, for admins too; only `approve_educator_series`
+  publishes it. After approval, the owner may edit it in place (brief 6) and
+  unpublish it; publishing again needs another approval.
+- **Regrade** covers only attempts with an `attempt_reports` row (graded by
+  this port). Attempts graded by the lead's own app keep their scores.
+- **Notifications:** series decisions use category `moderation`, which the
+  lead's CHECK allows.
+
+**Checks (PGlite, nothing applied):**
+- all files apply, and the trial succeeds;
+- `educator_series.sql` all passing (including regrade: the rebuilt report equals a
+  fresh grading of the same answers), `educator_onboarding.sql` (its
+  enforcement scan now covers the 9 verified-only RPCs and refuses a student on
+  all 16 `educator_*`), and `admin_fast_publish`, `admin_block_subjective`,
+  `feedback_rpcs` and `student_rpcs`, unchanged;
+- **admin behaviour:** the 14-step admin wizard scenario is identical to the
+  original, apart from the new columns;
+- **rollback:** after it, the scenario is identical and the old tests pass;
+- parser 0 errors, hardening 373 definitions with 0 problems, verify 35 tables
+  and 330 functions all PASS. `adm_actor_kind` is granted to `authenticated` on
+  purpose and allow-listed.
+
+## 2026-10-28: educator self-registration and onboarding (written, nothing applied)
+
+The contract is in `docs/EDUCATOR_RPC_CONTRACT.md`. `EDUCATOR_PORTAL_PLAN.md`
+is not in the repository; the decisions come from the briefs.
+
+| File | What |
+|---|---|
+| `20261028090000_educator_preflight.sql` | Collects every clash: lead columns, `storage.objects`, the `doc_type` CHECK values, our Batch 1 objects and the CHECK name, and free new names. |
+| `20261028090100_educator_onboarding.sql` | **Guards:** `adm_is_educator`, `adm_is_verified_educator`, `adm_require_*`. **Table:** `educator_onboarding`. **`educator_admin_state`:** + `submitted_at`, and a wider `review_state` CHECK (our table). **RPCs:** `educator_start_onboarding`, `_save_onboarding_step`, `_register_document`, `_remove_document`, `_submit_onboarding`, `_get_status`, `_get_onboarding`. |
+| `20261028090200_educator_admin_review.sql` | Replaces `adm_educator_verification_key` (draft key), `set_educator_verification` (review_state `approved` / `rejected`, notifications) and `get_educator_detail` (+ `review_state`, `submitted_at`, `onboarding_step`). |
+| `scripts/rollback_20261028_educator_onboarding.sql` | Generated. Restores the three functions verbatim, then drops everything 090100 created. |
+| `docs/trial_run_20261028_educator.sql` | The three files in `begin; … rollback;` (the last line is `rollback;`). |
+| `supabase/tests/educator_onboarding.sql` | 39 checks, local only. |
+
+**Mismatches found in the existing admin side (fixed in 090200):**
+
+1. `review_state` allowed only `under_review` / `changes_requested`, so the
+   onboarding states couldn't be stored. The CHECK is widened; existing values
+   stay valid.
+2. A self-registered educator who hadn't submitted yet would have read as
+   `pending` and appeared in the verification queue.
+   `adm_educator_verification_key` now returns `draft` for them. Drafts are
+   left out of the `pending` filter and the pending count, and are listed with
+   `p_verification = 'draft'`.
+3. `set_educator_verification` cleared `review_state` on approve and reject,
+   and notified nobody. It now writes `approved` / `rejected` and inserts the
+   `verification` notification.
+4. `get_educator_detail` had no submission date or review state. Both are
+   added, and `history` includes submissions.
+5. **Frontend (fixed in the frontend brief):** `statusMaps.js` has no label for
+   `draft`.
+
+**Unchanged:** `list_educators`, `get_educator_stats`,
+`list_educator_documents` and `review_educator_document` already handled
+self-registered rows. Documents are stored as `<uid>/<file>` storage paths,
+which `sign-educator-document` already signs in `EDUCATOR_DOCS_BUCKET`.
+
+**Assumptions:**
+- An invited educator (`register_educator`, `review_state` null) reads as
+  `pending` and can't edit, as before.
+- `inactive` accounts count as suspended for the teacher portal.
+- A selfie and certificates are optional; the front and back of the ID are
+  required.
+
+**Checks (PGlite, nothing applied):**
+- all migrations apply, and the trial succeeds;
+- the rollback restores the original CHECK and functions;
+- `educator_onboarding.sql`, `admin_fast_publish`, `admin_block_subjective`,
+  `feedback_rpcs` and `student_rpcs` all pass;
+- the parser reports 0 errors, and hardening 315 definitions with 0 problems;
+- the verify script passes (35 tables, 299 function names). The
+  `adm_is_educator` / `adm_is_verified_educator` grants to `authenticated` are
+  intentional and allow-listed.
+
 ## 2026-10-27: fast "Publish now" / "Save as draft" (written, nothing applied)
 
 ### Network calls (before → after)

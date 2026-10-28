@@ -7,7 +7,8 @@ Nothing here is deployed by the port. Deploy only with the lead's approval.
 | `create-educator-invites` | `create_educator_invites` (de-duplicates and queues), then `auth.admin.inviteUserByEmail`, then `register_educator` (service role). That inserts `profiles` (role `educator`), `educator_profiles` (phone or `''`, location `Not provided`, `verification_status 'pending'`, totals 0) and `educator_admin_state`. If registration fails, the auth user is deleted again. Returns per-row `results` (`sent` / `skipped` / `failed`). | Admin or super_admin | true |
 | `revoke-user-sessions` | `revoke_user_sessions` RPC (app-level sessions), plus Admin API `signOut` for the caller's own token (`scope` `global` / `others`). It cannot revoke another user's refresh tokens; see the note below. | Admin or super_admin | true |
 | `send-notification-emails` | Sends queued campaign emails through Resend (`fetch`). It re-checks `notification_preferences.email`, then `record_email_results`. | Service-role bearer token (cron), or `x-cron-secret` | true |
-| `sign-educator-document` | Admin check, then a service-role signed URL for an `educator_verification_docs.doc_url` (looked up by `documentId` or `path`). | Admin or super_admin | true |
+| `sign-educator-document` | Admin check, then a service-role signed URL for an `educator_verification_docs.doc_url` (looked up by `documentId` or `path`). Handles the `<educator id>/<docType>-<docName>-<timestamp>.<ext>` paths from `educator-upload-url` (they must be in the owner's folder). Optional `download: true` returns a download link. | Admin or super_admin | true |
+| `educator-upload-url` | Validates `{docType, docName, fileName, contentType, size}`. It claims a rate-limit slot through `adm_claim_educator_upload_slot` (this also refuses non-educators), then returns a service-role **signed upload URL** for `<user id>/<docType>-<docName>-<timestamp>.<ext>`. | Any educator (any verification status) | true |
 | `payment-webhook` | Placeholder (D1). Calls the `mark_payment_*` stubs, which raise `0A000`. | Gateway (HMAC) | **false** |
 | `process-refund` | Placeholder (D1). Reads `refund_requests`, which doesn't exist in the lead's database. | Admin | true |
 | `ai-generate-test` | Placeholder (unchanged). | Admin | true |
@@ -20,6 +21,7 @@ The admin check (`_shared/auth.ts` → `_shared/roles.ts`) accepts `profiles.rol
 ```sh
 supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Universal Learning <noreply@your-domain>"
 supabase secrets set EDUCATOR_DOCS_BUCKET=<the lead's verification-docs bucket>   # required: there is no docs/db_inspection/buckets.csv
+supabase secrets set EDUCATOR_UPLOAD_LIMIT_PER_HOUR=20                           # optional (default 20)
 supabase secrets set EDUCATOR_INVITE_REDIRECT_URL=https://<site>/teacher/login     # optional
 supabase secrets set EMAIL_CRON_SECRET=...                                         # optional alternative to the service-role bearer
 # optional: EMAIL_BATCH_SIZE (default 100), EDUCATOR_DOCS_URL_TTL (seconds, default 300)
@@ -33,6 +35,36 @@ Edge Runtime.
 `educator_verification_docs.doc_url`. A full Supabase storage URL in `doc_url` is
 signed in the bucket named in that URL, and a non-storage URL is returned
 unchanged (`external: true`).
+
+**Educator uploads (`educator-upload-url`):**
+
+1. The teacher portal calls the function with the user's JWT:
+   `supabase.functions.invoke("educator-upload-url", { body: {docType, docName, fileName, contentType, size} })`.
+2. It uploads the file with `supabase.storage.from(bucket).uploadToSignedUrl(path, token, file)`.
+3. It calls `educator_register_document(docType, path, docName)`.
+
+- **Allowed documents:**
+
+  | `docType` | `docName` | Files |
+  |---|---|---|
+  | `government_id` | `front` / `back` | JPEG, PNG or WebP |
+  | `other` | `selfie` | JPEG, PNG or WebP |
+  | `degree_certificate`, `teaching_license`, `experience_letter`, `subject_certificate` | a lowercase-dash label (up to 40) | JPEG, PNG, WebP or PDF |
+
+  The size limit is 5 MB.
+- **Path:** the user id comes only from the JWT. The extension comes from the
+  validated content type; the client's file name is only sanitized.
+- **Unchecked by the signed URL:** it can't enforce the size or type, so
+  `educator_register_document` checks the stored object's `metadata.size` and
+  `metadata.mimetype` before accepting it.
+- **Rate limit:** 20 uploads per rolling hour per user (table
+  `educator_upload_requests`). The 21st returns HTTP 429 with
+  `retryAfterSeconds`.
+- **Errors:**
+  - a validation error is HTTP 400 `{error, field}`;
+  - a non-educator gets 403 "Educators only".
+- **Storage:** no storage policy is created or changed; the bucket stays
+  private.
 
 **Revoking sessions:** `auth.admin.signOut(jwt, scope)` needs the user's own access
 token, so revoking *another* user's tokens isn't possible with signOut. The function
@@ -50,6 +82,7 @@ supabase functions deploy create-educator-invites
 supabase functions deploy revoke-user-sessions
 supabase functions deploy send-notification-emails
 supabase functions deploy sign-educator-document
+supabase functions deploy educator-upload-url        # after 20261028090100 and 20261028110000
 # placeholders: leave undeployed until the payments model exists
 ```
 
