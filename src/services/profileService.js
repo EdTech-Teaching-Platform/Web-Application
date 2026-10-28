@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { hasEducatorIntent } from "../portals/teacher/utils/onboarding";
 
 // The lead's database has NO signup trigger on auth.users, so the app creates
 // the profiles + student_profiles rows after the first sign-in.
@@ -6,6 +7,9 @@ import { supabase } from "./supabaseClient";
 // Rules:
 // - The role is always 'student'. Nothing the caller passes can change it
 //   (educators and admins get their role from the lead / admin side).
+// - Except an educator sign-up (teacher register page, or Google started
+//   there): the server RPC educator_start_onboarding creates the profile with
+//   the educator role, so no student profile is ever created for them.
 // - Google users: name and avatar come from user_metadata.
 // - Idempotent and race-safe: concurrent calls for the same user share one
 //   request, and the insert ignores an existing row.
@@ -62,6 +66,14 @@ async function ensureStudentRow(userId) {
 
 async function run(user) {
   let profile = await readProfile(user.id);
+  if (!profile && hasEducatorIntent(user)) {
+    const meta = user.user_metadata ?? {};
+    const name = String(meta.full_name || meta.name || (user.email ? user.email.split("@")[0] : "") || "Educator").trim().slice(0, 120);
+    const { error } = await supabase.rpc("educator_start_onboarding", { p_full_name: name, p_phone: meta.phone || null });
+    profile = await readProfile(user.id);
+    if (!profile) throw new ProfileSetupError(error);
+    return profile;
+  }
   if (!profile) {
     const { error } = await supabase
       .from("profiles")

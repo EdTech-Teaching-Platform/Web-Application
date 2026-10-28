@@ -10,16 +10,24 @@
 
 import { useSyncExternalStore } from "react";
 
-export const SERIES_STATUS = { DRAFT: "draft", SCHEDULED: "scheduled", PUBLISHED: "published" };
+export const SERIES_STATUS = {
+  DRAFT: "draft", SCHEDULED: "scheduled", PUBLISHED: "published",
+  // an educator's own series under / after admin review (20261028100300)
+  PENDING_APPROVAL: "pending_approval", REJECTED: "rejected",
+};
 export const SERIES_STATUS_LABEL = {
   [SERIES_STATUS.DRAFT]: "Draft",
   [SERIES_STATUS.SCHEDULED]: "Scheduled",
   [SERIES_STATUS.PUBLISHED]: "Published",
+  [SERIES_STATUS.PENDING_APPROVAL]: "Pending approval",
+  [SERIES_STATUS.REJECTED]: "Rejected",
 };
 export const SERIES_STATUS_BADGE_CLASS = {
   [SERIES_STATUS.DRAFT]: "is-pending",
   [SERIES_STATUS.SCHEDULED]: "is-verified",
   [SERIES_STATUS.PUBLISHED]: "is-approved",
+  [SERIES_STATUS.PENDING_APPROVAL]: "is-verified",
+  [SERIES_STATUS.REJECTED]: "is-rejected",
 };
 
 export const PRICING_TYPE = { FREE: "free", PAID: "paid" };

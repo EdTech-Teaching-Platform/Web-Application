@@ -7,11 +7,12 @@ import { mapDbRole } from "../utils/roles";
 export const AuthContext = createContext(null);
 
 // Per-user caches cleared on logout (device preferences and the shared mock
-// stores of the teacher / admin / regional-head portals are kept).
+// stores of the admin / regional-head portals are kept).
 const USER_STORAGE_PREFIXES = [
   "ul_wishlist", "ul_assessment", "ul_test_series_purchases", "ul_activity_log", "ul_course_progress",
   "ul_course_qa", "ul_learning_time", "ul_student_", "ul_demo_orders", "ul.testSeries",
-  "universal-learning-", "ul-pending-signup", "ul.educator.session", "ul-admin-notepad",
+  // "ul.educator.": the old localStorage educator accounts / session (mock, replaced by the educator RPCs)
+  "universal-learning-", "ul-pending-signup", "ul.educator.", "ul-admin-notepad", "ul_educator_signup",
 ];
 
 export function clearUserStorage(storage = typeof window === "undefined" ? null : window.localStorage) {

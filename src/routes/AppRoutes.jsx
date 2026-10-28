@@ -26,7 +26,6 @@ const RegionalHeadLogin = lazy(() => import("../portals/regionalhead/pages/Regio
 const AdminLogin = lazy(() => import("../portals/admin/pages/AdminLogin"));
 const RegionalHeadInvite = lazy(() => import("../portals/admin/pages/RegionalHeadInvite"));
 
-import { SessionRequestsProvider } from "../portals/teacher/context/SessionRequestsContext";
 
 // This is the ONLY file that wires all three portals together.
 // Each portal owner should only need to touch their own routes.jsx —
@@ -60,10 +59,9 @@ export default function AppRoutes() {
           </Route>
         </Route>
 
-        <Route element={<SessionRequestsProvider />}>
-          <Route path="/teacher" element={<TeacherLayout />}>
-            {teacherRoutes}
-          </Route>
+        {/* TeacherLayout signs the educator in and runs the verification gate. */}
+        <Route path="/teacher" element={<TeacherLayout />}>
+          {teacherRoutes}
         </Route>
 
         <Route path="/admin" element={<AdminLayout />}>

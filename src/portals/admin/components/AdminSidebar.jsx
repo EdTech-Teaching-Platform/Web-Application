@@ -4,6 +4,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useSignOut } from "../../../hooks/useSignOut";
 import { dashboardApi } from "../services/adminApi";
 import { useRpc } from "../hooks/useRpc";
+import { usePendingApprovals } from "../hooks/usePendingApprovals";
 import sidebarBooksImg from "../../../assets/illustrations/sidebar-books.png";
 import {
   IconDashboard,
@@ -96,6 +97,7 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
 
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const navigation = useRpc(dashboardApi.getNavigation);
+  const approvals = usePendingApprovals();   // educator series waiting for review
 
   const handleLogout = () => {
     setMenuOpen(false);
@@ -161,6 +163,10 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
                   <span>{item.label}</span>
                   {navigation.data?.find((navItem) => navItem.route === item.to)?.badge > 0 && (
                     <span className="ul-sidebar__badge">{navigation.data.find((navItem) => navItem.route === item.to).badge}</span>
+                  )}
+                  {item.to === "/admin/testseries" && approvals.count > 0 && (
+                    <span className="ul-sidebar__badge" title="Educator series waiting for approval (Test Series → Approvals)"
+                      aria-label={`${approvals.count} series waiting for approval`}>{approvals.count}</span>
                   )}
                 </NavLink>
               ))}

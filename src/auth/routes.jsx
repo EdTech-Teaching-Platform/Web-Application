@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AuthCallback from "./pages/AuthCallback";
+import EducatorRegister from "./pages/EducatorRegister";
 import Terms from "./pages/legal/Terms";
 import Privacy from "./pages/legal/Privacy";
 
@@ -15,6 +16,7 @@ const authRoutes = (
     <Route path="/login" element={<Login />} />
     <Route path="/teacher/login" element={<Login role="teacher" />} />
     <Route path="/register" element={<Register />} />
+    <Route path="/teacher/register" element={<EducatorRegister />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/auth/callback" element={<AuthCallback />} />

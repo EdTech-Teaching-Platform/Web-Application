@@ -63,6 +63,7 @@ function mapTest(test) {
     shuffleOptions: !!test.shuffle_options,
     showAnswersAfter: test.show_answers_after || "submission",
     status: test.status,
+    attempts: Number(test.attempts || 0),   // submitted attempts: a correct-answer change re-scores them
     sections: test.sections || [],
     questions,
   };
@@ -119,4 +120,10 @@ export const testSeriesApi = {
   discardDraft: (id) => callRpc("discard_wizard_draft", { p_id: id }),
   nameExists: (name, exclude) => callRpc("series_name_exists", { p_name: name, p_exclude: exclude || null }),
   saveWizard: (payload, publish) => callRpc("upsert_test_series_full", { p: payload, p_publish: publish }),
+  // Educator approval workflow (20261028100300).
+  submitForApproval: (id) => callRpc("educator_submit_series_for_approval", { p_series_id: id }),
+  listPendingApprovals: async ({ search = "", page = 1, size = 10 } = {}) =>
+    listResult(await callRpc("list_pending_series_approvals", { p_search: search.trim() || null, p_page: page, p_size: size })),
+  approveSeries: (id) => callRpc("approve_educator_series", { p_series_id: id }),
+  rejectSeries: (id, reason) => callRpc("reject_educator_series", { p_series_id: id, p_reason: reason }),
 };

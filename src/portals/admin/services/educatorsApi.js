@@ -1,6 +1,17 @@
 import { supabase } from "../../../services/supabaseClient";
 import { callRpc, listResult, normalizeRpcError } from "./adminApi";
 
+// "government_id" + "front" -> "Government ID (front)"; certificates keep their label.
+const DOC_TYPE_LABEL = {
+  government_id: "Government ID", degree_certificate: "Degree certificate", teaching_license: "Teaching licence",
+  experience_letter: "Experience letter", subject_certificate: "Subject certificate", other: "Other document",
+};
+export function documentLabel(docType, docName) {
+  if (docType === "other" && docName === "selfie") return "Selfie";
+  const type = DOC_TYPE_LABEL[docType] || docType || "Document";
+  return docName ? `${type} (${docName})` : type;
+}
+
 const mapEducator = (e) => ({
   ...e,
   name: e.full_name,
@@ -37,7 +48,7 @@ export const educatorsApi = {
       documents: (data.documents || []).map((document) => ({
         ...document,
         type: document.doc_type,
-        fileName: document.doc_name || document.file_path?.split("/").pop() || "Document",
+        fileName: documentLabel(document.doc_type, document.doc_name),
         uploadedDate: document.uploaded_at ? new Date(document.uploaded_at).toLocaleDateString("en-IN") : "—",
         rejectionReason: document.note,
       })),
@@ -49,6 +60,9 @@ export const educatorsApi = {
       })),
       coursesCount: Number(data.educator.courses_count || 0),
       professionalSummary: data.educator.bio || "",
+      languages: data.educator.languages || [],
+      submittedAt: data.educator.submitted_at || null,
+      reviewState: data.educator.review_state || null,
       address: data.educator.location || "—",
       gender: data.educator.gender || "—",
       dob: data.educator.dob || "—",

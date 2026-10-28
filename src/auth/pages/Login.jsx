@@ -13,7 +13,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { toAppUser } from "../../context/AuthContext";
 import { homePathForUser } from "../../utils/roles";
 import { AuthSplitLayout } from "../components/AuthKit";
-import { loginEducator, useCurrentEducator } from "../../portals/teacher/data/educatorAccountStore";
+import { setEducatorIntent } from "../../portals/teacher/utils/onboarding";
 
 function RoleSwitch({ isEducator, redirect }) {
   const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
@@ -42,9 +42,8 @@ export default function Login({ role = "student" }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = safeRedirect(searchParams.get("redirect"));
-  const { user, loading, error: sessionError, setUser } = useAuth();
+  const { user, loading, error: sessionError } = useAuth();
   const isEducator = role === "teacher";
-  const educatorSession = useCurrentEducator();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [touched, setTouched] = useState({});
@@ -64,8 +63,7 @@ export default function Login({ role = "student" }) {
   const shown = (field) => (touched[field] ? errors[field] : undefined);
 
   // Already signed in (e.g. back button after login): go home.
-  // (An educator user with no educator session has nothing to go back to; stay on the form.)
-  if (!loading && user && !submitting && !(isEducator && user.role === "teacher" && !educatorSession)) {
+  if (!loading && user && !submitting) {
     return <Navigate to={redirect || homePathForUser(user)} replace />;
   }
 
@@ -77,42 +75,13 @@ export default function Login({ role = "student" }) {
     setSubmitting(true);
     setFormError("");
     try {
-      if (isEducator) {
-        // Existing educators sign in here and go straight to the dashboard: no
-        // onboarding again. (Until an admin approves them, the portal shows the
-        // "under review" screen instead of the dashboard.)
-        let educator = null;
-        try {
-          educator = loginEducator(email, password);
-        } catch (educatorErr) {
-          if (educatorErr?.code === "bad_password") {
-            setFormError("Incorrect email or password.");
-            setSubmitting(false);
-            return;
-          }
-          throw educatorErr;
-        }
-        if (educator) {
-          setUser({
-            id: educator.id,
-            name: educator.profile.fullName,
-            identifier: educator.email,
-            role: "teacher",
-            onboardingComplete: true,
-          });
-          navigate(redirect && redirect.startsWith("/teacher") ? redirect : "/teacher/dashboard", { replace: true });
-          return;
-        }
-      }
+      // Every account signs in the same way; the portal gate (TeacherLayout)
+      // then shows an educator their onboarding, review status or dashboard.
       const data = await login({ email, password });
       const profile = await ensureProfile(data.user);
       navigate(redirect || homePathForUser(toAppUser(data.user, profile)), { replace: true });
     } catch (err) {
-      setFormError(
-        isEducator
-          ? "We couldn't find an educator account with these details. Check your email and password, or create an educator account."
-          : err.message || "Incorrect email or password."
-      );
+      setFormError(err.message || "Incorrect email or password.");
       setSubmitting(false);
     }
   };
@@ -121,6 +90,8 @@ export default function Login({ role = "student" }) {
     setGoogleSubmitting(true);
     setFormError("");
     try {
+      // From the educator page, a brand-new Google account becomes an educator, never a student.
+      if (isEducator) setEducatorIntent();
       await signInWithGoogle({ redirect });
     } catch (err) {
       setFormError(err.message);
@@ -141,7 +112,7 @@ export default function Login({ role = "student" }) {
         {isEducator ? (
           <>
             Sign in to manage your test series and students. New here?{" "}
-            <Link to="/teacher/registration" className="font-medium text-primary hover:underline">
+            <Link to="/teacher/register" className="font-medium text-primary hover:underline">
               Create an educator account
             </Link>
           </>

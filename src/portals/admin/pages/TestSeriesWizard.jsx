@@ -28,6 +28,7 @@ import ComingSoonBadge from "../components/ComingSoonBadge";
 import SaveProgress from "../components/SaveProgress";
 import { failedStepIndex, saveErrorMessage, saveSteps } from "../utils/saveProgress";
 import { startTimer } from "../utils/debugTiming";
+import { needsApproval, publishActionLabel, useAuthoringPortal } from "../context/authoringPortal";
 import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
@@ -97,6 +98,10 @@ function Errors({ list }) {
 export default function TestSeriesWizard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const portal = useAuthoringPortal();   // admin or teacher portal: paths and the publish label
+  // A series created in the wizard belongs to whoever creates it, so an
+  // educator's goes to an admin for approval instead of being published.
+  const approval = needsApproval(portal, { origin: portal.kind });
   const [st, setSt] = useState(initialWizardState);
   // Only the duplicate start needs the series list (up to 100 rows with
   // enrolment / attempt counts); the name check is its own RPC below.
@@ -245,7 +250,7 @@ export default function TestSeriesWizard() {
   };
 
   // ---- save
-  const publishLabel = st.availability.goLive === "schedule" ? "Schedule go-live" : "Publish now";
+  const publishLabel = publishActionLabel(portal, { origin: portal.kind }, st.availability.goLive === "schedule");
   // One RPC per click: save_wizard_draft (draft of a saved series) or
   // upsert_test_series_full (saves the questions and, for publish, validates
   // and publishes in the same transaction).
@@ -255,7 +260,7 @@ export default function TestSeriesWizard() {
     setSubmitted(true);
     setSaving(true);
     const draftOnly = !publish && !!st.id;
-    const steps = saveSteps({ publish, scheduled: st.availability.goLive === "schedule", draftOnly });
+    const steps = saveSteps({ publish, scheduled: st.availability.goLive === "schedule", draftOnly, approval: publish && approval });
     const title = publish ? publishLabel : "Save as draft";
     setProgress({ title, steps, active: 0, failed: -1, error: "", publish });
     const payload = buildSeriesPayload(st, ctx, publish);
@@ -303,17 +308,31 @@ export default function TestSeriesWizard() {
       })),
     };
     const stopTimer = startTimer(`wizard ${publish ? "publish" : "save draft"} (${rpcPayload.tests.length} tests, ${totalQuestions} questions)`);
+    // Submit for approval = save (not publish), then educator_submit_series_for_approval.
+    // The saved id is kept so a retry updates the same series.
+    let savedId = null;
     const saveRequest = draftOnly
       ? testSeriesApi.saveDraft(st.id, st)
-      : testSeriesApi.saveWizard(rpcPayload, publish);
+      : publish && approval
+        ? testSeriesApi.saveWizard(rpcPayload, false).then((id) => {
+          savedId = id;
+          setSt((s) => ({ ...s, id }));
+          return testSeriesApi.submitForApproval(id).then(() => id);
+        })
+        : testSeriesApi.saveWizard(rpcPayload, publish);
     saveRequest
       .then((id) => {
         setProgress((p) => p && { ...p, active: p.steps.length });
-        const msg = !publish ? "Test series saved as draft." : st.availability.goLive === "schedule" ? "Test series scheduled for go-live." : "Test series published.";
-        navigate("/admin/testseries", { state: { toast: msg, seriesId: id } });
+        const msg = !publish ? "Test series saved as draft."
+          : approval ? "Submitted for approval. An admin will review it before it goes live."
+          : st.availability.goLive === "schedule" ? "Test series scheduled for go-live." : "Test series published.";
+        navigate(portal.basePath, { state: { toast: msg, seriesId: id } });
       })
       .catch((error) => {
-        setProgress((p) => p && { ...p, failed: failedStepIndex(error, p.steps), error: saveErrorMessage(error) });
+        const message = savedId && error?.code
+          ? `${error.message} Your series is saved as a draft: fix this and submit it again.`
+          : saveErrorMessage(error);
+        setProgress((p) => p && { ...p, failed: failedStepIndex(error, p.steps), error: message });
       })
       .finally(() => {
         stopTimer();
@@ -340,7 +359,7 @@ export default function TestSeriesWizard() {
   };
   const leave = () => {
     if (saving) return;
-    if (dirty && !submitted) setLeaveOpen(true); else navigate("/admin/testseries");
+    if (dirty && !submitted) setLeaveOpen(true); else navigate(portal.basePath);
   };
 
   const languageChoices = [...BASE_LANGUAGES, ...st.classification.languages.filter((l) => !BASE_LANGUAGES.includes(l))];
@@ -746,7 +765,7 @@ export default function TestSeriesWizard() {
             <span className="ul-tsw-inline">Continue <IconChevronRight size={13} /></span>
           </button>
         ) : (
-          <button type="button" className="ul-btn ul-btn--primary" disabled={review.errors.length > 0 || saving} aria-busy={saving && !!progress?.publish} onClick={() => save(true)}>{saving && progress?.publish ? (st.availability.goLive === "schedule" ? "Scheduling…" : "Publishing…") : publishLabel}</button>
+          <button type="button" className="ul-btn ul-btn--primary" disabled={review.errors.length > 0 || saving} aria-busy={saving && !!progress?.publish} onClick={() => save(true)}>{saving && progress?.publish ? (approval ? "Submitting…" : st.availability.goLive === "schedule" ? "Scheduling…" : "Publishing…") : publishLabel}</button>
         )}
       </div>
 
@@ -777,7 +796,7 @@ export default function TestSeriesWizard() {
         <WizModal title="Leave without saving?" onClose={() => setLeaveOpen(false)}
           footer={<>
             <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setLeaveOpen(false)}>Keep editing</button>
-            <button type="button" className="ul-btn ul-btn--danger" onClick={() => { setLeaveOpen(false); navigate("/admin/testseries"); }}>Discard &amp; leave</button>
+            <button type="button" className="ul-btn ul-btn--danger" onClick={() => { setLeaveOpen(false); navigate(portal.basePath); }}>Discard &amp; leave</button>
           </>}>
           <p>Your entries on this page have not been saved yet.</p>
         </WizModal>

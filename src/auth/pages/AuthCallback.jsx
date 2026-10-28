@@ -11,6 +11,9 @@ import { homePathForUser } from "../../utils/roles";
 import { safeRedirect } from "../utils/validators";
 import { authErrorMessage } from "../services/authApi";
 import { needsGoogleOnboarding } from "../../portals/student/utils/onboarding";
+import { clearEducatorIntent, hasEducatorIntent } from "../../portals/teacher/utils/onboarding";
+
+const ROLE_NAME = { student: "student", admin: "admin", regionalhead: "regional head" };
 
 // Supabase puts errors in the query (PKCE) or the hash (implicit flow).
 export function readAuthUrlError(location) {
@@ -104,6 +107,26 @@ export default function AuthCallback() {
         />
       </AuthFrame>
     );
+  }
+
+  // A teacher sign-up (email link or Google started on /teacher/register) that
+  // landed on an account with another role: the role is never changed.
+  const educatorIntent = hasEducatorIntent(null);
+  if (!loading && user && educatorIntent) {
+    clearEducatorIntent();
+    if (user.role !== "teacher") {
+      return (
+        <AuthFrame>
+          <ConfirmationCard
+            state="failure"
+            heading="This email already has an account"
+            message={`This email is registered as a ${ROLE_NAME[user.role] || user.role} account, so it can't be used for an educator account. Sign out and register as an educator with a different email.`}
+            primaryAction={<Link to={homePathForUser(user)}><Button>Go to my account</Button></Link>}
+          />
+        </AuthFrame>
+      );
+    }
+    return <Navigate to="/teacher" replace />;
   }
 
   const checkingOnboarding = !loading && user?.role === "student" && needsOnboarding === null;

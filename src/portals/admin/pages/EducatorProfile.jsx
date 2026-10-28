@@ -363,6 +363,8 @@ export default function EducatorProfile() {
                 <div className="ul-edp-review__row"><span>Qualification</span><strong>{educator.qualification}</strong></div>
                 <div className="ul-edp-review__row"><span>Years of experience</span><strong>{educator.yearsExperience}</strong></div>
                 <div className="ul-edp-review__row"><span>Subjects taught</span><strong>{educator.subjects.join(", ")}</strong></div>
+                <div className="ul-edp-review__row"><span>Teaching languages</span><strong>{(educator.languages || []).join(", ") || "—"}</strong></div>
+                <div className="ul-edp-review__row"><span>Application submitted</span><strong>{educator.submittedAt ? new Date(educator.submittedAt).toLocaleString("en-IN") : "—"}</strong></div>
                 <div className="ul-edp-review__row"><span>Skills</span><strong>{educator.skills.join(", ")}</strong></div>
                 <div className="ul-edp-review__row"><span>Certifications</span><strong>{educator.certifications.join(", ")}</strong></div>
                 <div className="ul-edp-review__row"><span>Previous experience</span><strong>{educator.previousExperience.map((e) => `${e.role} at ${e.org} (${e.years} yrs)`).join("; ")}</strong></div>

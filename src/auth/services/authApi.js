@@ -54,12 +54,17 @@ function fail(error, fallback) {
 }
 
 /** Sign up with email + password. Returns { user, session, needsConfirmation }. */
-export async function register({ email, password, fullName, redirect }) {
+// role "educator" (teacher register page) marks the sign-up so the first
+// profile is created through educator_start_onboarding (profileService).
+export async function register({ email, password, fullName, redirect, role, phone }) {
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
     options: {
-      data: { full_name: fullName?.trim() || "" },
+      data: {
+        full_name: fullName?.trim() || "",
+        ...(role === "educator" ? { signup_role: "educator", phone: phone?.trim() || null } : {}),
+      },
       emailRedirectTo: callbackUrl(redirect),
     },
   });

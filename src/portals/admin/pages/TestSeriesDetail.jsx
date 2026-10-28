@@ -25,6 +25,8 @@ import {
   IconEyeOff, IconEye, IconReport,
 } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
+import SeriesReviewBanner from "../components/SeriesReviewBanner";
+import { needsApproval, testPath, useAuthoringPortal } from "../context/authoringPortal";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./SettingsPermissions.css";
@@ -48,7 +50,8 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const routeParams = useParams();
   const seriesId = seriesIdProp ?? routeParams.seriesId;
   const navigate = useNavigate();
-  const goBack = () => (onBack ? onBack() : navigate("/admin/testseries"));
+  const portal = useAuthoringPortal();
+  const goBack = () => (onBack ? onBack() : navigate(portal.basePath));
   const loadSeries = useCallback(() => testSeriesApi.get(seriesId), [seriesId]);
   const seriesState = useRpc(loadSeries);
   const series = seriesState.data;
@@ -85,13 +88,13 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   }, [series]);
 
   if (seriesState.loading) {
-    return <div className="ul-ts-page"><button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back to Test Series</button><div className="ul-set-empty">Loading test series…</div></div>;
+    return <div className="ul-ts-page"><button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> {portal.backLabel}</button><div className="ul-set-empty">Loading test series…</div></div>;
   }
 
   if (seriesState.error || !series) {
     return (
       <div className="ul-ts-page">
-        <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back to Test Series</button>
+        <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> {portal.backLabel}</button>
         <div className="ul-set-empty" role="alert">
           <p>{seriesState.error?.message || "This Test Series could not be found."}</p>
           {seriesState.error && <button type="button" className="ul-btn ul-btn--ghost" onClick={() => seriesState.refetch()}>Retry</button>}
@@ -151,7 +154,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
       setToast(`"${payload.name || "Test"}" created as draft. Now add Questions.`);
       closeForm();
       if (onManageQuestions) onManageQuestions(created.id);
-      else navigate(`/admin/testseries/${series.id}/tests/${created.id}`);
+      else navigate(testPath(portal, series.id, created.id));
       seriesState.refetch();
     }).catch((error) => setFormErrors([error.message]));
   };
@@ -196,9 +199,15 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   };
 
 
+  // An educator's own series is published by an admin's approval, so its
+  // tests can't be published one by one before that.
+  const approvalPending = needsApproval(portal, series) && series.status !== "published";
+
   return (
     <div className="ul-ts-page">
-      <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back to Test Series</button>
+      <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> {portal.backLabel}</button>
+
+      <SeriesReviewBanner portal={portal} series={series} setToast={setToast} onSubmitted={() => seriesState.refetch()} />
 
       <div className="ul-dash-welcome ul-ts-header-row">
         <div>
@@ -260,13 +269,13 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                     <td data-label="Status"><span className={`ul-status-badge ${TEST_STATUS_BADGE_CLASS[t.status]}`}>{TEST_STATUS_LABEL[t.status]}</span></td>
                     <td data-label="Actions">
                       <div className="ul-ts-actions-cell">
-                        <button type="button" className="ul-btn ul-btn--ghost ul-set-btn-sm ul-ts-manage-btn" onClick={() => (onManageQuestions ? onManageQuestions(t.id) : navigate(`/admin/testseries/${series.id}/tests/${t.id}`))}>Manage Questions</button>
+                        <button type="button" className="ul-btn ul-btn--ghost ul-set-btn-sm ul-ts-manage-btn" onClick={() => (onManageQuestions ? onManageQuestions(t.id) : navigate(testPath(portal, series.id, t.id)))}>Manage Questions</button>
                         <button type="button" className="ul-ts-icon-btn" onClick={() => openEditTest(t)} aria-label="Edit"><IconEdit size={14} /></button>
                         <div className="ul-ts-kebab-wrap">
                           <button type="button" className="ul-ts-icon-btn" onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === t.id ? null : t.id); }} aria-label="More actions"><IconMore size={14} /></button>
                           {openMenuId === t.id && (
                             <div className="ul-ts-kebab-menu" onClick={(e) => e.stopPropagation()}>
-                              <button type="button" className="is-publish" onClick={() => { handlePublish(t); setOpenMenuId(null); }}><IconCheck size={13} /> Publish</button>
+                              {!approvalPending && <button type="button" className="is-publish" onClick={() => { handlePublish(t); setOpenMenuId(null); }}><IconCheck size={13} /> Publish</button>}
                               <button type="button" className="is-unpublish" onClick={() => { handleUnpublish(t); setOpenMenuId(null); }}><IconEyeOff size={13} /> Unpublish</button>
                               <button type="button" onClick={() => { handleDuplicateTest(t); setOpenMenuId(null); }}><IconReport size={13} /> Duplicate</button>
                               <button type="button" onClick={() => { setViewTarget(t); setOpenMenuId(null); }}><IconEye size={13} /> View Details</button>
@@ -365,7 +374,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
               ) : (
                 <>
                   <button type="button" className="ul-btn ul-btn--ghost" onClick={saveAsDraft}>Save as Draft</button>
-                  <button type="button" className="ul-btn ul-btn--primary" onClick={saveAndPublish}>Publish</button>
+                  {!approvalPending && <button type="button" className="ul-btn ul-btn--primary" onClick={saveAndPublish}>Publish</button>}
                 </>
               )}
             </div>

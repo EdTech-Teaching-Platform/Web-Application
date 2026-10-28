@@ -28,6 +28,8 @@ import {
   validateSeriesForPublish,
 } from "../data/testSeriesMock";
 import { useRpc } from "../hooks/useRpc";
+import { usePendingApprovals } from "../hooks/usePendingApprovals";
+import SeriesApprovals from "./SeriesApprovals";
 import { testSeriesApi } from "../services/testSeriesApi";
 import {
   IconSearch, IconClose, IconPlus, IconEdit, IconBook, IconLayers,
@@ -62,6 +64,8 @@ const EMPTY_FORM = {
 const TABS = [
   { key: "series", label: "Test Series Structure", icon: IconBook },
   { key: "tests", label: "Test & Question Structure", icon: IconLayers },
+  // educator series waiting for review (20261028100300)
+  { key: "approvals", label: "Approvals", icon: IconReport },
 ];
 
 const SUBJECT_STYLE = {
@@ -119,8 +123,9 @@ export default function TestSeries() {
   const total = Number(listState.data?.total || 0);
 
   useEffect(() => {
-    if (location.state && location.state.toast) {
-      setToast(location.state.toast);
+    if (location.state && (location.state.toast || location.state.tab)) {
+      if (location.state.toast) setToast(location.state.toast);
+      if (TABS.some((t) => t.key === location.state.tab)) setTab(location.state.tab);   // e.g. the sidebar's Approvals badge
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location, navigate]);
@@ -248,6 +253,7 @@ export default function TestSeries() {
   // "Test & Question Structure" this way should always land on its empty
   // "Select a Test Series" default, not silently reopen whatever series
   // happened to be selected last time.
+  const approvals = usePendingApprovals();
   const switchTab = (key) => {
     if (key === "tests") {
       setSelectedSeriesId(null);
@@ -274,6 +280,9 @@ export default function TestSeries() {
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <t.icon size={13} /> {t.label}
+                {t.key === "approvals" && approvals.count > 0 && (
+                  <span className="ul-sidebar__badge" aria-label={`${approvals.count} waiting for approval`}>{approvals.count}</span>
+                )}
               </span>
             </button>
           ))}
@@ -457,6 +466,10 @@ export default function TestSeries() {
             </div>
           </div>
         </>
+      )}
+
+      {tab === "approvals" && (
+        <SeriesApprovals setToast={setToast} onChanged={() => { approvals.refresh(); listState.refetch(); statsState.refetch(); }} />
       )}
 
       {tab === "tests" && (

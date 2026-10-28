@@ -32,6 +32,8 @@ import QuestionTypePicker, { QuestionAnswerFields } from "../components/Question
 import ComingSoonBadge from "../components/ComingSoonBadge";
 import { IconClose, IconPlus, IconEdit, IconChevronLeft, IconEye } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
+import SeriesReviewBanner from "../components/SeriesReviewBanner";
+import { isLockedForReview, needsApproval, publishActionLabel, seriesPath, useAuthoringPortal } from "../context/authoringPortal";
 import QuestionImageField from "../components/QuestionImageField";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
@@ -54,6 +56,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   const seriesId = seriesIdProp ?? routeParams.seriesId;
   const testId = testIdProp ?? routeParams.testId;
   const navigate = useNavigate();
+  const portal = useAuthoringPortal();
   const [toast, setToast] = useState("");
   const [series, setSeries] = useState(null);
   const [test, setTest] = useState(null);
@@ -85,7 +88,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
       setSaving(false);
     }
   };
-  const goBack = () => (onBack ? onBack() : navigate(seriesId ? `/admin/testseries/${seriesId}` : "/admin/testseries"));
+  const goBack = () => (onBack ? onBack() : navigate(seriesId ? seriesPath(portal, seriesId) : portal.basePath));
   // "Publish Test Series" goes further back than the plain Back button —
   // it drops out of this series entirely onto the top-level Test Series
   // Structure page (the series list), not just one level up onto this
@@ -93,7 +96,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   // supplies onSeriesPublished to switch its own tab state directly;
   // as a standalone route there's no "series list" tab to switch, so we
   // land on /admin/testseries, which renders that same list.
-  const goToSeriesStructure = () => (onSeriesPublished ? onSeriesPublished() : navigate("/admin/testseries"));
+  const goToSeriesStructure = () => (onSeriesPublished ? onSeriesPublished() : navigate(portal.basePath));
 
   const toastTimer = useRef(null);
   useEffect(() => {
@@ -111,6 +114,9 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   const [previewOpen, setPreviewOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // An educator's own series is published through admin approval.
+  const approval = needsApproval(portal, series);
+  const lockedForReview = isLockedForReview(portal, series);
   const readiness = useMemo(() => (test ? validateTestForPublish(test) : { valid: false, errors: [] }), [test]);
   const seriesReadiness = useMemo(
     () => (series ? validateSeriesForPublish({ ...series, availability: { mode: series.availability_mode } }) : { valid: false, errors: [] }),
@@ -172,9 +178,14 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
       return;
     }
     const payload = questionPayload({ ...form, type: questionType });
+    let regraded = 0;
     const ok = editingQuestionId
-      ? await run(() => testSeriesApi.updateQuestion(editingQuestionId, payload), "Question updated.")
+      ? await run(async () => {
+        const updated = await testSeriesApi.updateQuestion(editingQuestionId, payload);
+        regraded = Number(updated?.regraded_attempts || 0);
+      }, "Question updated.")
       : await run(() => testSeriesApi.createQuestion({ ...payload, testId: test.id }), "Question added.");
+    if (ok && regraded > 0) setToast(`Question updated. ${regraded} submitted attempt${regraded === 1 ? "" : "s"} re-scored.`);
     if (ok) closeBuilder();
   };
 
@@ -198,7 +209,10 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
       setToast(seriesReadiness.errors[0]);
       return;
     }
-    const ok = await run(() => testSeriesApi.publishSeries(series.id), `"${series.name}" published. The entire Test Series is now live for students.`);
+    // An educator's own series goes to an admin for approval instead.
+    const ok = approval
+      ? await run(() => testSeriesApi.submitForApproval(series.id), `"${series.name}" submitted for approval. An admin will review it before it goes live.`)
+      : await run(() => testSeriesApi.publishSeries(series.id), `"${series.name}" published. The entire Test Series is now live for students.`);
     // Jump straight to the Test Series Structure page (the series list)
     // instead of leaving the admin sitting on a single Test's question
     // list — publishing the whole series is the "I'm done here" action.
@@ -208,6 +222,8 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   return (
     <div className="ul-ts-page">
       <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back to {series.name}</button>
+
+      <SeriesReviewBanner portal={portal} series={series} setToast={setToast} onSubmitted={() => load()} />
 
       <div className="ul-dash-welcome ul-ts-header-row">
         <div>
@@ -225,12 +241,17 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
           <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setPreviewOpen(true)}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><IconEye size={13} /> Preview Test</span>
           </button>
-          <button type="button" className="ul-btn ul-btn--ghost" onClick={togglePublish}>{test.status === TEST_STATUS.PUBLISHED ? "Unpublish" : "Publish"}</button>
+          {!(approval && series.status !== SERIES_STATUS.PUBLISHED) && (
+            <button type="button" className="ul-btn ul-btn--ghost" onClick={togglePublish}>{test.status === TEST_STATUS.PUBLISHED ? "Unpublish" : "Publish"}</button>
+          )}
           <button type="button" className="ul-btn ul-btn--primary" onClick={openAddQuestion}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><IconPlus size={14} /> Add Question</span>
           </button>
-          {test.questions.length > 0 && series.status !== SERIES_STATUS.PUBLISHED && (
-            <button type="button" className="ul-btn ul-btn--primary" onClick={handlePublishSeries}>Publish Test Series</button>
+          {test.questions.length > 0 && series.status !== SERIES_STATUS.PUBLISHED && !lockedForReview
+            && !(portal.kind === "admin" && series.origin === "educator") && (
+            <button type="button" className="ul-btn ul-btn--primary" onClick={handlePublishSeries}>
+              {approval ? publishActionLabel(portal, series) : "Publish Test Series"}
+            </button>
           )}
         </div>
       </div>
@@ -340,6 +361,11 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                   </div>
                   <QuestionImageField value={form.image} onChange={(image) => setForm({ ...form, image })} />
 
+                  {editingQuestionId && test.attempts > 0 && (
+                    <div className="ul-tsw-note" role="note">
+                      Changing a correct answer or the marks re-scores {test.attempts} submitted attempt{test.attempts === 1 ? "" : "s"}. Options can be edited but not added or removed.
+                    </div>
+                  )}
                   <QuestionAnswerFields q={{ ...form, type: questionType }} onChange={(patch) => setForm({ ...form, ...patch })} />
 
                   <div className="ul-ts-form-grid-2">

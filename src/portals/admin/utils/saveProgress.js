@@ -1,15 +1,18 @@
 // Steps shown while the wizard saves. "Publish now" is one RPC
 // (upsert_test_series_full with p_publish = true): the server saves the
 // questions, validates and publishes in one transaction, so nothing is kept
-// unless every step succeeds.
-export function saveSteps({ publish, scheduled, draftOnly }) {
+// unless every step succeeds. An educator's own series is not published:
+// "Submit for approval" saves it, then educator_submit_series_for_approval
+// validates it and sends it to an admin.
+export function saveSteps({ publish, scheduled, draftOnly, approval = false }) {
   if (draftOnly) return ["Saving draft"];
   if (!publish) return ["Saving questions"];
+  if (approval) return ["Saving questions", "Validating", "Submitting for approval"];
   return ["Saving questions", "Validating", scheduled ? "Scheduling go-live" : "Publishing"];
 }
 
 // Messages raised by adm_publish_test_series / adm_set_series_availability.
-const VALIDATION_ERROR = /has no questions|without a correct answer|Add at least one test|closing time must be after/i;
+const VALIDATION_ERROR = /has no questions|without a correct answer|Add at least one test|closing time must be after|subjective question/i;
 
 // Which step a failed save stopped at.
 export function failedStepIndex(error, steps) {
