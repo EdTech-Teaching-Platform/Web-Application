@@ -7,7 +7,7 @@
 -- Every row must be PASS. For check 9, also compare the md5 in detail with the
 -- 'lead_function_def' row of the before-snapshot (admin_snapshot_lead_editor.sql).
 -- Needs pg_cron (check 10 reads cron.job).
--- Counts: 36 tables, 6 sequences, 332 function names.
+-- Counts: 36 tables, 6 sequences, 334 function names.
 -- =====================================================================
 with our_tables(name) as (
   select unnest(array[
@@ -31,40 +31,40 @@ with our_tables(name) as (
       'add_admin_note', 'add_callback_note', 'adm_actor_kind', 'adm_actor_role', 'adm_apply_test_fields', 
       'adm_asg_log', 'adm_asg_notify', 'adm_assert_question_type_allowed', 'adm_assignment_rows', 
       'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
-      'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
-      'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
-      'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
+      'adm_backfill_educator_approvals', 'adm_callback_assign_code', 'adm_callback_rows', 
+      'adm_callback_source_key', 'adm_campaign_category', 'adm_campaign_row', 'adm_can_create_series', 
+      'adm_can_manage_series', 'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
       'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
       'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
       'adm_detect_repeated_questions', 'adm_educator_assignment_json', 'adm_educator_base', 
       'adm_educator_clean', 'adm_educator_documents_json', 'adm_educator_form', 'adm_educator_series_ids', 
       'adm_educator_status_json', 'adm_educator_validate', 'adm_educator_verification_key', 
-      'adm_eligible_educators', 'adm_end_user_sessions', 'adm_ensure_educator_state', 
-      'adm_ensure_series_admin', 'adm_ensure_student', 'adm_feedback_row', 'adm_finalize_attempt', 
-      'adm_grade_matches', 'adm_house_course_id', 'adm_initials', 'adm_insert_options', 
-      'adm_insert_question', 'adm_insert_questions_bulk', 'adm_is_account_blocked', 'adm_is_admin_user', 
-      'adm_is_educator', 'adm_is_platform_admin', 'adm_is_service_role', 'adm_is_subjective_type', 
-      'adm_is_verified_educator', 'adm_like', 'adm_list_admins', 'adm_live_series', 
-      'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 'adm_normalize_phone', 
-      'adm_notify_educator_verification', 'adm_notify_series_decision', 'adm_open_assignment_count', 
-      'adm_payments_stub', 'adm_phone_display', 'adm_publish_campaign', 'adm_publish_series_core', 
-      'adm_publish_test_series', 'adm_question_grading_key', 'adm_question_is_subjective', 
-      'adm_question_json', 'adm_question_options', 'adm_quiz_series', 'adm_range_options', 
-      'adm_rebuild_attempt_report', 'adm_regrade_quiz', 'adm_report_bucket', 'adm_report_educators', 
-      'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 'adm_require_admin', 
-      'adm_require_author', 'adm_require_educator', 'adm_require_quiz', 'adm_require_series', 
-      'adm_require_series_access', 'adm_require_series_access_or_new', 'adm_require_series_owner', 
-      'adm_require_verified_educator', 'adm_resolve_audience', 'adm_resolve_date_range', 
-      'adm_review_match', 'adm_series_card', 'adm_series_content_problem', 'adm_series_educators', 
-      'adm_series_is_independent_educator', 'adm_series_json', 'adm_series_name_taken', 
-      'adm_series_publish_problem', 'adm_series_review_json', 'adm_series_rows', 'adm_series_students', 
-      'adm_series_tracker_rows', 'adm_set_series_availability', 'adm_stat_card', 'adm_student_is_enrolled', 
-      'adm_student_series', 'adm_student_uid', 'adm_student_writer_uid', 'adm_subject_category', 
-      'adm_sync_series_to_lead', 'adm_test_json', 'adm_test_window', 'adm_text_answer', 'adm_ticket_rows', 
-      'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 'adm_ui_question_type', 
-      'adm_update_options_in_place', 'adm_validate_campaign', 'adm_validate_quiz_for_publish', 
-      'approve_educator_series', 'approve_refund', 'archive_notification', 'assign_request', 
-      'assign_support_ticket', 'block_student', 'cancel_assignment', 'clear_done_notes', 
+      'adm_educator_verified', 'adm_eligible_educators', 'adm_end_user_sessions', 
+      'adm_ensure_educator_state', 'adm_ensure_series_admin', 'adm_ensure_student', 'adm_feedback_row', 
+      'adm_finalize_attempt', 'adm_grade_matches', 'adm_house_course_id', 'adm_initials', 
+      'adm_insert_options', 'adm_insert_question', 'adm_insert_questions_bulk', 'adm_is_account_blocked', 
+      'adm_is_admin_user', 'adm_is_educator', 'adm_is_platform_admin', 'adm_is_service_role', 
+      'adm_is_subjective_type', 'adm_is_verified_educator', 'adm_like', 'adm_list_admins', 
+      'adm_live_series', 'adm_map_question_type', 'adm_new_house_series', 'adm_norm_text', 
+      'adm_normalize_phone', 'adm_notify_educator_verification', 'adm_notify_series_decision', 
+      'adm_open_assignment_count', 'adm_payments_stub', 'adm_phone_display', 'adm_publish_campaign', 
+      'adm_publish_series_core', 'adm_publish_test_series', 'adm_question_grading_key', 
+      'adm_question_is_subjective', 'adm_question_json', 'adm_question_options', 'adm_quiz_series', 
+      'adm_range_options', 'adm_rebuild_attempt_report', 'adm_regrade_quiz', 'adm_report_bucket', 
+      'adm_report_educators', 'adm_report_enrollment', 'adm_report_students', 'adm_report_test_series', 
+      'adm_require_admin', 'adm_require_author', 'adm_require_educator', 'adm_require_quiz', 
+      'adm_require_series', 'adm_require_series_access', 'adm_require_series_access_or_new', 
+      'adm_require_series_owner', 'adm_require_verified_educator', 'adm_resolve_audience', 
+      'adm_resolve_date_range', 'adm_review_match', 'adm_series_card', 'adm_series_content_problem', 
+      'adm_series_educators', 'adm_series_is_independent_educator', 'adm_series_json', 
+      'adm_series_name_taken', 'adm_series_publish_problem', 'adm_series_review_json', 'adm_series_rows', 
+      'adm_series_students', 'adm_series_tracker_rows', 'adm_set_series_availability', 'adm_stat_card', 
+      'adm_student_is_enrolled', 'adm_student_series', 'adm_student_uid', 'adm_student_writer_uid', 
+      'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_json', 'adm_test_window', 
+      'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 'adm_tpa_tests', 
+      'adm_ui_question_type', 'adm_update_options_in_place', 'adm_validate_campaign', 
+      'adm_validate_quiz_for_publish', 'approve_educator_series', 'approve_refund', 'archive_notification', 
+      'assign_request', 'assign_support_ticket', 'block_student', 'cancel_assignment', 'clear_done_notes', 
       'create_assignments', 'create_discount', 'create_educator_invites', 'create_notification', 
       'create_question', 'create_question_option', 'create_test', 'create_test_section', 
       'create_test_series', 'delete_admin_note', 'delete_draft_notification', 'delete_educator', 
@@ -223,9 +223,9 @@ with our_tables(name) as (
   union all
   select 12, 'Summary',
          case when (select count(*) from our_rels) = 36
-               and (select count(distinct proname) from our_procs) = 332 then 'PASS' else 'FAIL' end,
+               and (select count(distinct proname) from our_procs) = 334 then 'PASS' else 'FAIL' end,
          (select count(*) from our_rels) || ' of 36 tables, '
-           || (select count(distinct proname) from our_procs) || ' of 332 function names, '
+           || (select count(distinct proname) from our_procs) || ' of 334 function names, '
            || (select count(*) from our_procs) || ' overloads'
 )
 select check_name, status, detail from checks order by ord;

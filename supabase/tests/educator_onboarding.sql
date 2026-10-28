@@ -87,6 +87,8 @@ begin
   insert into public.adm_admin_users (user_id) values (v_admin);
   insert into public.educator_profiles (user_id, full_name, phone, location, verification_status)
   values (v_ver, 'EO Verified', '9999999999', 'Pune', 'verified');
+  -- verified before review states existed: approved the way 20261029090000 backfills it
+  perform public.adm_backfill_educator_approvals();
 
   insert into storage.buckets (id, name) values ('educator-verification-docs', 'educator-verification-docs') on conflict do nothing;
   insert into storage.objects (bucket_id, name) values

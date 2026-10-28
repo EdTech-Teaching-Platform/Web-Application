@@ -26,11 +26,12 @@ works like this:
 | **Onboarding** (any educator, any status) | `educator_start_onboarding`, `educator_save_onboarding_step`, `educator_register_document`, `educator_remove_document`, `educator_submit_onboarding`, `educator_get_status`, `educator_get_onboarding` | `adm_require_educator()`: `profiles.role = 'educator'`. `educator_start_onboarding` needs only a signed-in user. |
 | **Everything else** named `educator_*` | Later briefs | Must start with `perform public.adm_require_verified_educator();` |
 
-`adm_require_verified_educator()` requires all three of:
+`adm_require_verified_educator()` requires all four of (since `20261029090000`):
 
 - the role is `educator`;
-- `educator_profiles.verification_status = 'verified'`;
-- `educator_admin_state.account_status` is `active` (or there's no row).
+- `educator_admin_state.review_state = 'approved'` (our table; only `set_educator_verification` writes it);
+- `educator_profiles.verification_status = 'verified'` (never enough alone: the lead's RLS lets educators edit their row);
+- `educator_admin_state.account_status = 'active'` (the row is required).
 
 `supabase/tests/educator_onboarding.sql` checks every `educator_*` function in
 the database:

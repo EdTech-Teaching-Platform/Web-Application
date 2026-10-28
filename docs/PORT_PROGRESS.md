@@ -99,6 +99,67 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-10-29: educator gate hardening (written, nothing applied)
+
+**Problem:** `adm_is_verified_educator()` trusted
+`educator_profiles.verification_status`, and the lead's RLS lets an educator
+update their own row. A pending educator could set themselves `verified` and
+use every verified-only RPC and the shared series authoring.
+
+**Fix:** `20261029090000_educator_gate_hardening.sql`. The 20261028 files are
+applied, so they weren't edited; this file uses only create or replace of our
+own functions.
+
+- **New `adm_educator_verified(user)`:** verified means `profiles.role` is
+  `educator`, `educator_admin_state.review_state = 'approved'` (our table, RPC
+  only), `verification_status = 'verified'`, and `account_status = 'active'`
+  (the row is required).
+- **Replaced to use it:**
+  - `adm_is_verified_educator()` (all verified-only RPCs and the series guards);
+  - `adm_educator_status_json` (the portal gate);
+  - `adm_educator_verification_key` (admin lists and counts);
+  - `adm_eligible_educators` (assignment targets).
+
+  Gate and admin statuses now take `verified` / `rejected` from our review
+  state. A self-set lead value shows as `pending`, and a self-set `rejected`
+  doesn't reopen editing.
+- **Backfill** (`adm_backfill_educator_approvals()`, run by the migration,
+  idempotent):
+  - educators verified before review states existed (no state row, or
+    `review_state` null) become `approved`;
+  - verified-looking rows in an onboarding state are left alone and reported
+    in a NOTICE.
+
+**Audit (no other change needed):**
+- `set_educator_verification` (20261028090200) is the only writer of
+  `verified`, and it sets `approved` in the same transaction.
+- `register_educator` writes `pending` only; `create_educator_invites` and the
+  import paths never write verification fields.
+- Educator-callable functions write `review_state` only as `draft` / `submitted`
+  and never write `account_status`. `educator_admin_state` has no browser
+  grants.
+
+**Open item:** if the lead's own app marks an educator `verified` directly,
+they don't get access here until an admin approves them through
+`set_educator_verification`. Running `adm_backfill_educator_approvals()` again
+also approves such rows, but only while their `review_state` is null.
+
+**Files:**
+- `docs/trial_run_20261029090000.sql` (the last line is `rollback;`);
+- `scripts/rollback_20261029090000_educator_gate_hardening.sql` (generated;
+  restores the four previous bodies verbatim and re-opens the hole, so use it
+  only if needed);
+- `supabase/tests/educator_gate_hardening.sql` (19 checks);
+- **test fixtures:** `educator_onboarding.sql` and `educator_series.sql` call
+  the backfill for their pre-existing verified fixtures.
+
+**Checks (PGlite, nothing applied):**
+- all migrations apply, the trial succeeds, and the rollback restores the old
+  functions;
+- all 7 SQL test files pass;
+- the parser reports 0 errors; hardening 381 definitions with 0 problems;
+- verify: 36 tables and 334 functions, all PASS.
+
 ## 2026-10-28: teacher portal on the educator RPCs (frontend; needs 20261028* applied and educator-upload-url deployed)
 
 ### Auth and onboarding

@@ -95,6 +95,8 @@ begin
     (v_e1, 'Educator One', '9000000001', 'Pune', 'verified'),
     (v_e2, 'Educator Two', '9000000002', 'Goa', 'verified'),
     (v_pend, 'Pending Educator', '9000000003', 'Agra', 'pending');
+  -- e1 / e2 were verified before review states existed: approved by the 20261029090000 backfill
+  perform public.adm_backfill_educator_approvals();
   perform pg_temp.remember('admin', v_admin); perform pg_temp.remember('e1', v_e1); perform pg_temp.remember('e2', v_e2);
   perform pg_temp.remember('pend', v_pend); perform pg_temp.remember('stu', v_stu);
   perform pg_temp.remember('s1', v_s1); perform pg_temp.remember('s2', v_s2); perform pg_temp.remember('s3', v_s3);
