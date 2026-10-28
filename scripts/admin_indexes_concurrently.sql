@@ -99,14 +99,3 @@ create index concurrently if not exists adm_quiz_answers_attempt_idx
 -- course-based series access (adm_student_series)
 create index concurrently if not exists adm_enrollments_student_idx
   on public.enrollments (student_id, course_id) where is_active;
-
--- Fast publish (20261027110000) ----------------------------------------------
--- Run after 20261027110000; one statement at a time, like the rest.
--- First check the lead has no index on quiz_question_options (question_id) already:
---   select indexname, indexdef from pg_indexes where schemaname = 'public' and tablename = 'quiz_question_options';
--- ROLLBACK
---   drop index concurrently if exists public.adm_quiz_question_options_question_idx;
--- deleting / replacing questions (FK check per deleted question), "has a correct
--- option" on publish, options per question when a test is read
-create index concurrently if not exists adm_quiz_question_options_question_idx
-  on public.quiz_question_options (question_id);
