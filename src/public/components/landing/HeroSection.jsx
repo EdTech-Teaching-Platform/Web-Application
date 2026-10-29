@@ -389,7 +389,10 @@ function RightCards() {
   return (
     <div className="pointer-events-none absolute -right-2 top-1/2 hidden h-[480px] w-[340px] origin-right -translate-y-1/2 scale-[0.74] xl:block 2xl:right-4 2xl:scale-100 ul-rise" style={{ "--d": "0.4s" }} aria-hidden="true">
       <span className="ul-float-a absolute -top-3 left-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-3.5 py-1.5 text-[11px] font-bold text-white shadow-[0_14px_28px_-12px_rgba(15,17,21,0.6)]" style={{ "--r": "-5deg" }}>
-        <Sparkle className="h-3 w-3 text-(--lp-yellow)" /> Instant score
+        <span className="grid h-4 w-4 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink)" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="h-2.5 w-2.5"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+        </span>
+        Instant score
       </span>
       {/* result report */}
       <div className={`ul-float-b absolute right-0 top-2 w-[316px] overflow-hidden p-4 ${CARD}`} style={{ "--r": "1.5deg" }}>

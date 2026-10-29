@@ -27,6 +27,7 @@ import SiteFooter from "../components/SiteFooter";
 import { LANDING_THEME_VARS } from "../landingTheme";
 import { ProductShowcase, SectionTitle } from "../components/landing/ProductShowcase";
 import HeroSection from "../components/landing/HeroSection";
+import ScoreGap from "../components/landing/ScoreGap";
 import ClassFinder from "../components/landing/ClassFinder";
 import TestJourney from "../components/landing/TestJourney";
 import ExamCountdownBanner from "../components/landing/ExamCountdownBanner";
@@ -131,6 +132,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ───────────────── SCORE GAP: studying alone vs with Universal Learning ───────────────── */}
+      <ScoreGap onStart={() => navigate("/test-series")} />
 
       {/* Hidden on phones for now (the tabbed product showcase is too heavy at that width). */}
       <section id="platform" className="hidden scroll-mt-24 bg-white py-16 md:block md:py-24">

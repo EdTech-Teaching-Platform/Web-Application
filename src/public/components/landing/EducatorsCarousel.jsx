@@ -16,13 +16,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EDUCATORS } from "../../../data/catalogMock";
 import { BookOpenIcon, CheckCircleIcon, ChevronRightIcon, StarIcon } from "../../../components/ui/icons";
+import { imgFallback } from "../../../utils/stockImages";
 import { Reveal, SectionHead } from "./LandingUI";
 
 const SHELL = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
 
 // Academic educators first — this is a test-series product.
-const FEATURED_IDS = ["ed2", "ed6", "ed3", "ed1", "ed7", "ed5"];
+const FEATURED_IDS = ["ed2", "ed6", "ed3", "ed1"];
 const FEATURED = FEATURED_IDS.map((id) => EDUCATORS.find((e) => e.id === id)).filter(Boolean);
+
+// Placeholder portraits (Unsplash, same hand-picked set as utils/stockImages.js),
+// matched to each sample educator. Swap for real headshots later.
+const portrait = (photoId) => `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=240&h=240&q=70`;
+const PORTRAITS = {
+  ed2: portrait("1507003211169-0a1dd7228f2d"), // Rohan Mehta
+  ed6: portrait("1519085360753-af0119f7cbe7"), // Aditya Sen
+  ed3: portrait("1580489944761-15a19d654956"), // Anaya Kapoor
+  ed1: portrait("1573496359142-b8d87734a5a2"), // Priya Sharma
+};
 
 const TONES = [
   { block: "bg-(--lp-yellow)", ink: "text-(--lp-ink)", ring: "bg-(--lp-ink)/[0.07]" },
@@ -69,10 +80,20 @@ function EducatorCard({ educator, index }) {
         </span>
       </div>
       <span
-        className="absolute left-5 top-[4.5rem] grid h-16 w-16 place-items-center rounded-full bg-(--lp-ink) font-(family-name:--lp-font) text-xl sm:left-6 sm:top-[5.5rem] sm:h-[4.75rem] sm:w-[4.75rem] sm:text-[1.65rem] font-bold text-(--lp-yellow) shadow-[0_10px_24px_-8px_rgb(15_17_21/0.5)] ring-4 ring-white transition-transform sm:ring-[5px] duration-300 ease-out group-hover:scale-105 group-hover:-rotate-3"
+        className="absolute left-5 top-[4.5rem] grid h-16 overflow-hidden w-16 place-items-center rounded-full bg-(--lp-ink) font-(family-name:--lp-font) text-xl sm:left-6 sm:top-[5.5rem] sm:h-[4.75rem] sm:w-[4.75rem] sm:text-[1.65rem] font-bold text-(--lp-yellow) shadow-[0_10px_24px_-8px_rgb(15_17_21/0.5)] ring-4 ring-white transition-transform sm:ring-[5px] duration-300 ease-out group-hover:scale-105 group-hover:-rotate-3"
         aria-hidden="true"
       >
         {initialsOf(educator.name)}
+        {PORTRAITS[educator.id] && (
+          <img
+            src={PORTRAITS[educator.id]}
+            alt=""
+            loading="lazy"
+            draggable="false"
+            onError={(e) => imgFallback(e, educator.name, 240, 240)}
+            className="absolute inset-0 h-full w-full rounded-full object-cover"
+          />
+        )}
       </span>
 
       <div className="flex flex-1 flex-col px-5 pb-5 pt-10 sm:px-6 sm:pb-6 sm:pt-12">
