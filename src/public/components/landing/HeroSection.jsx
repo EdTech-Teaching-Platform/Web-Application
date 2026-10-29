@@ -75,6 +75,26 @@ const STRIP_ITEMS = [
   "Mock exams", "Retake attempts", "Practice tests", "Pass marks",
 ];
 
+// Small line icons for the ticker strip, one per item (exam / test themed).
+const STRIP_ICON_PATHS = {
+  "Timed tests": <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9.5 2.5h5" /></>,
+  "Instant scoring": <><circle cx="12" cy="12" r="9" /><path d="m7.8 12.4 3 3 5.6-6.4" /></>,
+  "Detailed reports": <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></>,
+  "Attempt history": <><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" /><path d="M12 7.5V12l3 2" /></>,
+  "Mock exams": <><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 13h7M9 17h5" /></>,
+  "Retake attempts": <><path d="M20 11a8 8 0 0 0-14-4.5L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4.5L20 15M20 20v-5h-5" /></>,
+  "Practice tests": <><path d="m4 20 1-4L16.5 4.5a2 2 0 0 1 3 3L8 19zM14 7l3 3" /></>,
+  "Pass marks": <><circle cx="12" cy="9" r="6" /><path d="m8.5 14-1.5 7 5-3 5 3-1.5-7M9.5 9l2 2 3.5-4" /></>,
+};
+
+function StripIcon({ name, className = "" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      {STRIP_ICON_PATHS[name]}
+    </svg>
+  );
+}
+
 const CARD = "rounded-[18px] bg-white ring-1 ring-(--lp-line) shadow-[0_1px_0_rgba(15,17,21,0.04),0_28px_44px_-26px_rgba(15,17,21,0.32)]";
 
 // Slow-drifting backdrop details: faint exam symbols and the E = mc²
@@ -87,6 +107,59 @@ const AMBIENT = [
   { ch: "%", pos: "right-[6%] bottom-[12%]", size: "text-6xl", tone: "text-(--lp-yellow) opacity-60", dx: -12, dy: -14, r: 8, dur: 25, delay: -8 },
   { ch: "√", pos: "left-[7%] bottom-[7%]", size: "text-6xl", tone: "text-(--lp-ink) opacity-[0.08]", dx: 14, dy: -12, r: -5, dur: 27, delay: -14 },
 ];
+
+// Exam-desk details around the headline: a ruler, a taped OMR answer strip, a
+// teacher's red-pen grade mark, and a pencil drawing the underline. Static
+// objects (no floating) so they read as hand-placed rather than generated.
+// Anchored to the <h1>, shown only where the side cards leave room (xl+).
+const OMR_ROWS = [["1", 2], ["2", 0], ["3", 3]];
+
+function DeskDetails() {
+  return (
+    <span className="pointer-events-none hidden xl:block" aria-hidden="true">
+      {/* ruler, top right */}
+      <span className="absolute -right-[96px] top-[2%] h-[18px] w-[88px] rotate-[14deg] rounded-[3px] bg-(--lp-yellow-soft) shadow-[0_8px_14px_-8px_rgba(15,17,21,0.45)] ring-1 ring-(--lp-yellow)">
+        <span className="absolute inset-x-1.5 bottom-0 h-1.5" style={{ backgroundImage: "repeating-linear-gradient(90deg, rgba(15,17,21,0.5) 0 1px, transparent 1px 5px)" }} />
+        <span className="absolute inset-x-1.5 bottom-0 h-2.5" style={{ backgroundImage: "repeating-linear-gradient(90deg, rgba(15,17,21,0.7) 0 1px, transparent 1px 25px)" }} />
+      </span>
+
+      {/* OMR answer strip, taped, top left */}
+      <span className="absolute -left-[96px] top-[4%] w-[78px] -rotate-[7deg] rounded-md bg-white px-2 py-2 shadow-[0_12px_20px_-10px_rgba(15,17,21,0.4)] ring-1 ring-(--lp-line)">
+        <span className="absolute -top-1.5 left-1/2 h-3 w-9 -translate-x-1/2 rotate-[4deg] bg-(--lp-yellow)/80" />
+        {OMR_ROWS.map(([n, filled]) => (
+          <span key={n} className="flex items-center gap-[3px] py-[2px]">
+            <span className="w-2 text-[7px] font-bold leading-none text-(--lp-muted)">{n}</span>
+            {[0, 1, 2, 3].map((b) => (
+              <span key={b} className={`h-[9px] w-[9px] rounded-full ring-1 ${b === filled ? "bg-(--lp-ink) ring-(--lp-ink)" : "ring-(--lp-ink)/35"}`} />
+            ))}
+          </span>
+        ))}
+      </span>
+
+      {/* red-pen grade mark, left of "move" */}
+      <svg viewBox="0 0 72 72" fill="none" className="absolute -left-[84px] top-[56%] h-[68px] w-[68px] -rotate-[10deg]">
+        <path d="M37 7C19 5 6 18 7 36c1 18 14 30 31 29 18-1 29-14 28-31C65 18 53 8 38 7c-6-.5-11 .5-15 3" stroke="#e5484d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="36" y="45" textAnchor="middle" fontSize="26" fontWeight="800" fontStyle="italic" fill="#e5484d" style={{ fontFamily: "var(--lp-font)" }}>A+</text>
+        <path d="M21 55c10-3 21-3 31 0" stroke="#e5484d" strokeWidth="2.4" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+function Pencil({ className = "" }) {
+  return (
+    <svg viewBox="0 0 140 24" className={className} aria-hidden="true">
+      <polygon points="0,12 24,3 24,21" fill="#f2d6aa" />
+      <polygon points="0,12 8,9 8,15" fill="#0f1115" />
+      <rect x="24" y="3" width="86" height="18" fill="#ffd84d" />
+      <rect x="24" y="3" width="86" height="5" fill="#f2b705" />
+      <rect x="24" y="16" width="86" height="5" fill="#e0a800" />
+      <rect x="110" y="3" width="12" height="18" fill="#c7ccd6" />
+      <path d="M114 3v18M118 3v18" stroke="#9aa1b0" strokeWidth="1" />
+      <rect x="122" y="3" width="16" height="18" rx="5" fill="#ff9aa8" />
+    </svg>
+  );
+}
 
 function Formula({ className = "", dur = 24, delay = 0 }) {
   return (
@@ -118,21 +191,6 @@ function AmbientLayer() {
       <Sparkle className="ul-drift absolute left-[14%] top-[27%] h-4 w-4 text-(--lp-blue)/60" style={{ "--dx": "6px", "--dy": "-10px", "--dur": "17s" }} />
       <Sparkle className="ul-drift absolute right-[13%] bottom-[30%] h-5 w-5 text-(--lp-yellow)" style={{ "--dx": "-6px", "--dy": "10px", "--dur": "20s", "--delay": "-4s" }} />
     </div>
-  );
-}
-
-function LogoMark() {
-  return (
-    <span className="grid h-14 w-14 place-items-center rounded-full bg-white shadow-[0_14px_34px_-10px_rgba(15,17,21,0.3)] ring-1 sm:h-16 sm:w-16 ring-(--lp-line)">
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-(--lp-ink) text-white sm:h-10 sm:w-10">
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-(--lp-blue)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
-            <path d="M3 8l9-4 9 4-9 4-9-4Z" />
-            <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
-          </svg>
-        </span>
-      </span>
-    </span>
   );
 }
 
@@ -556,7 +614,7 @@ export default function HeroSection() {
     // the space above the ticker strip. Natural height on short/mobile screens.
     <div className="flex flex-col xl:min-h-[calc(100svh-4.5rem)]">
       {/* ───────────────────────────── HERO ───────────────────────────── */}
-      <section className="relative isolate flex flex-1 items-start overflow-hidden px-5 pb-12 pt-8 sm:px-8 md:pb-14 md:pt-10 xl:items-center xl:pt-8">
+      <section className="relative isolate flex flex-1 items-start overflow-hidden px-5 pb-12 pt-8 sm:px-8 md:pb-14 md:pt-10 xl:items-center xl:pb-6 xl:pt-28">
         {/* soft washes + faint dotted grid, static */}
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <style>{FLOAT_CSS}</style>
@@ -582,11 +640,11 @@ export default function HeroSection() {
           <RightCards />
 
           <div className="relative z-10 mx-auto flex max-w-[780px] flex-col items-center text-center">
-            <Reveal delay={40}><LogoMark /></Reveal>
             <Reveal delay={70}><MobileEyebrow /></Reveal>
 
             <Reveal delay={100}>
-              <h1 className="mt-6 font-(family-name:--lp-font) text-[2.4rem] font-bold leading-[1.04] tracking-[-0.03em] sm:text-6xl lg:text-[4.4rem]">
+              <h1 className="relative mt-6 font-(family-name:--lp-font) text-[2.4rem] font-bold leading-[1.04] tracking-[-0.03em] sm:text-6xl lg:text-[4.4rem]">
+                <DeskDetails />
                 Test series that
                 <br />
                 <span className="relative inline-block">
@@ -596,21 +654,21 @@ export default function HeroSection() {
                 you{" "}
                 <span className="relative inline-block">
                   <span className="relative z-10">forward.</span>
-                  <Sparkle className="ul-drift absolute -right-6 -top-4 hidden h-7 w-7 text-(--lp-yellow) sm:block" style={{ "--dx": "4px", "--dy": "-6px", "--r": "8deg", "--dur": "9s" }} />
                   <Squiggle className="absolute -bottom-3 left-0 -z-0 h-4 w-full text-(--lp-blue)" />
+                  <Pencil className="pointer-events-none absolute left-full top-[calc(100%+4px)] z-10 ml-1 hidden h-[17px] w-[100px] origin-left -rotate-[24deg] drop-shadow-[0_6px_6px_rgba(15,17,21,0.25)] xl:block" />
                 </span>
               </h1>
             </Reveal>
 
             <Reveal delay={170}>
-              <p className="mt-6 max-w-md text-base leading-relaxed text-(--lp-muted) md:text-lg">
+              <p className="mt-6 max-w-md text-base leading-relaxed xl:mt-7 text-(--lp-muted) md:text-lg">
                 Practice tests with a timer, instant scoring and a detailed report after every attempt.
               </p>
             </Reveal>
 
             <Reveal delay={290} className="w-full max-w-lg">
               <form
-                className="mt-7 flex w-full items-center gap-2 rounded-full bg-white p-2 pl-5 shadow-[0_2px_0_rgba(255,255,255,0.9)_inset,0_26px_60px_-18px_rgba(37,87,214,0.38)] ring-1 ring-(--lp-ink)/10 transition-[box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 focus-within:-translate-y-0.5 focus-within:shadow-[0_30px_70px_-14px_rgba(37,87,214,0.5)] focus-within:ring-2 focus-within:ring-(--lp-blue)"
+                className="mt-7 flex w-full items-center gap-2 rounded-full bg-white p-2 xl:mt-10 pl-5 shadow-[0_2px_0_rgba(255,255,255,0.9)_inset,0_26px_60px_-18px_rgba(37,87,214,0.38)] ring-1 ring-(--lp-ink)/10 transition-[box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 focus-within:-translate-y-0.5 focus-within:shadow-[0_30px_70px_-14px_rgba(37,87,214,0.5)] focus-within:ring-2 focus-within:ring-(--lp-blue)"
                 onSubmit={(event) => {
                   event.preventDefault();
                   const query = new FormData(event.currentTarget).get("query");
@@ -660,7 +718,7 @@ export default function HeroSection() {
       </section>
 
       {/* ─────────────────────────── TICKER STRIP ─────────────────────────── */}
-      <section aria-hidden="true" className="relative overflow-hidden py-12 sm:py-16">
+      <section aria-hidden="true" className="relative overflow-hidden bg-gradient-to-b from-(--lp-blue-tint) to-white py-8 sm:py-10">
         <style>{`
           @keyframes ul-strip { from { transform: translateX(0); } to { transform: translateX(-50%); } }
           @media (prefers-reduced-motion: reduce) { .ul-strip-track { animation: none !important; } }
@@ -682,9 +740,9 @@ export default function HeroSection() {
               style={{ animation: "ul-strip 60s linear infinite" }}
             >
               {[...STRIP_ITEMS, ...STRIP_ITEMS].map((label, i) => (
-                <span key={`${label}-${i}`} className="flex items-center">
-                  <span className="px-6 text-white/90 sm:px-8">{label}</span>
-                  <Sparkle className={`h-3 w-3 ${i % 2 ? "text-(--lp-blue)" : "text-(--lp-yellow)"}`} />
+                <span key={`${label}-${i}`} className="flex items-center gap-2.5 px-6 sm:gap-3 sm:px-8">
+                  <StripIcon name={label} className={`h-5 w-5 shrink-0 ${i % 2 ? "text-(--lp-blue)" : "text-(--lp-yellow)"}`} />
+                  <span className="text-white/90">{label}</span>
                 </span>
               ))}
             </div>

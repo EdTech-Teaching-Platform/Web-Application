@@ -15,7 +15,7 @@
 // every action below mutates local mock state, nothing is sent to a
 // backend.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
 import { educatorsApi } from "../services/educatorsApi";
@@ -117,7 +117,8 @@ export default function EducatorProfile() {
   const { educatorId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const detailState = useRpc(() => educatorsApi.detail(educatorId), { immediate: !!educatorId });
+  const detailRequest = useCallback(() => educatorsApi.detail(educatorId), [educatorId]);
+  const detailState = useRpc(detailRequest, { immediate: !!educatorId });
   const educator = detailState.data;
 
   const initialTab = location.state?.tab && TABS.some((t) => !t.hidden && t.key === location.state.tab) ? location.state.tab : "overview";
@@ -147,7 +148,7 @@ export default function EducatorProfile() {
     });
   }, [educator, studentSearch, studentStatusFilter]);
 
-  if (detailState.loading) return <div className="ul-edp-notfound">Loading educator…</div>;
+  if (detailState.loading && !detailState.data) return <div className="ul-edp-notfound">Loading educator…</div>;
   if (detailState.error) return <div className="ul-edp-notfound"><p role="alert">{detailState.error.message}</p><button type="button" className="ul-btn ul-btn--primary" onClick={() => detailState.refetch()}>Retry</button></div>;
   if (!educator) {
     return (

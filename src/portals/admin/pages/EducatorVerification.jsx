@@ -38,6 +38,20 @@ const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Susp
 const VERIFICATION_LABEL = { pending: "Pending", under_review: "Pending", verified: "Verified", rejected: "Rejected" };
 const PAGE_SIZE = 8;
 
+// Stable reference: a fresh arrow function passed to useRpc on every render
+// made it re-fetch in an endless loop (the flicker).
+const fetchEducatorStats = () => educatorsApi.stats();
+
+// Waits for typing to pause before the search hits the server.
+function useDebounced(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 const EMPTY_ADD_FORM = {
   firstName: "",
   lastName: "",
@@ -102,8 +116,9 @@ export default function EducatorVerification() {
   const [addTouched, setAddTouched] = useState({});
   const [toast, setToast] = useState("");
   const toastTimer = useRef(null);
+  const debouncedSearch = useDebounced(search);
   const listRequest = useCallback(() => educatorsApi.list({
-    p_search: search || null,
+    p_search: debouncedSearch || null,
     p_account: accountFilter === "all" ? null : accountFilter,
     p_verification: verificationFilter === "all" ? null : verificationFilter,
     p_subject: subjectFilter === "all" ? null : subjectFilter,
@@ -111,11 +126,11 @@ export default function EducatorVerification() {
     p_sort: sortBy,
     p_page: page,
     p_size: PAGE_SIZE,
-  }), [search, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy, page]);
-  const listState = useRpc(listRequest);
+  }), [debouncedSearch, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy, page]);
+  const listState = useRpc(listRequest, { cacheKey: `educators:list:${JSON.stringify([debouncedSearch, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy, page])}` });
   const educators = listState.data?.rows || [];
   const total = Number(listState.data?.total || 0);
-  const statsState = useRpc(() => educatorsApi.stats());
+  const statsState = useRpc(fetchEducatorStats, { cacheKey: "educators:stats" });
 
   useEffect(() => {
     if (!openMenuId) return undefined;
@@ -146,7 +161,7 @@ export default function EducatorVerification() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy]);
+  }, [debouncedSearch, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -272,7 +287,7 @@ export default function EducatorVerification() {
       </div>
 
       <div className="ul-edu-summary">
-        {listState.loading && <p>Loading educators…</p>}
+        {listState.loading && !listState.data && <p>Loading educators…</p>}
         {listState.error && <p role="alert">{listState.error.message} <button type="button" onClick={() => listState.refetch()}>Retry</button></p>}
         <div className="ul-edu-summary__card">
           <p className="ul-edu-summary__label">Total educators</p>
