@@ -37,7 +37,7 @@ function Section({ eyebrow, title, action, delay = 0, children }) {
   return (
     <Rise delay={delay}>
       <section className="space-y-5">
-        <div className="flex items-end gap-4">
+        <div className="flex items-end gap-3 sm:gap-4">
           <div className="min-w-0">
             {eyebrow && (
               <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-(--lp-blue-deep)">
@@ -45,13 +45,13 @@ function Section({ eyebrow, title, action, delay = 0, children }) {
                 {eyebrow}
               </p>
             )}
-            <h2 className="relative inline-block font-display text-2xl font-bold tracking-tight text-text sm:text-[1.75rem]">
+            <h2 className="relative inline-block font-display text-xl font-bold tracking-tight text-text sm:text-[1.75rem]">
               {title}
               <Squiggle className="absolute -bottom-2.5 left-0 h-2 w-full text-(--lp-blue)/70" />
             </h2>
           </div>
           <span className="mb-1 hidden h-px flex-1 bg-text/10 sm:block" aria-hidden="true" />
-          <span className="ml-auto sm:ml-0">{action}</span>
+          <span className="ml-auto shrink-0 sm:ml-0">{action}</span>
         </div>
         {children}
       </section>
@@ -64,7 +64,7 @@ function PillLink({ onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="group inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-12px_rgb(15_17_21/0.6)] transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:bg-(--lp-blue-deep) hover:shadow-[0_14px_28px_-12px_rgb(37_87_214/0.55)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="group inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_10px_24px_-12px_rgb(15_17_21/0.6)] transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:bg-(--lp-blue-deep) hover:shadow-[0_14px_28px_-12px_rgb(37_87_214/0.55)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       {children}
       <span className="grid h-5 w-5 place-items-center rounded-full bg-(--lp-yellow) text-(--lp-ink)">
@@ -244,7 +244,7 @@ function CoverArt({ glyph }) {
         <path d="M0 128c60-26 110 22 180-6s100-30 140-8" stroke="currentColor" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" />
       </svg>
       <span
-        className="pointer-events-none absolute -bottom-2 right-4 select-none font-display text-5xl font-extrabold sm:-bottom-3 sm:text-[5.5rem] italic leading-none tracking-tight text-(--lp-ink)/[0.14] transition-transform duration-500 ease-out group-hover:-translate-y-1.5 group-hover:-rotate-6"
+        className="pointer-events-none absolute -bottom-3 right-4 select-none font-display text-7xl font-extrabold sm:-bottom-3 sm:text-[5.5rem] italic leading-none tracking-tight text-(--lp-ink)/[0.14] transition-transform duration-500 ease-out group-hover:-translate-y-1.5 group-hover:-rotate-6"
         aria-hidden="true"
       >
         {glyph}
@@ -272,21 +272,21 @@ function DashSeriesCard({ series, index = 0, progress, onOpen, onResume, actionL
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(e); }}
       className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-[1.25rem] bg-white sm:rounded-[1.75rem] shadow-[0_1px_0_rgb(15_17_21/0.04),0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-24px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
-      <div className={`relative h-16 w-full overflow-hidden sm:aspect-[2/1] sm:h-auto ${rotationClassFor(index)}`}>
+      <div className={`relative h-28 w-full overflow-hidden sm:aspect-[2/1] sm:h-auto ${rotationClassFor(index)}`}>
         <CoverArt glyph={glyphFor(series, index)} />
         {badge && (
-          <span className="absolute left-3 top-2.5 rounded-full bg-white px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-primary sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] shadow-sm">
+          <span className="absolute left-3.5 top-3.5 max-w-[70%] truncate rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary sm:left-4 sm:top-4 shadow-sm">
             {badge}
           </span>
         )}
         {hasProgress && (
-          <span className="absolute right-3 top-2.5 rounded-full bg-(--lp-ink) px-2 py-0.5 text-[9px] sm:right-4 sm:top-4 sm:px-2.5 sm:py-1 sm:text-[10px] font-bold tabular-nums text-white shadow-sm">{Math.round(pct)}%</span>
+          <span className="absolute right-3.5 top-3.5 rounded-full bg-(--lp-ink) px-2.5 py-1 text-[10px] sm:right-4 sm:top-4 font-bold tabular-nums text-white shadow-sm">{Math.round(pct)}%</span>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 p-3.5 sm:gap-2 sm:p-5">
-        <h3 className="line-clamp-2 font-display text-[15px] font-bold sm:min-h-[2.75rem] sm:text-lg leading-snug tracking-tight text-text">{series.title}</h3>
-        {series.subject && <p className="line-clamp-1 text-[13px] font-medium text-text/70 sm:text-sm">{series.subject}</p>}
+      <div className="flex flex-1 flex-col gap-1.5 p-4 sm:gap-2 sm:p-5">
+        <h3 className="line-clamp-2 font-display text-[17px] font-bold sm:min-h-[2.75rem] sm:text-lg leading-snug tracking-tight text-text">{series.title}</h3>
+        {series.subject && <p className="line-clamp-1 text-sm font-medium text-text/70">{series.subject}</p>}
         {meta && (
           <p className="flex items-center gap-1.5 text-xs text-(--lp-muted)">
             <ClockIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -295,7 +295,7 @@ function DashSeriesCard({ series, index = 0, progress, onOpen, onResume, actionL
         )}
         {series.description && <p className="line-clamp-2 text-xs leading-relaxed text-text/55 max-sm:hidden">{series.description}</p>}
 
-        <div className="mt-auto pt-2 sm:pt-4">
+        <div className="mt-auto pt-3 max-sm:mt-2 max-sm:border-t max-sm:border-dashed max-sm:border-(--lp-line) sm:pt-4">
           {hasProgress ? (
             <div className="flex items-center gap-3">
               <div
@@ -323,7 +323,7 @@ function DashSeriesCard({ series, index = 0, progress, onOpen, onResume, actionL
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onAction?.(); }}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-5 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:bg-(--lp-blue-deep) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-(--lp-ink) px-5 py-2.5 text-[13px] font-semibold text-white transition-colors sm:py-2 sm:text-xs duration-200 hover:bg-(--lp-blue-deep) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   {actionLabel}
                   <ChevronRightIcon className="h-3.5 w-3.5" />
@@ -514,7 +514,7 @@ export default function Dashboard() {
           title="Recommended for you"
           action={<PillLink onClick={() => navigate("/student/test-series")}>Browse all</PillLink>}
         >
-          <div className="grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {recommended.map((s, i) => (
               <Rise key={s.id} delay={i * 80} className="h-full">
                 <DashSeriesCard series={s} index={i} actionLabel="View" onAction={() => navigate(`/student/dashboard/series/${s.id}`)}
