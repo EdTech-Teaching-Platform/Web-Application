@@ -27,7 +27,7 @@ export default function LegalPageLayout({ title, lastUpdated, sections, backLabe
 
           <header className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <button type="button" onClick={goBack} className="inline-flex items-center gap-2.5 font-display text-base font-bold tracking-tight text-white">
-              <BrandMark className="h-9 w-9 ring-2 ring-white/30" />
+              <BrandMark className="h-9 w-9" />
               Universal Learning
             </button>
             <button

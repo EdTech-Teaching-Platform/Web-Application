@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
-import { IconDashboard, IconUsers, IconChart, IconPhone, IconLogout, IconClose, IconGraduationCap, IconPlus } from "../../admin/components/icons";
+import { IconDashboard, IconUsers, IconChart, IconPhone, IconLogout, IconClose, IconPlus } from "../../admin/components/icons";
 import ConfirmModal from "../../admin/components/ConfirmModal";
+import brandLogo from "../../../assets/brand-logo.png";
 import "../../admin/components/AdminChrome.css";
 import "../../admin/adminTheme.css";
 
@@ -24,7 +25,7 @@ export default function RHSidebar({ open, onClose, head, region, openCount }) {
       <div className={`ul-sidebar__backdrop${open ? " is-visible" : ""}`} onClick={onClose} aria-hidden="true" />
       <aside className={`ul-sidebar ul-rhp-side${open ? " is-open" : ""}`}>
         <div className="ul-sidebar__brand">
-          <div className="ul-sidebar__logo"><IconGraduationCap size={19} /></div>
+          <div className="ul-sidebar__logo"><img src={brandLogo} alt="" className="ul-sidebar__logo-img" draggable={false} /></div>
           <div>
             <div className="ul-sidebar__brand-name">Universal Learning</div>
             <div className="ul-sidebar__brand-sub">REGIONAL HEAD · {String(region).toUpperCase()}</div>

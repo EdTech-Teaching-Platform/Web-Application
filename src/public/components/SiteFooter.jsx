@@ -13,6 +13,7 @@
 // Item 12 in the previous revision): the Community column's Future-Scope
 // entries, Career/Internships/AI Study Assistant, About Us/Accessibility.
 import { Link } from "react-router-dom";
+import brandLogo from "../../assets/brand-logo.png";
 import { InstagramIcon, LinkedInIcon, MailIcon } from "../../components/ui/icons";
 
 // Social links. Paste the real profile URLs into LINKEDIN_URL / INSTAGRAM_URL;
@@ -84,12 +85,7 @@ export default function SiteFooter() {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1 lg:max-w-xs">
             <Link to="/" className="inline-flex items-center gap-2.5 font-(family-name:--lp-font) text-xl font-bold">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-(--lp-blue)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
-                  <path d="M3 8l9-4 9 4-9 4-9-4Z" />
-                  <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
-                </svg>
-              </span>
+              <img src={brandLogo} alt="" aria-hidden="true" draggable={false} className="h-10 w-10 object-contain" />
               Universal Learning
             </Link>
             <p className="mt-3 text-[13px] leading-relaxed text-white/60 sm:mt-4 sm:text-sm">

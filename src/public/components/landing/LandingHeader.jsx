@@ -8,6 +8,7 @@
 //     raised white "chip" (hash links only — scroll-spy via IntersectionObserver)
 //   • mobile menu is an animated sheet with Log in / Sign Up inside
 import { useEffect, useRef, useState } from "react";
+import brandLogo from "../../../assets/brand-logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRightIcon, LogoutIcon, MenuIcon, XIcon } from "../../../components/ui/icons";
 import { useAuth } from "../../../hooks/useAuth";
@@ -17,14 +18,7 @@ import { ArrowUpRight } from "./LandingUI";
 
 function LogoMark() {
   return (
-    <span className="grid h-9 w-9 place-items-center rounded-full bg-(--lp-ink) text-white transition-transform duration-300 sm:h-10 sm:w-10 ease-out group-hover:-rotate-12">
-      <span className="grid h-6 w-6 place-items-center rounded-full bg-(--lp-blue)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
-          <path d="M3 8l9-4 9 4-9 4-9-4Z" />
-          <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
-        </svg>
-      </span>
-    </span>
+    <img src={brandLogo} alt="" aria-hidden="true" draggable={false} className="h-9 w-9 object-contain transition-transform duration-300 sm:h-10 sm:w-10 ease-out group-hover:-rotate-6" />
   );
 }
 
