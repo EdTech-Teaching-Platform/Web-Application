@@ -2,7 +2,7 @@
 // submitted for review (list_pending_series_approvals). Approve publishes the
 // series (approve_educator_series); Reject needs a reason the educator sees
 // (reject_educator_series). Both notify the educator.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
@@ -23,6 +23,14 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const reasonRef = useRef(null);
+
+  // Focus the reason box as soon as the Reject dialog opens (after the click that opened it settles).
+  useEffect(() => {
+    if (!rejectTarget) return undefined;
+    const t = setTimeout(() => reasonRef.current?.focus(), 50);
+    return () => clearTimeout(t);
+  }, [rejectTarget]);
 
   useEffect(() => {
     const timer = setTimeout(() => { setQuery(search); setPage(1); }, 300);
@@ -152,7 +160,7 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
           className="ul-confirm-modal__reason"
           rows={3}
           maxLength={2000}
-          autoFocus
+          ref={reasonRef}
           placeholder="Tell the educator what to fix…"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
