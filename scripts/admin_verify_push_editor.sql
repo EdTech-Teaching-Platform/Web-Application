@@ -7,7 +7,7 @@
 -- Every row must be PASS. For check 9, also compare the md5 in detail with the
 -- 'lead_function_def' row of the before-snapshot (admin_snapshot_lead_editor.sql).
 -- Needs pg_cron (check 10 reads cron.job).
--- Counts: 36 tables, 6 sequences, 340 function names.
+-- Counts: 36 tables, 6 sequences, 341 function names.
 -- =====================================================================
 with our_tables(name) as (
   select unnest(array[
@@ -31,11 +31,12 @@ with our_tables(name) as (
       'add_admin_note', 'add_callback_note', 'adm_actor_kind', 'adm_actor_role', 'adm_apply_test_fields', 
       'adm_asg_log', 'adm_asg_notify', 'adm_assert_question_type_allowed', 'adm_assignment_rows', 
       'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
-      'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 'adm_callback_assign_code', 
-      'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 'adm_campaign_row', 
-      'adm_can_create_series', 'adm_can_manage_series', 'adm_claim_educator_upload_slot', 
-      'adm_complete_assignments_for_quiz', 'adm_complete_assignments_for_series', 'adm_copy_quiz', 
-      'adm_cumulative_counts', 'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
+      'adm_authorize_document_access', 'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 
+      'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
+      'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
+      'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
+      'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
+      'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
       'adm_detect_repeated_questions', 'adm_educator_assignment_json', 'adm_educator_base', 
       'adm_educator_clean', 'adm_educator_decision_state', 'adm_educator_documents_json', 
       'adm_educator_effective_state', 'adm_educator_form', 'adm_educator_review_state', 
@@ -168,7 +169,8 @@ with our_tables(name) as (
              where n.nspname = 'public' and p.proname like 'adm\_%'
                and p.proname <> all (array[
       'adm_is_platform_admin', 'adm_publish_test_series', 'adm_list_admins', 'adm_is_educator', 
-      'adm_is_verified_educator', 'adm_actor_kind', 'adm_claim_educator_upload_slot'
+      'adm_is_verified_educator', 'adm_actor_kind', 'adm_claim_educator_upload_slot', 
+      'adm_authorize_document_access'
     ]::text[])
                and has_function_privilege('authenticated', p.oid, 'execute')) s(x)
   union all
@@ -225,9 +227,9 @@ with our_tables(name) as (
   union all
   select 12, 'Summary',
          case when (select count(*) from our_rels) = 36
-               and (select count(distinct proname) from our_procs) = 340 then 'PASS' else 'FAIL' end,
+               and (select count(distinct proname) from our_procs) = 341 then 'PASS' else 'FAIL' end,
          (select count(*) from our_rels) || ' of 36 tables, '
-           || (select count(distinct proname) from our_procs) || ' of 340 function names, '
+           || (select count(distinct proname) from our_procs) || ' of 341 function names, '
            || (select count(*) from our_procs) || ' overloads'
 )
 select check_name, status, detail from checks order by ord;

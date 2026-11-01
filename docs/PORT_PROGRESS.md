@@ -99,6 +99,92 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-01: opening educator documents (written, nothing applied or deployed)
+
+### Cause (checked before changing anything)
+
+**The storage format was not the problem:**
+- new uploads store `doc_url = '<educator id>/<docType>-<docName>-<ts>.<ext>'`
+  (`20261028090100_educator_onboarding.sql:446-451`);
+- `list_educator_documents` returns it as `file_path`
+  (`20261025100800_admin_rpc_educators.sql:154`);
+- the admin UI sends that value (`EducatorProfile.jsx:566`);
+- `paths.ts` resolves a plain path in `EDUCATOR_DOCS_BUCKET`;
+- the "owner's folder" check compares the path with the **document's**
+  educator, not the caller, so it never rejected admins.
+
+**What broke opening:**
+1. **Popup blocked** (`EducatorProfile.jsx:566`): `View` called
+   `window.open(url, "_blank", "noopener,noreferrer")` only **after** the
+   function call resolved. Outside the click's user gesture, browsers block it
+   as a popup: Safari always, Chrome and Firefox once the call is slow, as
+   with a cold-start Edge Function. With `noopener`, `window.open` returns
+   null, so the block went unnoticed.
+2. **Errors swallowed** (`educatorsApi.js:105-106`): `normalizeRpcError(error)`
+   kept only supabase-js's "Edge Function returned a non-2xx status code". The
+   real reason never reached the admin: the function's `{error}`, a 404 when
+   the function isn't deployed, or "EDUCATOR_DOCS_BUCKET is not configured".
+3. **Download** (`:567`) set `window.location.href` to a view URL, which left
+   the admin page to show the image instead of downloading it.
+4. **Missing features:** the function served admins only (no owner access), had
+   no audit, and its links lasted 5 minutes.
+5. **CORS:** there was no explicit `Access-Control-Allow-Methods`, and newer
+   supabase-js versions send `x-supabase-api-version`. Both are now allowed
+   (`_shared/auth.ts`).
+
+**Not checkable from here** (run the commands below): whether
+`sign-educator-document` is deployed at its latest version, and whether
+`EDUCATOR_DOCS_BUCKET` matches the bucket `educator-upload-url` writes to.
+
+### Fix
+
+- **`20261101090000_educator_document_access.sql`:**
+  `adm_authorize_document_access(p_document_id, p_path, p_purpose)` (security
+  definer, with the caller's JWT).
+  - **Lookup:** finds the row by id, or by `doc_url` for older callers.
+  - **Who:** an admin (`adm_is_platform_admin()`) for any document, the owning
+    educator for their own; `42501` otherwise, `P0002` if it's unknown.
+  - **Audit:** writes `audit_logs` (`educator.document_access`, the actor, the
+    document, view or download).
+  - **Files:** the trial is `docs/trial_run_20261101090000.sql`; the rollback is
+    in the file header (one `drop function`).
+- **`sign-educator-document`:**
+  - calls that RPC, re-checks with `decideAccess`, and normalizes `doc_url`
+    (`paths.ts`);
+  - accepts bucket paths, a leading `/`, the bucket prefix, encoded characters,
+    full storage URLs (with or without the
+    `public` / `sign` / `authenticated` segment, with a token), and external
+    URLs;
+  - signs for 10 minutes (`EDUCATOR_DOCS_URL_TTL`, 60..3600);
+  - returns `{signedUrl, expiresIn, contentType, fileName, docType, docName, access}`,
+    and errors as `{error}` with 401 / 403 / 404 / 400.
+- **`src/services/edgeFunctions.js` (`invokeFunction`):** surfaces the
+  function's message and status. Admin and teacher services both use it.
+- **`src/components/common/DocumentViewer.jsx` (`useDocumentViewer`):**
+  - images show in a lightbox;
+  - PDFs open a new tab inside the click (a link if it's still blocked);
+  - other files get a link;
+  - loading, error with "Try again", "Download", and Escape to close.
+  - Used in the admin documents tab (View and Download) and in the teacher's
+    onboarding ID step (View, for their own files).
+
+### Checks
+
+- `supabase/tests/educator_document_access.sql`: 9 checks, all pass, covering
+  admin, owner, other educator, student, signed out, by path, the audit rows and
+  grants.
+- `tests/educator-documents.test.jsx`: 13 tests (the normalizer, the access
+  decision, error unwrapping, the viewer).
+- `npm test` 134/134, build ✅, parser 0 errors, hardening 399 definitions with
+  0 problems, verify 341/341 PASS.
+- `adm_authorize_document_access` is granted to `authenticated` on purpose and
+  allow-listed in verify.
+
+### To deploy (needs approval, one at a time)
+
+See the hand-off: apply the migration, then check the bucket secret, then
+redeploy `sign-educator-document`.
+
 ## 2026-11-01: educator state fix (written, nothing applied)
 
 ### Root causes (symptoms seen on the real project)

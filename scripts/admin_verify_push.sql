@@ -4,7 +4,7 @@
 -- Read-only checks to run right after `supabase db push`. Every query
 -- returns ZERO rows when everything is in place, except the summary at the end.
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/admin_verify_push.sql
--- Counts: 36 tables, 6 sequences, 340 function names.
+-- Counts: 36 tables, 6 sequences, 341 function names.
 -- =====================================================================
 \set QUIET on
 \pset footer off
@@ -31,11 +31,12 @@ select x.name as missing_function
     'add_admin_note', 'add_callback_note', 'adm_actor_kind', 'adm_actor_role', 'adm_apply_test_fields', 
     'adm_asg_log', 'adm_asg_notify', 'adm_assert_question_type_allowed', 'adm_assignment_rows', 
     'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
-    'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 'adm_callback_assign_code', 
-    'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 'adm_campaign_row', 
-    'adm_can_create_series', 'adm_can_manage_series', 'adm_claim_educator_upload_slot', 
-    'adm_complete_assignments_for_quiz', 'adm_complete_assignments_for_series', 'adm_copy_quiz', 
-    'adm_cumulative_counts', 'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
+    'adm_authorize_document_access', 'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 
+    'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
+    'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
+    'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
+    'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
+    'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
     'adm_detect_repeated_questions', 'adm_educator_assignment_json', 'adm_educator_base', 
     'adm_educator_clean', 'adm_educator_decision_state', 'adm_educator_documents_json', 
     'adm_educator_effective_state', 'adm_educator_form', 'adm_educator_review_state', 
@@ -163,11 +164,12 @@ select p.oid::regprocedure as anon_executable
     'add_admin_note', 'add_callback_note', 'adm_actor_kind', 'adm_actor_role', 'adm_apply_test_fields', 
     'adm_asg_log', 'adm_asg_notify', 'adm_assert_question_type_allowed', 'adm_assignment_rows', 
     'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
-    'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 'adm_callback_assign_code', 
-    'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 'adm_campaign_row', 
-    'adm_can_create_series', 'adm_can_manage_series', 'adm_claim_educator_upload_slot', 
-    'adm_complete_assignments_for_quiz', 'adm_complete_assignments_for_series', 'adm_copy_quiz', 
-    'adm_cumulative_counts', 'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
+    'adm_authorize_document_access', 'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 
+    'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
+    'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
+    'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
+    'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
+    'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
     'adm_detect_repeated_questions', 'adm_educator_assignment_json', 'adm_educator_base', 
     'adm_educator_clean', 'adm_educator_decision_state', 'adm_educator_documents_json', 
     'adm_educator_effective_state', 'adm_educator_form', 'adm_educator_review_state', 
@@ -261,7 +263,8 @@ select p.oid::regprocedure as helper_exposed
  where n.nspname = 'public' and p.proname like 'adm\_%'
    and p.proname <> all (array[
     'adm_is_platform_admin', 'adm_publish_test_series', 'adm_list_admins', 'adm_is_educator', 
-    'adm_is_verified_educator', 'adm_actor_kind', 'adm_claim_educator_upload_slot'
+    'adm_is_verified_educator', 'adm_actor_kind', 'adm_claim_educator_upload_slot', 
+    'adm_authorize_document_access'
   ]::text[])
    and has_function_privilege('authenticated', p.oid, 'execute');
 
@@ -281,11 +284,12 @@ select p.oid::regprocedure as no_search_path
     'add_admin_note', 'add_callback_note', 'adm_actor_kind', 'adm_actor_role', 'adm_apply_test_fields', 
     'adm_asg_log', 'adm_asg_notify', 'adm_assert_question_type_allowed', 'adm_assignment_rows', 
     'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
-    'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 'adm_callback_assign_code', 
-    'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 'adm_campaign_row', 
-    'adm_can_create_series', 'adm_can_manage_series', 'adm_claim_educator_upload_slot', 
-    'adm_complete_assignments_for_quiz', 'adm_complete_assignments_for_series', 'adm_copy_quiz', 
-    'adm_cumulative_counts', 'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
+    'adm_authorize_document_access', 'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 
+    'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
+    'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
+    'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
+    'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
+    'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
     'adm_detect_repeated_questions', 'adm_educator_assignment_json', 'adm_educator_base', 
     'adm_educator_clean', 'adm_educator_decision_state', 'adm_educator_documents_json', 
     'adm_educator_effective_state', 'adm_educator_form', 'adm_educator_review_state', 
@@ -379,11 +383,12 @@ select p.oid::regprocedure as not_security_definer
     'add_admin_note', 'add_callback_note', 'adm_actor_kind', 'adm_actor_role', 'adm_apply_test_fields', 
     'adm_asg_log', 'adm_asg_notify', 'adm_assert_question_type_allowed', 'adm_assignment_rows', 
     'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
-    'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 'adm_callback_assign_code', 
-    'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 'adm_campaign_row', 
-    'adm_can_create_series', 'adm_can_manage_series', 'adm_claim_educator_upload_slot', 
-    'adm_complete_assignments_for_quiz', 'adm_complete_assignments_for_series', 'adm_copy_quiz', 
-    'adm_cumulative_counts', 'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
+    'adm_authorize_document_access', 'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 
+    'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
+    'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
+    'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
+    'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
+    'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
     'adm_detect_repeated_questions', 'adm_educator_assignment_json', 'adm_educator_base', 
     'adm_educator_clean', 'adm_educator_decision_state', 'adm_educator_documents_json', 
     'adm_educator_effective_state', 'adm_educator_form', 'adm_educator_review_state', 
@@ -489,11 +494,12 @@ select (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronames
     'add_admin_note', 'add_callback_note', 'adm_actor_kind', 'adm_actor_role', 'adm_apply_test_fields', 
     'adm_asg_log', 'adm_asg_notify', 'adm_assert_question_type_allowed', 'adm_assignment_rows', 
     'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
-    'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 'adm_callback_assign_code', 
-    'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 'adm_campaign_row', 
-    'adm_can_create_series', 'adm_can_manage_series', 'adm_claim_educator_upload_slot', 
-    'adm_complete_assignments_for_quiz', 'adm_complete_assignments_for_series', 'adm_copy_quiz', 
-    'adm_cumulative_counts', 'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
+    'adm_authorize_document_access', 'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 
+    'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
+    'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
+    'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
+    'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
+    'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
     'adm_detect_repeated_questions', 'adm_educator_assignment_json', 'adm_educator_base', 
     'adm_educator_clean', 'adm_educator_decision_state', 'adm_educator_documents_json', 
     'adm_educator_effective_state', 'adm_educator_form', 'adm_educator_review_state', 

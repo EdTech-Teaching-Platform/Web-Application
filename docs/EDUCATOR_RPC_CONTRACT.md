@@ -274,6 +274,18 @@ These are the existing RPCs; `20261028090200` adjusted them.
   mapping. DB `approved` is UI `verified` ("Approved"); every other state keeps
   its name.
 
+### Opening documents
+
+- **`sign-educator-document`** (Edge Function), with body
+  `{documentId, download?}`, returns a 10-minute signed URL.
+- **Who:** an admin for any educator's document, the owning educator for
+  their own.
+- **How:** it calls `adm_authorize_document_access(p_document_id, p_path,
+  p_purpose)` (`20261101090000`), which decides and writes the
+  `educator.document_access` audit row.
+- **Format:** `doc_url` keeps the storage path; both old and new forms are
+  accepted.
+
 ## Objects
 
 - **Tables (ours):**

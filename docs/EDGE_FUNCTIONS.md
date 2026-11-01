@@ -7,7 +7,7 @@ Nothing here is deployed by the port. Deploy only with the lead's approval.
 | `create-educator-invites` | `create_educator_invites` (de-duplicates and queues), then `auth.admin.inviteUserByEmail`, then `register_educator` (service role). That inserts `profiles` (role `educator`), `educator_profiles` (phone or `''`, location `Not provided`, `verification_status 'pending'`, totals 0) and `educator_admin_state`. If registration fails, the auth user is deleted again. Returns per-row `results` (`sent` / `skipped` / `failed`). | Admin or super_admin | true |
 | `revoke-user-sessions` | `revoke_user_sessions` RPC (app-level sessions), plus Admin API `signOut` for the caller's own token (`scope` `global` / `others`). It cannot revoke another user's refresh tokens; see the note below. | Admin or super_admin | true |
 | `send-notification-emails` | Sends queued campaign emails through Resend (`fetch`). It re-checks `notification_preferences.email`, then `record_email_results`. | Service-role bearer token (cron), or `x-cron-secret` | true |
-| `sign-educator-document` | Admin check, then a service-role signed URL for an `educator_verification_docs.doc_url` (looked up by `documentId` or `path`). Handles the `<educator id>/<docType>-<docName>-<timestamp>.<ext>` paths from `educator-upload-url` (they must be in the owner's folder). Optional `download: true` returns a download link. | Admin or super_admin | true |
+| `sign-educator-document` | Signed URL (10 min) for an `educator_verification_docs` row, by `documentId` (or `path`, the older UI). `adm_authorize_document_access` (20261101090000) decides with the caller's JWT: an admin for any document, the owning educator for their own, nobody else; it also writes `audit_logs` (`educator.document_access`: who, which document, view or download). It accepts the old and new `doc_url` forms (`paths.ts`). Optional `download: true`. Errors are `{error}` with 401 / 403 / 404 / 400. | Admin, or the owning educator | true |
 | `educator-upload-url` | Validates `{docType, docName, fileName, contentType, size}`. It claims a rate-limit slot through `adm_claim_educator_upload_slot` (this also refuses non-educators), then returns a service-role **signed upload URL** for `<user id>/<docType>-<docName>-<timestamp>.<ext>`. | Any educator (any verification status) | true |
 | `payment-webhook` | Placeholder (D1). Calls the `mark_payment_*` stubs, which raise `0A000`. | Gateway (HMAC) | **false** |
 | `process-refund` | Placeholder (D1). Reads `refund_requests`, which doesn't exist in the lead's database. | Admin | true |
@@ -24,7 +24,7 @@ supabase secrets set EDUCATOR_DOCS_BUCKET=<the lead's verification-docs bucket> 
 supabase secrets set EDUCATOR_UPLOAD_LIMIT_PER_HOUR=20                           # optional (default 20)
 supabase secrets set EDUCATOR_INVITE_REDIRECT_URL=https://<site>/teacher/login     # optional
 supabase secrets set EMAIL_CRON_SECRET=...                                         # optional alternative to the service-role bearer
-# optional: EMAIL_BATCH_SIZE (default 100), EDUCATOR_DOCS_URL_TTL (seconds, default 300)
+# optional: EMAIL_BATCH_SIZE (default 100), EDUCATOR_DOCS_URL_TTL (seconds, default 600, 60..3600)
 # placeholders only: PAYMENT_WEBHOOK_SECRET, PAYMENT_PROVIDER_KEY, PAYMENT_REFUND_URL, OPENAI_API_KEY, OPENAI_MODEL
 ```
 
