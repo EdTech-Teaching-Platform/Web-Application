@@ -17,6 +17,7 @@ import { BrandMark, AUTH_THEME_VARS } from "../../../auth/components/AuthKit";
 import { useAuth } from "../../../hooks/useAuth";
 import { homePathForUser } from "../../../utils/roles";
 import { educatorApi } from "../services/educatorApi";
+import { useDocumentViewer } from "../../../components/common/DocumentViewer";
 import {
   CERTIFICATE_TYPES, IMAGE_TYPES, ONBOARDING_STEPS, REQUIRED_DOCUMENTS, certificateSlug, fieldErrorsFrom,
   missingRequiredDocuments, resumeStep, stepData, validateOnboarding,
@@ -35,7 +36,7 @@ function FieldError({ id, message }) {
 
 // One upload slot: the current file (or a preview of the one just picked),
 // progress while uploading, Replace / Remove, and the error if it failed.
-export function DocumentSlot({ label, required, accept, document, upload, onPick, onRemove, disabled }) {
+export function DocumentSlot({ label, required, accept, document, upload, onPick, onRemove, onView, disabled }) {
   const inputRef = useRef(null);
   const busy = upload?.status === "uploading";
   const inputId = `doc-${label.replace(/\W+/g, "-").toLowerCase()}`;
@@ -65,6 +66,7 @@ export function DocumentSlot({ label, required, accept, document, upload, onPick
           <Button type="button" variant="secondary" fullWidth={false} className="!px-4 !py-2" disabled={disabled || busy} onClick={() => inputRef.current?.click()} aria-controls={inputId}>
             {document ? "Replace" : "Choose file"}
           </Button>
+          {document && onView && <Button type="button" variant="social" fullWidth={false} className="!px-4 !py-2" disabled={busy} onClick={onView}>View</Button>}
           {document && <Button type="button" variant="social" fullWidth={false} className="!px-4 !py-2" disabled={disabled || busy} onClick={onRemove}>Remove</Button>}
         </div>
       </div>
@@ -97,6 +99,9 @@ export default function EducatorOnboarding({ api = educatorApi }) {
   const [uploads, setUploads] = useState({});
   const [cert, setCert] = useState({ type: CERTIFICATE_TYPES[0], label: "" });
   const previews = useRef([]);
+  // The educator's own uploaded files, through sign-educator-document (owner access).
+  const loadDocument = useCallback((doc, download) => api.documentUrl({ documentId: doc.id, download }), [api]);
+  const documentViewer = useDocumentViewer(loadDocument);
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: "" }));
@@ -282,7 +287,8 @@ export default function EducatorOnboarding({ api = educatorApi }) {
                 const doc = documents.find((d) => d.doc_type === r.docType && d.doc_name === r.docName);
                 return (
                   <DocumentSlot key={key} label={r.label} required={r.required} accept={IMAGE_TYPES.join(",")} document={doc} upload={uploads[key]}
-                    onPick={(file) => pick(key, r.docType, r.docName, file)} onRemove={() => remove(doc, key)} disabled={saving} />
+                    onPick={(file) => pick(key, r.docType, r.docName, file)} onRemove={() => remove(doc, key)} disabled={saving}
+                    onView={doc ? () => documentViewer.open({ id: doc.id, path: doc.path, label: r.label }) : undefined} />
                 );
               })}
               <fieldset className="rounded-2xl border border-dashed border-text/15 p-4">
@@ -359,6 +365,7 @@ export default function EducatorOnboarding({ api = educatorApi }) {
             )}
           </div>
         </section>
+        {documentViewer.viewer}
         <p className="mt-6 text-center text-xs text-text/50">Your progress is saved after each step. <Link to="/terms" className="underline">Terms</Link></p>
       </div>
     </div>

@@ -26,6 +26,7 @@ import {
 } from "../components/icons";
 import "./AdminDashboard.css";
 import { EDUCATOR_DECISION, educatorStatusBadge, mapEducatorStatus } from "../utils/statusMaps";
+import { useDocumentViewer } from "../../../components/common/DocumentViewer";
 import "./EducatorVerification.css";
 import "./EducatorProfile.css";
 
@@ -121,6 +122,10 @@ export default function EducatorProfile() {
   const detailRequest = useCallback(() => educatorsApi.detail(educatorId), [educatorId]);
   const detailState = useRpc(detailRequest, { immediate: !!educatorId });
   const educator = detailState.data;
+  // Documents open through sign-educator-document (authorized + audited by
+  // adm_authorize_document_access): images in a lightbox, PDFs in a new tab.
+  const loadDocument = useCallback((doc, download) => educatorsApi.documentUrl({ documentId: doc.id, path: doc.path, download }), []);
+  const documentViewer = useDocumentViewer(loadDocument);
 
   const initialTab = location.state?.tab && TABS.some((t) => !t.hidden && t.key === location.state.tab) ? location.state.tab : "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -225,6 +230,7 @@ export default function EducatorProfile() {
   return (
     <div className="ul-edp">
       {toast && <div className="ul-edp-toast">{toast}</div>}
+      {documentViewer.viewer}
 
       <button type="button" className="ul-edp-back" onClick={() => navigate("/admin/educatorverification")}>
         <IconChevronLeft size={14} /> Back to Educator Management
@@ -563,8 +569,8 @@ export default function EducatorProfile() {
                     </td>
                     <td className="ul-edu-actions-cell">
                       <div className="ul-edu-doc-actions">
-                        <button type="button" className="ul-btn ul-btn--ghost ul-edu-view-btn" onClick={() => educatorsApi.signedDocumentUrl(d.file_path).then((url) => window.open(url, "_blank", "noopener,noreferrer")).catch((error) => setToast(error.message))}>View</button>
-                        <button type="button" className="ul-edu-more-btn" title="Download" onClick={() => educatorsApi.signedDocumentUrl(d.file_path).then((url) => { window.location.href = url; }).catch((error) => setToast(error.message))}><IconDownload size={13} /></button>
+                        <button type="button" className="ul-btn ul-btn--ghost ul-edu-view-btn" onClick={() => documentViewer.open({ id: d.id, path: d.file_path, label: d.fileName })}>View</button>
+                        <button type="button" className="ul-edu-more-btn" title="Download" aria-label={`Download ${d.fileName}`} onClick={() => documentViewer.download({ id: d.id, path: d.file_path, label: d.fileName }).then((problem) => problem && setToast(problem))}><IconDownload size={13} /></button>
                         {d.status !== "verified" && (
                           <button type="button" className="ul-edu-more-btn" title="Verify" onClick={() => setConfirmAction({ type: "verify_document", docId: d.id })}><IconCheck size={13} /></button>
                         )}

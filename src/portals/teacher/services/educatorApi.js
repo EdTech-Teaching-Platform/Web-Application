@@ -3,23 +3,9 @@
 // educator_register_document). The user is always the signed-in one: no call
 // sends a user id. Test series authoring uses the shared admin testSeriesApi
 // (the same RPCs, role-aware on the server).
-import { supabase } from "../../../services/supabaseClient";
+import { invokeFunction } from "../../../services/edgeFunctions";
 import { callRpc } from "../../admin/services/adminApi";
 import { checkUploadFile } from "../utils/onboarding";
-
-// supabase.functions.invoke error -> Error with the function's message,
-// HTTP status, field and retry time.
-async function invokeFunction(name, body) {
-  const { data, error } = await supabase.functions.invoke(name, { body });
-  if (!error) return data;
-  let payload = null;
-  try { payload = await error.context?.json?.(); } catch { payload = null; }
-  const wrapped = new Error(payload?.error || error.message || "The request failed.");
-  wrapped.status = error.context?.status;
-  wrapped.field = payload?.field;
-  wrapped.retryAfterSeconds = payload?.retryAfterSeconds;
-  throw wrapped;
-}
 
 // PUT to a signed upload URL with progress (the same form body
 // storage-js uploadToSignedUrl sends). Resolves on 2xx.
@@ -54,6 +40,8 @@ export const educatorApi = {
   registerDocument: (docType, path, docName) => callRpc("educator_register_document", { p_doc_type: docType, p_path: path, p_doc_name: docName }),
   removeDocument: (id) => callRpc("educator_remove_document", { p_document_id: id }),
   submitOnboarding: () => callRpc("educator_submit_onboarding"),
+  // A signed URL (10 min) for one of the caller's own documents (sign-educator-document).
+  documentUrl: ({ documentId, download = false }) => invokeFunction("sign-educator-document", { documentId, download }),
 
   // Validates locally, gets a signed upload URL, uploads with progress, then
   // registers the document. Errors carry .stage: "check" | "url" | "upload" | "register".

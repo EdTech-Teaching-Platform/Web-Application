@@ -1,5 +1,6 @@
 import { supabase } from "../../../services/supabaseClient";
 import { callRpc, listResult, normalizeRpcError } from "./adminApi";
+import { invokeFunction } from "../../../services/edgeFunctions";
 import { toDbEducatorStatus, toUiEducatorStatus } from "../utils/statusMaps";
 
 // "government_id" + "front" -> "Government ID (front)"; certificates keep their label.
@@ -99,11 +100,10 @@ export const educatorsApi = {
     }
     return data;
   },
-  // sign-educator-document checks admin and that the path belongs to an
-  // educator_verification_docs row, then signs it with the service role.
-  signedDocumentUrl: async (path) => {
-    const { data, error } = await supabase.functions.invoke("sign-educator-document", { body: { path } });
-    if (error) throw normalizeRpcError(error);
-    return data.signedUrl;
-  },
+  // sign-educator-document: the database authorizes (admin or owner) and
+  // audits the access, the service role signs (10 min).
+  // -> {signedUrl, expiresIn, contentType, fileName, docType, docName, access} | {signedUrl, external}
+  documentUrl: ({ documentId, path, download = false }) =>
+    invokeFunction("sign-educator-document", documentId ? { documentId, download } : { path, download }),
+  signedDocumentUrl: async (path) => (await invokeFunction("sign-educator-document", { path })).signedUrl,
 };
