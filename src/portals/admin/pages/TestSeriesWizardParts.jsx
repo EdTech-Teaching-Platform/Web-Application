@@ -4,6 +4,7 @@
 
 import QuestionImageField from "../components/QuestionImageField";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { IconClose, IconUpload, IconDownload, IconSearch } from "../components/icons";
 import { DIFFICULTY, DIFFICULTY_LABEL, SUBJECT_OPTIONS } from "../data/testSeriesMock";
 import { QTYPE, SUBJECTIVE_BLOCKED_MESSAGE, isBlockedQuestionType, questionTypeLabel, validateQuestionDraft } from "../data/questionTypes";
@@ -17,9 +18,23 @@ import {
 // ------------------------------------------------------------------ Modal
 
 export function WizModal({ title, subtitle, onClose, children, footer, wide }) {
-  return (
+  // Lock page scroll and close on Escape while a dialog is open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+  // Portalled to <body> so a stacking context / transform in the host layout
+  // (e.g. the educator shell) can't trap it behind the page chrome, and so the
+  // dialog always paints on its own solid surface.
+  return createPortal(
     <div className="ul-tsw-backdrop" onClick={onClose}>
-      <div className={`ul-tsw-modal${wide ? " is-wide" : ""}`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div className={`ul-tsw-modal${wide ? " is-wide" : ""}`} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="ul-tsw-modal__head">
           <div>
             <h3>{title}</h3>
@@ -30,7 +45,8 @@ export function WizModal({ title, subtitle, onClose, children, footer, wide }) {
         <div className="ul-tsw-modal__body">{children}</div>
         {footer && <div className="ul-tsw-modal__foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

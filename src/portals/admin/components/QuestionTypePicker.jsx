@@ -3,6 +3,10 @@
 // (short answer, long answer, subjective) are shown with a "Coming soon"
 // badge and can't be selected.
 import ComingSoonBadge from "./ComingSoonBadge";
+// Styles for the correct-answer toggle and type cards. Imported here so every
+// host (admin wizard, educator wizard, question editor) gets them, not only
+// the TestDetail page.
+import "../pages/TestDetail.css";
 import { QUESTION_TYPE_OPTIONS, OPTION_KEYS, QTYPE, TRUE_FALSE_OPTIONS, normalizeQuestionType } from "../data/questionTypes";
 
 export default function QuestionTypePicker({ value, onChange, variant = "cards", label = "Question type" }) {
