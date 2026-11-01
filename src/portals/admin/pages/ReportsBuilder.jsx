@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { IconChart, IconDownload, IconReport } from "../components/icons";
 import { reportsApi } from "../services/reportsApi";
 import { useRpc } from "../hooks/useRpc";
@@ -16,13 +16,15 @@ export default function ReportsBuilder() {
   const [run, setRun] = useState(null);
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState("");
-  const options = useRpc(() => reportsApi.options());
-  const filterOptions = useRpc(() => reportsApi.filters(type), { immediate: Boolean(type) });
-  const runData = useRpc(() => reportsApi.run(run?.run_id, page, 50), { immediate: false });
+  // Stable requests: inline arrows re-ran every fetch on every render. Each
+  // request changes only with its inputs, so useRpc refetches by itself when
+  // the report type, the run or the page changes.
+  const runId = run?.run_id;
+  const options = useRpc(useCallback(() => reportsApi.options(), []));
+  const filterOptions = useRpc(useCallback(() => reportsApi.filters(type), [type]), { immediate: Boolean(type) });
+  const runData = useRpc(useCallback(() => reportsApi.run(runId, page, 50), [runId, page]), { immediate: Boolean(runId) });
   const types = options.data?.types || [];
   const ranges = options.data?.ranges || [];
-  useEffect(() => { if (type) filterOptions.refetch().catch(() => {}); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (run?.run_id) runData.refetch().catch(() => {}); }, [run?.run_id, page]); // eslint-disable-line react-hooks/exhaustive-deps
   const generate = async () => {
     try { const result = await reportsApi.generate(type, range, filters); setRun(result); setPage(1); } catch (e) { setToast(e.message); }
   };

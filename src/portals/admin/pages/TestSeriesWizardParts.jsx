@@ -103,7 +103,7 @@ export function QuestionEditor({ initial, defaults, onSave, onClose }) {
   const errs = validateQuestionDraft(q);
   const switchType = (type) => setQ((p) => ({
     ...emptyQuestion(type),
-    wid: p.wid, text: p.text, image: p.image, marks: p.marks, difficulty: p.difficulty, subject: p.subject, topic: p.topic, explanation: p.explanation,
+    wid: p.wid, text: p.text, image: p.image, imageAlt: p.imageAlt, marks: p.marks, difficulty: p.difficulty, subject: p.subject, topic: p.topic, explanation: p.explanation,
   }));
   return (
     <WizModal
@@ -130,7 +130,7 @@ export function QuestionEditor({ initial, defaults, onSave, onClose }) {
             <label htmlFor="wq-text">Question</label>
             <textarea id="wq-text" value={q.text} onChange={(e) => set({ text: e.target.value })} placeholder="Type the question" />
           </div>
-          <QuestionImageField value={q.image} onChange={(image) => set({ image })} />
+          <QuestionImageField value={q.image} onChange={(image) => set({ image })} alt={q.imageAlt} onAltChange={(imageAlt) => set({ imageAlt })} />
           <QuestionAnswerFields q={q} onChange={set} />
           <div className="ul-ts-form-grid-2">
             <div className="ul-ts-form-row">

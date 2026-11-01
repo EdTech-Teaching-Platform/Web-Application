@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRpc } from "../hooks/useRpc";
 import { financialApi } from "../services/financialApi";
 import "./FinancialAnalytics.css";
 export default function FinancialAnalytics() {
-  const [range, setRange] = useState("last_30_days"); const result = useRpc(() => financialApi.analytics(range));
+  const [range, setRange] = useState("last_30_days"); const result = useRpc(useCallback(() => financialApi.analytics(range), [range]));   // stable: no refetch on every render
   const d = result.data || {}; const trend = d.trend || [];
   return <div className="ul-fin-page"><div className="ul-dash-welcome ul-fin-welcome"><div><h2 className="ul-dash-welcome__title">Financial Analytics</h2><p className="ul-dash-welcome__subtitle">Revenue, payouts and refund performance.</p></div><select value={range} onChange={(e) => setRange(e.target.value)}><option value="last_7_days">Last 7 days</option><option value="last_30_days">Last 30 days</option><option value="last_90_days">Last 90 days</option><option value="all_time">All time</option></select></div>{result.loading ? <div className="ul-edu-empty">Loading financial analytics…</div> : result.error ? <div className="ul-edu-empty">Unable to load analytics. <button onClick={() => result.refetch()}>Retry</button></div> : <><div className="ul-stats ul-fin-stats"><div className="ul-stat-card">Gross revenue <strong>₹{d.gross_revenue_inr ?? 0}</strong></div><div className="ul-stat-card">Net revenue <strong>₹{d.net_revenue_inr ?? 0}</strong></div><div className="ul-stat-card">Transactions <strong>{d.transactions ?? 0}</strong></div></div><section className="ul-card"><h3>Revenue trend</h3><div className="ul-edu-table-scroll"><table className="ul-edu-table"><thead><tr><th>Period</th><th>Revenue</th><th>Refunds</th><th>Payouts</th><th>Net</th></tr></thead><tbody>{trend.length ? trend.map((r) => <tr key={r.bucket}><td>{r.bucket}</td><td>₹{r.revenue_inr}</td><td>₹{r.refunds_inr}</td><td>₹{r.payouts_inr}</td><td>₹{r.net_inr}</td></tr>) : <tr><td colSpan="5">No trend data.</td></tr>}</tbody></table></div></section></>}</div>;
 }

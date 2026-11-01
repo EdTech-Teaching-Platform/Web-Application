@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
 import { testSeriesApi } from "../services/testSeriesApi";
 import ConfirmModal from "../components/ConfirmModal";
+import AssetImage from "../../../components/common/AssetImage";
 
 const PAGE_SIZE = 10;
 const formatDate = (value) => (value ? new Date(value).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
@@ -86,7 +87,12 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td data-label="Series"><strong>{row.title}</strong><div className="ul-tsw-hint">{row.code} · {row.subject_name || "No subject"}</div></td>
+                  <td data-label="Series">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {row.cover_path && <AssetImage path={row.cover_path} alt="" fallback={null} style={{ width: 64, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
+                      <div><strong>{row.title}</strong><div className="ul-tsw-hint">{row.code} · {row.subject_name || "No subject"}</div></div>
+                    </div>
+                  </td>
                   <td data-label="Educator">{row.educator_name || "—"}<div className="ul-tsw-hint">{row.educator_email}</div></td>
                   <td data-label="Tests">{row.test_count}</td>
                   <td data-label="Questions">{row.question_count}</td>

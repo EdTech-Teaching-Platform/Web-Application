@@ -99,6 +99,231 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-01: content moderation "resolve again" bug, stable admin requests (frontend only)
+
+### Cause (checked before changing anything)
+
+Every call succeeded: the note reached `set_moderation_status`, the status
+changed, and the list refetched without the item. That was reproduced with
+the whole page against a fake RPC that behaves like 20261027100300. The page
+just never showed that it had worked:
+
+1. **Success message hidden:** the toast (`ContentModeration.jsx`, the
+   `ul-set-toast` div) has `z-index: 95` (`SettingsPermissions.css`). The
+   drawer's backdrop is `z-index: 1000` (`ContentModeration.css:506`), so the
+   toast rendered under the dimmed overlay. The page didn't import
+   `SettingsPermissions.css` at all, so the toast was only styled if another
+   page had loaded it first.
+2. **The drawer kept asking:** after success, `act` cleared the note and left
+   the drawer open. The footer still said "Note to the student (required to
+   resolve or dismiss)" and offered the other actions, even for a resolved
+   item, so it looked unfinished.
+3. **"Mark in review" wiped the typed note:** the following "Resolve" then
+   failed the client check "Add a note for the student…".
+4. **Smaller issues:**
+   - the list and stats refetched only after the drawer's own refetch
+     finished;
+   - double clicks were guarded only by React state.
+
+Ruled out:
+- the note was not sent stale or empty;
+- the statuses match what the RPC expects (`in_review` / `resolved` / `dismissed`);
+- server errors were already shown;
+- this page uses no `cacheKey`, so the useRpc cache isn't involved;
+- no duplicate rows came from double submits.
+
+No SQL change.
+
+### Fix (`src/portals/admin/pages/ContentModeration.jsx`)
+
+- **Resolve / dismiss:** the drawer closes, and `onChanged` refetches the list
+  and the stats at once, so the item moves to Closed.
+- **Success message:** it is visible, styled (the page imports
+  `SettingsPermissions.css`) and drawn above the backdrop.
+- **Mark in review:** the drawer stays open on the new status and keeps the
+  note.
+- **Closed items:** the drawer says "This item is resolved / dismissed.
+  Nothing more is needed" instead of "required to resolve".
+- **One request at a time:** a ref guard, with the buttons and the note box
+  disabled while the request runs.
+- **Errors:** the server's message is shown.
+
+### Stable requests (no refetch on every render)
+
+**Pages:** `CreateDiscount`, `DiscountAnalytics`, `FinancialAnalytics`,
+`PaymentOversight`, `RegionalAnalytics`, `ReportsBuilder` and
+`TransactionHistory`.
+
+- **The bug:** each page passed an inline arrow to `useRpc`, so every render
+  made a new request function, every response re-rendered, and the page
+  fetched again forever.
+- **The fix:** the requests are now `useCallback`s on their real inputs.
+- **Duplicate refetches removed:** `ReportsBuilder` and `TransactionHistory`
+  had manual "refetch when X changes" effects, which are now duplicates. They
+  are removed: `TransactionHistory` debounces the search into
+  `debouncedSearch`, and `ReportsBuilder` keys the run on `runId` / `page`.
+- **`UserManagement`:** already stable since 8ddb2f8, so it is unchanged.
+- **Found, not fixed:** in edit mode, `CreateDiscount` loads the discount
+  but never fills the form with it.
+
+### Checks
+
+- **`tests/moderation-flow.test.jsx` (5):**
+  - resolve closes the drawer, the list and stats refetch, the item moves to
+    Closed and the success message shows;
+  - a closed item doesn't ask again;
+  - mark in review keeps the note;
+  - a server error is shown in the drawer;
+  - a double click sends one request, with the buttons disabled.
+  - 4 of the 5 fail on the old page.
+- **`tests/stable-requests.test.jsx` (7):** each page fetches once and then
+  stops; a new range or a debounced search fetches once more. On the old
+  pages the test worker runs out of memory (the loop).
+- **`tests/feedback-moderation.test.jsx`:** the drawer test is updated
+  (resolve closes the drawer).
+- **Totals:** `npm test` 165/165, build ✅.
+
+## 2026-11-01: test series banners and question figures (written, nothing applied or deployed)
+
+### Cause (checked before changing anything)
+
+- **Banner:** no UI and no writer. `test_series_admin.cover_path` existed
+  (20261025110100) and was returned by `adm_series_rows` and `adm_series_card`,
+  but no RPC ever set it, and neither the wizard nor the series settings had a
+  banner field. The student card said so ("cover_path is a storage path, not a
+  public URL") and always drew the colour block.
+- **Question figure:** browser state only. `QuestionImageField` read the file
+  with `FileReader.readAsDataURL` ("Stored on the question as a data URL until
+  a real upload API exists"). The base64 text was then sent as `image` and
+  saved as-is into `quiz_question_admin.image_path`. Nothing was ever
+  uploaded, the 2 MB limit made rows huge, and the student runner and report
+  never rendered `image_path`. The stored report didn't carry it either.
+
+### Fix
+
+- **`20261029110000_admin_test_assets.sql`** (generated by
+  `gen_test_assets.cjs`: hand-written part plus 14 function bodies copied
+  verbatim, each edit marked `-- 20261029110000`):
+  - **Bucket `test-assets`:** public, 3 MB, JPEG / PNG / WebP; `on conflict do nothing`.
+    There is no policy on `storage.objects`.
+  - **Path rules:** `adm_test_asset_path(value, kind, keep)`.
+    - The stored value is bucket-relative: `<uid>/<banner|question_image>/<uuid>.<jpg|png|webp>`.
+    - A leading `test-assets/` is dropped; `''` / null removes the image.
+    - `..`, any other shape, the wrong kind, and data: / blob: URLs are
+      refused (`22023`).
+    - The first folder must be the caller's uid (`42501`), unless the caller is
+      an admin, or the path is already on the row / series being edited (so
+      an assigned educator keeps an admin's image, and wizard re-saves and
+      duplicates keep their paths).
+  - **Writers:**
+    - `create_test_series`, `update_test_series`, `upsert_test_series_full`
+      (`coverPath`);
+    - `upsert_test_series_full` checks every question image before inserting;
+    - `adm_insert_question`, `update_question` (`image`, `imageAlt`).
+  - **Copies:** `duplicate_test_series` copies `cover_path`; `adm_copy_quiz`
+    (duplicate test / series) copies `image_alt` too.
+  - **New column:** `quiz_question_admin.image_alt` (nullable, our table).
+    `adm_question_json` and `adm_insert_questions_bulk` carry it.
+  - **Reads:**
+    - `list_pending_series_approvals` adds `cover_path`;
+    - `student_get_test_intro` and `student_start_attempt` add `series_cover_path`;
+    - `student_start_attempt` questions add `image_alt` (`image_path` was
+      already there);
+    - `student_submit_attempt` and `student_get_report` enrich the stored
+      report when it's read (`adm_report_with_images`: `series_cover_path`,
+      plus per question `image_path` and `image_alt`). The snapshot isn't
+      rewritten, and no answer data is added.
+  - **Upload slot:** `adm_claim_asset_upload_slot(kind, limit)` plus the table
+    `test_asset_upload_requests` (`user_id` → profiles ON DELETE CASCADE,
+    indexed, RLS on, no grants).
+    - It checks the Edge Function's caller (`adm_actor_kind`: admin or
+      verified educator) and rate limits it (default 60 per rolling hour).
+    - It is granted to `authenticated` on purpose, and allow-listed in verify.
+  - **Rollback:** `scripts/rollback_20261029110000_admin_test_assets.sql`.
+    It restores the 14 bodies and drops the new functions and the table. It
+    keeps the `image_alt` column and the bucket (storage objects can't be
+    removed with SQL).
+  - **Trial:** `docs/trial_run_20261029110000.sql`.
+  - **Name:** the brief said `20261029110000_test_assets.sql`. It is
+    `_admin_test_assets` because CLAUDE.md requires `_admin_<name>`, and the
+    verify generator and the test harness only pick up
+    `_(admin|student|feedback|educator)_` files.
+- **Edge Function `asset-upload-url`** (`verify_jwt = true`, `config.toml`):
+  - validates the request (`validate.ts`: kind, type, 2 MB banner / 3 MB
+    question);
+  - claims the slot with the caller's JWT;
+  - signs an upload with the service role for `<uid>/<kind>/<uuid>.<ext>`
+    (the extension comes from the content type);
+  - returns `{path, signedUrl, token, publicUrl, bucket, expiresIn}`.
+  - Optional secret: `ASSET_UPLOAD_LIMIT_PER_HOUR`.
+- **Frontend:**
+  - **Services:**
+    - `src/services/assetPaths.js` (no imports): `assetUrl(path)`, the one
+      place a path becomes a URL, plus `storedAssetPath`, `isUnsavedImage`
+      and the limits;
+    - `src/services/assetsApi.js`: `uploadImage(kind, file, {onProgress, signal})`,
+      which resizes (1600 / 1200 px), re-encodes to WebP ~0.85 (JPEG / PNG
+      fallback), calls the function and PUTs with progress; errors carry
+      `.stage`;
+    - `src/services/storageUpload.js`: `putToSignedUrl`, moved from the teacher
+      `educatorApi`, which re-exports it.
+  - **Components:**
+    - `components/common/AssetImage.jsx` shows a neutral fallback on a missing
+      or broken image;
+    - `components/common/ImageUploadField.jsx` handles preview, replace,
+      remove, progress, error and alt text, and warns about old data-URL
+      images ("never uploaded").
+  - **Wired in:**
+    - wizard Details step: banner (`st.coverPath`, saved as `coverPath`;
+      restored from `cover_path` for older drafts);
+    - wizard question editor and `TestDetail` question editor: figure plus alt
+      text;
+    - admin series form (`TestSeries.jsx`): banner;
+    - `TestSeriesDetail` (admin and teacher): `SeriesBannerEditor`, saved at
+      once through `update_test_series`;
+    - lists: admin list thumbnail, pending approvals thumbnail, teacher list
+      thumbnail;
+    - student: `SeriesCard` / `SeriesShowcaseCard` cover, series detail banner,
+      test intro banner, runner thumbnail and question figure, report banner
+      and figures (`student/components/TestImages.jsx`).
+  - **Payload:** `wizardRpcPayload(st, ctx, publish)` (moved out of the wizard
+    component, `data/testSeriesWizard.js`) carries `coverPath` and each
+    question's `image` / `imageAlt`. `questionPayload` drops never-uploaded
+    data URLs (the RPCs refuse them).
+- **Not covered:**
+  - **CSV / paste rows:** they have no image column, so there's nothing to
+    wire.
+  - **Teacher mock pages:** the old ones (`TestQuestionBuilder`,
+    `QuestionImageUpload`, `TestSeriesManage`) aren't routed and keep their
+    local data URLs.
+
+### Checks
+
+- **`supabase/tests/admin_test_assets.sql`:** all checks pass. They cover the
+  bucket, the path rules, wizard create / re-save / refuse / remove,
+  settings replace / keep / remove, the editor (replace, keep, remove, another
+  uploader's path, an admin's path kept), `create_question`, duplicate series /
+  test (also by an admin), the student intro / runner (no answers) / submit /
+  stored report, the snapshot left as it was, the slot (limit, kinds,
+  student, signed out) and grants.
+- **Other SQL tests:** all pass on top of the new migration.
+  `admin_rpcs.sql` fails the same way without it: it is a pre-port test
+  expecting enum-typed discount RPCs.
+- **Rollback:** applied in PGlite, then `admin_fast_publish`, `educator_series`,
+  `student_rpcs` and `admin_block_subjective` pass again.
+- **`tests/test-assets.test.jsx`:** 19 tests, covering the validators,
+  `assetUrl`, resize, validation errors, upload success and failures, the
+  field, the fallback, the banner editor, payloads and duplication.
+- **Totals:** `npm test` 153/153, build ✅, parser 0 errors, hardening 0
+  problems, verify 14/14 PASS (37 tables, 344 functions).
+
+### To deploy (needs approval, one at a time)
+
+1. **Migration:** `supabase db push --dry-run`, then push
+   `20261029110000_admin_test_assets.sql`. It sorts before 20261101090000,
+   and both are unapplied.
+2. **Edge Function:** `supabase functions deploy asset-upload-url`.
+
 ## 2026-11-01: opening educator documents (written, nothing applied or deployed)
 
 ### Cause (checked before changing anything)
@@ -305,6 +530,28 @@ list was the cause.
   statement's result: the final `select` comes just before `rollback;`. If
   your editor shows "no rows", run the file without the last line, read the
   result, then run `rollback;`.
+- **`supabase/tests/educator_lifecycle_flow_editor.sql`** (added 2026-11-01;
+  the file above is kept as it is): the same 29 steps in **one DO block**, for
+  the Supabase SQL editor, which shows only one result.
+  - **How it reports:** each step appends `{step, ok, detail}` to a jsonb
+    array. At the end the block raises an exception whose message is line 1
+    `PASS: n of n steps` or `FAIL: k of n steps failed`, then each failing
+    step, then every step numbered.
+  - **Rollback:** the raise aborts the transaction, so nothing is kept. The
+    editor shows the run as an error even when it passes, so read line 1.
+    The error code is `P0001` for a pass, `P0004` for a fail.
+  - **Identity switching:**
+    - educators and the student run with
+      `EXECUTE 'set local role authenticated'` and `request.jwt.claims`;
+    - admin steps run with `EXECUTE 'reset role'` and the admin's claims;
+    - switches happen outside the `begin … exception` sub-blocks, because a
+      caught error rolls the sub-block back, including a role change made
+      inside it.
+  - **Order:** the three educators onboard first, then the branches run.
+  - **Checks:**
+    - locally (PGlite): `PASS: 29 of 29 steps`;
+    - parser: 0 errors.
+    - The harness prints a stack trace for the deliberate raise: expected.
 - **`tests/educator-state.test.jsx` (10):**
   - the vocabulary round trip for every DB state;
   - decisions and filters;

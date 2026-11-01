@@ -56,6 +56,12 @@ human-readable sentence you can show the user).
 
 ### Series card
 
+`cover_path` is the series banner: a path in the public bucket `test-assets`
+(`<uploader>/banner/<uuid>.webp`), or `null`. The UI turns it into a URL with
+`assetUrl(path)` (`src/services/assetsApi.js`) and shows the colour block when
+there is none or it fails to load. Question figures (`image_path`) work the
+same way.
+
 Returned by `public_list_series`, `student_list_series` items, and
 `recommended_series`, and used as the base of `public_get_series`,
 `student_get_series` and `student_my_series` items.
@@ -165,6 +171,7 @@ tests.
 ```json
 { "test_id": "uuid", "test_title": "text", "series_id": "uuid", "series_title": "text",
   "series_instructions": "text|null", "test_instructions": "text|null", "instructions_extra": "text|null",
+  "series_cover_path": "text|null",
   "duration_mins": 30, "questions_count": 4, "total_marks": 9,
   "negative_marking": true, "max_negative_marks": 0.25, "passing_percentage": 50,
   "attempts_used": 0, "attempts_allowed": 2, "attempts_remaining": 2,
@@ -191,7 +198,7 @@ tests.
 - **Concurrency:** starts are serialized per student and test.
 
 ```json
-{ "attempt_id": "uuid", "test_id": "uuid", "test_title": "text", "series_id": "uuid",
+{ "attempt_id": "uuid", "test_id": "uuid", "test_title": "text", "series_id": "uuid", "series_cover_path": "text|null",
   "attempt_number": 1, "resumed": false, "started_at": "…", "deadline": "…|null", "server_now": "…",
   "duration_mins": 30, "is_proctored": false, "violation_limit": 2, "violations_count": 0,
   "questions": [{
@@ -200,7 +207,7 @@ tests.
     "ui_type": "mcq_single|mcq_multi|true_false|fill_blank|numerical|subjective|…",
     "multi_select": false, "points": 1, "negative_marks": 0.25,
     "section": "General", "section_position": 0, "topic": "text|null", "difficulty": "easy|medium|hard|null",
-    "image_path": "text|null", "answer_instructions": "text|null",
+    "image_path": "text|null", "image_alt": "text|null", "answer_instructions": "text|null",
     "options": [{ "id": "uuid", "text": "text" }] }],
   "saved_answers": [{ "question_id": "uuid", "answer_text": "text|null", "selected_option_ids": ["uuid"] }] }
 ```
@@ -267,6 +274,9 @@ auto-submits.
 - **Error:** `P0002` if it isn't the caller's attempt.
 
 ### `student_get_report(p_attempt_id uuid)` → report
+- **Images (20261029110000):** both report RPCs add `series_cover_path` and,
+  per question, the current `image_path` / `image_alt` when the report is read.
+  The stored snapshot is not rewritten, and nothing about answers is added.
 - **Returns:** the stored report for the caller's own attempt.
 - **Expired attempts:** an `in_progress` attempt past its deadline is graded
   first.

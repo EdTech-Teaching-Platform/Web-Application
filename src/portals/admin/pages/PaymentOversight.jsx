@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRpc } from "../hooks/useRpc";
 import { transactionsApi } from "../services/transactionsApi";
 import { refundsApi } from "../services/refundsApi";
 import "./PaymentOversight.css";
 export default function PaymentOversight() {
-  const [page, setPage] = useState(1); const tx = useRpc(() => transactionsApi.list({ page, size: 8 })); const stats = useRpc(() => refundsApi.stats()); const pending = useRpc(() => refundsApi.pending(page, 8));
+  const [page, setPage] = useState(1); 
+  // Stable requests: inline arrows re-ran every fetch on every render.
+  const tx = useRpc(useCallback(() => transactionsApi.list({ page, size: 8 }), [page]));
+  const stats = useRpc(useCallback(() => refundsApi.stats(), []));
+  const pending = useRpc(useCallback(() => refundsApi.pending(page, 8), [page]));
   const rows = tx.data?.rows || []; const refunds = pending.data?.rows || [];
   return <div><div className="ul-edu-header"><div><h2 className="ul-edu-header__title">Payment Oversight</h2><p className="ul-edu-header__subtitle">Monitor payments and refund requests.</p></div></div><div className="ul-stats"><div className="ul-stat-card">Pending refunds <strong>{stats.data?.pending_count ?? 0}</strong></div><div className="ul-stat-card">Refund amount <strong>₹{stats.data?.pending_amount_inr ?? 0}</strong></div></div><section className="ul-card"><h3>Recent transactions</h3>{tx.loading ? <div className="ul-edu-empty">Loading…</div> : tx.error ? <div className="ul-edu-empty">Unable to load payments. <button onClick={() => tx.refetch()}>Retry</button></div> : <table className="ul-edu-table"><thead><tr><th>Transaction</th><th>Student</th><th>Series</th><th>Amount</th></tr></thead><tbody>{rows.map((r) => <tr key={r.id}><td>{r.txn_code}</td><td>{r.student_name}</td><td>{r.series_title}</td><td>₹{r.amount_inr}</td></tr>)}</tbody></table>}</section><section className="ul-card"><h3>Pending refunds</h3>{pending.loading ? <div className="ul-edu-empty">Loading…</div> : !refunds.length ? <div className="ul-edu-empty">No pending refunds.</div> : <table className="ul-edu-table"><thead><tr><th>Request</th><th>Student</th><th>Item</th><th>Amount</th></tr></thead><tbody>{refunds.map((r) => <tr key={r.id}><td>{r.code}</td><td>{r.student_name}</td><td>{r.item_title}</td><td>₹{r.amount_inr}</td></tr>)}</tbody></table>}</section><button className="ul-btn ul-btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><button className="ul-btn ul-btn--ghost" disabled={rows.length < 8} onClick={() => setPage(page + 1)}>Next</button></div>;
 }

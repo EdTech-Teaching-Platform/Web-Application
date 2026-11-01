@@ -16,6 +16,7 @@ import { isNotAvailable, isNotFound } from "../services/studentRpc";
 import LoginPrompt from "../../../public/components/LoginPrompt";
 import { ATTEMPT_STATUS, formatDate, formatMinutes, formatPercent, priceLabel } from "../utils/format";
 import { MyFeedbackList } from "../components/FeedbackForm";
+import { SeriesBanner } from "../components/TestImages";
 
 function testState(test, enrolled) {
   const now = Date.now();
@@ -153,6 +154,8 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
   return (
     <div className={PAGE}>
       <Link to={backTo} className={BACK_LINK}>{back.label}</Link>
+
+      <SeriesBanner path={series.cover_path} />
 
       <PageHero
         compact

@@ -143,7 +143,8 @@ describe("moderation detail actions", () => {
     };
     const setToast = vi.fn();
     const onChanged = vi.fn();
-    render(<ItemDetail id="fb-1" api={api} onClose={vi.fn()} onChanged={onChanged} setToast={setToast} />);
+    const onClose = vi.fn();
+    render(<ItemDetail id="fb-1" api={api} onClose={onClose} onChanged={onChanged} setToast={setToast} />);
     await screen.findByText("Option B is also correct.");
     fireEvent.click(screen.getByRole("button", { name: "Resolve" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Add a note for the student");
@@ -152,9 +153,8 @@ describe("moderation detail actions", () => {
     fireEvent.change(screen.getByLabelText(/Note to the student/), { target: { value: "Accepted, scores updated." } });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Resolve" })); });
     expect(api.setStatus).toHaveBeenCalledWith("fb-1", "resolved", "Accepted, scores updated.");
-    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith("resolved"));
     expect(setToast).toHaveBeenCalledWith("Marked resolved. The student has been notified.");
-    // the reloaded item is still "in review", so the actions offered are Resolve / Dismiss
-    expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
+    expect(onClose).toHaveBeenCalled();   // resolve / dismiss close the drawer
   });
 });

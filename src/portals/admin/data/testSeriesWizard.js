@@ -9,8 +9,9 @@
 import { DIFFICULTY, PRICING_TYPE, validateSeriesForPublish } from "./testSeriesMock";
 import {
   QTYPE, QUESTION_TYPE_OPTIONS, SUBJECTIVE_BLOCKED_MESSAGE, blankQuestionFields, isBlockedQuestionType, normalizeQuestionType,
-  questionTypeLabel, validateQuestionDraft,
+  questionPayload, questionTypeLabel, validateQuestionDraft,
 } from "./questionTypes";
+import { isUnsavedImage } from "../../../services/assetPaths";
 import { TOPIC_POOL } from "./aiTestBuilderMock";
 
 // Every series is standalone ("My own"): no link to any course.
@@ -54,6 +55,7 @@ export function emptyQuestion(type = QTYPE.MCQ_SINGLE, defaults = {}) {
     answerInstructions: "",
     rubric: "",
     image: "",
+    imageAlt: "",
     marks: 4,
     negativeMarks: t === QTYPE.MCQ_SINGLE || t === QTYPE.MCQ_MULTI ? 1 : 0,
     difficulty: DIFFICULTY.MEDIUM,
@@ -118,6 +120,7 @@ export function initialWizardState() {
     pricing: PRICING_TYPE.FREE,
     price: "",
     syllabus: "",
+    coverPath: "",   // series banner: a test-assets path (assetsApi.uploadImage)
     classification: { grade: "", subject: "", exam: "", difficulty: "", languages: [] },
     buildDeadline: "",
     availability: { goLive: "now", goLiveAt: "", mode: "always", openAt: "", closeAt: "", monthlyLimited: false, monthlyLimit: 5, accessLimited: false, accessDays: 90 },
@@ -507,6 +510,57 @@ export function buildSeriesPayload(st, ctx, publish) {
         questions: t.questions.map(({ wid: _w, ...q }) => q),
       };
     }),
+  };
+}
+
+// upsert_test_series_full's payload (p): the series fields, the banner
+// (coverPath, a test-assets path; "" removes it) and every test with its
+// questions (questionPayload: image path + imageAlt).
+export function wizardRpcPayload(st, ctx, publish) {
+  const payload = buildSeriesPayload(st, ctx, publish);
+  return {
+    id: st.id || null,
+    name: payload.name,
+    about: payload.about,
+    whoFor: payload.whoFor,
+    audience: payload.audience,
+    syllabus: payload.syllabus,
+    startMethod: payload.startMethod,
+    pricing: payload.pricing,
+    price: String(payload.price ?? 0),
+    buildDeadline: payload.buildDeadline,
+    coverPath: isUnsavedImage(st.coverPath) ? "" : (st.coverPath || ""),   // "" removes the banner
+    wizardState: st,
+    classification: payload.classification,
+    availability: {
+      goLive: st.availability.goLive,
+      goLiveAt: st.availability.goLiveAt,
+      mode: st.availability.mode,
+      openAt: st.availability.openAt,
+      closeAt: st.availability.closeAt,
+      monthlyLimited: st.availability.monthlyLimited,
+      monthlyLimit: st.availability.monthlyLimit,
+      accessLimited: st.availability.accessLimited,
+      accessDays: st.availability.accessDays,
+    },
+    lateSubmissions: payload.lateSubmissions,
+    tests: payload.tests.map((t) => ({
+      name: t.name,
+      instructions: t.instructions,
+      duration: String(t.duration),
+      passingPercent: String(t.passingPercent || 40),
+      attemptLimit: String(t.attemptLimit || 1),
+      window: t.window,
+      plannedQuestions: String(t.plannedQuestions || t.questions.length),
+      topics: t.topics || [],
+      sections: [],
+      questions: t.questions.map((q, index) => ({
+        ...questionPayload(q),
+        answerInstructions: q.answerInstructions || "",
+        sectionPosition: "",
+        position: index + 1,
+      })),
+    })),
   };
 }
 

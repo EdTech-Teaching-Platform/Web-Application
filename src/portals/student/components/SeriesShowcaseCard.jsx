@@ -2,11 +2,13 @@ import { rotationClassFor } from "../../../components/ui/ColorBlockCard";
 import { BookOpenIcon, CheckIcon, ChevronRightIcon, ClockIcon, FileTextIcon, TargetIcon } from "../../../components/ui/icons";
 import { formatMinutes, priceLabel } from "../utils/format";
 import { CoverDots, CoverGlyph, glyphFor } from "./StudentKit";
+import AssetImage from "../../../components/common/AssetImage";
 
 // Presentation-only card for the "Find a test series" grid. Same props and
 // behaviour as SeriesCard (series, index, onOpen, actionLabel, onAction,
 // actionDisabled) — only the look differs. Text-free decorative covers sit on
-// the fixed rotation colour order.
+// the fixed rotation colour order; the series banner (cover_path) covers them
+// when there is one (if it fails to load, the art shows through).
 
 export const COVER_ART = [
   // rings + dots
@@ -77,6 +79,7 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
         </svg>
         <CoverDots />
         <CoverGlyph className="right-20 max-sm:text-6xl sm:right-24">{glyphFor(series, index)}</CoverGlyph>
+        {series.cover_path && <AssetImage path={series.cover_path} alt="" fallback={null} className="absolute inset-0 h-full w-full object-cover" />}
         {badge && (
           <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-0.5 text-[9px] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[10px] font-bold uppercase tracking-[0.12em] text-(--lp-blue-deep) shadow-sm">
             {badge}

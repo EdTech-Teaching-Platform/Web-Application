@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { IconChart, IconGlobe, IconReport, IconSearch } from "../components/icons";
 import { regionalApi } from "../services/regionalApi";
 import { useRpc } from "../hooks/useRpc";
@@ -19,10 +19,11 @@ export default function RegionalAnalytics() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => { const t = setTimeout(() => setDebouncedSearch(filters.search), 300); return () => clearTimeout(t); }, [filters.search]);
   const request = useMemo(() => ({ ...filters, search: debouncedSearch }), [filters, debouncedSearch]);
-  const summary = useRpc(() => regionalApi.summary(request), { immediate: true });
-  const trend = useRpc(() => regionalApi.trend(request), { immediate: true });
-  const bars = useRpc(() => regionalApi.byRegion(request), { immediate: true });
-  const table = useRpc(() => regionalApi.comparison(request), { immediate: true });
+  // Stable requests keyed on the filters: inline arrows re-ran all four fetches on every render.
+  const summary = useRpc(useCallback(() => regionalApi.summary(request), [request]));
+  const trend = useRpc(useCallback(() => regionalApi.trend(request), [request]));
+  const bars = useRpc(useCallback(() => regionalApi.byRegion(request), [request]));
+  const table = useRpc(useCallback(() => regionalApi.comparison(request), [request]));
   const set = (key, value) => setFilters((f) => ({ ...f, [key]: value, ...(key === "search" ? { page: 1 } : {}) }));
   const retry = () => [summary, trend, bars, table].forEach((x) => x.refetch().catch(() => {}));
   const s = summary.data || {};

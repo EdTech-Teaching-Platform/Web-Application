@@ -14,6 +14,7 @@ import { attemptApi } from "../services/attemptApi";
 import { isRuleError } from "../services/studentRpc";
 import { formatDate, formatMinutes, formatPercent, formatScore, formatSeconds } from "../utils/format";
 import { FeedbackForm } from "../components/FeedbackForm";
+import { QuestionFigure, SeriesBanner } from "../components/TestImages";
 
 const STATUS = {
   correct: { label: "Correct", tone: "success" },
@@ -111,6 +112,7 @@ export function QuestionReview({ question, hidden }) {
         </span>
       </div>
       <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-text">{question.text}</p>
+      <QuestionFigure path={question.image_path} alt={question.image_alt} position={question.position} />
       {question.options?.length > 0 ? (
         <ul className="mt-4 space-y-2">
           {question.options.map((o) => (
@@ -200,6 +202,7 @@ export default function TestReport() {
 
   return (
     <div className={`${PAGE} space-y-8 pb-10`}>
+      <SeriesBanner path={report.series_cover_path} />
       <PageHero
         compact
         showEyebrow

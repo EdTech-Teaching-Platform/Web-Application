@@ -11,6 +11,7 @@ import { useStudentData } from "../hooks/useStudentData";
 import { attemptApi } from "../services/attemptApi";
 import { isAuthError } from "../services/studentRpc";
 import { formatDate, formatMinutes, formatPercent } from "../utils/format";
+import { SeriesBanner } from "../components/TestImages";
 
 const BLOCKED = {
   no_questions: "This test has no questions yet.",
@@ -57,6 +58,7 @@ export default function TestIntro() {
       <Link to={`/student/test-series/${intro.series_id}`} className="text-sm font-medium text-primary hover:underline">
         ← {intro.series_title}
       </Link>
+      <SeriesBanner path={intro.series_cover_path} />
       <PageHeader eyebrow="Before you start" title={intro.test_title} />
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-4" aria-label="Test facts">
