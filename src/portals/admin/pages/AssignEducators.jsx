@@ -673,6 +673,9 @@ export default function AssignEducators() {
                   <div className="ul-ts-form-row">
                     <label>Assign To (select one or more educators)</label>
                     <div className="ul-asg-educator-list">
+                      {eligibleEducators.length === 0 && !eligibleState.loading && (
+                        <p className="ul-edu-empty">No approved, active educators yet. Approve an educator in Educator Management first.</p>
+                      )}
                       {eligibleEducators.map((e) => (
                         <label key={e.id} className="ul-asg-educator-option">
                           <input
@@ -686,7 +689,7 @@ export default function AssignEducators() {
                             }}
                           />
                           <span>{e.name}</span>
-                          <small>{e.subjects.join(", ")}</small>
+                          <small>{[e.subjects.join(", "), (e.languages || []).join(", "), `${e.openAssignments ?? 0} open`, e.rating ? `${e.rating}★` : null].filter(Boolean).join(" · ")}</small>
                         </label>
                       ))}
                     </div>

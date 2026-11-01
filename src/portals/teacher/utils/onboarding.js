@@ -114,6 +114,7 @@ export const GATE = Object.freeze({
 
 export function gateFor(status) {
   switch (status?.status) {
+    case "approved":   // educator_get_status since 20261029100000
     case "verified": return GATE.PORTAL;
     case "draft": return GATE.ONBOARDING;
     case "pending":

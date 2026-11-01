@@ -40,7 +40,16 @@ export const assignmentsApi = {
   },
   detail: (id) => callRpc("get_assignment_detail", { p_id: id }),
   requests: async () => ((await callRpc("list_series_requests")) || []).map(mapRequest),
-  eligibleEducators: async () => (await callRpc("list_eligible_educators")) || [],
+  // Every approved, active educator (list_assignable_educators, 20261029100000).
+  eligibleEducators: async ({ search = "", subject = "" } = {}) => {
+    const { rows } = listResult(await callRpc("list_assignable_educators", {
+      p_search: search.trim() || null, p_subject: subject || null, p_page: 1, p_size: 200,
+    }));
+    return rows.map((e) => ({
+      ...e, full_name: e.name, subjects: e.subjects || [], languages: e.languages || [],
+      openAssignments: Number(e.open_assignments || 0), rating: e.rating == null ? null : Number(e.rating),
+    }));
+  },
   series: async () => ((await callRpc("list_series_options")) || []).map((s) => ({ id: s.id, name: s.title })),
   create: (payload) => callRpc("create_assignments", { p: payload }),
   updateRequirements: (id, patch) => callRpc("update_assignment_requirements", { p_id: id, patch }),

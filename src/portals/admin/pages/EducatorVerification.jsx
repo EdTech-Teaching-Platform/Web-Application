@@ -27,6 +27,7 @@ import { educatorsApi } from "../services/educatorsApi";
 import ConfirmModal from "../components/ConfirmModal";
 import BulkImportTeachers from "../components/BulkImportTeachers";
 import { IconSearch, IconStar, IconMore, IconClose, IconPlus, IconChevronLeft } from "../components/icons";
+import { EDUCATOR_STATUS_FILTERS, educatorStatusBadge, mapEducatorStatus } from "../utils/statusMaps";
 import "./AdminDashboard.css";
 import "./discounts/Discounts.css";
 import { RowMenu } from "./discounts/DiscountsShared";
@@ -35,7 +36,6 @@ import "./EducatorProfile.css";
 import "./TestSeries.css";
 
 const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
-const VERIFICATION_LABEL = { pending: "Pending", under_review: "Pending", verified: "Verified", rejected: "Rejected" };
 const PAGE_SIZE = 8;
 
 const EMPTY_ADD_FORM = {
@@ -78,8 +78,9 @@ const SORT_OPTIONS = [
 function AccountBadge({ status }) {
   return <span className={`ul-status-badge is-account-${status}`}>{ACCOUNT_LABEL[status]}</span>;
 }
+// Labels, badges and filter values come from statusMaps (the one educator vocabulary).
 function VerificationBadge({ status }) {
-  return <span className={`ul-status-badge is-${status === "under_review" ? "pending" : status}`}>{VERIFICATION_LABEL[status]}</span>;
+  return <span className={`ul-status-badge ${educatorStatusBadge(status)}`}>{mapEducatorStatus(status)}</span>;
 }
 
 export default function EducatorVerification() {
@@ -115,7 +116,16 @@ export default function EducatorVerification() {
   const listState = useRpc(listRequest);
   const educators = listState.data?.rows || [];
   const total = Number(listState.data?.total || 0);
-  const statsState = useRpc(() => educatorsApi.stats());
+  const statsState = useRpc(useCallback(() => educatorsApi.stats(), []));
+  // Decisions are taken on the profile page: coming back (or switching back to
+  // this tab) shows the new status and counts.
+  const { refetch: refetchList } = listState;
+  const { refetch: refetchStats } = statsState;
+  useEffect(() => {
+    const refresh = () => { refetchList().catch(() => {}); refetchStats().catch(() => {}); };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [refetchList, refetchStats]);
 
   useEffect(() => {
     if (!openMenuId) return undefined;
@@ -316,11 +326,9 @@ export default function EducatorVerification() {
         </select>
 
         <select className="ul-edu-select" value={verificationFilter} onChange={(e) => setVerificationFilter(e.target.value)}>
-          <option value="all">Verification: All</option>
-          <option value="pending">Pending</option>
-          <option value="under_review">Pending</option>
-          <option value="verified">Verified</option>
-          <option value="rejected">Rejected</option>
+          {EDUCATOR_STATUS_FILTERS.map((f) => (
+            <option key={f.value} value={f.value}>{f.value === "all" ? "Status: All" : f.label}</option>
+          ))}
         </select>
 
         <select className="ul-edu-select" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>

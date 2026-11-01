@@ -5,8 +5,10 @@ import { GATE, gateFor } from "../utils/onboarding";
 export const PENDING_POLL_MS = 60000;
 
 // educator_get_status() for the portal gate: loaded on mount, refreshed when
-// the window regains focus, and every 60 s while the application is waiting
-// for review (so approval opens the portal without a reload).
+// the window regains focus, and every 60 s on every screen that waits for an
+// admin (pending, changes requested, rejected, suspended), so a decision shows
+// without a reload. (It used to poll only while pending: a teacher on the
+// "rejected" screen never saw a later approval.)
 export function useEducatorStatus({ api = educatorApi, pollMs = PENDING_POLL_MS } = {}) {
   const [state, setState] = useState({ status: null, loading: true, error: null });
   const mounted = useRef(true);
@@ -33,7 +35,7 @@ export function useEducatorStatus({ api = educatorApi, pollMs = PENDING_POLL_MS 
 
   const gate = state.status ? gateFor(state.status) : null;
   useEffect(() => {
-    if (gate !== GATE.PENDING) return undefined;
+    if (!gate || gate === GATE.PORTAL || gate === GATE.ONBOARDING) return undefined;
     const timer = setInterval(refresh, pollMs);
     return () => clearInterval(timer);
   }, [gate, refresh, pollMs]);

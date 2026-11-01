@@ -15,7 +15,7 @@
 // every action below mutates local mock state, nothing is sent to a
 // backend.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
 import { educatorsApi } from "../services/educatorsApi";
@@ -25,11 +25,11 @@ import {
   IconRefresh, IconCheck, IconClose, IconWallet, IconShield, IconSearch,
 } from "../components/icons";
 import "./AdminDashboard.css";
+import { EDUCATOR_DECISION, educatorStatusBadge, mapEducatorStatus } from "../utils/statusMaps";
 import "./EducatorVerification.css";
 import "./EducatorProfile.css";
 
 const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
-const VERIFICATION_LABEL = { pending: "Pending", under_review: "Under review", verified: "Verified", rejected: "Rejected" };
 const DOC_STATUS_LABEL = { pending: "Pending", verified: "Verified", rejected: "Rejected" };
 const STUDENT_STATUS_LABEL = { active: "Active", completed: "Completed", at_risk: "At risk", inactive: "Inactive" };
 
@@ -63,9 +63,9 @@ function seriesForCourse(title) {
 function AccountBadge({ status }) {
   return <span className={`ul-status-badge is-account-${status}`}>{ACCOUNT_LABEL[status]}</span>;
 }
+// Labels and badges come from statusMaps (the one educator vocabulary).
 function VerificationBadge({ status, note }) {
-  const label = status === "under_review" && note ? "Changes requested" : VERIFICATION_LABEL[status];
-  return <span className={`ul-status-badge is-${status === "under_review" ? "pending" : status}`}>{label}</span>;
+  return <span className={`ul-status-badge ${educatorStatusBadge(status)}`} title={note || undefined}>{mapEducatorStatus(status)}</span>;
 }
 function DocStatusBadge({ status }) {
   return <span className={`ul-status-badge is-${status}`}>{DOC_STATUS_LABEL[status]}</span>;
@@ -117,7 +117,9 @@ export default function EducatorProfile() {
   const { educatorId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const detailState = useRpc(() => educatorsApi.detail(educatorId), { immediate: !!educatorId });
+  // Stable request: an inline arrow re-ran the fetch on every render.
+  const detailRequest = useCallback(() => educatorsApi.detail(educatorId), [educatorId]);
+  const detailState = useRpc(detailRequest, { immediate: !!educatorId });
   const educator = detailState.data;
 
   const initialTab = location.state?.tab && TABS.some((t) => !t.hidden && t.key === location.state.tab) ? location.state.tab : "overview";
@@ -163,16 +165,26 @@ export default function EducatorProfile() {
   const runConfirmed = () => {
     if (!confirmAction) return;
     const { type } = confirmAction;
+    // Thunks: only the confirmed action runs. (This map used to hold the
+    // promises themselves, so one click ran ALL six: approve + reject +
+    // request changes + deactivate + suspend + delete.)
     const actions = {
-      deactivate: educatorsApi.setAccountStatus(educator.id, "inactive"),
-      suspend: educatorsApi.setAccountStatus(educator.id, "suspended"),
-      delete: educatorsApi.delete(educator.id),
-      approve: educatorsApi.setVerification(educator.id, "verified"),
-      reject: educatorsApi.setVerification(educator.id, "rejected", reasonText),
-      request_info: educatorsApi.setVerification(educator.id, "under_review", reasonText),
+      deactivate: () => educatorsApi.setAccountStatus(educator.id, "inactive"),
+      suspend: () => educatorsApi.setAccountStatus(educator.id, "suspended"),
+      delete: () => educatorsApi.delete(educator.id),
+      approve: () => educatorsApi.setVerification(educator.id, EDUCATOR_DECISION.approve),
+      reject: () => educatorsApi.setVerification(educator.id, EDUCATOR_DECISION.reject, reasonText),
+      request_info: () => educatorsApi.setVerification(educator.id, EDUCATOR_DECISION.request_changes, reasonText),
     };
+    const DONE = { approve: "Educator approved.", reject: "Application rejected.", request_info: "Changes requested. The educator has been notified." };
     if (actions[type]) {
-      actions[type].then(() => { if (type === "delete") navigate("/admin/educatorverification"); else { setToast("Educator updated."); detailState.refetch(); } }).catch((error) => setToast(error.message));
+      actions[type]()
+        .then(() => {
+          if (type === "delete") { navigate("/admin/educatorverification"); return; }
+          setToast(DONE[type] || "Educator updated.");
+          detailState.refetch().catch(() => {});
+        })
+        .catch((error) => setToast(error.message));
     }
     if (type === "reset_password") { setToast("Password reset link sent to " + educator.email + "."); }
     if (type === "force_logout") { setToast("Educator has been force-logged-out of all sessions."); }
@@ -189,7 +201,7 @@ export default function EducatorProfile() {
     delete: { title: "Delete this educator?", description: "This permanently removes their profile, courses and history from Educator Management. This cannot be undone.", confirmLabel: "Delete", tone: "danger" },
     approve: { title: "Approve & verify this educator?", description: "They will be able to publish courses and appear as a verified educator on the platform.", confirmLabel: "Approve", tone: "default" },
     reject: { title: "Reject this application?", description: "Let the admin team know why — this reason is stored with the application.", confirmLabel: "Reject", tone: "danger", withReason: true },
-    request_info: { title: "Request additional information?", description: "The educator's status moves to Pending until they resubmit.", confirmLabel: "Request info", tone: "default", withReason: true },
+    request_info: { title: "Request changes?", description: "The educator sees your note, can update their application and resubmit it.", confirmLabel: "Request changes", tone: "default", withReason: true },
     reset_password: { title: "Reset this educator's password?", description: "Sends a password reset link to their registered email. Their current session stays active until they use it.", confirmLabel: "Send reset link", tone: "default" },
     force_logout: { title: "Force logout everywhere?", description: "Immediately ends this educator's active sessions on every device. They'll need to sign in again.", confirmLabel: "Force logout", tone: "danger" },
     reject_document: { title: "Reject this document?", description: "Tell the educator what needs to be fixed or resubmitted.", confirmLabel: "Reject document", tone: "danger", withReason: true },
@@ -206,8 +218,9 @@ export default function EducatorProfile() {
   };
 
   const p = educator.performance;
-  const needsReview = educator.verificationStatus === "pending" || educator.verificationStatus === "under_review";
-  const isVerificationPending = educator.verificationStatus === "pending";
+  // Decisions are offered while an application waits for (or came back from) review.
+  const needsReview = ["pending", "under_review", "changes_requested"].includes(educator.verificationStatus);
+  const isVerificationPending = educator.verificationStatus !== "verified";
 
   return (
     <div className="ul-edp">
@@ -320,7 +333,7 @@ export default function EducatorProfile() {
                     <IconCheck size={13} /> Approve
                   </button>
                   <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setConfirmAction({ type: "request_info" })}>
-                    Request info
+                    Request changes
                   </button>
                   <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "reject" })}>
                     Reject
@@ -656,11 +669,13 @@ export default function EducatorProfile() {
         description={confirmCopy?.description}
         confirmLabel={confirmCopy?.confirmLabel}
         tone={confirmCopy?.tone}
+        confirmDisabled={Boolean(confirmCopy?.withReason) && !reasonText.trim()}
         onConfirm={runConfirmed}
         onCancel={() => { setConfirmAction(null); setReasonText(""); }}
       >
         {confirmCopy?.withReason && (
           <textarea
+            aria-label="Reason (shown to the educator)"
             className="ul-confirm-modal__reason"
             placeholder="Add a reason or comment (visible to the educator)…"
             value={reasonText}

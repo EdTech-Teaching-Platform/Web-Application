@@ -1,5 +1,6 @@
 import { supabase } from "../../../services/supabaseClient";
 import { callRpc, listResult, normalizeRpcError } from "./adminApi";
+import { toDbEducatorStatus, toUiEducatorStatus } from "../utils/statusMaps";
 
 // "government_id" + "front" -> "Government ID (front)"; certificates keep their label.
 const DOC_TYPE_LABEL = {
@@ -21,7 +22,8 @@ const mapEducator = (e) => ({
   subjects: e.subjects || [],
   yearsExperience: Number(e.years_experience || 0),
   accountStatus: e.account_status,
-  verificationStatus: e.verification_status,
+  verificationStatus: toUiEducatorStatus(e.verification_status),   // statusMaps: DB "approved" -> UI "verified"
+  effectiveState: toUiEducatorStatus(e.effective_state || e.verification_status),
   joinedDate: e.joined_at ? new Date(e.joined_at).toLocaleDateString("en-IN") : "—",
   lastActive: e.last_active_at ? new Date(e.last_active_at).toLocaleString("en-IN") : "—",
   rating: Number(e.rating || 0),
@@ -31,7 +33,9 @@ const mapEducator = (e) => ({
 
 export const educatorsApi = {
   list: async (params) => {
-    const result = listResult(await callRpc("list_educators", params));
+    const result = listResult(await callRpc("list_educators", {
+      ...params, p_verification: params?.p_verification ? toDbEducatorStatus(params.p_verification) : null,
+    }));
     return { ...result, rows: result.rows.map(mapEducator) };
   },
   stats: () => callRpc("get_educator_stats"),
@@ -39,9 +43,10 @@ export const educatorsApi = {
     const data = await callRpc("get_educator_detail", { p_id: id });
     if (!data?.educator) return null;
     const educator = mapEducator(data.educator);
-    const verificationNote = (data.history || []).find(
-      (entry) => entry.kind === "verification" && entry.to_value === "under_review"
-    )?.reason || null;
+    // The admin's note for a changes-requested / rejected educator.
+    const verificationNote = ["changes_requested", "rejected"].includes(data.educator.verification_status)
+      ? data.educator.review_note || data.educator.rejected_reason || null
+      : null;
     return {
       ...educator,
       verificationNote,
@@ -78,7 +83,8 @@ export const educatorsApi = {
       messages: [],
     };
   },
-  setVerification: (id, status, note) => callRpc("set_educator_verification", { p_id: id, p_decision: status, p_note: note || null }),
+  // decision: a statusMaps EDUCATOR_DECISION value (approved | rejected | changes_requested | under_review | pending)
+  setVerification: (id, decision, note) => callRpc("set_educator_verification", { p_id: id, p_decision: toDbEducatorStatus(decision), p_note: note || null }),
   updateDocument: (id, documentId, status, note) => callRpc("review_educator_document", {
     p_educator_id: id, p_document_id: documentId, p_status: status, p_note: note || null,
   }),
