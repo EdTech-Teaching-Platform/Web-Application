@@ -229,7 +229,7 @@ export default function EducatorOnboarding({ api = educatorApi }) {
         )}
 
         <div className="mb-6 rounded-3xl bg-white p-4 shadow-sm">
-          <ProgressSteps steps={ONBOARDING_STEPS.map((s) => s.title)} currentIndex={step - 1} />
+          <ProgressSteps steps={ONBOARDING_STEPS.map((s) => s.title)} currentIndex={step - 1} compact />
         </div>
 
         <section className="space-y-5 rounded-3xl bg-white p-6 shadow-sm" aria-labelledby="onboarding-step-title">
