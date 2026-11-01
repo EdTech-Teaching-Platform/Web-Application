@@ -5,7 +5,7 @@
 import { Link } from "react-router-dom";
 import Modal from "../../components/ui/Modal";
 
-const BTN = "inline-flex h-11 flex-1 items-center justify-center rounded-full px-5 text-sm font-semibold transition-transform duration-200 hover:-translate-y-0.5";
+const BTN = "inline-flex min-h-14 w-full shrink-0 items-center justify-center rounded-full px-6 py-3.5 text-base font-semibold sm:min-h-12 sm:w-auto sm:flex-1 sm:text-sm transition-transform duration-200 hover:-translate-y-0.5";
 
 export default function LoginPrompt({ open, onClose, redirect, title = "Log in to continue" }) {
   const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
