@@ -146,15 +146,18 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
         onCancel={closeModals}
         onConfirm={() => act(() => api.rejectSeries(rejectTarget.id, reason.trim()), `"${rejectTarget.title}" rejected. The educator has been notified.`)}
       >
-        <label htmlFor="reject-reason" className="ul-tsw-hint" style={{ display: "block", marginBottom: 4 }}>Reason (required)</label>
+        <label htmlFor="reject-reason" style={{ display: "block", marginTop: 12, fontSize: 11.5, fontWeight: 700, color: "var(--color-text-muted, #6b7280)" }}>Reason (required)</label>
         <textarea
           id="reject-reason"
-          className="ul-tsw-input"
+          className="ul-confirm-modal__reason"
           rows={3}
           maxLength={2000}
+          autoFocus
+          placeholder="Tell the educator what to fix…"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          style={{ width: "100%" }}
+          onKeyDown={(e) => e.stopPropagation()}
+          style={{ marginTop: 6, boxSizing: "border-box" }}
         />
         {actionError && <p className="ul-tsw-note" role="alert">{actionError}</p>}
       </ConfirmModal>
