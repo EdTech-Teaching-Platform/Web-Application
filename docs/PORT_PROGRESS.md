@@ -99,6 +99,155 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-01: educator state fix (written, nothing applied)
+
+### Root causes (symptoms seen on the real project)
+
+1. **The main cause, behind (2), (4) and (5):**
+   `src/portals/admin/pages/EducatorProfile.jsx:166-173` (`runConfirmed`) built
+   `const actions = { deactivate: educatorsApi.setAccountStatus(...), suspend: ..., delete: educatorsApi.delete(...), approve: ..., reject: ..., request_info: ... }`.
+   - **Why it misfired:** the values were promises, not functions, so
+     confirming ANY action fired all six RPCs at once.
+   - **What one "Approve" click did:**
+     - `set_educator_account_status(inactive)`, then `(suspended)`;
+     - `delete_educator`, a soft delete: `account_status = 'deleted'`;
+     - `set_educator_verification(verified)`;
+     - `reject` and `request_info` too, which succeed whenever the dialog's
+       reason box has text (the reject and request-info dialogs).
+   - **(4) Not in the Educators list:** `adm_educator_base`
+     (`20261025100800_admin_rpc_educators.sql:81`) excludes `account_status =
+     'deleted'`.
+   - **(5) Not in Assign Educators:** `adm_eligible_educators`
+     (`20261025110400:639`, then `20261029090000`) requires an active account.
+   - **(2) The teacher saw "rejected" after approval:**
+     - the earlier reject or request-info click had also run `reject` with the
+       reason, so the lead's value and our `review_state` ended as `rejected`;
+     - with the account soft-deleted, nothing later reset it;
+     - and see 3: the teacher's screen never re-checked.
+2. **Vocabulary mismatch:**
+   - **Request info sent the wrong value:** "Request info" sent
+     `under_review` (`EducatorProfile.jsx:172`), and the badge showed
+     `under_review` + note as "Changes requested" (`:67`).
+   - **The teacher got the wrong screen:** on the server, `under_review` is
+     "admin is reviewing". The teacher got the plain pending screen, with no
+     note and no way to edit.
+   - **Labels differed per screen:** `EducatorVerification.jsx:38` mapped
+     `under_review` to "Pending"; `statusMaps.js` had a third mapping.
+3. **No re-check after a decision:**
+   `src/portals/teacher/hooks/useEducatorStatus.js:36` polled only while
+   `pending`. A teacher on the rejected, changes-requested or suspended screen
+   only saw a new decision after a window focus or a reload.
+4. **Server-side inconsistency** (no wrong answer on its own, but three
+   writers each did their own thing):
+   - `set_educator_verification` (`20261028090200`) set `review_state` and the
+     lead fields;
+   - `educator_submit_onboarding` (`20261028090100:515-521`) wrote both
+     separately;
+   - `register_educator` (`20261025100800`) wrote only the lead value;
+   - `set_educator_account_status` wrote only the account.
+5. **Related, fixed on the educator pages:**
+   - `useRpc(() => educatorsApi.detail(id))` (`EducatorProfile.jsx:120`) and
+     `useRpc(() => educatorsApi.stats())` (`EducatorVerification.jsx:118`)
+     passed a new request function every render, so `useRpc` refetched in a
+     loop.
+   - **The same pattern remains (not educator-related, not changed):**
+     `CreateDiscount`, `DiscountAnalytics`, `FinancialAnalytics`,
+     `PaymentOversight`, `RegionalAnalytics`, `ReportsBuilder`,
+     `TransactionHistory`, `UserManagement`.
+
+`educator_get_status` had no default `rejected` branch: its fallback was
+`pending`. Assign Educators did not filter on any optional field; the server
+list was the cause.
+
+### Fix
+
+**`20261029100000_educator_state_fix.sql`** (assembled by
+`gen_state_fix.cjs`; applied files untouched; our functions only):
+- **State machine:** `adm_educator_effective_state` /
+  `adm_educator_review_state`, derived from `educator_admin_state`. The lead's
+  value is a fallback only when there is no row, and a self-set `verified` never
+  approves (it stays `pending`).
+- **The one writer:** `adm_set_educator_state` handles review states and the
+  account, keeps the lead fields consistent, and writes the audit row and the
+  notification. `set_educator_verification` (with
+  `adm_educator_decision_state`, which accepts every spelling the UI ever sent),
+  `set_educator_account_status`, `educator_submit_onboarding` and
+  `register_educator` all call it.
+- **Readers moved onto it:** `adm_educator_status_json` (status `approved`),
+  `adm_is_verified_educator`, `adm_educator_verified` (and through it
+  `adm_eligible_educators` / `list_eligible_educators`), `adm_educator_base`,
+  `list_educators` (status filter), `get_educator_stats` (+ `by_state`) and
+  `adm_educator_verification_key`.
+- **New `list_assignable_educators`:** approved and active; name, email,
+  subjects, languages, rating and open assignments.
+- **Backfill** (`adm_backfill_educator_state`, idempotent): a row for every
+  educator; empty review states taken from the lead's value.
+- **Files:** the rollback is
+  `scripts/rollback_20261029100000_educator_state_fix.sql` (generated; 11
+  previous bodies); the trial is `docs/trial_run_20261029100000.sql` (the last
+  line is `rollback;`).
+
+**Frontend:**
+- **`statusMaps.js`:** the one vocabulary (DB state ↔ UI key ↔ label ↔ badge,
+  decisions, filters).
+- **`educatorsApi`:** maps statuses and decisions through it.
+- **`EducatorProfile`:**
+  - actions are thunks, so only the confirmed one runs;
+  - Approve sends `approved`;
+  - "Request changes" sends `changes_requested`, and the confirm button stays
+    disabled until there's a reason;
+  - toasts say what happened, then the detail refetches.
+- **`EducatorVerification`:** shared badge and filter; the list and stats
+  refetch on focus.
+- **`AssignEducators`:** uses `list_assignable_educators` (shows languages,
+  open count and rating, with an empty state).
+- **Teacher gate:** accepts `approved`, and polls every 60 s on every waiting
+  screen.
+
+### Tests
+
+- **`supabase/tests/educator_lifecycle_flow.sql`** (Supabase SQL editor; 29
+  steps, rolled back), one row per step:
+  - onboard, submit, the pending queue, approve, `approved` status, dashboard;
+  - the admin list (approved), stats, assignable;
+  - assign, list, start, add content, publish, assignment completed, the
+    student sees the series;
+  - the reject branch (a reason is required, then resubmit), the
+    request-changes branch (edit, then resubmit), suspension.
+
+  **Locally (PGlite): all 29 ok.** Some SQL editors show only the last
+  statement's result: the final `select` comes just before `rollback;`. If
+  your editor shows "no rows", run the file without the last line, read the
+  result, then run `rollback;`.
+- **`tests/educator-state.test.jsx` (10):**
+  - the vocabulary round trip for every DB state;
+  - decisions and filters;
+  - service mapping;
+  - one RPC per click (Approve, Request changes) and no refetch loop;
+  - the teacher sees a later approval within 60 s.
+- **Older SQL tests:** they expect `status = 'approved'` now. All 7 SQL files
+  pass.
+- **Checks:**
+  - `npm test`: 121/121; `npm run build` ✅;
+  - the parser reports 0 errors; hardening 398 definitions with 0 problems;
+  - verify: 36 tables and 340 functions, all PASS.
+
+### Open items
+
+1. **Push:** apply `20261029100000` after `20261029090000`. Run its trial
+   first, then the flow file in the SQL editor.
+2. **Data already damaged by the eager actions:**
+   - **Find them:** educators soft-deleted that way have `account_status
+     'deleted'` and an audit pair `educator.account_status` → `deleted` within
+     a second of an `educator.verification` row.
+   - **Restore one:** `update public.educator_admin_state set account_status =
+     'active', deleted_at = null, status_reason = null where user_id = …`, then
+     re-approve in the UI. Needs `approved: <command>`.
+3. **Lead-side verifications:** educators created by the lead's own app after
+   this migration have no state row until an admin acts on them. They read as
+   `pending` even when the lead says `verified`, by design, so a self-edit can't
+   approve.
+
 ## 2026-10-29: educator gate hardening (written, nothing applied)
 
 **Problem:** `adm_is_verified_educator()` trusted

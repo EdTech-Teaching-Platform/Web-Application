@@ -165,7 +165,7 @@ begin
   perform pg_temp.ok((select review_state from public.educator_admin_state where user_id = t) = 'approved',
                      'approve: set_educator_verification writes review_state approved');
   perform pg_temp.act_as(t);
-  perform pg_temp.ok(public.adm_is_verified_educator() and public.educator_get_status() ->> 'status' = 'verified',
+  perform pg_temp.ok(public.adm_is_verified_educator() and public.educator_get_status() ->> 'status' = 'approved',
                      'approve: access granted');
   perform pg_temp.ok(jsonb_typeof(public.educator_get_dashboard()) = 'object' and public.series_name_exists('nothing like it') = false,
                      'approve: verified-only and shared RPCs answer');
@@ -191,7 +191,7 @@ begin
                      'backfill: a submitted educator with a self-set verified value is not approved');
 
   perform pg_temp.act_as(pg_temp.uid('legacy'));
-  perform pg_temp.ok(public.adm_is_verified_educator() and public.educator_get_status() ->> 'status' = 'verified'
+  perform pg_temp.ok(public.adm_is_verified_educator() and public.educator_get_status() ->> 'status' = 'approved'
                      and jsonb_typeof(public.educator_get_stats()) = 'object', 'backfill: legacy educator (no state row) keeps access');
   perform pg_temp.act_as(pg_temp.uid('legacy2'));
   perform pg_temp.ok(public.adm_is_verified_educator(), 'backfill: legacy educator (null review_state) keeps access');

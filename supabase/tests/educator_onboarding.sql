@@ -271,8 +271,8 @@ begin
   perform pg_temp.ok((select count(*) from public.notifications where user_id = e and category = 'verification'
                         and reference_type = 'educator_verification') = 3, 'notifications: one per decision (3)');
   perform pg_temp.act_as(e);
-  perform pg_temp.ok(public.educator_get_status() ->> 'status' = 'verified' and public.adm_is_verified_educator(),
-                     'approve: educator sees verified');
+  perform pg_temp.ok(public.educator_get_status() ->> 'status' = 'approved' and public.adm_is_verified_educator(),
+                     'approve: educator sees approved');
 
   -- in_app = false skips the notice, the decision still applies
   insert into public.notification_preferences (user_id, category, in_app) values (e, 'verification', false);
@@ -369,7 +369,7 @@ set local role authenticated;
 do $$
 begin
   perform pg_temp.act_as(pg_temp.uid('ver'));
-  perform pg_temp.ok(public.educator_get_status() ->> 'status' = 'verified' and public.adm_is_verified_educator(),
+  perform pg_temp.ok(public.educator_get_status() ->> 'status' = 'approved' and public.adm_is_verified_educator(),
                      'authenticated role: a verified educator reads their status');
 end $$;
 reset role;

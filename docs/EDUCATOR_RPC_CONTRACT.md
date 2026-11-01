@@ -26,7 +26,9 @@ works like this:
 | **Onboarding** (any educator, any status) | `educator_start_onboarding`, `educator_save_onboarding_step`, `educator_register_document`, `educator_remove_document`, `educator_submit_onboarding`, `educator_get_status`, `educator_get_onboarding` | `adm_require_educator()`: `profiles.role = 'educator'`. `educator_start_onboarding` needs only a signed-in user. |
 | **Everything else** named `educator_*` | Later briefs | Must start with `perform public.adm_require_verified_educator();` |
 
-`adm_require_verified_educator()` requires all four of (since `20261029090000`):
+`adm_require_verified_educator()` requires the educator's state to be `approved`
+(see "The state machine" below; since `20261029100000`). Approval is written
+only by an admin through `adm_set_educator_state`, which keeps these consistent:
 
 - the role is `educator`;
 - `educator_admin_state.review_state = 'approved'` (our table; only `set_educator_verification` writes it);
@@ -51,7 +53,7 @@ user's JWT, as `adm_is_platform_admin` is called.
 
 ```json
 {
-  "status": "draft | pending | under_review | changes_requested | verified | rejected | suspended",
+  "status": "draft | pending | under_review | changes_requested | approved | rejected | suspended",
   "note": "admin's note for changes_requested / rejected, the reason for suspended, else null",
   "submitted_at": "2026-10-28T09:12:00Z | null",
   "can_edit": true,
@@ -59,22 +61,55 @@ user's JWT, as `adm_is_platform_admin` is called.
 }
 ```
 
-| `status` | When | `can_edit` |
+Since `20261029100000`, `status` is `approved` (it was `verified`). The teacher
+portal accepts both values.
+
+### The state machine (`adm_educator_effective_state`, 20261029100000)
+
+There is ONE derivation, used by `educator_get_status`,
+`adm_is_verified_educator`, `list_educators`, `get_educator_stats`,
+`list_assignable_educators` and `list_eligible_educators`.
+
+| State | When (our `educator_admin_state`) | `can_edit` |
 |---|---|---|
-| `suspended` | `educator_admin_state.account_status` is `inactive`, `suspended` or `deleted` (checked first) | false |
-| `verified` | `educator_profiles.verification_status = 'verified'` | false |
-| `rejected` | `verification_status = 'rejected'`; `note` = `rejected_reason` | true (resubmit) |
-| `changes_requested` | `review_state = 'changes_requested'`; `note` = `review_note` | true |
+| `suspended` | `account_status` is `inactive`, `suspended` or `deleted` (checked first) | false |
+| `draft` | no `educator_profiles` row, or `review_state = 'draft'` | true |
+| `pending` | `review_state = 'submitted'` (or null) | false |
 | `under_review` | `review_state = 'under_review'` | false |
-| `draft` | not submitted yet (`review_state = 'draft'`) | true |
-| `pending` | submitted, or invited by an admin | false |
+| `changes_requested` | `review_state = 'changes_requested'`; `note` = `review_note` | true |
+| `approved` | `review_state = 'approved'` | false |
+| `rejected` | `review_state = 'rejected'`; `note` = `rejected_reason` | true (resubmit) |
 
-`profile_complete` is true when every form field is valid and both ID pictures
-(`government_id` front and back) are uploaded.
+- **The lead's `educator_profiles.verification_status`:**
+  - it is only a fallback, for an educator **without** an
+    `educator_admin_state` row: `rejected` gives `rejected`, anything else
+    `pending`;
+  - a self-editable `verified` never approves anyone;
+  - the migration backfills a row for every existing educator (a lead
+    `verified` becomes `approved`, `rejected` becomes `rejected`, a
+    filled-in profile becomes `submitted`), so educators that predate our
+    table keep their state.
+- **"Verified"** (`adm_is_verified_educator`) means the state is `approved`,
+  which also implies the account isn't suspended.
+- **`profile_complete`** is true when every form field is valid and both ID
+  pictures (`government_id` front and back) are uploaded.
 
-The lead's `verification_status` only ever holds `pending`, `verified` or
-`rejected`. The finer state is `educator_admin_state.review_state`: `draft`,
-`submitted`, `under_review`, `changes_requested`, `approved` or `rejected`.
+### One writer (`adm_set_educator_state(p_educator_id, p_state, p_note, p_actor)`, internal)
+
+`set_educator_verification`, `set_educator_account_status`,
+`educator_submit_onboarding` and `register_educator` all go through it.
+
+| `p_state` | `review_state` / account | Lead `educator_profiles` |
+|---|---|---|
+| `pending` | `submitted` (+ `submitted_at` when the educator submits) | `verification_status 'pending'`, verified fields cleared |
+| `under_review`, `changes_requested` (note required) | the same | `'pending'` |
+| `approved` | `approved` | `'verified'`, `verified_at`, `verified_by` = actor, `rejected_reason` cleared |
+| `rejected` (note required) | `rejected` | `'rejected'`, `rejected_reason` = note |
+| `active`, `inactive`, `suspended` | `account_status`, `status_reason`, `suspended_at`; app sessions ended unless `active` | unchanged |
+
+When an admin acts, it also writes `audit_logs` (`educator.verification` /
+`educator.account_status`) and, on `approved` / `rejected` /
+`changes_requested`, the verification notification.
 
 ## RPCs
 
@@ -213,21 +248,31 @@ These are the existing RPCs; `20261028090200` adjusted them.
   `file_path` is the storage path; sign it with `sign-educator-document`.
   `history` includes submissions.
 - **`set_educator_verification(p_id, p_decision, p_note)`:**
-
-  | Decision | Writes | Notifies |
-  |---|---|---|
-  | `verified` / `approved` | `verification_status 'verified'`, `verified_at`, `verified_by`, `rejected_reason` cleared, `review_state 'approved'` | yes |
-  | `rejected` (note required) | `verification_status 'rejected'`, `rejected_reason`, `review_state 'rejected'` | yes |
-  | `changes_requested` (note required) | lead `pending`, `review_state 'changes_requested'` | yes |
-  | `under_review` | lead `pending`, `review_state 'under_review'` | no |
-  | `pending` | lead `pending`, `review_state` null | no |
-
-  **The notification** goes into `notifications`:
-  - `category 'verification'`, `reference_type 'educator_verification'`,
-    `reference_id` = the educator, `action_url '/teacher'`;
-  - only when the status changes;
-  - skipped, without failing the decision, when the educator turned off in-app
-    `verification` notifications, or when the lead's CHECK / FK refuses the row.
+  - `p_decision` is `approved` (also `verified` / `approve`), `rejected`,
+    `changes_requested` (also `request_changes` / `request_info`),
+    `under_review` or `pending`;
+  - a note is required for `rejected` and `changes_requested`;
+  - it writes through `adm_set_educator_state` (above), and the notification
+    goes out when the state changes.
+- **`list_educators(... p_verification ...)`:**
+  - every state is listed, including newly approved educators;
+  - rows carry `verification_status` (the review state, in the DB vocabulary:
+    `approved`, not `verified`) and `effective_state` (with `suspended`);
+  - `p_verification` is `draft`, `pending` (pending + under_review),
+    `under_review`, `changes_requested`, `approved` (or `verified`),
+    `rejected` or `suspended`.
+- **`get_educator_stats()`:** the previous keys, plus
+  `by_state: {draft, pending, under_review, changes_requested, approved, rejected, suspended}`.
+- **`list_assignable_educators(p_search, p_subject, p_page = 1, p_size = 50)`** (admin):
+  - returns `(row_data, total_count)`, where `row_data` is
+    `{id, name, email, subjects, languages, rating, open_assignments, initials}`;
+  - lists every `approved`, active educator;
+  - `p_subject` is an optional, case-insensitive match;
+  - the Assign Educators page uses it.
+- **`list_eligible_educators()`:** uses the same rule.
+- **UI vocabulary:** `src/portals/admin/utils/statusMaps.js` is the only
+  mapping. DB `approved` is UI `verified` ("Approved"); every other state keeps
+  its name.
 
 ## Objects
 
