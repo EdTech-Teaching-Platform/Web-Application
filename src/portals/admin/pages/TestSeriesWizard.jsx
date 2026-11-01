@@ -18,13 +18,15 @@ import {
 import {
   START_METHOD, GRADE_OPTIONS, CLASS_SUBJECT_OPTIONS, EXAM_OPTIONS, LEVEL_OPTIONS, BASE_LANGUAGES,
   initialWizardState, normalizeWizardState, emptyTest, cloneQuestion, questionKey, testTotalMarks, derivedTestType,
-  stepErrors, applicableSteps, validateWizard, buildSeriesPayload, stripHtml, wid,
+  stepErrors, applicableSteps, validateWizard, wizardRpcPayload, stripHtml, wid,
 } from "../data/testSeriesWizard";
 import { useRpc } from "../hooks/useRpc";
 import { testSeriesApi } from "../services/testSeriesApi";
 import { WizModal, RichText, QuestionEditor, CsvImporter, OutlineBuilder, sanitizeHtml } from "./TestSeriesWizardParts";
-import { isBlockedQuestionType, questionPayload, questionTypeLabel } from "../data/questionTypes";
+import { isBlockedQuestionType, questionTypeLabel } from "../data/questionTypes";
 import ComingSoonBadge from "../components/ComingSoonBadge";
+import ImageUploadField from "../../../components/common/ImageUploadField";
+import { ASSET_KIND } from "../../../services/assetsApi";
 import SaveProgress from "../components/SaveProgress";
 import { failedStepIndex, saveErrorMessage, saveSteps } from "../utils/saveProgress";
 import { startTimer } from "../utils/debugTiming";
@@ -131,7 +133,8 @@ export default function TestSeriesWizard() {
       if (!series?.wizard_state) return;
       // Drafts saved with the AI start (coming soon) restart the method step;
       // legacy objective / subjective questions move to the current types.
-      const restored = normalizeWizardState({ ...initialWizardState(), ...series.wizard_state, id });
+      // The banner is saved on the series row too (cover_path): drafts saved before it existed pick it up there.
+      const restored = normalizeWizardState({ ...initialWizardState(), ...series.wizard_state, coverPath: series.wizard_state.coverPath ?? series.cover_path ?? "", id });
       setSt(!AI_ENABLED && restored.startMethod === START_METHOD.AI ? { ...restored, startMethod: "" } : restored);
     }).catch((error) => setRequestError(error.message));
   }, [location.state]);
@@ -263,50 +266,7 @@ export default function TestSeriesWizard() {
     const steps = saveSteps({ publish, scheduled: st.availability.goLive === "schedule", draftOnly, approval: publish && approval });
     const title = publish ? publishLabel : "Save as draft";
     setProgress({ title, steps, active: 0, failed: -1, error: "", publish });
-    const payload = buildSeriesPayload(st, ctx, publish);
-    const rpcPayload = {
-      id: st.id || null,
-      name: payload.name,
-      about: payload.about,
-      whoFor: payload.whoFor,
-      audience: payload.audience,
-      syllabus: payload.syllabus,
-      startMethod: payload.startMethod,
-      pricing: payload.pricing,
-      price: String(payload.price ?? 0),
-      buildDeadline: payload.buildDeadline,
-      wizardState: st,
-      classification: payload.classification,
-      availability: {
-        goLive: st.availability.goLive,
-        goLiveAt: st.availability.goLiveAt,
-        mode: st.availability.mode,
-        openAt: st.availability.openAt,
-        closeAt: st.availability.closeAt,
-        monthlyLimited: st.availability.monthlyLimited,
-        monthlyLimit: st.availability.monthlyLimit,
-        accessLimited: st.availability.accessLimited,
-        accessDays: st.availability.accessDays,
-      },
-      lateSubmissions: payload.lateSubmissions,
-      tests: payload.tests.map((t) => ({
-        name: t.name,
-        instructions: t.instructions,
-        duration: String(t.duration),
-        passingPercent: String(t.passingPercent || 40),
-        attemptLimit: String(t.attemptLimit || 1),
-        window: t.window,
-        plannedQuestions: String(t.plannedQuestions || t.questions.length),
-        topics: t.topics || [],
-        sections: [],
-        questions: t.questions.map((q, index) => ({
-          ...questionPayload(q),
-          answerInstructions: q.answerInstructions || "",
-          sectionPosition: "",
-          position: index + 1,
-        })),
-      })),
-    };
+    const rpcPayload = wizardRpcPayload(st, ctx, publish);
     const stopTimer = startTimer(`wizard ${publish ? "publish" : "save draft"} (${rpcPayload.tests.length} tests, ${totalQuestions} questions)`);
     // Submit for approval = save (not publish), then educator_submit_series_for_approval.
     // The saved id is kept so a retry updates the same series.
@@ -460,6 +420,7 @@ export default function TestSeriesWizard() {
                 <label>Test series name</label>
                 <input type="text" value={st.name} maxLength={120} onChange={(e) => patch({ name: e.target.value })} placeholder="e.g. JEE Main Physics Test Series 2026" />
               </div>
+              <ImageUploadField kind={ASSET_KIND.BANNER} label="Banner image (optional)" value={st.coverPath} onChange={(coverPath) => patch({ coverPath })} />
               <div className="ul-ts-form-row">
                 <label>About this test series</label>
                 <RichText value={st.about} onChange={(v) => patch({ about: v })} placeholder="Describe what’s inside, how it’s structured and what students will gain…" />

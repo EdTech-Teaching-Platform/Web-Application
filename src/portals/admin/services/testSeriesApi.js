@@ -40,6 +40,7 @@ export function mapQuestion(question) {
     topic: question.topic || "",
     explanation: question.explanation || "",
     image: question.image_path || "",
+    imageAlt: question.image_alt || "",
     needsManualGrading: !!question.needs_manual_grading,
   };
 }

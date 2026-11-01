@@ -35,6 +35,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import SeriesReviewBanner from "../components/SeriesReviewBanner";
 import { isLockedForReview, needsApproval, publishActionLabel, seriesPath, useAuthoringPortal } from "../context/authoringPortal";
 import QuestionImageField from "../components/QuestionImageField";
+import AssetImage from "../../../components/common/AssetImage";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./SettingsPermissions.css";
@@ -45,7 +46,7 @@ import "./TestDetail.css";
 
 function emptyQuestionForm(type = QTYPE.MCQ_SINGLE) {
   return {
-    text: "", image: "", ...blankQuestionFields(type),
+    text: "", image: "", imageAlt: "", ...blankQuestionFields(type),
     marks: 4, negativeMarks: type === QTYPE.MCQ_SINGLE || type === QTYPE.MCQ_MULTI ? 1 : 0,
     difficulty: DIFFICULTY.MEDIUM, subject: "", explanation: "",
   };
@@ -150,7 +151,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
     setFormErrors([]);
     setForm({
       ...emptyQuestionForm(q.type),
-      text: q.text, image: q.image || "", optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD,
+      text: q.text, image: q.image || "", imageAlt: q.imageAlt || "", optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD,
       correctAnswer: q.correctAnswer, correctAnswers: q.correctAnswers || [], acceptedAnswer: q.acceptedAnswer || "",
       marks: q.marks, negativeMarks: q.negativeMarks, difficulty: q.difficulty, subject: q.subject, explanation: q.explanation || "",
     });
@@ -161,7 +162,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   const chooseType = (type) => {
     if (isBlockedQuestionType(type)) return;
     setQuestionType(type);
-    setForm((prev) => ({ ...emptyQuestionForm(type), text: prev.text, image: prev.image, difficulty: prev.difficulty, subject: prev.subject }));
+    setForm((prev) => ({ ...emptyQuestionForm(type), text: prev.text, image: prev.image, imageAlt: prev.imageAlt, difficulty: prev.difficulty, subject: prev.subject }));
     setBuilderStep("form");
   };
 
@@ -359,7 +360,8 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                     <label htmlFor="q-text">Question</label>
                     <textarea id="q-text" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} placeholder="Type the question here…" />
                   </div>
-                  <QuestionImageField value={form.image} onChange={(image) => setForm({ ...form, image })} />
+                  <QuestionImageField value={form.image} onChange={(image) => setForm((f) => ({ ...f, image }))}
+                    alt={form.imageAlt} onAltChange={(imageAlt) => setForm((f) => ({ ...f, imageAlt }))} />
 
                   {editingQuestionId && test.attempts > 0 && (
                     <div className="ul-tsw-note" role="note">
@@ -428,7 +430,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                   {test.questions.map((q, i) => (
                     <div className="ul-td-preview-item" key={q.id}>
                       <strong>Q{i + 1}. {q.text}</strong>
-                      {q.image && <img className="ul-qimg-view" src={q.image} alt={`Question ${i + 1} attachment`} />}
+                      {q.image && <AssetImage className="ul-qimg-view" path={q.image} alt={q.imageAlt || `Question ${i + 1} figure`} fallback={null} />}
                       {q.type === QTYPE.TRUE_FALSE ? (
                         <ul className="ul-td-preview-options">
                           {TRUE_FALSE_OPTIONS.map((o) => <li key={o.key} className={q.correctAnswer === o.key ? "is-correct" : ""}>{o.text}</li>)}

@@ -7,7 +7,7 @@
 -- Every row must be PASS. For check 9, also compare the md5 in detail with the
 -- 'lead_function_def' row of the before-snapshot (admin_snapshot_lead_editor.sql).
 -- Needs pg_cron (check 10 reads cron.job).
--- Counts: 36 tables, 6 sequences, 341 function names.
+-- Counts: 37 tables, 6 sequences, 344 function names.
 -- =====================================================================
 with our_tables(name) as (
   select unnest(array[
@@ -18,8 +18,8 @@ with our_tables(name) as (
       'educator_onboarding', 'educator_upload_requests', 'notification_campaign_events', 
       'notification_campaigns', 'notification_recipients', 'question_similarity_matches', 'quiz_admin', 
       'quiz_question_admin', 'regions', 'report_runs', 'report_types', 'series_requests', 
-      'student_block_history', 'students', 'test_assignments', 'test_feedback', 'test_sections', 
-      'test_series_admin', 'user_geo', 'user_sessions'
+      'student_block_history', 'students', 'test_asset_upload_requests', 'test_assignments', 
+      'test_feedback', 'test_sections', 'test_series_admin', 'user_geo', 'user_sessions'
     ]::text[])
 ), our_seqs(name) as (
   select unnest(array[
@@ -33,7 +33,7 @@ with our_tables(name) as (
       'adm_attempt_deadline', 'adm_attempt_latest_answers', 'adm_attempt_question_order', 'adm_audit', 
       'adm_authorize_document_access', 'adm_backfill_educator_approvals', 'adm_backfill_educator_state', 
       'adm_callback_assign_code', 'adm_callback_rows', 'adm_callback_source_key', 'adm_campaign_category', 
-      'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 
+      'adm_campaign_row', 'adm_can_create_series', 'adm_can_manage_series', 'adm_claim_asset_upload_slot', 
       'adm_claim_educator_upload_slot', 'adm_complete_assignments_for_quiz', 
       'adm_complete_assignments_for_series', 'adm_copy_quiz', 'adm_cumulative_counts', 
       'adm_current_session_id', 'adm_delete_quiz', 'adm_delete_series_quizzes', 
@@ -54,39 +54,39 @@ with our_tables(name) as (
       'adm_question_grading_key', 'adm_question_is_subjective', 'adm_question_json', 
       'adm_question_options', 'adm_quiz_series', 'adm_range_options', 'adm_rebuild_attempt_report', 
       'adm_regrade_quiz', 'adm_report_bucket', 'adm_report_educators', 'adm_report_enrollment', 
-      'adm_report_students', 'adm_report_test_series', 'adm_require_admin', 'adm_require_author', 
-      'adm_require_educator', 'adm_require_quiz', 'adm_require_series', 'adm_require_series_access', 
-      'adm_require_series_access_or_new', 'adm_require_series_owner', 'adm_require_verified_educator', 
-      'adm_resolve_audience', 'adm_resolve_date_range', 'adm_review_match', 'adm_series_card', 
-      'adm_series_content_problem', 'adm_series_educators', 'adm_series_is_independent_educator', 
-      'adm_series_json', 'adm_series_name_taken', 'adm_series_publish_problem', 'adm_series_review_json', 
-      'adm_series_rows', 'adm_series_students', 'adm_series_tracker_rows', 'adm_set_educator_state', 
-      'adm_set_series_availability', 'adm_stat_card', 'adm_student_is_enrolled', 'adm_student_series', 
-      'adm_student_uid', 'adm_student_writer_uid', 'adm_subject_category', 'adm_sync_series_to_lead', 
-      'adm_test_json', 'adm_test_window', 'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 
-      'adm_tpa_attempts', 'adm_tpa_tests', 'adm_ui_question_type', 'adm_update_options_in_place', 
-      'adm_validate_campaign', 'adm_validate_quiz_for_publish', 'approve_educator_series', 
-      'approve_refund', 'archive_notification', 'assign_request', 'assign_support_ticket', 'block_student', 
-      'cancel_assignment', 'clear_done_notes', 'create_assignments', 'create_discount', 
-      'create_educator_invites', 'create_notification', 'create_question', 'create_question_option', 
-      'create_test', 'create_test_section', 'create_test_series', 'delete_admin_note', 
-      'delete_draft_notification', 'delete_educator', 'delete_question', 'delete_question_option', 
-      'delete_test', 'delete_test_section', 'delete_test_series', 'detect_repeated_questions', 
-      'discard_wizard_draft', 'dismiss_match', 'dispatch_due_notifications', 'duplicate_test', 
-      'duplicate_test_series', 'educator_add_assignment_comment', 'educator_get_assignment', 
-      'educator_get_dashboard', 'educator_get_onboarding', 'educator_get_profile', 'educator_get_stats', 
-      'educator_get_status', 'educator_list_assignments', 'educator_register_document', 
-      'educator_remove_document', 'educator_save_onboarding_step', 'educator_start_assignment', 
-      'educator_start_onboarding', 'educator_submit_onboarding', 'educator_submit_series_for_approval', 
-      'educator_update_profile', 'estimate_audience', 'export_callback_report', 
-      'export_discount_redemptions', 'export_refunds', 'export_report_csv', 'export_tpa_rows', 
-      'export_transactions', 'extend_deadline', 'flag_match_confirmed', 'generate_report', 
-      'get_admin_dashboard', 'get_admin_me', 'get_admin_nav', 'get_assignment_detail', 
-      'get_callback_filter_options', 'get_callback_request', 'get_callback_stats', 'get_dashboard_header', 
-      'get_dashboard_revenue', 'get_dashboard_stats', 'get_discount', 'get_discount_analytics', 
-      'get_discount_stats', 'get_educator_detail', 'get_educator_stats', 'get_financial_analytics', 
-      'get_financial_range_options', 'get_financial_summary', 'get_match_counts', 
-      'get_moderation_filter_options', 'get_moderation_item', 'get_moderation_stats', 
+      'adm_report_students', 'adm_report_test_series', 'adm_report_with_images', 'adm_require_admin', 
+      'adm_require_author', 'adm_require_educator', 'adm_require_quiz', 'adm_require_series', 
+      'adm_require_series_access', 'adm_require_series_access_or_new', 'adm_require_series_owner', 
+      'adm_require_verified_educator', 'adm_resolve_audience', 'adm_resolve_date_range', 
+      'adm_review_match', 'adm_series_card', 'adm_series_content_problem', 'adm_series_educators', 
+      'adm_series_is_independent_educator', 'adm_series_json', 'adm_series_name_taken', 
+      'adm_series_publish_problem', 'adm_series_review_json', 'adm_series_rows', 'adm_series_students', 
+      'adm_series_tracker_rows', 'adm_set_educator_state', 'adm_set_series_availability', 'adm_stat_card', 
+      'adm_student_is_enrolled', 'adm_student_series', 'adm_student_uid', 'adm_student_writer_uid', 
+      'adm_subject_category', 'adm_sync_series_to_lead', 'adm_test_asset_path', 'adm_test_json', 
+      'adm_test_window', 'adm_text_answer', 'adm_ticket_rows', 'adm_touch_updated_at', 'adm_tpa_attempts', 
+      'adm_tpa_tests', 'adm_ui_question_type', 'adm_update_options_in_place', 'adm_validate_campaign', 
+      'adm_validate_quiz_for_publish', 'approve_educator_series', 'approve_refund', 'archive_notification', 
+      'assign_request', 'assign_support_ticket', 'block_student', 'cancel_assignment', 'clear_done_notes', 
+      'create_assignments', 'create_discount', 'create_educator_invites', 'create_notification', 
+      'create_question', 'create_question_option', 'create_test', 'create_test_section', 
+      'create_test_series', 'delete_admin_note', 'delete_draft_notification', 'delete_educator', 
+      'delete_question', 'delete_question_option', 'delete_test', 'delete_test_section', 
+      'delete_test_series', 'detect_repeated_questions', 'discard_wizard_draft', 'dismiss_match', 
+      'dispatch_due_notifications', 'duplicate_test', 'duplicate_test_series', 
+      'educator_add_assignment_comment', 'educator_get_assignment', 'educator_get_dashboard', 
+      'educator_get_onboarding', 'educator_get_profile', 'educator_get_stats', 'educator_get_status', 
+      'educator_list_assignments', 'educator_register_document', 'educator_remove_document', 
+      'educator_save_onboarding_step', 'educator_start_assignment', 'educator_start_onboarding', 
+      'educator_submit_onboarding', 'educator_submit_series_for_approval', 'educator_update_profile', 
+      'estimate_audience', 'export_callback_report', 'export_discount_redemptions', 'export_refunds', 
+      'export_report_csv', 'export_tpa_rows', 'export_transactions', 'extend_deadline', 
+      'flag_match_confirmed', 'generate_report', 'get_admin_dashboard', 'get_admin_me', 'get_admin_nav', 
+      'get_assignment_detail', 'get_callback_filter_options', 'get_callback_request', 'get_callback_stats', 
+      'get_dashboard_header', 'get_dashboard_revenue', 'get_dashboard_stats', 'get_discount', 
+      'get_discount_analytics', 'get_discount_stats', 'get_educator_detail', 'get_educator_stats', 
+      'get_financial_analytics', 'get_financial_range_options', 'get_financial_summary', 
+      'get_match_counts', 'get_moderation_filter_options', 'get_moderation_item', 'get_moderation_stats', 
       'get_my_unread_notification_count', 'get_notification', 'get_notification_filter_options', 
       'get_notification_stats', 'get_pending_educator_verifications', 'get_refund_stats', 
       'get_regional_filter_options', 'get_regional_summary', 'get_regional_trend', 
@@ -170,7 +170,7 @@ with our_tables(name) as (
                and p.proname <> all (array[
       'adm_is_platform_admin', 'adm_publish_test_series', 'adm_list_admins', 'adm_is_educator', 
       'adm_is_verified_educator', 'adm_actor_kind', 'adm_claim_educator_upload_slot', 
-      'adm_authorize_document_access'
+      'adm_authorize_document_access', 'adm_claim_asset_upload_slot'
     ]::text[])
                and has_function_privilege('authenticated', p.oid, 'execute')) s(x)
   union all
@@ -226,10 +226,10 @@ with our_tables(name) as (
     from public.platform_settings where key in ('admin_house_course_id', 'dashboard_quote')
   union all
   select 12, 'Summary',
-         case when (select count(*) from our_rels) = 36
-               and (select count(distinct proname) from our_procs) = 341 then 'PASS' else 'FAIL' end,
-         (select count(*) from our_rels) || ' of 36 tables, '
-           || (select count(distinct proname) from our_procs) || ' of 341 function names, '
+         case when (select count(*) from our_rels) = 37
+               and (select count(distinct proname) from our_procs) = 344 then 'PASS' else 'FAIL' end,
+         (select count(*) from our_rels) || ' of 37 tables, '
+           || (select count(distinct proname) from our_procs) || ' of 344 function names, '
            || (select count(*) from our_procs) || ' overloads'
 )
 select check_name, status, detail from checks order by ord;

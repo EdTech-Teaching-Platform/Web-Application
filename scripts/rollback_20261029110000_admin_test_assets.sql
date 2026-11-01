@@ -1,0 +1,892 @@
+-- =====================================================================
+-- scripts/rollback_20261029110000_admin_test_assets.sql   (GENERATED)
+--
+-- Undoes 20261029110000_admin_test_assets.sql: restores the 14 replaced
+-- functions verbatim from the files named above them, then drops the new
+-- functions and the upload-request table.
+-- Kept on purpose:
+--   * quiz_question_admin.image_alt (alt texts already typed; unused after the
+--     rollback). To drop it too: alter table public.quiz_question_admin drop column image_alt;
+--   * the bucket test-assets and its files. Stored paths keep pointing at them.
+--     Remove the bucket from the dashboard (Storage) if you really want it gone:
+--     storage.objects can't be deleted with SQL.
+-- One transaction. Run only with "approved: rollback 20261029110000".
+-- =====================================================================
+begin;
+set local search_path = public, extensions;
+
+-- adm_question_json (from 20261025110400_admin_b2_authoring_helpers.sql)
+create or replace function public.adm_question_json(p_question uuid) returns jsonb
+language sql stable security definer set search_path = public, extensions as $$
+  select jsonb_build_object(
+           'id', qq.id, 'test_id', qq.quiz_id, 'position', qq.sort_order,
+           'type', coalesce(qa.admin_type, public.adm_ui_question_type(qq.question_type)),
+           'lead_type', qq.question_type, 'body', qq.question_text, 'marks', qq.points,
+           'negative_marks', coalesce(qa.negative_marks, 0), 'difficulty', coalesce(qa.difficulty, 'medium'),
+           'subject', qa.subject, 'topic', qa.topic, 'explanation', qq.explanation,
+           'answer_instructions', qa.answer_instructions, 'image_path', qa.image_path,
+           'source', coalesce(qa.source, 'manual'), 'section_id', qa.section_id,
+           'needs_manual_grading', coalesce(qa.needs_manual_grading, false),
+           'options', coalesce((
+             select jsonb_agg(jsonb_build_object('id', o.id, 'option_key', chr(64 + o.rn::int), 'label', o.option_text,
+                                                 'is_correct', o.is_correct, 'position', o.sort_order) order by o.rn)
+               from (select x.*, row_number() over (order by x.sort_order, x.id) as rn
+                       from public.quiz_question_options x where x.question_id = qq.id) o), '[]'::jsonb))
+    from public.quiz_questions qq
+    left join public.quiz_question_admin qa on qa.question_id = qq.id
+   where qq.id = p_question;
+$$;
+
+-- adm_insert_question (from 20261027090000_admin_block_subjective.sql)
+create or replace function public.adm_insert_question(
+  p_quiz uuid, p_pos int, q jsonb, p_section uuid default null, p_source text default 'manual'
+) returns uuid
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_text   text := coalesce(nullif(btrim(coalesce(q ->> 'text', '')), ''), nullif(btrim(coalesce(q ->> 'body', '')), ''));
+  v_type   text := lower(coalesce(nullif(btrim(coalesce(q ->> 'type', '')), ''), 'objective'));
+  v_diff   text := lower(coalesce(nullif(btrim(coalesce(q ->> 'difficulty', '')), ''), 'medium'));
+  v_source text := coalesce(nullif(q ->> 'source', ''), p_source, 'manual');
+  v_lead   text;
+  v_qid    uuid;
+begin
+  if v_text is null then return null; end if;
+  v_lead := public.adm_map_question_type(v_type);
+  if v_lead is null then
+    raise exception 'Unsupported question type: %', v_type using errcode = '22023';
+  end if;
+  -- 20261027090000: subjective types are coming soon; fill-in-the-blank needs a real accepted answer.
+  perform public.adm_assert_question_type_allowed(v_type);
+  if v_lead = 'fill_in_blank' and public.adm_text_answer(q) = 'Manual grading: see rubric' then
+    raise exception 'Fill-in-the-blank questions need an accepted answer.' using errcode = '22023';
+  end if;
+  if v_diff not in ('easy', 'medium', 'hard') then v_diff := 'medium'; end if;
+  if v_source not in ('manual', 'ai', 'csv', 'duplicate', 'paste') then v_source := 'manual'; end if;
+
+  insert into public.quiz_questions (quiz_id, question_text, question_type, points, explanation, sort_order)
+  values (p_quiz, v_text, v_lead, coalesce(nullif(q ->> 'marks', '')::numeric, 4),
+          nullif(btrim(coalesce(q ->> 'explanation', '')), ''), coalesce(p_pos, 0))
+  returning id into v_qid;
+
+  insert into public.quiz_question_admin
+    (question_id, admin_type, needs_manual_grading, section_id, negative_marks, difficulty, subject, topic,
+     image_path, answer_instructions, source, ai_job_id)
+  values
+    (v_qid, v_type, v_type in ('subjective', 'long_answer', 'descriptive'), p_section,
+     greatest(coalesce(nullif(q ->> 'negativeMarks', '')::numeric, nullif(q ->> 'negative_marks', '')::numeric, 0), 0),
+     v_diff, nullif(btrim(coalesce(q ->> 'subject', '')), ''), nullif(btrim(coalesce(q ->> 'topic', '')), ''),
+     nullif(coalesce(q ->> 'image', q ->> 'image_path', ''), ''),
+     coalesce(nullif(q ->> 'answerInstructions', ''), nullif(q ->> 'rubric', ''), nullif(q ->> 'answer_instructions', '')),
+     v_source, nullif(q ->> 'aiJobId', '')::uuid);
+
+  perform public.adm_insert_options(v_qid, v_lead, q);
+  return v_qid;
+end $$;
+
+-- adm_insert_questions_bulk (from 20261027110000_admin_fast_publish.sql)
+create or replace function public.adm_insert_questions_bulk(p_quiz uuid, p_questions jsonb, p_source text default 'manual')
+returns int
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_bad record;
+  v_n   int;
+begin
+  if jsonb_typeof(p_questions) is distinct from 'array' then return 0; end if;
+
+  select x.v_type, public.adm_map_question_type(x.v_type) as v_lead into v_bad
+    from (select e.ord, e.q,
+                 lower(coalesce(nullif(btrim(coalesce(e.q ->> 'type', '')), ''), 'objective')) as v_type,
+                 coalesce(nullif(btrim(coalesce(e.q ->> 'text', '')), ''), nullif(btrim(coalesce(e.q ->> 'body', '')), '')) as v_text
+            from jsonb_array_elements(p_questions) with ordinality as e(q, ord)) x
+   where x.v_text is not null
+     and (public.adm_map_question_type(x.v_type) is null
+          or public.adm_is_subjective_type(x.v_type)
+          or (public.adm_map_question_type(x.v_type) = 'fill_in_blank' and public.adm_text_answer(x.q) = 'Manual grading: see rubric'))
+   order by x.ord
+   limit 1;
+  if found then
+    if v_bad.v_lead is null then
+      raise exception 'Unsupported question type: %', v_bad.v_type using errcode = '22023';
+    end if;
+    perform public.adm_assert_question_type_allowed(v_bad.v_type);
+    raise exception 'Fill-in-the-blank questions need an accepted answer.' using errcode = '22023';
+  end if;
+
+  with src as materialized (
+    select gen_random_uuid() as id, x.q, x.v_text, x.v_type, public.adm_map_question_type(x.v_type) as v_lead,
+           case when x.v_diff in ('easy', 'medium', 'hard') then x.v_diff else 'medium' end as v_diff,
+           case when x.v_source in ('manual', 'ai', 'csv', 'duplicate', 'paste') then x.v_source else 'manual' end as v_source,
+           ts.id as section_id,
+           row_number() over (order by x.ord)::int as pos
+      from (select e.ord, e.q,
+                   coalesce(nullif(btrim(coalesce(e.q ->> 'text', '')), ''), nullif(btrim(coalesce(e.q ->> 'body', '')), '')) as v_text,
+                   lower(coalesce(nullif(btrim(coalesce(e.q ->> 'type', '')), ''), 'objective')) as v_type,
+                   lower(coalesce(nullif(btrim(coalesce(e.q ->> 'difficulty', '')), ''), 'medium')) as v_diff,
+                   coalesce(nullif(e.q ->> 'source', ''), p_source, 'manual') as v_source
+              from jsonb_array_elements(p_questions) with ordinality as e(q, ord)) x
+      left join public.test_sections ts
+        on ts.quiz_id = p_quiz and ts.position = nullif(x.q ->> 'sectionPosition', '')::int
+     where x.v_text is not null
+  ),
+  ins_q as (
+    insert into public.quiz_questions (id, quiz_id, question_text, question_type, points, explanation, sort_order)
+    select src.id, p_quiz, src.v_text, src.v_lead, coalesce(nullif(src.q ->> 'marks', '')::numeric, 4),
+           nullif(btrim(coalesce(src.q ->> 'explanation', '')), ''), src.pos
+      from src
+    returning 1
+  ),
+  ins_a as (
+    insert into public.quiz_question_admin
+      (question_id, admin_type, needs_manual_grading, section_id, negative_marks, difficulty, subject, topic,
+       image_path, answer_instructions, source, ai_job_id)
+    select src.id, src.v_type, src.v_type in ('subjective', 'long_answer', 'descriptive'), src.section_id,
+           greatest(coalesce(nullif(src.q ->> 'negativeMarks', '')::numeric, nullif(src.q ->> 'negative_marks', '')::numeric, 0), 0),
+           src.v_diff, nullif(btrim(coalesce(src.q ->> 'subject', '')), ''), nullif(btrim(coalesce(src.q ->> 'topic', '')), ''),
+           nullif(coalesce(src.q ->> 'image', src.q ->> 'image_path', ''), ''),
+           coalesce(nullif(src.q ->> 'answerInstructions', ''), nullif(src.q ->> 'rubric', ''), nullif(src.q ->> 'answer_instructions', '')),
+           src.v_source, nullif(src.q ->> 'aiJobId', '')::uuid
+      from src
+  ),
+  ins_o as (
+    insert into public.quiz_question_options (question_id, option_text, is_correct, sort_order)
+    select src.id, o.option_text, o.is_correct, o.sort_order
+      from src cross join lateral public.adm_question_options(src.v_lead, src.q) o
+  )
+  select count(*) into v_n from ins_q;
+  return v_n;
+end $$;
+
+-- adm_copy_quiz (from 20261027090000_admin_block_subjective.sql)
+create or replace function public.adm_copy_quiz(p_src uuid, p_series uuid, p_pos int, p_title text default null) returns uuid
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_new    uuid;
+  v_course uuid;
+  v_map    jsonb := '{}'::jsonb;
+  v_ns     uuid;
+  v_nq     uuid;
+  sec      record;
+  qq       record;
+begin
+  -- 20261027090000: copying would create new subjective questions.
+  if exists (select 1 from public.quiz_questions x where x.quiz_id = p_src and public.adm_question_is_subjective(x.id)) then
+    raise exception 'This test has short answer, long answer or subjective questions, which are coming soon. Delete them from the test before duplicating it.'
+      using errcode = '22023';
+  end if;
+  select course_id into v_course from public.test_series where id = p_series;
+  insert into public.quizzes (course_id, series_id, series_sort_order, title, description, time_limit_mins,
+                              max_attempts, passing_score, shuffle_questions, is_required, show_answers_after, is_proctored)
+  select v_course, p_series, p_pos, left(coalesce(p_title, q.title), 200), q.description, q.time_limit_mins,
+         q.max_attempts, q.passing_score, q.shuffle_questions, q.is_required, q.show_answers_after, q.is_proctored
+    from public.quizzes q where q.id = p_src
+  returning id into v_new;
+  if v_new is null then raise exception 'Test not found.' using errcode = 'P0002'; end if;
+
+  insert into public.quiz_admin (quiz_id, status, total_marks_planned, passing_marks, shuffle_options, window_mode,
+                                 open_at, close_at, scheduled_at, planned_questions, topics)
+  select v_new, 'draft', total_marks_planned, passing_marks, shuffle_options, window_mode,
+         open_at, close_at, scheduled_at, planned_questions, topics
+    from public.quiz_admin where quiz_id = p_src;
+  insert into public.quiz_admin (quiz_id) values (v_new) on conflict (quiz_id) do nothing;
+
+  for sec in select * from public.test_sections where quiz_id = p_src order by position loop
+    insert into public.test_sections (quiz_id, position, name, instructions, planned_questions, planned_marks)
+    values (v_new, sec.position, sec.name, sec.instructions, sec.planned_questions, sec.planned_marks)
+    returning id into v_ns;
+    v_map := v_map || jsonb_build_object(sec.id::text, v_ns);
+  end loop;
+
+  for qq in
+    select x.id, x.question_text, x.question_type, x.points, x.explanation, x.sort_order,
+           qa.admin_type, qa.needs_manual_grading, qa.section_id, qa.negative_marks, qa.difficulty,
+           qa.subject, qa.topic, qa.image_path, qa.answer_instructions
+      from public.quiz_questions x
+      left join public.quiz_question_admin qa on qa.question_id = x.id
+     where x.quiz_id = p_src
+     order by x.sort_order, x.created_at
+  loop
+    insert into public.quiz_questions (quiz_id, question_text, question_type, points, explanation, sort_order)
+    values (v_new, qq.question_text, qq.question_type, qq.points, qq.explanation, qq.sort_order)
+    returning id into v_nq;
+    insert into public.quiz_question_admin (question_id, admin_type, needs_manual_grading, section_id, negative_marks,
+                                            difficulty, subject, topic, image_path, answer_instructions, source)
+    values (v_nq, coalesce(qq.admin_type, public.adm_ui_question_type(qq.question_type)),
+            coalesce(qq.needs_manual_grading, false),
+            case when qq.section_id is not null then nullif(v_map ->> qq.section_id::text, '')::uuid end,
+            coalesce(qq.negative_marks, 0), coalesce(qq.difficulty, 'medium'), qq.subject, qq.topic,
+            qq.image_path, qq.answer_instructions, 'duplicate');
+    insert into public.quiz_question_options (question_id, option_text, is_correct, sort_order)
+    select v_nq, o.option_text, o.is_correct, o.sort_order
+      from public.quiz_question_options o where o.question_id = qq.id;
+    -- A text-answer source without a correct option (e.g. one written by the
+    -- lead's app) gets the placeholder, so the copy stays publishable.
+    if qq.question_type in ('fill_in_blank', 'short_answer')
+       and not exists (select 1 from public.quiz_question_options o where o.question_id = v_nq and o.is_correct) then
+      insert into public.quiz_question_options (question_id, option_text, is_correct, sort_order)
+      values (v_nq, public.adm_text_answer('{}'::jsonb), true,
+              coalesce((select max(o.sort_order) from public.quiz_question_options o where o.question_id = v_nq), 0) + 1);
+    end if;
+  end loop;
+  return v_new;
+end $$;
+
+-- create_test_series (from 20261028100200_educator_series_guards.sql)
+create or replace function public.create_test_series(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_id      uuid;
+  v_name    text := nullif(btrim(coalesce(p ->> 'name', '')), '');
+  v_subject text := nullif(btrim(coalesce(p ->> 'subject', '')), '');
+  v_pricing text := case when p ->> 'pricing' = 'paid' then 'paid' else 'free' end;
+  v_price   numeric;
+begin
+  perform public.adm_require_author();   -- 20261028100200: admin or verified educator
+  if v_name is null then raise exception 'Series name is required.' using errcode = '22023'; end if;
+  if exists (select 1 from public.adm_series_rows() r where lower(btrim(r.title)) = lower(v_name)) then
+    raise exception 'A test series with this name already exists.' using errcode = '23505';
+  end if;
+  v_price := case when v_pricing = 'paid' then coalesce(nullif(p ->> 'price', '')::numeric, 0) else 0 end;
+  if v_pricing = 'paid' and v_price <= 0 then
+    raise exception 'Enter a price for a paid series.' using errcode = '22023';
+  end if;
+
+  v_id := public.adm_new_house_series(v_name, p ->> 'description', 'manual');
+  update public.test_series set instructions = nullif(p ->> 'instructions', '') where id = v_id;
+  update public.test_series_admin
+     set audience            = nullif(btrim(coalesce(p ->> 'audience', '')), ''),
+         pricing             = v_pricing,
+         price_inr           = v_price,
+         subject_category_id = public.adm_subject_category(v_subject),
+         subject_label       = v_subject
+   where series_id = v_id;
+
+  perform public.adm_set_series_availability(v_id, nullif(p ->> 'startDate', '')::date, nullif(p ->> 'endDate', '')::date);
+  perform public.adm_sync_series_to_lead(v_id);
+  perform public.adm_audit('test_series.create', 'test_series', v_id, null, jsonb_build_object('title', v_name), null);
+  return public.adm_series_json(v_id);
+end $$;
+
+-- update_test_series (from 20261028100200_educator_series_guards.sql)
+create or replace function public.update_test_series(p_id uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  cur        public.test_series_admin;
+  v_before   jsonb;
+  v_name     text;
+  v_subject  text;
+  v_pricing  text;
+  v_price    numeric;
+  v_start    date;
+  v_end      date;
+  v_dates    boolean := p ? 'startDate' or p ? 'endDate';
+begin
+  perform public.adm_require_series_access(p_id, true);   -- 20261028100200: admin or the series' educator
+  perform public.adm_require_series(p_id);
+  perform public.adm_ensure_series_admin(p_id);
+  select * into cur from public.test_series_admin where series_id = p_id for update;
+  v_before := public.adm_series_json(p_id);
+
+  if p ? 'name' then
+    v_name := nullif(btrim(coalesce(p ->> 'name', '')), '');
+    if v_name is null then raise exception 'Series name is required.' using errcode = '22023'; end if;
+    if exists (select 1 from public.adm_series_rows() r where lower(btrim(r.title)) = lower(v_name) and r.id <> p_id) then
+      raise exception 'A test series with this name already exists.' using errcode = '23505';
+    end if;
+    update public.test_series set title = left(v_name, 150), updated_at = now() where id = p_id;
+  end if;
+  if p ? 'description' then
+    update public.test_series set description = nullif(p ->> 'description', ''), updated_at = now() where id = p_id;
+  end if;
+  if p ? 'instructions' then
+    update public.test_series set instructions = nullif(p ->> 'instructions', ''), updated_at = now() where id = p_id;
+  end if;
+
+  v_pricing := case when p ? 'pricing' then case when p ->> 'pricing' = 'paid' then 'paid' else 'free' end else cur.pricing end;
+  v_price   := case when v_pricing = 'free' then 0
+                    when p ? 'price' then coalesce(nullif(p ->> 'price', '')::numeric, 0)
+                    else cur.price_inr end;
+  if v_pricing = 'paid' and v_price <= 0 then
+    raise exception 'Enter a price for a paid series.' using errcode = '22023';
+  end if;
+  select case when p ? 'startDate' then nullif(p ->> 'startDate', '')::date else r.start_date end,
+         case when p ? 'endDate' then nullif(p ->> 'endDate', '')::date else r.end_date end
+    into v_start, v_end
+    from public.adm_series_rows() r where r.id = p_id;
+  v_subject := nullif(btrim(coalesce(p ->> 'subject', '')), '');
+
+  update public.test_series_admin
+     set audience            = case when p ? 'audience' then nullif(btrim(coalesce(p ->> 'audience', '')), '') else audience end,
+         subject_category_id = case when p ? 'subject' then public.adm_subject_category(v_subject) else subject_category_id end,
+         subject_label       = case when p ? 'subject' then v_subject else subject_label end,
+         pricing             = v_pricing,
+         price_inr           = v_price,
+         status              = case when p ->> 'status' = 'draft' and status in ('published', 'scheduled') then 'draft' else status end
+   where series_id = p_id;
+
+  if v_dates then
+    perform public.adm_set_series_availability(p_id, v_start, v_end);
+  end if;
+  perform public.adm_sync_series_to_lead(p_id);
+  perform public.adm_audit(case when p ->> 'status' = 'draft' and cur.status in ('published', 'scheduled')
+                                then 'test_series.unpublish' else 'test_series.update' end,
+                           'test_series', p_id, v_before, public.adm_series_json(p_id), null);
+  return public.adm_series_json(p_id);
+end $$;
+
+-- duplicate_test_series (from 20261028100200_educator_series_guards.sql)
+create or replace function public.duplicate_test_series(p_id uuid) returns uuid
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  src   record;
+  v_new uuid;
+  q     record;
+  v_n   int := 0;
+begin
+  perform public.adm_require_series_access(p_id, false);   -- 20261028100200: admin or the series' educator
+  perform public.adm_require_series(p_id);
+  select r.* into src from public.adm_series_rows() r where r.id = p_id;
+
+  v_new := public.adm_new_house_series(left(src.title || ' (Copy)', 150), src.about, 'duplicate');
+  update public.test_series set instructions = src.instructions where id = v_new;
+  update public.test_series_admin
+     set who_for = src.who_for, audience = src.audience, syllabus = src.syllabus,
+         pricing = src.pricing, price_inr = src.price_inr,
+         subject_category_id = src.subject_category_id, subject_label = src.subject_name,
+         grade = src.grade, exam = src.exam, level = src.level, languages = coalesce(src.languages, '{}'),
+         monthly_limit = src.monthly_limit, access_days = src.access_days,
+         late_allowed = coalesce(src.late_allowed, false) and src.late_grace_minutes is not null,
+         late_grace_minutes = src.late_grace_minutes
+   where series_id = v_new;
+
+  for q in select x.id from public.quizzes x where x.series_id = p_id order by x.series_sort_order, x.created_at loop
+    v_n := v_n + 1;
+    perform public.adm_copy_quiz(q.id, v_new, v_n, null);
+  end loop;
+
+  -- Copy the source window unless it is invalid (then the copy is undated).
+  update public.test_series n
+     set available_from = o.available_from, available_until = o.available_until
+    from public.test_series o
+   where n.id = v_new and o.id = p_id
+     and (o.available_from is null or o.available_until is null or o.available_until > o.available_from);
+  perform public.adm_sync_series_to_lead(v_new);
+  perform public.adm_audit('test_series.duplicate', 'test_series', v_new, null, jsonb_build_object('source', p_id), null);
+  return v_new;
+end $$;
+
+-- upsert_test_series_full (from 20261028100200_educator_series_guards.sql)
+create or replace function public.upsert_test_series_full(p jsonb, p_publish boolean default false) returns uuid
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  sid       uuid := nullif(p ->> 'id', '')::uuid;
+  c         jsonb := coalesce(p -> 'classification', '{}'::jsonb);
+  a         jsonb := coalesce(p -> 'availability', '{}'::jsonb);
+  l         jsonb := coalesce(p -> 'lateSubmissions', '{}'::jsonb);
+  v_name    text := nullif(btrim(coalesce(p ->> 'name', '')), '');
+  v_subject text := nullif(btrim(coalesce(c ->> 'subject', '')), '');
+  v_method  text := nullif(p ->> 'startMethod', '');
+  v_pricing text := case when p ->> 'pricing' = 'paid' then 'paid' else 'free' end;
+  v_price   numeric;
+  v_mode    text := case when a ->> 'mode' = 'window' then 'window' else 'always' end;
+  v_golive  text := case when a ->> 'goLive' = 'schedule' then 'schedule' else 'now' end;
+  v_source  text;
+  v_langs   text[];
+  v_course  uuid;
+  v_quiz    uuid;
+  t         jsonb;
+  tpos      int;
+  v_tests   int := 0;
+begin
+  perform public.adm_require_series_access_or_new(nullif(p ->> 'id', '')::uuid);   -- 20261028100200
+  if v_name is null then raise exception 'Series name is required.' using errcode = '22023'; end if;
+  if v_method not in ('scratch', 'duplicate', 'csv', 'ai', 'manual') then v_method := null; end if;
+  v_source := case v_method when 'csv' then 'csv' when 'ai' then 'ai' when 'duplicate' then 'duplicate' else 'manual' end;
+  v_price := case when v_pricing = 'paid' then coalesce(nullif(p ->> 'price', '')::numeric, 0) else 0 end;
+  if v_pricing = 'paid' and v_price <= 0 then
+    raise exception 'Enter a price for a paid series.' using errcode = '22023';
+  end if;
+  -- Two saves with the same name (a double click on a new series) wait for
+  -- each other, so the second one sees the first one's series.
+  perform pg_advisory_xact_lock(hashtextextended('adm_series_name:' || lower(v_name), 0));
+  if public.adm_series_name_taken(v_name, sid) then
+    raise exception 'A test series with this name already exists.' using errcode = '23505';
+  end if;
+  select coalesce(array_agg(btrim(x)) filter (where btrim(x) <> ''), '{}') into v_langs
+    from jsonb_array_elements_text(case when jsonb_typeof(c -> 'languages') = 'array' then c -> 'languages' else '[]'::jsonb end) x;
+
+  if sid is null then
+    sid := public.adm_new_house_series(v_name, p ->> 'about', v_method);
+  else
+    perform public.adm_require_series(sid);
+    -- The row lock makes concurrent saves of this series run one after the other.
+    select course_id into v_course from public.test_series where id = sid for update;
+    if v_course is distinct from public.adm_house_course_id() then
+      raise exception 'This series belongs to a course; edit its tests individually instead of replacing them.' using errcode = '22023';
+    end if;
+    if exists (select 1 from public.quiz_attempts qat join public.quizzes qz on qz.id = qat.quiz_id where qz.series_id = sid) then
+      raise exception 'This series already has attempts; edit tests and questions individually instead of replacing them.' using errcode = '22023';
+    end if;
+    perform public.adm_ensure_series_admin(sid);
+    update public.test_series set title = left(v_name, 150), description = nullif(p ->> 'about', ''), updated_at = now()
+     where id = sid;
+    perform public.adm_delete_series_quizzes(sid);
+  end if;
+  if p ? 'instructions' then
+    update public.test_series set instructions = nullif(p ->> 'instructions', '') where id = sid;
+  end if;
+
+  update public.test_series_admin set
+    who_for             = nullif(p ->> 'whoFor', ''),
+    audience            = nullif(btrim(coalesce(p ->> 'audience', '')), ''),
+    syllabus            = nullif(p ->> 'syllabus', ''),
+    start_method        = coalesce(v_method, start_method),
+    pricing             = v_pricing,
+    price_inr           = v_price,
+    subject_category_id = public.adm_subject_category(v_subject),
+    subject_label       = v_subject,
+    grade               = nullif(c ->> 'grade', ''),
+    exam                = nullif(c ->> 'exam', ''),
+    level               = nullif(c ->> 'difficulty', ''),
+    languages           = v_langs,
+    go_live_mode        = v_golive,
+    go_live_at          = case when v_golive = 'schedule' then nullif(a ->> 'goLiveAt', '')::timestamptz end,
+    monthly_limit      = case when coalesce((a ->> 'monthlyLimited')::boolean, false) then nullif(a ->> 'monthlyLimit', '')::int end,
+    access_days         = case when coalesce((a ->> 'accessLimited')::boolean, false) then nullif(a ->> 'accessDays', '')::int end,
+    late_allowed        = coalesce((l ->> 'allowed')::boolean, false),
+    late_grace_minutes  = case when coalesce((l ->> 'allowed')::boolean, false) then nullif(l ->> 'graceMinutes', '')::int end,
+    build_deadline      = nullif(p ->> 'buildDeadline', '')::date,
+    wizard_state        = p -> 'wizardState'
+  where series_id = sid;
+  -- Window dates go to test_series.available_from / available_until (after
+  -- go_live_* is saved, which can push available_from later).
+  perform public.adm_set_series_availability(sid,
+    case when v_mode = 'window' then nullif(a ->> 'openAt', '')::date end,
+    case when v_mode = 'window' then nullif(a ->> 'closeAt', '')::date end);
+
+  select course_id into v_course from public.test_series where id = sid;
+  for t, tpos in
+    select e.t, e.ord
+      from jsonb_array_elements(case when jsonb_typeof(p -> 'tests') = 'array' then p -> 'tests' else '[]'::jsonb end)
+           with ordinality as e(t, ord)
+  loop
+    v_tests := tpos;
+    insert into public.quizzes (course_id, series_id, series_sort_order, title)
+    values (v_course, sid, tpos, left(coalesce(nullif(btrim(coalesce(t ->> 'name', '')), ''), 'Test ' || tpos), 200))
+    returning id into v_quiz;
+    perform public.adm_apply_test_fields(v_quiz, t - 'name');
+
+    insert into public.test_sections (quiz_id, position, name, instructions, planned_questions, planned_marks)
+    select v_quiz, e.ord, coalesce(nullif(btrim(coalesce(e.s ->> 'name', '')), ''), 'Section ' || e.ord), e.s ->> 'instructions',
+           nullif(e.s ->> 'questionCount', '')::int, nullif(e.s ->> 'marks', '')::numeric
+      from jsonb_array_elements(case when jsonb_typeof(t -> 'sections') = 'array' then t -> 'sections' else '[]'::jsonb end)
+           with ordinality as e(s, ord);
+
+    perform public.adm_insert_questions_bulk(v_quiz, t -> 'questions', v_source);
+  end loop;
+
+  perform public.adm_sync_series_to_lead(sid);
+  perform public.adm_audit('test_series.wizard_save', 'test_series', sid, null,
+                           jsonb_build_object('tests', v_tests, 'publish', coalesce(p_publish, false)), null);
+  if coalesce(p_publish, false) then
+    perform public.adm_publish_test_series(sid, true);
+  end if;
+  return sid;
+end $$;
+
+-- update_question (from 20261028100200_educator_series_guards.sql)
+create or replace function public.update_question(p_id uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_quiz        uuid;
+  v_cur_lead    text;
+  v_type        text;
+  v_lead        text;
+  v_answered    boolean;
+  v_text        text;
+  v_has_options boolean := jsonb_typeof(p -> 'options') = 'array' or p ? 'optionA' or p ? 'optionB';
+  v_before      jsonb;
+  v_key         jsonb;      -- 20261028100200
+  v_regraded    int := 0;   -- 20261028100200
+begin
+  perform public.adm_require_series_access(public.adm_quiz_series((select quiz_id from public.quiz_questions where id = p_id)), true);   -- 20261028100200: admin or the series' educator
+  select quiz_id, question_type into v_quiz, v_cur_lead from public.quiz_questions where id = p_id for update;
+  if v_quiz is null then raise exception 'Question not found.' using errcode = 'P0002'; end if;
+  perform public.adm_require_quiz(v_quiz);
+  v_answered := exists (select 1 from public.quiz_answers where question_id = p_id);
+  -- 20261027090000: existing subjective questions are read-only.
+  if public.adm_question_is_subjective(p_id) then
+    raise exception 'Short answer, long answer and subjective questions are coming soon and can''t be edited yet. Existing ones stay as they are; you can delete them.'
+      using errcode = '22023';
+  end if;
+  v_before := public.adm_question_json(p_id);
+  v_key := public.adm_question_grading_key(p_id);   -- 20261028100200
+
+  if p ? 'type' then
+    v_type := lower(btrim(coalesce(p ->> 'type', '')));
+    v_lead := public.adm_map_question_type(v_type);
+    if v_lead is null then raise exception 'Unsupported question type: %', v_type using errcode = '22023'; end if;
+    perform public.adm_assert_question_type_allowed(v_type);
+    if v_answered and v_lead <> v_cur_lead then
+      raise exception 'Students have answered this question; its type cannot change.' using errcode = '22023';
+    end if;
+  end if;
+  if p ? 'text' or p ? 'body' then
+    v_text := nullif(btrim(coalesce(p ->> 'text', p ->> 'body', '')), '');
+    if v_text is null then raise exception 'Question text is required.' using errcode = '22023'; end if;
+  end if;
+
+  update public.quiz_questions set
+    question_text = coalesce(v_text, question_text),
+    question_type = coalesce(v_lead, question_type),
+    points        = case when p ? 'marks' then coalesce(nullif(p ->> 'marks', '')::numeric, points) else points end,
+    explanation   = case when p ? 'explanation' then nullif(btrim(coalesce(p ->> 'explanation', '')), '') else explanation end,
+    sort_order    = case when p ? 'position' then coalesce(nullif(p ->> 'position', '')::int, sort_order) else sort_order end
+  where id = p_id;
+
+  insert into public.quiz_question_admin (question_id, admin_type)
+  values (p_id, public.adm_ui_question_type(v_cur_lead)) on conflict (question_id) do nothing;
+  update public.quiz_question_admin set
+    admin_type           = coalesce(v_type, admin_type),
+    needs_manual_grading = case when v_type is not null then v_type in ('subjective', 'long_answer', 'descriptive') else needs_manual_grading end,
+    negative_marks       = case when p ? 'negativeMarks' then greatest(coalesce(nullif(p ->> 'negativeMarks', '')::numeric, 0), 0)
+                                when p ? 'negative_marks' then greatest(coalesce(nullif(p ->> 'negative_marks', '')::numeric, 0), 0)
+                                else negative_marks end,
+    difficulty           = case when lower(coalesce(p ->> 'difficulty', '')) in ('easy', 'medium', 'hard') then lower(p ->> 'difficulty') else difficulty end,
+    subject              = case when p ? 'subject' then nullif(btrim(coalesce(p ->> 'subject', '')), '') else subject end,
+    topic                = case when p ? 'topic' then nullif(btrim(coalesce(p ->> 'topic', '')), '') else topic end,
+    image_path           = case when p ? 'image' then nullif(p ->> 'image', '')
+                                when p ? 'image_path' then nullif(p ->> 'image_path', '') else image_path end,
+    answer_instructions  = case when p ? 'answerInstructions' then nullif(p ->> 'answerInstructions', '')
+                                when p ? 'rubric' then nullif(p ->> 'rubric', '')
+                                when p ? 'answer_instructions' then nullif(p ->> 'answer_instructions', '') else answer_instructions end,
+    section_id           = case when p ? 'section_id' then nullif(p ->> 'section_id', '')::uuid
+                                when p ? 'sectionId' then nullif(p ->> 'sectionId', '')::uuid else section_id end
+  where question_id = p_id;
+
+  -- Options are replaced only when the payload carries option texts, when the
+  -- question is (or became) a text-answer type, or when its accepted / model
+  -- answer changed. Text-answer questions always get exactly one correct
+  -- option (accepted answer, model answer or the manual-grading placeholder;
+  -- see adm_insert_options), so they stay publishable under the lead's rule.
+  if v_has_options or (v_lead is not null and v_lead not in ('multiple_choice', 'true_false'))
+     or ((p ? 'correctAnswer' or p ? 'answer' or p ? 'modelAnswer' or p ? 'model_answer')
+         and coalesce(v_lead, v_cur_lead) in ('fill_in_blank', 'short_answer')) then
+    if v_answered then
+      -- 20261028100200: answered: the same options are edited in place (their ids are in
+      -- students' answers); adding or removing options is refused.
+      perform public.adm_update_options_in_place(p_id, (select question_type from public.quiz_questions where id = p_id),
+                                                 p || jsonb_build_object('type', (select admin_type from public.quiz_question_admin
+                                                                                   where question_id = p_id)));
+    else
+      delete from public.quiz_question_options where question_id = p_id;
+      perform public.adm_insert_options(p_id, (select question_type from public.quiz_questions where id = p_id),
+                                        p || jsonb_build_object('type', (select admin_type from public.quiz_question_admin
+                                                                          where question_id = p_id)));
+    end if;
+  end if;
+
+  -- 20261028100200: marks or the correct answer changed on an answered question: re-score.
+  if v_answered and public.adm_question_grading_key(p_id) is distinct from v_key then
+    v_regraded := public.adm_regrade_quiz(v_quiz);
+  end if;
+  perform public.adm_audit('question.update', 'quiz_question', p_id, v_before, public.adm_question_json(p_id), null);
+  return public.adm_question_json(p_id) || jsonb_build_object('regraded_attempts', v_regraded);
+end $$;
+
+-- list_pending_series_approvals (from 20261028100300_educator_series_approval.sql)
+create or replace function public.list_pending_series_approvals(
+  p_search text default null, p_page int default 1, p_size int default 10
+) returns table (row_data jsonb, total_count bigint)
+language plpgsql stable security definer set search_path = public, extensions as $$
+declare
+  v_like text := public.adm_like(p_search);
+  v_size int  := least(greatest(coalesce(p_size, 10), 1), 100);
+  v_page int  := greatest(coalesce(p_page, 1), 1);
+begin
+  perform public.adm_require_admin();
+  return query
+  with f as (
+    select s.id, s.title, sa.code, sa.submitted_at, sa.created_by as educator_id,
+           coalesce(ep.full_name, p.full_name) as educator_name, p.email as educator_email,
+           coalesce(cat.name, sa.subject_label) as subject_name, sa.audience, sa.pricing, sa.price_inr,
+           (select count(*) from public.quizzes q where q.series_id = s.id) as test_count,
+           (select count(*) from public.quiz_questions qq join public.quizzes q on q.id = qq.quiz_id where q.series_id = s.id) as question_count,
+           s.created_at
+      from public.test_series_admin sa
+      join public.test_series s on s.id = sa.series_id
+      left join public.profiles p on p.id = sa.created_by
+      left join public.educator_profiles ep on ep.user_id = sa.created_by
+      left join public.categories cat on cat.id = sa.subject_category_id
+     where sa.status = 'pending_approval' and sa.deleted_at is null
+       and (v_like is null or (s.title || ' ' || coalesce(sa.code, '') || ' ' || coalesce(ep.full_name, p.full_name, '')
+                               || ' ' || coalesce(p.email, '')) ilike v_like)
+  )
+  select to_jsonb(f), count(*) over ()
+    from f
+   order by f.submitted_at nulls last, f.id
+   limit v_size offset (v_page - 1) * v_size;
+end $$;
+
+-- student_get_test_intro (from 20261026100300_student_rpc_exam.sql)
+create or replace function public.student_get_test_intro(p_test_id uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, extensions as $$
+declare
+  v_uid    uuid := public.adm_student_uid();
+  v_test   record;
+  v_win    record;
+  v_stats  record;
+  v_used   int;
+  v_prog   record;
+  v_reason text;
+begin
+  select q.*, s.title as series_title, s.instructions as series_instructions,
+         qa.instructions_extra, coalesce(qa.max_violations, 3) as max_violations
+    into v_test
+    from public.quizzes q
+    left join public.quiz_admin qa on qa.quiz_id = q.id
+    left join public.test_series s on s.id = q.series_id
+   where q.id = p_test_id
+     and coalesce(qa.status, 'published') = 'published'
+     and q.series_id in (select l.id from public.adm_live_series() l(id));
+  if v_test.id is null then
+    raise exception 'Test not found.' using errcode = 'P0002';
+  end if;
+  if not public.adm_student_is_enrolled(v_test.series_id, v_uid) then
+    raise exception 'Enrol in this test series to take its tests.' using errcode = '42501';
+  end if;
+
+  select w.* into v_win from public.adm_test_window(p_test_id) w;
+  select count(*) as questions, coalesce(sum(qq.points), 0) as marks,
+         coalesce(max(qqa.negative_marks), 0) as max_negative
+    into v_stats
+    from public.quiz_questions qq
+    left join public.quiz_question_admin qqa on qqa.question_id = qq.id
+   where qq.quiz_id = p_test_id;
+  select count(*) into v_used from public.quiz_attempts where quiz_id = p_test_id and student_id = v_uid;
+  select a.id, public.adm_attempt_deadline(a.started_at, v_test.time_limit_mins) as deadline
+    into v_prog
+    from public.quiz_attempts a
+   where a.quiz_id = p_test_id and a.student_id = v_uid and a.status = 'in_progress'
+   order by a.started_at desc limit 1;
+
+  v_reason := case
+    when v_prog.id is not null and (v_prog.deadline is null or v_prog.deadline > now()) then null   -- resume
+    when v_stats.questions = 0 then 'no_questions'
+    when v_win.opens_at is not null and v_win.opens_at > now() then 'not_open_yet'
+    when v_win.closes_at is not null and v_win.closes_at <= now() then 'closed'
+    when v_used >= v_test.max_attempts then 'attempts_exhausted'
+    else null end;
+
+  return jsonb_build_object(
+    'test_id', v_test.id,
+    'test_title', v_test.title,
+    'series_id', v_test.series_id,
+    'series_title', v_test.series_title,
+    'series_instructions', v_test.series_instructions,
+    'test_instructions', v_test.description,
+    'instructions_extra', v_test.instructions_extra,
+    'duration_mins', v_test.time_limit_mins,
+    'questions_count', v_stats.questions,
+    'total_marks', v_stats.marks,
+    'negative_marking', v_stats.max_negative > 0,
+    'max_negative_marks', v_stats.max_negative,
+    'passing_percentage', v_test.passing_score,
+    'attempts_used', v_used,
+    'attempts_allowed', v_test.max_attempts,
+    'attempts_remaining', greatest(v_test.max_attempts - v_used, 0),
+    'violation_limit', v_test.max_violations,
+    'is_proctored', v_test.is_proctored,
+    'show_answers_after', v_test.show_answers_after,
+    'opens_at', v_win.opens_at,
+    'closes_at', v_win.closes_at,
+    'in_progress_attempt_id', case when v_prog.id is not null and (v_prog.deadline is null or v_prog.deadline > now())
+                                   then v_prog.id end,
+    'can_start', v_reason is null,
+    'blocked_reason', v_reason,
+    'server_now', now(),
+    'sections', coalesce((select jsonb_agg(jsonb_build_object('name', sec.name, 'questions', sec.n)
+                                           order by sec.position)
+                            from (select coalesce(ts.name, 'General') as name, coalesce(ts.position, 0) as position,
+                                         count(*) as n
+                                    from public.quiz_questions qq
+                                    left join public.quiz_question_admin qqa on qqa.question_id = qq.id
+                                    left join public.test_sections ts on ts.id = qqa.section_id
+                                   where qq.quiz_id = p_test_id
+                                   group by ts.name, ts.position) sec), '[]'::jsonb));
+end $$;
+
+-- student_start_attempt (from 20261026100300_student_rpc_exam.sql)
+create or replace function public.student_start_attempt(p_test_id uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_uid        uuid := public.adm_student_writer_uid();
+  v_test       record;
+  v_win        record;
+  v_prog       record;
+  v_used       int;
+  v_last_num   int;
+  v_attempt_id uuid;
+  v_attempt    record;
+  v_resumed    boolean := false;
+  v_deadline   timestamptz;
+begin
+  select q.*, coalesce(qa.shuffle_options, false) as shuffle_options, coalesce(qa.max_violations, 3) as max_violations
+    into v_test
+    from public.quizzes q
+    left join public.quiz_admin qa on qa.quiz_id = q.id
+   where q.id = p_test_id
+     and coalesce(qa.status, 'published') = 'published'
+     and q.series_id in (select l.id from public.adm_live_series() l(id));
+  if v_test.id is null then
+    raise exception 'Test not found.' using errcode = 'P0002';
+  end if;
+  if not public.adm_student_is_enrolled(v_test.series_id, v_uid) then
+    raise exception 'Enrol in this test series to take its tests.' using errcode = '42501';
+  end if;
+
+  -- One start at a time per student and test (attempt limit under concurrency).
+  perform pg_advisory_xact_lock(hashtextextended(p_test_id::text || ':' || v_uid::text, 0));
+
+  -- Resume an unexpired attempt; grade an expired one first.
+  select a.* into v_prog
+    from public.quiz_attempts a
+   where a.quiz_id = p_test_id and a.student_id = v_uid and a.status = 'in_progress'
+   order by a.started_at desc limit 1;
+  if v_prog.id is not null then
+    v_deadline := public.adm_attempt_deadline(v_prog.started_at, v_test.time_limit_mins);
+    if v_deadline is null or v_deadline > now() then
+      v_attempt_id := v_prog.id;
+      v_resumed    := true;
+    else
+      perform public.adm_finalize_attempt(v_prog.id, 'time_up');
+    end if;
+  end if;
+
+  if v_attempt_id is null then
+    select w.* into v_win from public.adm_test_window(p_test_id) w;
+    if v_win.opens_at is not null and v_win.opens_at > now() then
+      raise exception 'This test opens at %.', to_char(v_win.opens_at at time zone 'Asia/Kolkata', 'DD Mon YYYY HH24:MI "IST"')
+        using errcode = 'P0001';
+    end if;
+    if v_win.closes_at is not null and v_win.closes_at <= now() then
+      raise exception 'This test has closed.' using errcode = 'P0001';
+    end if;
+    if not exists (select 1 from public.quiz_questions where quiz_id = p_test_id) then
+      raise exception 'This test has no questions yet.' using errcode = 'P0001';
+    end if;
+    select count(*), coalesce(max(attempt_number), 0) into v_used, v_last_num
+      from public.quiz_attempts where quiz_id = p_test_id and student_id = v_uid;
+    if v_used >= v_test.max_attempts then
+      raise exception 'You have used all % attempts for this test.', v_test.max_attempts using errcode = 'P0001';
+    end if;
+    insert into public.quiz_attempts (quiz_id, student_id, attempt_number, status, started_at)
+    values (p_test_id, v_uid, greatest(v_used, v_last_num) + 1, 'in_progress', now())
+    returning id into v_attempt_id;
+  end if;
+
+  select a.* into v_attempt from public.quiz_attempts a where a.id = v_attempt_id;
+  v_deadline := public.adm_attempt_deadline(v_attempt.started_at, v_test.time_limit_mins);
+
+  return jsonb_build_object(
+    'attempt_id', v_attempt.id,
+    'test_id', p_test_id,
+    'test_title', v_test.title,
+    'series_id', v_test.series_id,
+    'attempt_number', v_attempt.attempt_number,
+    'resumed', v_resumed,
+    'started_at', v_attempt.started_at,
+    'deadline', v_deadline,
+    'server_now', now(),
+    'duration_mins', v_test.time_limit_mins,
+    'is_proctored', v_test.is_proctored,
+    'violation_limit', v_test.max_violations,
+    'violations_count', (select count(*) from public.attempt_proctor_events e
+                          where e.attempt_id = v_attempt.id and coalesce((e.meta ->> 'counted')::boolean, false)),
+    'questions', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+               'id', qq.id,
+               'position', o.seq,
+               'text', qq.question_text,
+               'type', qq.question_type,
+               'ui_type', coalesce(qqa.admin_type, qq.question_type),
+               'multi_select', qq.question_type = 'multiple_choice'
+                               and (select count(*) from public.quiz_question_options c
+                                     where c.question_id = qq.id and c.is_correct) > 1,
+               'points', qq.points,
+               'negative_marks', coalesce(qqa.negative_marks, 0),
+               'section', coalesce(sec.name, 'General'),
+               'section_position', coalesce(sec.position, 0),
+               'topic', qqa.topic,
+               'difficulty', qqa.difficulty,
+               'image_path', qqa.image_path,
+               'answer_instructions', qqa.answer_instructions,
+               'options', case when qq.question_type in ('multiple_choice', 'true_false') then (
+                            select coalesce(jsonb_agg(jsonb_build_object('id', op.id, 'text', op.option_text)
+                                                      order by case when v_test.shuffle_options
+                                                                    then md5(v_attempt.id::text || op.id::text) end,
+                                                               op.sort_order, op.id), '[]'::jsonb)
+                              from public.quiz_question_options op where op.question_id = qq.id)
+                          else '[]'::jsonb end)
+             order by o.seq), '[]'::jsonb)
+        from public.adm_attempt_question_order(v_attempt.id) o
+        join public.quiz_questions qq on qq.id = o.question_id
+        left join public.quiz_question_admin qqa on qqa.question_id = qq.id
+        left join public.test_sections sec on sec.id = qqa.section_id),
+    'saved_answers', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+               'question_id', ans.question_id,
+               'answer_text', ans.answer_text,
+               'selected_option_ids', coalesce(to_jsonb(ans.selected_option_ids), '[]'::jsonb))), '[]'::jsonb)
+        from public.quiz_answers ans where ans.attempt_id = v_attempt.id));
+end $$;
+
+-- student_submit_attempt (from 20261026100300_student_rpc_exam.sql)
+create or replace function public.student_submit_attempt(p_attempt_id uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_uid   uuid := public.adm_student_uid();
+  v_owner uuid;
+begin
+  select student_id into v_owner from public.quiz_attempts where id = p_attempt_id for update;
+  if v_owner is null or v_owner <> v_uid then
+    raise exception 'Attempt not found.' using errcode = 'P0002';
+  end if;
+  return public.adm_finalize_attempt(p_attempt_id, 'student');
+end $$;
+
+-- student_get_report (from 20261026100300_student_rpc_exam.sql)
+create or replace function public.student_get_report(p_attempt_id uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_uid    uuid := public.adm_student_uid();
+  v_att    record;
+  v_report jsonb;
+begin
+  select a.id, a.student_id, a.status, a.started_at, q.time_limit_mins
+    into v_att
+    from public.quiz_attempts a join public.quizzes q on q.id = a.quiz_id
+   where a.id = p_attempt_id;
+  if v_att.id is null or v_att.student_id <> v_uid then
+    raise exception 'Attempt not found.' using errcode = 'P0002';
+  end if;
+
+  select report into v_report from public.attempt_reports where attempt_id = p_attempt_id;
+  if v_report is not null then
+    return v_report;
+  end if;
+
+  if v_att.status = 'in_progress' then
+    if coalesce(public.adm_attempt_deadline(v_att.started_at, v_att.time_limit_mins) + interval '10 seconds', 'infinity') > now() then
+      raise exception 'This attempt has not been submitted yet.' using errcode = 'P0001';
+    end if;
+    return public.adm_finalize_attempt(p_attempt_id, 'time_up');
+  end if;
+  raise exception 'No detailed report is available for this attempt.' using errcode = 'P0002';
+end $$;
+
+drop function if exists public.adm_claim_asset_upload_slot(text, int);
+drop function if exists public.adm_report_with_images(jsonb, uuid);
+drop function if exists public.adm_test_asset_path(text, text, text[]);
+drop table if exists public.test_asset_upload_requests;
+
+commit;

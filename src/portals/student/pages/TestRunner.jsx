@@ -12,6 +12,7 @@ import { isAnswered, useAttemptRunner } from "../hooks/useAttemptRunner";
 import { useProctor } from "../hooks/useProctor";
 import { formatClock } from "../utils/format";
 import EmailWatermark from "../components/EmailWatermark";
+import { QuestionFigure, SeriesThumb } from "../components/TestImages";
 
 const EVENT_TEXT = {
   visibility_hidden: "You switched away from the test tab.",
@@ -204,6 +205,7 @@ export default function TestRunner() {
       {/* Candidate-identity watermark: the student's own email, tiled over the test. */}
       <EmailWatermark />
       <header className="sticky top-0 z-20 -mx-4 mb-4 flex flex-wrap items-center gap-3 bg-(--lp-grey) px-4 py-3 sm:-mx-6 sm:px-6">
+        <SeriesThumb path={attempt.series_cover_path} />
         <h1 className="min-w-0 flex-1 truncate font-display text-lg font-semibold text-text">{attempt.test_title}</h1>
         <StatusBadge status={state.violations > 0 ? "warning" : "neutral"}>
           Violations {state.violations}/{state.limit}
@@ -243,6 +245,7 @@ export default function TestRunner() {
             Question {current + 1} of {questions.length}
           </h2>
           <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-text">{question.text}</p>
+          <QuestionFigure path={question.image_path} alt={question.image_alt} position={current + 1} />
           {question.answer_instructions && <p className="mt-2 text-xs text-text/60">{question.answer_instructions}</p>}
 
           <div className="mt-5">

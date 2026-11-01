@@ -43,6 +43,9 @@ import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
 import TestSeriesDetail from "./TestSeriesDetail";
 import TestDetail from "./TestDetail";
 import "./AdminDashboard.css";
+import ImageUploadField from "../../../components/common/ImageUploadField";
+import AssetImage from "../../../components/common/AssetImage";
+import { ASSET_KIND } from "../../../services/assetsApi";
 import "./EducatorVerification.css";
 import "./SettingsPermissions.css";
 import "./UserManagement.css";
@@ -52,6 +55,7 @@ const PAGE_SIZE = 8;
 
 const EMPTY_FORM = {
   name: "",
+  coverPath: "",
   description: "",
   subject: "",
   audience: "",
@@ -168,7 +172,7 @@ export default function TestSeries() {
     setForm({
       name: s.name, description: s.description, subject: s.subject, audience: s.audience,
       pricing: s.pricing, price: s.pricing === PRICING_TYPE.PAID ? String(s.price) : "",
-      startDate: s.startDate, endDate: s.endDate,
+      startDate: s.startDate, endDate: s.endDate, coverPath: s.cover_path || "",
     });
     setEditingId(s.id);
     setFormErrors([]);
@@ -189,6 +193,7 @@ export default function TestSeries() {
     price: form.pricing === PRICING_TYPE.PAID ? Number(form.price) || 0 : 0,
     startDate: form.startDate,
     endDate: form.endDate,
+    coverPath: form.coverPath || "",   // "" removes the banner
   });
 
   const saveAsDraft = () => {
@@ -410,7 +415,9 @@ export default function TestSeries() {
                         <tr key={s.id}>
                           <td data-label="Test Series">
                             <div className="ul-ts-name-cell">
-                              <span className="ul-ts-thumb" style={{ background: st.bg, color: st.fg, border: "none" }}><SubjectIcon size={16} /></span>
+                              {/* the banner when there is one, else the subject icon */}
+                              <AssetImage path={s.cover_path} alt="" className="ul-ts-thumb" style={{ objectFit: "cover", border: "none", padding: 0 }}
+                                fallback={<span className="ul-ts-thumb" style={{ background: st.bg, color: st.fg, border: "none" }}><SubjectIcon size={16} /></span>} />
                               <div className="ul-ts-name-cell__text">
                                 <strong>{s.name}</strong>
                                 <small>{s.subject} · {s.audience} · {s.tests.length} test{s.tests.length === 1 ? "" : "s"}</small>
@@ -551,6 +558,9 @@ export default function TestSeries() {
                   <label>Test Series Name</label>
                   <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. JEE Main Physics Test Series 2026" />
                 </div>
+
+                <ImageUploadField kind={ASSET_KIND.BANNER} label="Banner image (optional)" value={form.coverPath}
+                  onChange={(coverPath) => setForm((f) => ({ ...f, coverPath }))} />
 
                 <div className="ul-ts-form-row">
                   <label>Description</label>

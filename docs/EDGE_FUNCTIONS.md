@@ -9,6 +9,7 @@ Nothing here is deployed by the port. Deploy only with the lead's approval.
 | `send-notification-emails` | Sends queued campaign emails through Resend (`fetch`). It re-checks `notification_preferences.email`, then `record_email_results`. | Service-role bearer token (cron), or `x-cron-secret` | true |
 | `sign-educator-document` | Signed URL (10 min) for an `educator_verification_docs` row, by `documentId` (or `path`, the older UI). `adm_authorize_document_access` (20261101090000) decides with the caller's JWT: an admin for any document, the owning educator for their own, nobody else; it also writes `audit_logs` (`educator.document_access`: who, which document, view or download). It accepts the old and new `doc_url` forms (`paths.ts`). Optional `download: true`. Errors are `{error}` with 401 / 403 / 404 / 400. | Admin, or the owning educator | true |
 | `educator-upload-url` | Validates `{docType, docName, fileName, contentType, size}`. It claims a rate-limit slot through `adm_claim_educator_upload_slot` (this also refuses non-educators), then returns a service-role **signed upload URL** for `<user id>/<docType>-<docName>-<timestamp>.<ext>`. | Any educator (any verification status) | true |
+| `asset-upload-url` | Validates `{kind: 'banner' | 'question_image', fileName, contentType, size}` (JPEG, PNG or WebP; banner up to 2 MB, question image up to 3 MB). It claims a slot through `adm_claim_asset_upload_slot` (20261029110000; this also refuses anyone who isn't an admin or a verified educator, via `adm_actor_kind`), then returns `{path, signedUrl, token, publicUrl, bucket, expiresIn}`: a service-role **signed upload URL** for `<user id>/<kind>/<uuid>.<ext>` in the public bucket `test-assets`. | Admin or verified educator | true |
 | `payment-webhook` | Placeholder (D1). Calls the `mark_payment_*` stubs, which raise `0A000`. | Gateway (HMAC) | **false** |
 | `process-refund` | Placeholder (D1). Reads `refund_requests`, which doesn't exist in the lead's database. | Admin | true |
 | `ai-generate-test` | Placeholder (unchanged). | Admin | true |
@@ -22,6 +23,7 @@ The admin check (`_shared/auth.ts` → `_shared/roles.ts`) accepts `profiles.rol
 supabase secrets set RESEND_API_KEY=... EMAIL_FROM="Universal Learning <noreply@your-domain>"
 supabase secrets set EDUCATOR_DOCS_BUCKET=<the lead's verification-docs bucket>   # required: there is no docs/db_inspection/buckets.csv
 supabase secrets set EDUCATOR_UPLOAD_LIMIT_PER_HOUR=20                           # optional (default 20)
+supabase secrets set ASSET_UPLOAD_LIMIT_PER_HOUR=60                              # optional (default 60; asset-upload-url)
 supabase secrets set EDUCATOR_INVITE_REDIRECT_URL=https://<site>/teacher/login     # optional
 supabase secrets set EMAIL_CRON_SECRET=...                                         # optional alternative to the service-role bearer
 # optional: EMAIL_BATCH_SIZE (default 100), EDUCATOR_DOCS_URL_TTL (seconds, default 600, 60..3600)
@@ -66,6 +68,31 @@ unchanged (`external: true`).
 - **Storage:** no storage policy is created or changed; the bucket stays
   private.
 
+**Test images (`asset-upload-url`):** series banners and question figures.
+
+1. The browser resizes the picture (banners to 1600 px wide, question images to
+   1200 px) and re-encodes it as WebP at ~0.85 quality (JPEG, or PNG for
+   transparent pictures, when the browser has no WebP encoder):
+   `src/services/assetsApi.js` → `uploadImage(kind, file)`.
+2. It calls the function with the user's JWT, then PUTs the file to
+   `signedUrl` (with progress).
+3. The returned `path` is saved by the normal RPCs: `coverPath` on
+   `upsert_test_series_full` / `create_test_series` / `update_test_series`;
+   `image` + `imageAlt` on the question RPCs and the wizard's questions. The RPCs
+   check it with `adm_test_asset_path`: the first folder must be the caller,
+   unless the caller is an admin or the path is already on that row or series.
+
+- **Reads:** the bucket is public, so the stored path becomes
+  `<SUPABASE_URL>/storage/v1/object/public/test-assets/<path>`, in one place:
+  `assetUrl(path)`.
+- **Rate limit:** 60 uploads per rolling hour per user (table
+  `test_asset_upload_requests`), then HTTP 429 with `retryAfterSeconds`.
+- **Errors:** a validation error is HTTP 400 `{error, field}`; a student or
+  an unverified educator gets 403.
+- **Storage:** no policy on `storage.objects` is created; the service role
+  signs uploads. Replacing or removing an image clears the path only; the old
+  file stays (see `docs/ADMIN_BACKEND_TODO.md`, "Test images: orphaned files").
+
 **Revoking sessions:** `auth.admin.signOut(jwt, scope)` needs the user's own access
 token, so revoking *another* user's tokens isn't possible with signOut. The function
 ends their app-level sessions and returns `tokens_revoked: false`.
@@ -83,6 +110,7 @@ supabase functions deploy revoke-user-sessions
 supabase functions deploy send-notification-emails
 supabase functions deploy sign-educator-document
 supabase functions deploy educator-upload-url        # after 20261028090100 and 20261028110000
+supabase functions deploy asset-upload-url           # after 20261029110000
 # placeholders: leave undeployed until the payments model exists
 ```
 

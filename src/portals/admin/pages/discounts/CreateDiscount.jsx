@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRpc } from "../../hooks/useRpc";
 import { discountsApi } from "../../services/discountsApi";
 import { PageHeader, useDiscountNavigate, useDiscountSearchParams } from "./DiscountsShared";
 
 export default function CreateDiscount() {
   const [params] = useDiscountSearchParams(); const id = params.get("edit"); const navigate = useDiscountNavigate();
-  const detail = useRpc(() => discountsApi.get(id), { immediate: !!id });
+  // Stable request: an inline arrow re-ran the fetch on every render.
+  const detail = useRpc(useCallback(() => discountsApi.get(id), [id]), { immediate: !!id });
   const [form, setForm] = useState({ name: "", couponCode: "", offerType: "percentage", value: "", description: "", scope: "all_test_series", startsAt: "", expiresAt: "", usageLimit: "", perUserLimit: 1 });
   const [error, setError] = useState("");
   const save = async (activate) => { setError(""); try { if (id) await discountsApi.update(id, { name: form.name, coupon_code: form.couponCode, offer_type: form.offerType, value: Number(form.value), description: form.description, scope: form.scope, starts_at: form.startsAt || null, expires_at: form.expiresAt || null, usage_limit: form.usageLimit ? Number(form.usageLimit) : null, per_user_limit: Number(form.perUserLimit) }); else await discountsApi.create({ ...form, value: Number(form.value), activate }); navigate("/admin/discounts"); } catch (e) { setError(e.message); } };

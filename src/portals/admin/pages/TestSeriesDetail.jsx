@@ -26,6 +26,7 @@ import {
 } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import SeriesReviewBanner from "../components/SeriesReviewBanner";
+import SeriesBannerEditor from "../components/SeriesBannerEditor";
 import { needsApproval, testPath, useAuthoringPortal } from "../context/authoringPortal";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
@@ -215,6 +216,8 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
           <p className="ul-dash-welcome__subtitle">{series.subject} · {series.audience} · <span className={`ul-status-badge ${SERIES_STATUS_BADGE_CLASS[series.status]}`}>{SERIES_STATUS_LABEL[series.status]}</span></p>
         </div>
       </div>
+
+      <SeriesBannerEditor series={series} setToast={setToast} onSaved={() => seriesState.refetch()} />
 
       <div className="ul-ts-create-row">
         <span className="ul-card__eyebrow">Overview</span>

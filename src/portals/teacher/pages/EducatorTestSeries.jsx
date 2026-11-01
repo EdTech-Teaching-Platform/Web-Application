@@ -10,6 +10,7 @@ import { testSeriesApi } from "../../admin/services/testSeriesApi";
 import { SERIES_TABS, groupSeriesByTab } from "../utils/onboarding";
 import { Empty, ErrorState, Loading, PageCard, StatusPill } from "../components/PageState";
 import { formatDate } from "../utils/format";
+import AssetImage from "../../../components/common/AssetImage";
 
 const EMPTY_TEXT = {
   published: "Nothing published yet. Series go live once an admin approves them (or when you publish an assigned one).",
@@ -60,6 +61,8 @@ export default function EducatorTestSeries({ api = testSeriesApi }) {
           <ul className="divide-y divide-(--lp-line)">
             {rows.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                <div className="flex min-w-0 items-center gap-3">
+                <AssetImage path={s.cover_path} alt="" className="h-12 w-20 shrink-0 rounded-lg object-cover" />
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{s.name}</p>
                   <p className="text-xs text-(--lp-muted)">
@@ -70,6 +73,7 @@ export default function EducatorTestSeries({ api = testSeriesApi }) {
                   {s.status === "rejected" && s.rejection_reason && (
                     <p className="mt-1 text-sm text-red-700"><strong>Reason:</strong> {s.rejection_reason}</p>
                   )}
+                </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusPill status={s.status} />

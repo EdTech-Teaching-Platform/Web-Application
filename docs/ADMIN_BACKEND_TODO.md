@@ -199,3 +199,26 @@ imports and tests are removed.
   - `AdminTopbar`: `startRegionalHeadSync`.
 - **Ticket notifications.** Status changes and replies on support tickets don't
   notify the submitter from the admin RPCs.
+
+## Test images: orphaned files (2026-11-01)
+
+Replacing or removing a series banner or a question figure only clears or
+changes the stored path (`test_series_admin.cover_path`,
+`quiz_question_admin.image_path`). The old file stays in the `test-assets`
+bucket, as do files uploaded but never saved (a closed wizard, a failed
+save). That's acceptable for now: images are small (resized in the browser)
+and the bucket is limited to 3 MB per file.
+
+**Idea for a cleanup job (not built):**
+
+- **When:** a scheduled Edge Function (service role), weekly.
+- **What it lists:** objects in `test-assets` older than 7 days (the grace
+  period covers drafts that are still open).
+- **What it keeps:** every path still referenced by `test_series_admin.cover_path`,
+  `quiz_question_admin.image_path`, or a saved wizard draft
+  (`test_series_admin.wizard_state`: `coverPath` and each question's `image`).
+- **What it deletes:** the rest, through the Storage API
+  (`storage.from('test-assets').remove(paths)`), never with SQL on
+  `storage.objects`.
+- **Also:** log a count to `audit_logs`, and prune `test_asset_upload_requests`
+  rows older than a day (each claim already does this for its own user).

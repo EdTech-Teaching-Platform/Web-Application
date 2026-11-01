@@ -6,7 +6,7 @@
 // Resolving or dismissing needs a note; the student sees it, and a resolved
 // item also sends the student a notification.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IconSearch, IconClose } from "../components/icons";
 import { useRpc } from "../hooks/useRpc";
@@ -15,10 +15,12 @@ import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./RegionalHeads.css";
+import "./SettingsPermissions.css";   // .ul-set-toast
 import "./ContentModeration.css";
 
 const PAGE_SIZE = 10;
 const TAB_STATUSES = { open: ["new", "in_review"], closed: ["resolved", "dismissed"] };
+const CLOSED = TAB_STATUSES.closed;
 
 const fmtDateTime = (d) =>
   d ? new Date(d).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
@@ -156,26 +158,40 @@ function Fact({ label, children }) {
   return (<><dt>{label}</dt><dd>{children}</dd></>);
 }
 
+// After a successful action the list and the stats refetch at once
+// (onChanged). Resolve / dismiss close the drawer, so the page's success
+// message is visible and the item shows under its new status filter; "Mark in
+// review" keeps the drawer open on the new status and keeps the typed note
+// for the resolve that usually follows. A failure keeps the drawer open with
+// the server's message. One request at a time (ref guard + disabled buttons).
 export function ItemDetail({ id, onClose, onChanged, setToast, api = moderationApi }) {
   const detail = useRpc(useCallback(() => api.get(id), [api, id]));
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState("");
   const [error, setError] = useState("");
+  const inFlight = useRef(false);
   const item = detail.data;
+  const closed = !!item && CLOSED.includes(item.status);
 
   const act = async (action) => {
+    if (inFlight.current) return;
     if (action.needsNote && !note.trim()) { setError("Add a note for the student before you resolve or dismiss."); return; }
+    inFlight.current = true;
     setSaving(action.status);
     setError("");
     try {
       await api.setStatus(id, action.status, note);
       setToast(`Marked ${STATUS_LABEL[action.status].toLowerCase()}.${action.status === "resolved" ? " The student has been notified." : ""}`);
-      setNote("");
-      await detail.refetch().catch(() => {});
-      onChanged?.();
+      onChanged?.(action.status);
+      if (CLOSED.includes(action.status)) {
+        onClose();
+        return;
+      }
+      detail.refetch().catch(() => {});   // new status and history in the drawer
     } catch (err) {
-      setError(err.message);
+      setError(err?.message || "The status could not be changed. Try again.");
     } finally {
+      inFlight.current = false;
       setSaving("");
     }
   };
@@ -254,14 +270,22 @@ export function ItemDetail({ id, onClose, onChanged, setToast, api = moderationA
         {item && (
           <div className="ul-cmi-modal__foot">
             <div className="ul-cmi-actionbox">
-              <label className="ul-cmi-label" htmlFor="mod-note">Note to the student (required to resolve or dismiss)</label>
-              <textarea id="mod-note" rows={3} maxLength={2000} value={note} onChange={(e) => { setNote(e.target.value); setError(""); }} />
+              {closed && (
+                <p className="ul-cmi-muted" role="status">
+                  This item is {STATUS_LABEL[item.status].toLowerCase()}. Nothing more is needed; you can still reopen it or change the outcome.
+                </p>
+              )}
+              <label className="ul-cmi-label" htmlFor="mod-note">
+                {closed ? "New note to the student (needed to change the outcome)" : "Note to the student (required to resolve or dismiss)"}
+              </label>
+              <textarea id="mod-note" rows={3} maxLength={2000} value={note} disabled={!!saving}
+                onChange={(e) => { setNote(e.target.value); setError(""); }} />
               {error && <p className="ul-rh-error" role="alert">{error}</p>}
               <div className="ul-cmi-btnrow">
                 {STATUS_ACTIONS.filter((a) => a.status !== item.status).map((a) => (
                   <button key={a.status} type="button"
                     className={`ul-btn ${a.status === "resolved" ? "ul-btn--primary" : "ul-btn--ghost"}`}
-                    disabled={!!saving} onClick={() => act(a)}>
+                    disabled={!!saving} aria-busy={saving === a.status || undefined} onClick={() => act(a)}>
                     {saving === a.status ? "Saving…" : a.label}
                   </button>
                 ))}
@@ -334,7 +358,8 @@ export default function ContentModeration() {
       <ItemTable key={tab} tab={tab} onOpen={setOpenId} reloadKey={reloadKey} />
 
       {openId && <ItemDetail id={openId} onClose={close} onChanged={changed} setToast={setToast} />}
-      {toast && <div className="ul-set-toast" role="status">{toast}</div>}
+      {/* above the drawer's backdrop (z-index 1000, ContentModeration.css) */}
+      {toast && <div className="ul-set-toast" role="status" style={{ zIndex: 1100 }}>{toast}</div>}
     </div>
   );
 }

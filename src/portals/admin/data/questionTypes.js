@@ -7,6 +7,7 @@
 //   and the server refuses to create or edit them
 //   (20261027090000_admin_block_subjective.sql). Existing ones stay readable.
 import { SUBJECTIVE_ENABLED } from "../utils/featureFlags";
+import { isUnsavedImage } from "../../../services/assetPaths";
 
 export const QTYPE = Object.freeze({
   MCQ_SINGLE: "mcq_single",
@@ -110,7 +111,10 @@ export function questionPayload(q) {
   const base = {
     type,
     text: String(q.text ?? "").trim(),
-    image: q.image || "",
+    // A stored test-assets path; an old never-uploaded data URL is dropped
+    // (the editor warns about it), since the RPCs refuse it.
+    image: isUnsavedImage(q.image) ? "" : (q.image || ""),
+    imageAlt: q.image && !isUnsavedImage(q.image) ? String(q.imageAlt ?? "").trim() : "",
     marks: Number(q.marks) || 0,
     negativeMarks: Number(q.negativeMarks) || 0,
     difficulty: q.difficulty || "medium",
