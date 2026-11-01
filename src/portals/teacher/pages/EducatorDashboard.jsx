@@ -24,6 +24,8 @@ export default function EducatorDashboard({ api = educatorApi }) {
   if (error) return <ErrorState error={error} onRetry={() => refetch().catch(() => {})} />;
   const d = data || {};
   const s = d.stats || {};
+  // Drafts card: only true drafts. Rejected series are listed under Test Series -> Rejected.
+  const drafts = (d.drafts || []).filter((x) => String(x.status || "").toLowerCase() === "draft");
 
   return (
     <div className="space-y-6">
@@ -54,9 +56,9 @@ export default function EducatorDashboard({ api = educatorApi }) {
         </PageCard>
 
         <PageCard title="Drafts" action={<Link to="/teacher/test-series/new" className="text-sm font-semibold text-(--lp-blue) underline">Create test series</Link>}>
-          {(d.drafts || []).length === 0 ? <Empty>No drafts. Create a test series to get started.</Empty> : (
+          {drafts.length === 0 ? <Empty>No drafts. Create a test series to get started.</Empty> : (
             <ul className="divide-y divide-(--lp-line)">
-              {d.drafts.map((x) => (
+              {drafts.map((x) => (
                 <li key={x.id} className="py-3">
                   <div className="flex items-center justify-between gap-3">
                     <Link to={`/teacher/test-series/${x.id}`} className="truncate font-semibold hover:underline">{x.title}</Link>
