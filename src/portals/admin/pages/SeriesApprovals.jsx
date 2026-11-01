@@ -3,6 +3,7 @@
 // series (approve_educator_series); Reject needs a reason the educator sees
 // (reject_educator_series). Both notify the educator.
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
 import { testSeriesApi } from "../services/testSeriesApi";
@@ -119,6 +120,10 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
         </div>
       )}
 
+      {/* Portaled to <body>: the card above has overflow:hidden and a hover
+          transform, which trap/clip a position:fixed overlay inside it. */}
+      {createPortal(
+      <>
       <ConfirmModal
         open={!!approveTarget}
         title={`Approve "${approveTarget?.title || ""}"?`}
@@ -153,6 +158,8 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
         />
         {actionError && <p className="ul-tsw-note" role="alert">{actionError}</p>}
       </ConfirmModal>
+      </>,
+      document.body)}
     </div>
   );
 }
