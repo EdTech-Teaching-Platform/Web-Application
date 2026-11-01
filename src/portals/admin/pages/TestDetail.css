@@ -129,3 +129,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Educator portal hosts this page ----
+   The admin tokens (--color-card, --color-border, ...) are only defined under
+   body.ul-admin, so in the educator portal the Add/Edit Question drawer had no
+   background (the page showed through) and sat under the sidebar. Same values
+   as body.ul-admin, applied only when that class is absent, so admin is unchanged. */
+body:not(.ul-admin) .ul-set-drawer-backdrop {
+  --color-card: #ffffff;
+  --color-bg: #f5f6f8;
+  --color-bg-secondary: #eef0f4;
+  --color-border: #e6e8ee;
+  --color-soft-pink: #e3ecff;
+  --color-text-primary: #0f1115;
+  --color-text-secondary: #4a5160;
+  --color-text-muted: #8a91a0;
+  --color-warning-bg: #fff3bf;
+  --color-warning-accent: #b07a00;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  z-index: 200;
+}
+body:not(.ul-admin) .ul-set-drawer {
+  background: #ffffff;
+  color: #0f1115;
+}
