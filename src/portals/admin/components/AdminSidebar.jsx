@@ -20,12 +20,12 @@ import {
   IconPhone,
   IconLogout,
   IconClose,
-  IconGraduationCap,
   IconBook,
   IconLayers,
   IconPercent,
 } from "./icons";
 import ConfirmModal from "./ConfirmModal";
+import brandLogo from "../../../assets/brand-logo.png";
 import "./AdminChrome.css";
 import "../adminTheme.css";
 
@@ -129,7 +129,7 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
       <aside className={`ul-sidebar${open ? " is-open" : ""}`}>
         <div className="ul-sidebar__brand">
           <div className="ul-sidebar__logo">
-            <IconGraduationCap size={19} />
+            <img src={brandLogo} alt="" className="ul-sidebar__logo-img" draggable={false} />
           </div>
           <div>
             <div className="ul-sidebar__brand-name">Universal Learning</div>

@@ -10,6 +10,7 @@
 // pick up the new look automatically — without any change to how they
 import React from "react";
 import { Link } from "react-router-dom";
+import brandLogo from "../../assets/brand-logo.png";
 import { LANDING_THEME_VARS } from "../../public/landingTheme";
 import { Sparkle, Squiggle, ArrowUpRight } from "../../public/components/landing/LandingUI";
 import AuthScene from "./AuthScenes";
@@ -29,14 +30,7 @@ export const AUTH_THEME_VARS = {
 // -------------------------------------------------------------- BrandMark
 export function BrandMark({ className = "h-10 w-10", style }) {
   return (
-    <span style={style} className={`grid shrink-0 place-items-center rounded-full bg-(--lp-ink) text-white ${className}`} aria-hidden="true">
-      <span className="grid h-[62%] w-[62%] place-items-center rounded-full bg-(--lp-blue)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-[58%] w-[58%]">
-          <path d="M3 8l9-4 9 4-9 4-9-4Z" />
-          <path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5" />
-        </svg>
-      </span>
-    </span>
+    <img src={brandLogo} alt="" aria-hidden="true" style={style} className={`shrink-0 object-contain ${className}`} draggable={false} />
   );
 }
 
@@ -136,7 +130,7 @@ function Showcase({ variant }) {
 
       <div className="flex items-center justify-between gap-3">
         <Link to="/" className="inline-flex items-center gap-2.5 font-(family-name:--lp-font) text-lg font-bold tracking-tight">
-          <BrandMark className="h-10 w-10 ring-2 ring-white/30" />
+          <BrandMark className="h-10 w-10" />
           Universal Learning
         </Link>
         <span className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${cfg.chip}`}>{cfg.chipLabel}</span>
@@ -214,7 +208,7 @@ function MobileHero({ variant }) {
       <div className="mx-auto max-w-md">
         <div className="flex items-center justify-between gap-3">
           <Link to="/" className="inline-flex items-center gap-2.5 font-(family-name:--lp-font) text-base font-bold tracking-tight">
-            <BrandMark className="h-9 w-9 ring-2 ring-white/30" />
+            <BrandMark className="h-9 w-9" />
             Universal Learning
           </Link>
           <Link to="/" aria-label="Back to home" className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold ${cfg.chip}`}>

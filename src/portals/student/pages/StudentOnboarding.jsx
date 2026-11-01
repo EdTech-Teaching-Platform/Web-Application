@@ -118,7 +118,7 @@ function WelcomePanel({ step, form }) {
       </div>
 
       <div className="relative flex items-center gap-2.5 font-(family-name:--lp-font) text-base font-bold tracking-tight">
-        <BrandMark className="h-9 w-9 ring-1 ring-white/20" />
+        <BrandMark className="h-9 w-9" />
         Universal Learning
       </div>
 

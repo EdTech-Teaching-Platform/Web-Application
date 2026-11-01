@@ -154,7 +154,7 @@ export default function EducatorProfile() {
     });
   }, [educator, studentSearch, studentStatusFilter]);
 
-  if (detailState.loading) return <div className="ul-edp-notfound">Loading educator…</div>;
+  if (detailState.loading && !detailState.data) return <div className="ul-edp-notfound">Loading educator…</div>;
   if (detailState.error) return <div className="ul-edp-notfound"><p role="alert">{detailState.error.message}</p><button type="button" className="ul-btn ul-btn--primary" onClick={() => detailState.refetch()}>Retry</button></div>;
   if (!educator) {
     return (

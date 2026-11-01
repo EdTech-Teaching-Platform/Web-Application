@@ -40,6 +40,20 @@ import "./UserManagement.css";
 
 const PAGE_SIZE = 8;
 
+// Stable references: passing a fresh arrow function to useRpc on every render
+// made it re-fetch in an endless loop.
+const fetchStudentStats = () => studentsApi.stats();
+
+// Waits for typing to pause before the search hits the server.
+function useDebounced(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 function StatusBadge({ status }) {
   return <span className={`ul-status-badge ${STUDENT_STATUS_BADGE_CLASS[status]}`}>{STUDENT_STATUS_LABEL[status]}</span>;
 }
@@ -75,17 +89,21 @@ export default function UserManagement() {
   const [blockReason, setBlockReason] = useState("");
   const [unblockTarget, setUnblockTarget] = useState(null); // student pending an Unblock confirmation
   const [toast, setToast] = useState("");
-  const listRequest = useCallback(() => studentsApi.list({ search, status: statusFilter, grade: gradeFilter, page, size: PAGE_SIZE }), [search, statusFilter, gradeFilter, page]);
-  const studentsState = useRpc(listRequest);
-  const statsState = useRpc(() => studentsApi.stats());
+  const debouncedSearch = useDebounced(search);
+  const listRequest = useCallback(() => studentsApi.list({ search: debouncedSearch, status: statusFilter, grade: gradeFilter, page, size: PAGE_SIZE }), [debouncedSearch, statusFilter, gradeFilter, page]);
+  const studentsState = useRpc(listRequest, { cacheKey: `students:list:${JSON.stringify([debouncedSearch.trim(), statusFilter, gradeFilter, page])}` });
+  const statsState = useRpc(fetchStudentStats, { cacheKey: "students:stats" });
   const students = studentsState.data?.rows || [];
   const total = Number(studentsState.data?.total || 0);
-  const detailState = useRpc(useCallback(() => detailsStudent ? studentsApi.detail(detailsStudent.id) : Promise.resolve(null), [detailsStudent]), { immediate: !!detailsStudent });
+  // Keyed on the id (not the object): the effect below replaces detailsStudent
+  // with the fetched copy, which previously changed the request and re-fetched forever.
+  const detailsId = detailsStudent?.id ?? null;
+  const detailState = useRpc(useCallback(() => detailsId ? studentsApi.detail(detailsId) : Promise.resolve(null), [detailsId]), { immediate: !!detailsId });
   const toastTimer = useRef(null);
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, gradeFilter]);
+  }, [debouncedSearch, statusFilter, gradeFilter]);
 
   // Keep Student Details in sync with the live store (e.g. blocking the
   // student currently open in Details should update its badge in place).
@@ -135,7 +153,7 @@ export default function UserManagement() {
           the student loses access regardless of valid credentials, until an Admin unblocks it.
         </p>
       </div>
-      {studentsState.loading && <div className="ul-edu-empty">Loading students…</div>}
+      {studentsState.loading && !studentsState.data && <div className="ul-edu-empty">Loading students…</div>}
       {studentsState.error && <div className="ul-edu-empty" role="alert"><p>{studentsState.error.message}</p><button type="button" className="ul-btn ul-btn--ghost" onClick={() => studentsState.refetch()}>Retry</button></div>}
 
       <div className="ul-usr-summary">

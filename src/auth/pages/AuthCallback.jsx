@@ -55,7 +55,7 @@ function SigningInCard() {
         <span className="ul-si-orbit absolute inset-0" aria-hidden="true">
           <span className="absolute -top-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-(--lp-yellow) shadow-[0_0_0_4px_rgba(255,216,77,0.35)]" />
         </span>
-        <BrandMark className="h-16 w-16 shadow-[0_14px_30px_rgba(61,123,247,0.35)]" />
+        <BrandMark className="h-16 w-16 drop-shadow-[0_10px_18px_rgba(61,123,247,0.35)]" />
       </div>
       <h1 className="mt-7 font-(family-name:--lp-font) text-2xl font-bold tracking-tight text-(--lp-ink)">Signing you in</h1>
       <p className="mt-1.5 text-sm text-(--lp-muted)">Getting your test series ready…</p>
