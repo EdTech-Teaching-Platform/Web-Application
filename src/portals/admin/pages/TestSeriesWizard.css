@@ -199,3 +199,42 @@
 .ul-tsw-progress__error p { margin: 0; flex: 1 1 260px; }
 .ul-tsw-progress__error div { display: flex; gap: 8px; }
 .ul-tsw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- Standalone theme + dialog fixes (educator portal hosts this wizard) ----
+   The admin tokens (--color-card, --color-border, ...) are only defined under
+   body.ul-admin, so in the educator portal the modal had NO background and the
+   page behind showed through. Same values as body.ul-admin, applied only when
+   that class is absent, so the admin portal is unchanged. */
+body:not(.ul-admin) .ul-tsw,
+body:not(.ul-admin) .ul-tsw-backdrop {
+  --color-card: #ffffff;
+  --color-bg-secondary: #eef0f4;
+  --color-border: #e6e8ee;
+  --color-soft-pink: #e3ecff;
+  --color-primary-dark: #1b1f27;
+  --color-text-primary: #0f1115;
+  --color-text-secondary: #4a5160;
+  --color-text-muted: #8a91a0;
+  --color-warning-bg: #fff3bf;
+  --color-warning-accent: #b07a00;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --transition-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ul-tsw-backdrop { z-index: 200; }
+.ul-tsw-modal { background: #fff; color: var(--color-text-primary, #0f1115); overflow: hidden; }
+.ul-tsw-modal__body { overflow-x: hidden; min-height: 0; }
+.ul-tsw-modal .ul-ts-form-row > * { min-width: 0; }
+.ul-tsw-modal .ul-ts-form-row input,
+.ul-tsw-modal .ul-ts-form-row select,
+.ul-tsw-modal .ul-ts-form-row textarea { background: #f5f6f8; width: 100%; box-sizing: border-box; }
+/* question type pills: wrap inside the dialog instead of stretching it */
+.ul-tsw-modal .ul-ts-pill-toggle { display: flex; flex-wrap: wrap; width: 100%; border-radius: 16px; box-sizing: border-box; }
+.ul-tsw-modal .ul-ts-pill-toggle button { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.ul-tsw-modal .ul-qtype-pills button.is-disabled { opacity: .55; cursor: not-allowed; }
+.ul-tsw-modal .ul-coming-soon { margin-left: 6px; font-size: 10px; padding: 2px 8px; vertical-align: middle; white-space: nowrap; }
+/* correct answer: A / B / C / D chooser */
+.ul-tsw-modal .ul-td-correct-toggle { display: flex; flex-wrap: wrap; gap: 8px; }
+.ul-tsw-modal .ul-td-correct-toggle button { min-width: 44px; height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--color-border); background: #fff; color: var(--color-text-secondary); font-weight: 700; font-size: 13px; cursor: pointer; }
+.ul-tsw-modal .ul-td-correct-toggle button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.ul-tsw-modal .ul-td-correct-toggle button.is-active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }

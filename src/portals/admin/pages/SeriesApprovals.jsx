@@ -2,7 +2,8 @@
 // submitted for review (list_pending_series_approvals). Approve publishes the
 // series (approve_educator_series); Reject needs a reason the educator sees
 // (reject_educator_series). Both notify the educator.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
 import { testSeriesApi } from "../services/testSeriesApi";
@@ -22,6 +23,14 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const reasonRef = useRef(null);
+
+  // Focus the reason box as soon as the Reject dialog opens (after the click that opened it settles).
+  useEffect(() => {
+    if (!rejectTarget) return undefined;
+    const t = setTimeout(() => reasonRef.current?.focus(), 50);
+    return () => clearTimeout(t);
+  }, [rejectTarget]);
 
   useEffect(() => {
     const timer = setTimeout(() => { setQuery(search); setPage(1); }, 300);
@@ -119,6 +128,10 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
         </div>
       )}
 
+      {/* Portaled to <body>: the card above has overflow:hidden and a hover
+          transform, which trap/clip a position:fixed overlay inside it. */}
+      {createPortal(
+      <>
       <ConfirmModal
         open={!!approveTarget}
         title={`Approve "${approveTarget?.title || ""}"?`}
@@ -141,18 +154,23 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
         onCancel={closeModals}
         onConfirm={() => act(() => api.rejectSeries(rejectTarget.id, reason.trim()), `"${rejectTarget.title}" rejected. The educator has been notified.`)}
       >
-        <label htmlFor="reject-reason" className="ul-tsw-hint" style={{ display: "block", marginBottom: 4 }}>Reason (required)</label>
+        <label htmlFor="reject-reason" style={{ display: "block", marginTop: 12, fontSize: 11.5, fontWeight: 700, color: "var(--color-text-muted, #6b7280)" }}>Reason (required)</label>
         <textarea
           id="reject-reason"
-          className="ul-tsw-input"
+          className="ul-confirm-modal__reason"
           rows={3}
           maxLength={2000}
+          ref={reasonRef}
+          placeholder="Tell the educator what to fix…"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          style={{ width: "100%" }}
+          onKeyDown={(e) => e.stopPropagation()}
+          style={{ marginTop: 6, boxSizing: "border-box" }}
         />
         {actionError && <p className="ul-tsw-note" role="alert">{actionError}</p>}
       </ConfirmModal>
+      </>,
+      document.body)}
     </div>
   );
 }
