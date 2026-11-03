@@ -1,6 +1,5 @@
 // Small pieces shared by the Discount Management pages.
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../../hooks/useAuth";
 import { IconMore, IconClose } from "../../components/icons";
 import { STATUS_LABEL, STATUS_BADGE, can } from "../../data/discountsMock";
@@ -8,6 +7,8 @@ import "../AdminDashboard.css";
 import "../EducatorVerification.css";
 import "../RegionalHeads.css";
 import "./Discounts.css";
+import PageToast from "../../../../components/feedback/Toast";
+import RowActionsMenu from "../../../../components/common/RowActionsMenu";
 
 /* ---- in-page navigation: all discount sections live on ONE page ---- */
 export const DISCOUNT_TABS = [
@@ -63,7 +64,7 @@ export function useToast() {
     const t = setTimeout(() => setToast(""), 3400);
     return () => clearTimeout(t);
   }, [toast]);
-  return [toast, setToast, toast ? <div className="ul-usr-toast">{toast}</div> : null];
+  return [toast, setToast, <PageToast message={toast} onDone={() => setToast("")} />];
 }
 
 // Section header inside the unified page: a small title/subtitle on the left, section actions on the right.
@@ -145,42 +146,10 @@ export function Modal({ title, subtitle, onClose, children, footer, wide = false
   );
 }
 
-// Row "⋮" menu rendered in a portal so table overflow can't clip it.
+// Row "⋮" menu: the shared RowActionsMenu (portal, flips to stay on screen,
+// keyboard accessible). Items: {label, onClick, danger}; falsy items are skipped.
 export function RowMenu({ items }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState(null);
-  const btn = useRef(null);
-  const menu = useRef(null);
-  const visible = items.filter(Boolean);
-  useLayoutEffect(() => {
-    if (!open || !btn.current) return;
-    const r = btn.current.getBoundingClientRect();
-    const h = menu.current ? menu.current.offsetHeight : 220;
-    const top = r.bottom + h + 8 > window.innerHeight ? Math.max(8, r.top - h - 4) : r.bottom + 4;
-    setPos({ top, right: Math.max(8, window.innerWidth - r.right) });
-  }, [open]);
-  useEffect(() => {
-    if (!open) return undefined;
-    const close = (e) => { if (menu.current?.contains(e.target) || btn.current?.contains(e.target)) return; setOpen(false); };
-    const esc = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", close); document.addEventListener("keydown", esc);
-    window.addEventListener("scroll", () => setOpen(false), true);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
-  }, [open]);
-  if (!visible.length) return null;
-  return (
-    <>
-      <button type="button" ref={btn} className="ul-edu-more-btn" aria-label="More actions" aria-haspopup="menu" aria-expanded={open} onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}>
-        <IconMore size={15} />
-      </button>
-      {open && createPortal(
-        <div ref={menu} className="ul-dsc-menu" role="menu" style={{ top: pos ? pos.top : -9999, right: pos ? pos.right : 8 }} onClick={(e) => e.stopPropagation()}>
-          {visible.map((it) => (
-            <button key={it.label} type="button" role="menuitem" className={it.danger ? "is-danger" : ""} onClick={() => { setOpen(false); it.onClick(); }}>{it.label}</button>
-          ))}
-        </div>, document.body)}
-    </>
-  );
+  return <RowActionsMenu triggerClassName="ul-edu-more-btn" icon={<IconMore size={15} />} items={items} />;
 }
 
 export function exportCsv(filename, rows) {

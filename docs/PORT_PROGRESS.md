@@ -99,6 +99,117 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-03: QA triage P1, shared UI for every portal (frontend only)
+
+QA bugs #1, #7, #9, #10, #12, #19, and the blank-screen part of #11 / #24.
+
+### Causes
+
+- **Blank popup (#1, #9, #19):** the toast markup used per-page classes.
+  `.ul-set-toast` (used by the shared `TestDetail` / `TestSeriesDetail`, which
+  the teacher portal hosts) was styled in `SettingsPermissions.css` with
+  `background: var(--color-text-primary)`. Only the admin theme defines that
+  variable, so in the teacher portal the toast was white text on a transparent
+  background. The class was also below modal backdrops (`z-index` 95 vs
+  1000) and had no close button. There were eight different toast classes,
+  plus a Tailwind `ToastStack` for students.
+- **Errors:** most pages did `setToast(error.message)`, so an error without a
+  message showed an empty toast.
+- **Menus (#7, #10):** four hand-rolled kebab menus. Two were absolutely
+  positioned inside the scrolling table (clipped, or a scrollbar appeared
+  instead); two used their own fixed positioning that opened only one way.
+  Items didn't follow the row state: a published test offered Publish, a
+  cancelled assignment offered Edit / Reassign (disabled) / Cancel.
+- **Blank white screen:** only the student portal had an error boundary.
+- **Logout (#12):** the admin, regional head and student layouts each had
+  their own dialog; the teacher portal (sidebar, gate screens, onboarding,
+  profile) logged out without asking.
+
+### Fix
+
+- **`src/styles/feedback.css`** (imported once in `src/main.jsx`): toast,
+  row menu, logout dialog and error panel.
+  - Colours are literal values, never portal theme variables.
+  - Layers: menus 1300, logout dialog 1400, toasts 1500 (the highest page
+    modal is 1200).
+- **Toast:**
+  - **`src/components/feedback/toastModel.js`:** the tones (success, error,
+    warning, info), all AA or better. `toMessage` / `normalizeToast` take a
+    string, an `Error`, a Supabase error or `{message, tone}`. An error is an
+    error toast, an empty error reads "Something went wrong. Please try
+    again.", and nothing ever shows `[object Object]`.
+  - **`src/components/feedback/Toast.jsx`:** `PageToast` (`message`, `onDone`)
+    and `ToastItem`, rendered into one viewport on `<body>`. Each toast has
+    an icon and a close button and auto-dismisses (errors after 8 s, others
+    4.5 s); errors use `role="alert"`.
+  - **Pages:** every page's `{toast && <div className="ul-…-toast">}` is now
+    `<PageToast/>` (26 render sites in 23 files: admin, teacher, regional
+    head), and the student `ToastStack` uses the same toast.
+  - **Errors passed as objects:** 35 calls `setToast(e.message)` became
+    `setToast(e)`. Clear validation / readiness messages pass
+    `{message, tone}`.
+  - **Old CSS:** the per-page toast rules are removed from 8 stylesheets.
+- **`src/components/common/RowActionsMenu.jsx`** (+ `menuPosition.js`, pure):
+  - **Rendering:** a portal on `<body>` with fixed positioning that flips
+    above / below and left / right, clamped to the viewport, and follows the
+    trigger on scroll / resize.
+  - **Closing:** an outside click, Escape (focus returns to the trigger),
+    Tab, or picking an item.
+  - **Keyboard and clicks:** Arrow keys, Home and End move between items;
+    clicks never reach a clickable row.
+  - **Items:** falsy items are skipped, so callers build them from the row
+    state.
+  - **Used by:**
+    - **Test Series detail:** published → Unpublish; draft → Publish (unless
+      the series awaits approval).
+    - **Test Series list:** draft / scheduled → Publish; published →
+      Unpublish.
+    - **Assign Educators:** a completed / cancelled assignment shows only
+      View Details.
+    - **Also:** Regional Heads, and the discounts `RowMenu` (now a
+      re-export), which Educator Verification uses.
+  - **Cleanup:** Educator Verification's dead menu state is removed.
+  - **Not affected:** the tracker and the teacher test list have no row
+    menu.
+- **`src/components/common/ErrorBoundary.jsx`:** shows "Something went wrong"
+  with Reload and Go back, logs `[portal] render failure`, and resets when the
+  route changes. It wraps the outlet (and so the lazy pages) of the admin,
+  teacher, student, regional-head and public layouts, plus the whole app as a
+  last resort. A failed lazy chunk gets its own message. It replaces
+  `StudentErrorBoundary.jsx` (deleted).
+- **`src/components/common/LogoutConfirm.jsx`:** `useLogoutConfirm(signOut)`
+  gives a Cancel / Log out dialog, with Cancel focused and Escape cancelling.
+  It is used by the admin sidebar, the regional-head sidebar, the student
+  navbar, the landing header (desktop and mobile), the teacher sidebar and
+  gate screens (`EducatorGate`), teacher onboarding and the teacher profile.
+
+### Checks
+
+- **`tests/shared-ui.test.jsx` (19):**
+  - toast contrast (all tones ≥ 4.5:1, and the CSS matches the tokens);
+  - message normalization;
+  - `PageToast` (portal, close, auto-dismiss, error alert, never
+    `[object Object]`);
+  - `ToastStack`;
+  - menu positioning (below / above / left / clamped / more room);
+  - menu behaviour (outside the scroller, falsy items, keyboard, Escape,
+    outside click, the row click not fired);
+  - state-aware items on the Test Series detail page;
+  - the error boundary (panel, logging, reset);
+  - the logout dialog (cancel, Escape, confirm, the teacher sidebar).
+- **Totals:** `npm test` 184/184, build ✅.
+- **Lint:** the only new warning is a fast-refresh note on
+  `LogoutConfirm.jsx` (it exports a hook next to the dialog).
+
+### To verify in the browser (the triage gate before P2)
+
+- **Toasts:** a success and an error toast in the educator portal (Test
+  Series → a test → save, and a failing action) and in admin, with a modal
+  open.
+- **Menus:** the three-dot menu in the last row of a long table, and near
+  the right edge on a narrow window.
+- **Logout:** from each portal.
+
 ## 2026-11-01: content moderation "resolve again" bug, stable admin requests (frontend only)
 
 ### Cause (checked before changing anything)

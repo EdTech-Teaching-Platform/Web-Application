@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Suspense } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import RouteFallback from "../components/common/RouteFallback";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 import { useAuth } from "../hooks/useAuth";
 import { canUseAdminPortal } from "../utils/roles";
 import { supabase } from "../services/supabaseClient";
@@ -130,9 +131,11 @@ export default function AdminLayout() {
               noticeably the very first hop from Login straight into the
               Dashboard. */}
           <div className="ul-main__page" key={location.pathname}>
-            <Suspense fallback={<RouteFallback />}>
-              <Outlet />
-            </Suspense>
+            <ErrorBoundary name="admin" resetKey={location.pathname} homeHref="/admin/logindashboard">
+              <Suspense fallback={<RouteFallback />}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </main>
       </div>

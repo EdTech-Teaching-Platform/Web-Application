@@ -43,6 +43,7 @@ import { IconSearch, IconClose, IconPlus, IconEdit, IconInstitution, IconBranch,
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./InstitutionManagement.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const PAGE_SIZE = 8;
 
@@ -711,7 +712,7 @@ export default function InstitutionManagement() {
         onCancel={() => setActivateTarget(null)}
       />
 
-      {toast && <div className="ul-usr-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

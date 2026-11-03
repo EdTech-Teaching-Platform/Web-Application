@@ -37,6 +37,7 @@ import { IconSearch, IconClose } from "../components/icons";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./UserManagement.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const PAGE_SIZE = 8;
 
@@ -136,12 +137,12 @@ export default function UserManagement() {
 
   const confirmBlock = () => {
     if (!blockTarget || !blockReason.trim()) return;
-    studentsApi.setStatus(blockTarget.id, STUDENT_STATUS.BLOCKED, blockReason.trim()).then(() => { setToast(`"${blockTarget.name}" has been blocked.`); setBlockTarget(null); setBlockReason(""); studentsState.refetch(); }).catch((error) => setToast(error.message));
+    studentsApi.setStatus(blockTarget.id, STUDENT_STATUS.BLOCKED, blockReason.trim()).then(() => { setToast(`"${blockTarget.name}" has been blocked.`); setBlockTarget(null); setBlockReason(""); studentsState.refetch(); }).catch((error) => setToast(error));
   };
 
   const confirmUnblock = () => {
     if (!unblockTarget) return;
-    studentsApi.setStatus(unblockTarget.id, STUDENT_STATUS.ACTIVE).then(() => { setToast(`"${unblockTarget.name}" has been unblocked.`); setUnblockTarget(null); studentsState.refetch(); }).catch((error) => setToast(error.message));
+    studentsApi.setStatus(unblockTarget.id, STUDENT_STATUS.ACTIVE).then(() => { setToast(`"${unblockTarget.name}" has been unblocked.`); setUnblockTarget(null); studentsState.refetch(); }).catch((error) => setToast(error));
   };
 
   return (
@@ -458,7 +459,7 @@ export default function UserManagement() {
         onCancel={() => setUnblockTarget(null)}
       />
 
-      {toast && <div className="ul-usr-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

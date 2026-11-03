@@ -21,20 +21,7 @@
   color: #d9822b;
 }
 
-.ul-aitb-toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 60;
-  background: var(--color-text-primary);
-  color: #fff;
-  padding: 12px 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-  max-width: 360px;
-}
+
 
 /* ---- any icon/label button on this page lines up horizontally ---- */
 .ul-aitb-form-card .ul-btn,

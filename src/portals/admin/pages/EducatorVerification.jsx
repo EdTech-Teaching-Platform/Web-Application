@@ -34,6 +34,7 @@ import { RowMenu } from "./discounts/DiscountsShared";
 import "./EducatorVerification.css";
 import "./EducatorProfile.css";
 import "./TestSeries.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
 const PAGE_SIZE = 8;
@@ -106,10 +107,7 @@ export default function EducatorVerification() {
   const [experienceFilter, setExperienceFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [page, setPage] = useState(1);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [menuAnchor, setMenuAnchor] = useState(null); // { top, right } in viewport coords for the open row menu
   const [confirmAction, setConfirmAction] = useState(null); // { type, educator }
-  const menuRef = useRef(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [addMode, setAddMode] = useState("individual"); // "individual" | "bulk"
@@ -143,33 +141,6 @@ export default function EducatorVerification() {
   }, [refetchList, refetchStats]);
 
   useEffect(() => {
-    if (!openMenuId) return undefined;
-    const onClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpenMenuId(null);
-        setMenuAnchor(null);
-      }
-    };
-    // The row menu is positioned in fixed viewport coordinates (computed
-    // on open) rather than absolutely inside the scrolling table, so it
-    // isn't clipped by the table card/scroll containers' overflow:hidden —
-    // but that also means it needs to close on any scroll, otherwise it'd
-    // stay glued to a spot on screen that no longer lines up with its row.
-    const onScroll = () => {
-      setOpenMenuId(null);
-      setMenuAnchor(null);
-    };
-    document.addEventListener("mousedown", onClick);
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onScroll);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [openMenuId]);
-
-  useEffect(() => {
     setPage(1);
   }, [debouncedSearch, accountFilter, verificationFilter, subjectFilter, experienceFilter, sortBy]);
 
@@ -201,7 +172,7 @@ export default function EducatorVerification() {
     const action = type === "delete"
       ? educatorsApi.delete(educator.id)
       : educatorsApi.setAccountStatus(educator.id, type === "suspend" ? "suspended" : "inactive");
-    action.then(() => { setConfirmAction(null); listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error.message));
+    action.then(() => { setConfirmAction(null); listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error));
   };
 
   const addErrors = useMemo(() => validateAddForm(addForm), [addForm]);
@@ -240,22 +211,7 @@ export default function EducatorVerification() {
     if (!isAddFormValid) return;
     educatorsApi.createInvites([{ name: `${addForm.firstName.trim()} ${addForm.lastName.trim()}`, email: addForm.email.trim(), phone: addForm.phone.trim() }])
       .then(() => { setToast("Invite queued. TODO: invoke the create-educator-invites Edge Function to create the Auth user and send the invite."); closeAddForm(); listState.refetch(); })
-      .catch((error) => setToast(error.message));
-  };
-
-  const toggleRowMenu = (id, e) => {
-    if (openMenuId === id) {
-      setOpenMenuId(null);
-      setMenuAnchor(null);
-      return;
-    }
-    const rect = e.currentTarget.getBoundingClientRect();
-    // open to the LEFT of the kebab button, vertically centred on it (clamped to the viewport)
-    const MENU_H = 200;
-    const centre = rect.top + rect.height / 2;
-    const top = Math.max(8, Math.min(centre - MENU_H / 2, window.innerHeight - MENU_H - 8));
-    setMenuAnchor({ top, right: window.innerWidth - rect.left + 8 });
-    setOpenMenuId(id);
+      .catch((error) => setToast(error));
   };
 
   const confirmCopy = {
@@ -452,7 +408,7 @@ export default function EducatorVerification() {
                           // "View Courses" (Performance tab) hidden for now
                           { label: "Verification Details", onClick: () => navigate(`/admin/educatorverification/${e.id}`, { state: { tab: "documents" } }) },
                           e.accountStatus === "suspended"
-                            ? { label: "Activate", onClick: () => educatorsApi.setAccountStatus(e.id, "active").then(() => { listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error.message)) }
+                            ? { label: "Activate", onClick: () => educatorsApi.setAccountStatus(e.id, "active").then(() => { listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error)) }
                             : { label: "Suspend", onClick: () => setConfirmAction({ type: "suspend", educator: e }) },
                         ]}
                       />
@@ -640,7 +596,7 @@ export default function EducatorVerification() {
         </div>
       )}
 
-      {toast && <div className="ul-usr-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

@@ -46,6 +46,7 @@ import { IconSearch, IconClose, IconChevronDown } from "../components/icons";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./CourseApproval.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const PAGE_SIZE = 8;
 const STATUS_BADGE_CLASS = {
@@ -623,7 +624,7 @@ export default function CourseApproval() {
         onCancel={() => setApproveOpen(null)}
       />
 
-      {toast && <div className="ul-crs-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

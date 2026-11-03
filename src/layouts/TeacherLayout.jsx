@@ -1,6 +1,8 @@
 import { Suspense, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import RouteFallback from "../components/common/RouteFallback";
+import ErrorBoundary from "../components/common/ErrorBoundary";
+import { useLogoutConfirm } from "../components/common/LogoutConfirm";
 import { useAuth } from "../hooks/useAuth";
 import { homePathForUser } from "../utils/roles";
 import { AUTH_THEME_VARS, BrandMark } from "../auth/components/AuthKit";
@@ -54,12 +56,13 @@ export default function TeacherLayout() {
 
 export function EducatorGate({ user, onLogout, statusApi }) {
   const { status, gate, loading, error, refresh } = useEducatorStatus(statusApi ? { api: statusApi } : undefined);
+  const logoutConfirm = useLogoutConfirm(onLogout);
   if (loading && !status) return <RouteFallback fullscreen />;
   if (gate === GATE.ONBOARDING) return <Navigate to="/teacher/onboarding" replace />;
   if (gate !== GATE.PORTAL) {
-    return <EducatorGateScreen gate={gate} status={status} error={error} onRetry={refresh} onLogout={onLogout} />;
+    return <><EducatorGateScreen gate={gate} status={status} error={error} onRetry={refresh} onLogout={logoutConfirm.request} />{logoutConfirm.dialog}</>;
   }
-  return <PortalShell user={user} onLogout={onLogout} />;
+  return <><PortalShell user={user} onLogout={logoutConfirm.request} />{logoutConfirm.dialog}</>;
 }
 
 function PortalShell({ user, onLogout }) {
@@ -135,9 +138,11 @@ function PortalShell({ user, onLogout }) {
         <main className="flex-1 px-3 pb-8 pt-5 sm:px-5 lg:px-6 lg:pt-6">
           <div className="mx-auto w-full max-w-[1280px]">
             <AuthoringPortalContext.Provider value={EDUCATOR_AUTHORING}>
-              <Suspense fallback={<RouteFallback />}>
-                <Outlet />
-              </Suspense>
+              <ErrorBoundary name="teacher" resetKey={pathname} homeHref="/teacher/dashboard">
+                <Suspense fallback={<RouteFallback />}>
+                  <Outlet />
+                </Suspense>
+              </ErrorBoundary>
             </AuthoringPortalContext.Provider>
           </div>
         </main>

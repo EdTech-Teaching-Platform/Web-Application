@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLogoutConfirm } from "./LogoutConfirm";
 import { Link, useLocation } from "react-router-dom";
 import { BellIcon, ChevronDownIcon } from "../../components/ui/icons";
 import { BrandMark } from "../../auth/components/AuthKit";
@@ -80,7 +81,7 @@ function NavGroup({ group, pathname }) {
 // compatibility (they render, in that fixed order, before navEntries).
 export default function Navbar({ title, links = [], navItems, navGroups, navEntries, user, notificationsHref, onSignOut }) {
   const { pathname } = useLocation();
-  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  const logoutConfirm = useLogoutConfirm(onSignOut, { description: "You'll need to sign in again to continue learning." });
 
   const initials = user?.name
     ? user.name
@@ -165,7 +166,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
         {onSignOut && (
           <button
             type="button"
-            onClick={() => setSignOutConfirmOpen(true)}
+            onClick={logoutConfirm.request}
             className="hidden rounded-full bg-(--lp-ink) px-4 py-2.5 text-xs font-semibold text-white transition-transform duration-200 ease-out hover:-translate-y-0.5 lg:inline"
           >
             Sign out
@@ -174,18 +175,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
       </nav>
      </div>
     </header>
-    {signOutConfirmOpen && (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-(--lp-ink)/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSignOutConfirmOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") setSignOutConfirmOpen(false); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="sign-out-title" className="w-full max-w-md rounded-[32px] bg-white p-7 shadow-[0_30px_80px_rgba(15,17,21,0.3)] ring-1 ring-(--lp-line)">
-          <h2 id="sign-out-title" className="font-display text-xl font-bold text-text">Sign out?</h2>
-          <p className="mt-2 text-sm leading-6 text-text/60">Are you sure you want to sign out of Universal Learning?</p>
-          <div className="mt-6 flex justify-end gap-3">
-            <button type="button" autoFocus onClick={() => setSignOutConfirmOpen(false)} className="rounded-full bg-(--lp-grey) px-5 py-2.5 text-sm font-semibold text-(--lp-ink) hover:bg-(--lp-line)">Stay signed in</button>
-            <button type="button" onClick={() => { setSignOutConfirmOpen(false); onSignOut?.(); }} className="rounded-full bg-(--lp-ink) px-5 py-2.5 text-sm font-semibold text-white hover:bg-(--lp-ink)/90">Sign out</button>
-          </div>
-        </section>
-      </div>
-    )}
+    {logoutConfirm.dialog}
     </>
   );
 }

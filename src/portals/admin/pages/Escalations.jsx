@@ -10,6 +10,7 @@ import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./SettingsPermissions.css";
 import "../../regionalhead/regionalhead.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const TABS = [
   { key: "active", label: "Needs action" },
@@ -112,7 +113,7 @@ export default function Escalations() {
           </ul>
         </Modal>
       )}
-      {toast && <div className="ul-set-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

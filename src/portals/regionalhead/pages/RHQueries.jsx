@@ -10,6 +10,7 @@ import {
 import "../../admin/pages/AdminDashboard.css";
 import "../../admin/pages/EducatorVerification.css";
 import "../../admin/pages/SettingsPermissions.css";
+import PageToast from "../../../components/feedback/Toast";
 
 function Timeline({ items }) {
   return (
@@ -247,7 +248,7 @@ export default function RHQueries() {
         </Modal>
       )}
 
-      {toast && <div className="ul-set-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

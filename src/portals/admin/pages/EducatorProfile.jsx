@@ -29,6 +29,7 @@ import { EDUCATOR_DECISION, educatorStatusBadge, mapEducatorStatus } from "../ut
 import { useDocumentViewer } from "../../../components/common/DocumentViewer";
 import "./EducatorVerification.css";
 import "./EducatorProfile.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
 const DOC_STATUS_LABEL = { pending: "Pending", verified: "Verified", rejected: "Rejected" };
@@ -189,13 +190,13 @@ export default function EducatorProfile() {
           setToast(DONE[type] || "Educator updated.");
           detailState.refetch().catch(() => {});
         })
-        .catch((error) => setToast(error.message));
+        .catch((error) => setToast(error));
     }
     if (type === "reset_password") { setToast("Password reset link sent to " + educator.email + "."); }
     if (type === "force_logout") { setToast("Educator has been force-logged-out of all sessions."); }
-    if (type === "reject_document") educatorsApi.updateDocument(educator.id, confirmAction.docId, "rejected", reasonText || "Document did not meet verification requirements.").then(() => { setToast("Document rejected."); detailState.refetch(); }).catch((error) => setToast(error.message));
-    if (type === "verify_document") educatorsApi.updateDocument(educator.id, confirmAction.docId, "approved", null).then(() => { setToast("Document approved."); detailState.refetch(); }).catch((error) => setToast(error.message));
-    if (type === "request_replacement") educatorsApi.updateDocument(educator.id, confirmAction.docId, "pending", reasonText || "Replacement requested.").then(() => { setToast("Replacement requested."); detailState.refetch(); }).catch((error) => setToast(error.message));
+    if (type === "reject_document") educatorsApi.updateDocument(educator.id, confirmAction.docId, "rejected", reasonText || "Document did not meet verification requirements.").then(() => { setToast("Document rejected."); detailState.refetch(); }).catch((error) => setToast(error));
+    if (type === "verify_document") educatorsApi.updateDocument(educator.id, confirmAction.docId, "approved", null).then(() => { setToast("Document approved."); detailState.refetch(); }).catch((error) => setToast(error));
+    if (type === "request_replacement") educatorsApi.updateDocument(educator.id, confirmAction.docId, "pending", reasonText || "Replacement requested.").then(() => { setToast("Replacement requested."); detailState.refetch(); }).catch((error) => setToast(error));
     setConfirmAction(null);
     setReasonText("");
   };
@@ -229,7 +230,7 @@ export default function EducatorProfile() {
 
   return (
     <div className="ul-edp">
-      {toast && <div className="ul-edp-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
       {documentViewer.viewer}
 
       <button type="button" className="ul-edp-back" onClick={() => navigate("/admin/educatorverification")}>

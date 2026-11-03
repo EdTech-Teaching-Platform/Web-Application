@@ -231,20 +231,7 @@
 }
 
 /* ---------- export confirmation toast ---------- */
-.ul-pay-toast {
-  position: fixed;
-  top: 18px;
-  right: 22px;
-  z-index: 200;
-  max-width: 320px;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 10px 16px;
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(11, 11, 15, 0.18);
-}
+
 
 /* ---------- recent transactions row: align the trailing status badge ---------- */
 .ul-pay-activity-row {
@@ -275,10 +262,6 @@
   .ul-pay-export-btn {
     justify-content: center;
   }
-  .ul-pay-toast {
-    left: 12px;
-    right: 12px;
-    max-width: none;
-  }
+
 }
 

@@ -4,7 +4,7 @@ import Navbar from "../components/common/Navbar";
 import { BookOpenIcon, ClockIcon, CompassIcon, FileTextIcon, HomeIcon, UsersIcon } from "../components/ui/icons";
 import { useAuth } from "../hooks/useAuth";
 import { useSignOut } from "../hooks/useSignOut";
-import StudentErrorBoundary from "../components/common/StudentErrorBoundary";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 import StudentBackdrop from "../components/common/StudentBackdrop";
 import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
 import RouteFallback from "../components/common/RouteFallback";
@@ -131,13 +131,13 @@ export default function StudentLayout() {
             <StudentBackdrop />
             <div className="relative z-10 pt-[76px]">
               <style>{PAGE_TRANSITION_CSS}</style>
-              <StudentErrorBoundary key={`${location.pathname}${location.search}`}>
+              <ErrorBoundary name="student" resetKey={`${location.pathname}${location.search}`} homeHref="/student/dashboard">
                 <div key={location.pathname} className="ul-page-in">
                   <Suspense fallback={<RouteFallback />}>
                     <Outlet />
                   </Suspense>
                 </div>
-              </StudentErrorBoundary>
+              </ErrorBoundary>
             </div>
           </div>
         </main>

@@ -43,6 +43,7 @@ import "./UserManagement.css";
 import "./TestSeries.css";
 import "./TestSeriesDetail.css";
 import "./TestDetail.css";
+import PageToast from "../../../components/feedback/Toast";
 
 function emptyQuestionForm(type = QTYPE.MCQ_SINGLE) {
   return {
@@ -70,7 +71,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   }, [seriesId, testId]);
   useEffect(() => {
     let active = true;
-    load().catch((error) => active && setToast(error.message)).finally(() => active && setLoading(false));
+    load().catch((error) => active && setToast(error)).finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [load]);
   // Runs one RPC, reloads the series, shows a toast; errors come back as toasts.
@@ -83,7 +84,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
       if (message) setToast(message);
       return true;
     } catch (error) {
-      setToast(error.message);
+      setToast(error);
       return false;
     } finally {
       setSaving(false);
@@ -130,7 +131,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
       <div className="ul-ts-page">
         <button type="button" className="ul-tsd-back" onClick={goBack}><IconChevronLeft size={12} /> Back</button>
         <div className="ul-set-empty">{loading ? "Loading…" : "This Test could not be found."}</div>
-        {toast && <div className="ul-set-toast">{toast}</div>}
+        <PageToast message={toast} onDone={() => setToast("")} />
       </div>
     );
   }
@@ -199,7 +200,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
   const togglePublish = () => {
     const next = test.status === TEST_STATUS.PUBLISHED ? TEST_STATUS.DRAFT : TEST_STATUS.PUBLISHED;
     if (next === TEST_STATUS.PUBLISHED && !readiness.valid) {
-      setToast(readiness.errors[0]);
+      setToast({ message: readiness.errors[0], tone: "warning" });
       return;
     }
     run(() => testSeriesApi.setTestStatus(test.id, next), `"${test.name}" ${next === TEST_STATUS.PUBLISHED ? "published" : "unpublished"}.`);
@@ -207,7 +208,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
 
   const handlePublishSeries = async () => {
     if (!seriesReadiness.valid) {
-      setToast(seriesReadiness.errors[0]);
+      setToast({ message: seriesReadiness.errors[0], tone: "warning" });
       return;
     }
     // An educator's own series goes to an admin for approval instead.
@@ -466,7 +467,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
         onCancel={() => setDeleteTarget(null)}
       />
 
-      {toast && <div className="ul-set-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

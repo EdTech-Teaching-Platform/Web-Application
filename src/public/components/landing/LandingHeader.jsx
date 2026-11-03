@@ -13,6 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronRightIcon, LogoutIcon, MenuIcon, XIcon } from "../../../components/ui/icons";
 import { useAuth } from "../../../hooks/useAuth";
 import { useSignOut } from "../../../hooks/useSignOut";
+import { useLogoutConfirm } from "../../../components/common/LogoutConfirm";
 import { homePathForUser } from "../../../utils/roles";
 import { ArrowUpRight } from "./LandingUI";
 
@@ -51,6 +52,7 @@ function NavItem({ link, communityHref, active, className, onClick, children }) 
 
 function AccountMenu({ initials, name, email, onSignOut }) {
   const [open, setOpen] = useState(false);
+  const logoutConfirm = useLogoutConfirm(onSignOut);
   const ref = useRef(null);
 
   // close on outside click / Escape
@@ -100,7 +102,7 @@ function AccountMenu({ initials, name, email, onSignOut }) {
           role="menuitem"
           onClick={() => {
             setOpen(false);
-            onSignOut();
+            logoutConfirm.request();
           }}
           className="group mt-1.5 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-semibold text-(--lp-ink) transition-colors duration-150 hover:bg-[#fdecec] hover:text-[#b42318] focus-visible:bg-[#fdecec] focus-visible:text-[#b42318] focus-visible:outline-none"
         >
@@ -110,6 +112,7 @@ function AccountMenu({ initials, name, email, onSignOut }) {
           Sign out
         </button>
       </div>
+      {logoutConfirm.dialog}
     </div>
   );
 }
@@ -118,6 +121,7 @@ export default function LandingHeader({ links, communityHref }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const signOut = useSignOut();
+  const mobileLogout = useLogoutConfirm(signOut);
   const [scrolled, setScrolled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeHref, setActiveHref] = useState(null);
@@ -182,6 +186,7 @@ export default function LandingHeader({ links, communityHref }) {
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6">
+      {mobileLogout.dialog}
       {/* Frosted fade across the whole top strip: content scrolling up behind
           or around the pill blurs out instead of showing sharp in the gaps. */}
       <div
@@ -317,7 +322,7 @@ export default function LandingHeader({ links, communityHref }) {
             </Link>
             <button
               type="button"
-              onClick={() => { setMenuOpen(false); signOut(); }}
+              onClick={() => { setMenuOpen(false); mobileLogout.request(); }}
               className="block w-full rounded-full bg-white py-3 text-center text-sm font-semibold text-(--lp-ink) ring-1 ring-(--lp-line)"
             >
               Sign out

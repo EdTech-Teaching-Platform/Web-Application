@@ -11,6 +11,7 @@ import { IconChevronLeft, IconShield, IconEye, IconEyeOff } from "../components/
 import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
 import "./ChangePassword.css";
+import PageToast from "../../../components/feedback/Toast";
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -148,7 +149,7 @@ export default function ChangePassword() {
         </form>
       </div>
 
-      {toast && <div className="ul-set-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

@@ -67,6 +67,7 @@ import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./UserManagement.css";
 import "./SettingsPermissions.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const TABS = [
   { key: "permissions", label: "Permissions & Roles" },
@@ -177,7 +178,7 @@ export default function SettingsPermissions() {
         />
       )}
 
-      {toast && <div className="ul-set-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

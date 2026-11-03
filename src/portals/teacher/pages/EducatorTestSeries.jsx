@@ -11,6 +11,7 @@ import { SERIES_TABS, groupSeriesByTab } from "../utils/onboarding";
 import { Empty, ErrorState, Loading, PageCard, StatusPill } from "../components/PageState";
 import { formatDate } from "../utils/format";
 import AssetImage from "../../../components/common/AssetImage";
+import PageToast from "../../../components/feedback/Toast";
 
 const EMPTY_TEXT = {
   published: "Nothing published yet. Series go live once an admin approves them (or when you publish an assigned one).",
@@ -43,7 +44,7 @@ export default function EducatorTestSeries({ api = testSeriesApi }) {
       title="My test series"
       action={<Link to="/teacher/test-series/new" className="rounded-full bg-(--lp-ink) px-4 py-2 text-sm font-semibold text-white">Create Test Series</Link>}
     >
-      {toast && <p role="status" className="mb-4 rounded-2xl bg-(--lp-blue-tint) p-3 text-sm">{toast}</p>}
+      <PageToast message={toast} onDone={() => setToast("")} />
       <div role="tablist" aria-label="Test series by status" className="mb-4 flex flex-wrap gap-2">
         {SERIES_TABS.map((t) => (
           <button key={t.key} type="button" role="tab" id={`ts-tab-${t.key}`} aria-selected={tab === t.key} aria-controls="ts-panel"

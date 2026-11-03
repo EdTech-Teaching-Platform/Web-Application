@@ -42,6 +42,7 @@ import "./SettingsPermissions.css";
 import "./AITestBuilder.css";
 import ComingSoonBadge from "../components/ComingSoonBadge";
 import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
+import PageToast from "../../../components/feedback/Toast";
 
 const EMPTY_AI_FORM = {
   testName: "",
@@ -389,7 +390,7 @@ export default function AITestBuilder() {
 
   return (
     <>
-      {toast && <div className="ul-aitb-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
 
       <div className="ul-dash-welcome ul-aitb-welcome">
         <div>

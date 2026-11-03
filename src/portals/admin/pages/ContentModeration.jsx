@@ -15,8 +15,8 @@ import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./RegionalHeads.css";
-import "./SettingsPermissions.css";   // .ul-set-toast
 import "./ContentModeration.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const PAGE_SIZE = 10;
 const TAB_STATUSES = { open: ["new", "in_review"], closed: ["resolved", "dismissed"] };
@@ -358,8 +358,7 @@ export default function ContentModeration() {
       <ItemTable key={tab} tab={tab} onOpen={setOpenId} reloadKey={reloadKey} />
 
       {openId && <ItemDetail id={openId} onClose={close} onChanged={changed} setToast={setToast} />}
-      {/* above the drawer's backdrop (z-index 1000, ContentModeration.css) */}
-      {toast && <div className="ul-set-toast" role="status" style={{ zIndex: 1100 }}>{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Suspense } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import RouteFallback from "../components/common/RouteFallback";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 import { useRegionHead } from "../portals/regionalhead/hooks/useRegionHead";
 import RHSidebar from "../portals/regionalhead/components/RHSidebar";
 import { IconBell, IconMenu } from "../portals/admin/components/icons";
@@ -63,7 +64,7 @@ export default function RegionalHeadLayout() {
               )}
             </div>
           </div>
-          <div className="ul-main__page" key={location.pathname}><Suspense fallback={<RouteFallback />}><Outlet /></Suspense></div>
+          <div className="ul-main__page" key={location.pathname}><ErrorBoundary name="regionalhead" resetKey={location.pathname} homeHref="/regionalhead"><Suspense fallback={<RouteFallback />}><Outlet /></Suspense></ErrorBoundary></div>
         </main>
       </div>
     </div>

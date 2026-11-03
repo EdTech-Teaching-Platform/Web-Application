@@ -32,6 +32,7 @@ import QuestionAnalytics from "./performance/QuestionAnalytics";
 import EngagementIntegrity from "./performance/EngagementIntegrity";
 import InsightsPanel from "./performance/InsightsPanel";
 import PerformanceSkeleton from "./performance/PerformanceSkeleton";
+import PageToast from "../../../components/feedback/Toast";
 
 const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
@@ -190,7 +191,7 @@ function PerformanceDashboard({ series }) {
 
       <StudentDrawer studentKey={openStudent} report={report} onClose={() => setOpenStudent(null)} onAnnounce={announce} onRoster={(k) => rosterKeys.has(k)} />
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} summary={filterSummary(filters, perf.tests, courseOptions)} rowCount={report?.students.length || 0} onExport={doExport} busy={exporting} error={exportError} />
-      {toast && <div role="status" className="fixed bottom-6 left-1/2 z-[60] max-w-sm -translate-x-1/2 rounded-2xl bg-text px-5 py-3 text-sm text-white shadow-elevated">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

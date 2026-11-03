@@ -29,23 +29,7 @@
   letter-spacing: 0.01em;
 }
 
-.ul-asg-toast {
-  position: fixed;
-  top: auto;
-  bottom: 24px;
-  right: 24px;
-  left: auto;
-  width: max-content;
-  max-width: 360px;
-  background: var(--color-text-primary);
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 600;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
-  z-index: 300;
-}
+
 
 /* ---- progress column ---- */
 .ul-asg-progress {

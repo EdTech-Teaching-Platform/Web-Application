@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useCallback } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
 import { IconDashboard, IconUsers, IconChart, IconPhone, IconLogout, IconClose, IconPlus } from "../../admin/components/icons";
-import ConfirmModal from "../../admin/components/ConfirmModal";
+import { useLogoutConfirm } from "../../../components/common/LogoutConfirm";
 import brandLogo from "../../../assets/brand-logo.png";
 import "../../admin/components/AdminChrome.css";
 import "../../admin/adminTheme.css";
@@ -18,7 +18,8 @@ const NAV = [
 export default function RHSidebar({ open, onClose, head, region, openCount }) {
   const { setUser } = useAuth();
   const navigate = useNavigate();
-  const [confirm, setConfirm] = useState(false);
+  const signOut = useCallback(() => { setUser(null); navigate("/regionalhead/login", { replace: true }); }, [setUser, navigate]);
+  const logoutConfirm = useLogoutConfirm(signOut, { description: "You'll need to sign in again to reach your region's workspace." });
   const initials = (head ? head.name : "RH").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   return (
     <>
@@ -53,15 +54,12 @@ export default function RHSidebar({ open, onClose, head, region, openCount }) {
               <p className="ul-sidebar__profile-role">Regional Head · {region}</p>
             </div>
           </div>
-          <button type="button" className="ul-rhp-signout" onClick={() => setConfirm(true)}>
+          <button type="button" className="ul-rhp-signout" onClick={logoutConfirm.request}>
             <IconLogout size={15} /> Sign out
           </button>
         </div>
       </aside>
-      <ConfirmModal open={confirm} title="Log out?" description="You will need to sign in again to reach your region's workspace."
-        confirmLabel="Log out" tone="danger"
-        onConfirm={() => { setConfirm(false); setUser(null); navigate("/regionalhead/login", { replace: true }); }}
-        onCancel={() => setConfirm(false)} />
+      {logoutConfirm.dialog}
     </>
   );
 }

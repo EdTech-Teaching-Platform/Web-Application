@@ -7,6 +7,7 @@ import { IconDownload, IconSearch } from "../components/icons";
 import "./AdminDashboard.css";
 import "./SettingsPermissions.css";
 import "./SupportTickets.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const PAGE_SIZE = 8;
 const label = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -42,9 +43,9 @@ function CallbacksTab() {
   const list = useRpc(listRequest);
   useEffect(() => { setPage(1); }, [search, status, source]);
   const retry = () => { stats.refetch().catch(() => {}); list.refetch().catch(() => {}); };
-  const open = async (row) => { try { const data = await callbacksApi.detail(row.id); setSelected(data); setNote(""); } catch (e) { setToast(e.message); } };
-  const changeStatus = async (value) => { try { await callbacksApi.setStatus(selected.id, value, note); setSelected(null); setToast(`Marked ${label(value)}.`); list.refetch().catch(() => {}); stats.refetch().catch(() => {}); } catch (e) { setToast(e.message); } };
-  const exportRows = async () => { try { download(await callbacksApi.export({ search, status, source })); } catch (e) { setToast(e.message); } };
+  const open = async (row) => { try { const data = await callbacksApi.detail(row.id); setSelected(data); setNote(""); } catch (e) { setToast(e); } };
+  const changeStatus = async (value) => { try { await callbacksApi.setStatus(selected.id, value, note); setSelected(null); setToast(`Marked ${label(value)}.`); list.refetch().catch(() => {}); stats.refetch().catch(() => {}); } catch (e) { setToast(e); } };
+  const exportRows = async () => { try { download(await callbacksApi.export({ search, status, source })); } catch (e) { setToast(e); } };
   const s = stats.data || {};
   return <>
     <div className="ul-stats ul-sup-stats">{[["TOTAL REQUESTS", s.total], ["NEW", s.new], ["CONTACTED", s.contacted], ["CLOSED", s.closed]].map(([name, value]) => <div className="ul-stat-card" key={name}><span className="ul-stat-card__label">{name}</span><span className="ul-stat-card__value">{stats.loading ? "…" : value ?? 0}</span></div>)}</div>
@@ -53,7 +54,7 @@ function CallbacksTab() {
     <div className="ul-card"><div className="ul-set-table"><div className="ul-set-table__head"><span>Request</span><span>Source</span><span>Status</span><span>Received</span><span /></div>{list.loading ? <p className="ul-audit-empty">Loading…</p> : !list.data?.rows.length ? <p className="ul-audit-empty">No callback requests found.</p> : list.data.rows.map((row) => <div className="ul-set-table__row" key={row.id}><span><strong>{row.name}</strong><small>{row.phone_display || row.phone} · {row.email || "No email"}</small></span><span>{row.source_label || label(row.source)}</span><span className="ul-status-badge">{row.status_label || label(row.status)}</span><span>{row.created_at ? new Date(row.created_at).toLocaleDateString() : "—"}</span><button type="button" className="ul-btn ul-btn--ghost" onClick={() => open(row)}>View</button></div>)}</div></div>
     <div className="ul-sup-export-row"><button type="button" className="ul-btn ul-btn--ghost" onClick={exportRows}><IconDownload size={13}/> Export Callback Report</button><button type="button" className="ul-btn ul-btn--ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><span>Page {page} · {list.data?.total || 0}</span><button type="button" className="ul-btn ul-btn--ghost" disabled={!list.data || page * PAGE_SIZE >= list.data.total} onClick={() => setPage(page + 1)}>Next</button></div>
     {selected && <div className="ul-audit-modal-backdrop" role="presentation"><div className="ul-audit-modal"><h3>{selected.code} · {selected.name}</h3><p>{selected.message}</p><p>{selected.phone} · {selected.email || "No email"}</p><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Follow-up note" /><div className="ul-audit-modal__actions">{["new", "contacted", "closed"].map((value) => <button type="button" className="ul-btn ul-btn--primary" key={value} onClick={() => changeStatus(value)}>{label(value)}</button>)}<button type="button" className="ul-btn ul-btn--ghost" onClick={() => setSelected(null)}>Close</button></div></div></div>}
-    {toast && <div className="ul-set-toast">{toast}</div>}
+    <PageToast message={toast} onDone={() => setToast("")} />
   </>;
 }
 
@@ -71,7 +72,7 @@ function TicketsTab() {
   const list = useRpc(listRequest);
   useEffect(() => { setPage(1); }, [search, status, priority, category]);
   const refresh = () => { stats.refetch().catch(() => {}); list.refetch().catch(() => {}); };
-  const open = async (row) => { try { setSelected(await supportTicketsApi.get(row.id)); setReply(""); setInternal(false); } catch (e) { setToast(e.message); } };
+  const open = async (row) => { try { setSelected(await supportTicketsApi.get(row.id)); setReply(""); setInternal(false); } catch (e) { setToast(e); } };
   // Runs one ticket action; actions that return the ticket refresh the open modal.
   const act = async (request, message) => {
     if (busy) return;
@@ -81,7 +82,7 @@ function TicketsTab() {
       setSelected(result && result.id ? result : await supportTicketsApi.get(selected.id));
       setToast(message);
       refresh();
-    } catch (e) { setToast(e.message); } finally { setBusy(false); }
+    } catch (e) { setToast(e); } finally { setBusy(false); }
   };
   const sendReply = () => {
     if (!reply.trim()) return;
@@ -109,6 +110,6 @@ function TicketsTab() {
         <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setSelected(null)}>Close</button>
       </div>
     </div></div>}
-    {toast && <div className="ul-set-toast">{toast}</div>}
+    <PageToast message={toast} onDone={() => setToast("")} />
   </>;
 }

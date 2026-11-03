@@ -61,6 +61,7 @@ import "./AdminDashboard.css";
 import "./EducatorVerification.css";
 import "./InstitutionManagement.css";
 import "./RegionBranchHierarchy.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const EMPTY_UNIT_FORM = { name: "", type: ORG_UNIT_TYPE.BRANCH, parentId: "", headTeacher: "" };
 
@@ -515,7 +516,7 @@ export default function RegionBranchHierarchy() {
   const handleApprove = (request) => {
     const result = approveRequest(request.id, performedBy);
     if (!result.success) {
-      setToast(result.error || "Could not approve this request.");
+      setToast({ message: result.error || "Could not approve this request.", tone: "error" });
       return;
     }
     setToast("Request approved and applied.");
@@ -1493,7 +1494,7 @@ export default function RegionBranchHierarchy() {
         />
       </ConfirmModal>
 
-      {toast && <div className="ul-usr-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

@@ -11,8 +11,7 @@
 // Emails are MOCK: no real email is sent. Each invite is written to a mock
 // email log and its secure link can be copied/opened to test acceptance.
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEducators } from "../data/educatorsMock";
 import {
@@ -43,6 +42,8 @@ import "./EducatorVerification.css";
 import "./EducatorProfile.css";
 import "./TestSeries.css";
 import "./RegionalHeads.css";
+import PageToast from "../../../components/feedback/Toast";
+import RowActionsMenu from "../../../components/common/RowActionsMenu";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -74,33 +75,6 @@ export default function RegionalHeads() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // ---- shared kebab menu (same fixed-position pattern as the educator list) ----
-  const [menu, setMenu] = useState(null); // { id, top, right, kind }
-  const menuRef = useRef(null);
-  useEffect(() => {
-    if (!menu) return undefined;
-    const close = () => setMenu(null);
-    const onDown = (e) => {
-      if (e.target.closest && e.target.closest(".ul-edu-more-btn")) return;
-      if (menuRef.current && !menuRef.current.contains(e.target)) close();
-    };
-    document.addEventListener("mousedown", onDown);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
-    };
-  }, [menu]);
-  const openMenu = (id, kind, ev) => {
-    if (menu && menu.id === id) {
-      setMenu(null);
-      return;
-    }
-    const rect = ev.currentTarget.getBoundingClientRect();
-    setMenu({ id, kind, top: rect.top, right: window.innerWidth - rect.left + 6 });
-  };
 
   // ---- modals ----
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -231,12 +205,21 @@ export default function RegionalHeads() {
   };
   const doResend = (inv) => {
     const res = resendInvitation(inv.id);
-    setToast(res.ok ? `Invitation resent to ${inv.email} (mock email). The previous link no longer works.` : res.error);
+    setToast(res.ok ? `Invitation resent to ${inv.email} (mock email). The previous link no longer works.` : { message: res.error, tone: "error" });
   };
 
-  const menuHead = menu && menu.kind === "head" ? state.heads.find((h) => h.id === menu.id) : null;
-  const menuInvite = menu && menu.kind === "invite" ? state.invitations.find((i) => i.id === menu.id) : null;
-  const menuInviteStatus = menuInvite ? invitationDisplayStatus(menuInvite) : null;
+  // Row menu items from the row's own state (active head: Reassign / Remove; pending invitation: Revoke).
+  const rowMenuItems = (r) => {
+    if (r.kind === "head") {
+      const head = state.heads.find((h) => h.id === r.key);
+      return head ? [
+        { label: "Reassign", onClick: () => { setReassignTarget(head); setReassignRegion(""); setReassignError(""); } },
+        { label: "Remove", danger: true, onClick: () => setRemoveTarget(head) },
+      ] : [];
+    }
+    const inv = state.invitations.find((i) => i.id === r.key);
+    return inv && invitationDisplayStatus(inv) === "pending" ? [{ label: "Revoke", danger: true, onClick: () => setRevokeTarget(inv) }] : [];
+  };
   const emailEntry = emailView ? state.emailLog.find((m) => m.invitationId === emailView.id) : null;
 
   return (
@@ -346,9 +329,7 @@ export default function RegionalHeads() {
                       <td className="ul-edu-actions-cell" onClick={(ev) => ev.stopPropagation()}>
                         {((r.kind === "head" && r.status === "active") || open) && (
                           <div className="ul-edu-actions-inner">
-                            <button type="button" className="ul-edu-more-btn" aria-label="More actions" aria-haspopup="menu" aria-expanded={!!menu && menu.id === r.key} onClick={(ev) => openMenu(r.key, r.kind, ev)}>
-                              <IconMore size={15} />
-                            </button>
+                            <RowActionsMenu triggerClassName="ul-edu-more-btn" icon={<IconMore size={15} />} items={rowMenuItems(r)} />
                           </div>
                         )}
                       </td>
@@ -366,28 +347,6 @@ export default function RegionalHeads() {
 
       {teamOf && <RegionalHeadTeam head={teamOf} onClose={() => setTeamOf(null)} />}
 
-      {/* ---------- kebab menu (portal so it is never clipped) ---------- */}
-      {menu && (menuHead || menuInvite) &&
-        createPortal(
-          <div ref={menuRef} className="ul-edu-row-menu" role="menu" style={{ top: `${menu.top}px`, right: `${menu.right}px` }}>
-            {menuHead && (
-              <>
-                <button type="button" onClick={() => { setReassignTarget(menuHead); setReassignRegion(""); setReassignError(""); setMenu(null); }}>
-                  Reassign
-                </button>
-                <button type="button" className="is-danger" onClick={() => { setRemoveTarget(menuHead); setMenu(null); }}>
-                  Remove
-                </button>
-              </>
-            )}
-            {menuInvite && menuInviteStatus === "pending" && (
-              <button type="button" className="is-danger" onClick={() => { setRevokeTarget(menuInvite); setMenu(null); }}>
-                Revoke
-              </button>
-            )}
-          </div>,
-          document.body
-        )}
 
       {/* ---------- Invite ---------- */}
       <ConfirmModal
@@ -506,7 +465,7 @@ export default function RegionalHeads() {
         confirmLabel="Remove"
         onConfirm={() => {
           const res = removeRegionalHead(removeTarget.id);
-          setToast(res.ok ? `${removeTarget.name} is no longer a Regional Head.` : res.error);
+          setToast(res.ok ? `${removeTarget.name} is no longer a Regional Head.` : { message: res.error, tone: "error" });
           setRemoveTarget(null);
         }}
         onCancel={() => setRemoveTarget(null)}
@@ -522,7 +481,7 @@ export default function RegionalHeads() {
         confirmLabel="Revoke"
         onConfirm={() => {
           const res = revokeInvitation(revokeTarget.id);
-          setToast(res.ok ? "Invitation revoked." : res.error);
+          setToast(res.ok ? "Invitation revoked." : { message: res.error, tone: "error" });
           setRevokeTarget(null);
         }}
         onCancel={() => setRevokeTarget(null)}
@@ -556,7 +515,7 @@ export default function RegionalHeads() {
         </div>
       )}
 
-      {toast && <div className="ul-usr-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

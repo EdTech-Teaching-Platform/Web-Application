@@ -13,7 +13,6 @@
 // .ul-edp-tabs (EducatorProfile.css).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   ASSIGNMENT_STATUS,
   ASSIGNMENT_STATUS_LABEL,
@@ -40,6 +39,8 @@ import "./TestSeries.css";
 import "./SettingsPermissions.css";
 import "./EducatorProfile.css";
 import "./AssignEducators.css";
+import PageToast from "../../../components/feedback/Toast";
+import RowActionsMenu from "../../../components/common/RowActionsMenu";
 
 const money = () => ""; // placeholder kept out — no currency on this page
 const getDisplayStatus = (a) => a.displayStatus || a.status;
@@ -94,40 +95,6 @@ export default function AssignEducators() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // ---- shared row kebab menu ----
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [menuAnchor, setMenuAnchor] = useState(null);
-  const menuRef = useRef(null);
-  useEffect(() => {
-    if (!openMenuId) return undefined;
-    const onClick = (e) => {
-      if (e.target.closest && e.target.closest(".ul-edu-more-btn")) return;
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpenMenuId(null);
-        setMenuAnchor(null);
-      }
-    };
-    const onScroll = () => {
-      setOpenMenuId(null);
-      setMenuAnchor(null);
-    };
-    document.addEventListener("mousedown", onClick);
-    window.addEventListener("scroll", onScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      window.removeEventListener("scroll", onScroll, true);
-    };
-  }, [openMenuId]);
-  const toggleRowMenu = (id, e) => {
-    if (openMenuId === id) {
-      setOpenMenuId(null);
-      setMenuAnchor(null);
-      return;
-    }
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMenuAnchor({ top: rect.top, right: window.innerWidth - rect.left + 6 });
-    setOpenMenuId(id);
-  };
 
   // ---- Assignment Management: search / filters / sort / pagination ----
   const [search, setSearch] = useState("");
@@ -242,7 +209,6 @@ export default function AssignEducators() {
     setFormErrors([]);
     setEditingId(a.id);
     setFormMode("edit");
-    setOpenMenuId(null);
   };
   const closeForm = () => setFormMode(null);
 
@@ -336,8 +302,7 @@ export default function AssignEducators() {
   const [reviewQComment, setReviewQComment] = useState("");
 
   const openReview = (a) => {
-    setOpenMenuId(null);
-    if (a.status === ASSIGNMENT_STATUS.SUBMITTED) assignmentsApi.startReview(a.id).then(() => assignmentsState.refetch()).catch((error) => setToast(error.message));
+    if (a.status === ASSIGNMENT_STATUS.SUBMITTED) assignmentsApi.startReview(a.id).then(() => assignmentsState.refetch()).catch((error) => setToast(error));
     setReviewTarget(a.id);
     setReviewDecision("approved");
     setReviewFeedback("");
@@ -350,7 +315,7 @@ export default function AssignEducators() {
     if (!reviewAssignment) return;
     const questionComments = reviewQComment.trim() ? [{ questionRef: "General", comment: reviewQComment.trim() }] : [];
     assignmentsApi.review(reviewAssignment.id, reviewDecision, reviewFeedback, questionComments, reviewReason)
-      .then(() => assignmentsState.refetch()).catch((error) => setToast(error.message));
+      .then(() => assignmentsState.refetch()).catch((error) => setToast(error));
     setToast(
       reviewDecision === "approved"
         ? "Submission approved. Educator notified (mock)."
@@ -365,7 +330,7 @@ export default function AssignEducators() {
 
   return (
     <>
-      {toast && <div className="ul-asg-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
 
       <div className="ul-edu-header">
         <div>
@@ -503,53 +468,18 @@ export default function AssignEducators() {
                           <td><StatusBadge status={displayStatus} /></td>
                           <td className="ul-edu-actions-cell" onClick={(ev) => ev.stopPropagation()}>
                             <div className="ul-edu-actions-inner">
-                              <button type="button" className="ul-edu-more-btn" onClick={(ev) => toggleRowMenu(a.id, ev)} aria-haspopup="menu" aria-expanded={openMenuId === a.id} aria-label="More actions">
-                                <IconMore size={15} />
-                              </button>
-                              {openMenuId === a.id && menuAnchor && createPortal(
-                                <div
-                                  className="ul-edu-row-menu"
-                                  role="menu"
-                                  ref={(el) => {
-                                    menuRef.current = el;
-                                    // Open beside the dots; shift up only if it would run off the bottom of the viewport.
-                                    if (!el) return;
-                                    const h = el.offsetHeight;
-                                    const maxTop = window.innerHeight - h - 8;
-                                    el.style.top = `${Math.max(8, Math.min(menuAnchor.top, maxTop))}px`;
-                                  }}
-                                  style={{ top: `${menuAnchor.top}px`, right: `${menuAnchor.right}px` }}
-                                >
-                                  <button type="button" onClick={() => { setOpenMenuId(null); setDetailId(a.id); }}>View Details</button>
-                                  <button type="button" onClick={() => openEditForm(a)}>Edit Requirements</button>
-                                  <button
-                                    type="button"
-                                    onClick={() => { setOpenMenuId(null); setReassignTarget(a.id); setReassignEducatorId(a.educatorId); }}
-                                    disabled={[ASSIGNMENT_STATUS.COMPLETED, ASSIGNMENT_STATUS.CANCELLED].includes(a.status)}
-                                  >
-                                    Reassign Educator
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => { setOpenMenuId(null); setExtendTarget(a.id); setExtendDate(a.deadline); }}
-                                    disabled={[ASSIGNMENT_STATUS.COMPLETED, ASSIGNMENT_STATUS.CANCELLED].includes(a.status)}
-                                  >
-                                    Extend Deadline
-                                  </button>
-                                  {[ASSIGNMENT_STATUS.SUBMITTED, ASSIGNMENT_STATUS.UNDER_REVIEW].includes(a.status) && (
-                                    <button type="button" onClick={() => openReview(a)}>Review Submission</button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    className="is-danger"
-                                    onClick={() => { setOpenMenuId(null); setCancelTarget(a.id); setCancelReason(""); }}
-                                    disabled={[ASSIGNMENT_STATUS.COMPLETED, ASSIGNMENT_STATUS.CANCELLED].includes(a.status)}
-                                  >
-                                    Cancel Assignment
-                                  </button>
-                                </div>,
-                                document.body
-                              )}
+                              {/* a completed or cancelled assignment only offers View Details */}
+                              <RowActionsMenu triggerClassName="ul-edu-more-btn" icon={<IconMore size={15} />} items={(() => {
+                                const closed = [ASSIGNMENT_STATUS.COMPLETED, ASSIGNMENT_STATUS.CANCELLED].includes(a.status);
+                                return [
+                                  { label: "View Details", onClick: () => setDetailId(a.id) },
+                                  !closed && { label: "Edit Requirements", onClick: () => openEditForm(a) },
+                                  !closed && { label: "Reassign Educator", onClick: () => { setReassignTarget(a.id); setReassignEducatorId(a.educatorId); } },
+                                  !closed && { label: "Extend Deadline", onClick: () => { setExtendTarget(a.id); setExtendDate(a.deadline); } },
+                                  !closed && [ASSIGNMENT_STATUS.SUBMITTED, ASSIGNMENT_STATUS.UNDER_REVIEW].includes(a.status) && { label: "Review Submission", onClick: () => openReview(a) },
+                                  !closed && { label: "Cancel Assignment", danger: true, onClick: () => { setCancelTarget(a.id); setCancelReason(""); } },
+                                ];
+                              })()} />
                             </div>
                           </td>
                         </tr>
@@ -769,7 +699,7 @@ export default function AssignEducators() {
         onConfirm={() => {
           assignmentsApi.assignRequest(assignReqTarget, assignReqEducatorId, assignReqDeadline, assignReqNote.trim())
             .then(() => { const who = eligibleEducators.find((e) => e.id === assignReqEducatorId)?.name || "the educator"; setToast(`Assigned to ${who}.`); setAssignReqTarget(null); requestState.refetch(); assignmentsState.refetch(); })
-            .catch((error) => setToast(error.message));
+            .catch((error) => setToast(error));
         }}
         onCancel={() => setAssignReqTarget(null)}
         confirmDisabled={!assignReqEducatorId || !assignReqDeadline}
@@ -802,7 +732,7 @@ export default function AssignEducators() {
         onConfirm={() => {
           assignmentsApi.rejectRequest(rejectReqTarget, rejectReqReason.trim())
             .then(() => { setToast("Request rejected."); setRejectReqTarget(null); requestState.refetch(); })
-            .catch((error) => setToast(error.message));
+            .catch((error) => setToast(error));
         }}
         onCancel={() => setRejectReqTarget(null)}
         confirmDisabled={!rejectReqReason.trim()}
@@ -822,7 +752,7 @@ export default function AssignEducators() {
         onConfirm={() => {
           assignmentsApi.reassign(reassignTarget, reassignEducatorId)
             .then(() => { setToast("Educator reassigned."); setReassignTarget(null); assignmentsState.refetch(); })
-            .catch((error) => setToast(error.message));
+            .catch((error) => setToast(error));
         }}
         onCancel={() => setReassignTarget(null)}
         confirmDisabled={!reassignEducatorId}
@@ -845,7 +775,7 @@ export default function AssignEducators() {
         onConfirm={() => {
           assignmentsApi.extend(extendTarget, extendDate)
             .then(() => { setToast("Deadline updated."); setExtendTarget(null); assignmentsState.refetch(); })
-            .catch((error) => setToast(error.message));
+            .catch((error) => setToast(error));
         }}
         onCancel={() => setExtendTarget(null)}
         confirmDisabled={!extendDate}
@@ -866,7 +796,7 @@ export default function AssignEducators() {
         onConfirm={() => {
           assignmentsApi.cancel(cancelTarget, cancelReason)
             .then(() => { setToast("Assignment cancelled."); setCancelTarget(null); assignmentsState.refetch(); })
-            .catch((error) => setToast(error.message));
+            .catch((error) => setToast(error));
         }}
         onCancel={() => setCancelTarget(null)}
       >

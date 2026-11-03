@@ -15,6 +15,7 @@ import ProgressSteps from "../../../components/ui/ProgressSteps";
 import RouteFallback from "../../../components/common/RouteFallback";
 import { BrandMark, AUTH_THEME_VARS } from "../../../auth/components/AuthKit";
 import { useAuth } from "../../../hooks/useAuth";
+import { useLogoutConfirm } from "../../../components/common/LogoutConfirm";
 import { homePathForUser } from "../../../utils/roles";
 import { educatorApi } from "../services/educatorApi";
 import { useDocumentViewer } from "../../../components/common/DocumentViewer";
@@ -89,6 +90,7 @@ export function DocumentSlot({ label, required, accept, document, upload, onPick
 export default function EducatorOnboarding({ api = educatorApi }) {
   const navigate = useNavigate();
   const { user, loading: authLoading, logout } = useAuth();
+  const logoutConfirm = useLogoutConfirm(logout);
   const [state, setState] = useState({ loading: true, error: "", onboarding: null });
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({});
@@ -213,7 +215,7 @@ export default function EducatorOnboarding({ api = educatorApi }) {
               <h1 className="font-display text-xl font-bold">{stepTitle}</h1>
             </div>
           </div>
-          <Button type="button" variant="social" fullWidth={false} className="!px-4 !py-2" onClick={() => logout()}>Log out</Button>
+          <Button type="button" variant="social" fullWidth={false} className="!px-4 !py-2" onClick={logoutConfirm.request}>Log out</Button>{logoutConfirm.dialog}
         </header>
 
         {state.error && (

@@ -26,6 +26,7 @@ import {
 } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import SeriesReviewBanner from "../components/SeriesReviewBanner";
+import RowActionsMenu from "../../../components/common/RowActionsMenu";
 import SeriesBannerEditor from "../components/SeriesBannerEditor";
 import { needsApproval, testPath, useAuthoringPortal } from "../context/authoringPortal";
 import "./AdminDashboard.css";
@@ -34,6 +35,7 @@ import "./SettingsPermissions.css";
 import "./UserManagement.css";
 import "./TestSeries.css";
 import "./TestSeriesDetail.css";
+import PageToast from "../../../components/feedback/Toast";
 
 const EMPTY_TEST_FORM = {
   name: "",
@@ -65,20 +67,12 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const [formErrors, setFormErrors] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
-  const [openMenuId, setOpenMenuId] = useState(null);
 
   useEffect(() => {
     if (!toast) return undefined;
     toastTimer.current = setTimeout(() => setToast(""), 2600);
     return () => clearTimeout(toastTimer.current);
   }, [toast]);
-
-  useEffect(() => {
-    if (!openMenuId) return undefined;
-    const close = () => setOpenMenuId(null);
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
-  }, [openMenuId]);
 
   const totals = useMemo(() => {
     if (!series) return null;
@@ -179,24 +173,24 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     if (t.status === TEST_STATUS.PUBLISHED) return;
     const { valid, errors } = validateTestForPublish(t);
     if (!valid) {
-      setToast(errors[0]);
+      setToast({ message: errors[0], tone: "warning" });
       return;
     }
-    testSeriesApi.setTestStatus(t.id, TEST_STATUS.PUBLISHED).then(() => { setToast(`"${t.name}" published.`); seriesState.refetch(); }).catch((error) => setToast(error.message));
+    testSeriesApi.setTestStatus(t.id, TEST_STATUS.PUBLISHED).then(() => { setToast(`"${t.name}" published.`); seriesState.refetch(); }).catch((error) => setToast(error));
   };
 
   const handleUnpublish = (t) => {
     if (t.status !== TEST_STATUS.PUBLISHED) return;
-    testSeriesApi.setTestStatus(t.id, TEST_STATUS.DRAFT).then(() => { setToast(`"${t.name}" unpublished.`); seriesState.refetch(); }).catch((error) => setToast(error.message));
+    testSeriesApi.setTestStatus(t.id, TEST_STATUS.DRAFT).then(() => { setToast(`"${t.name}" unpublished.`); seriesState.refetch(); }).catch((error) => setToast(error));
   };
 
   const handleDuplicateTest = (t) => {
-    testSeriesApi.createTest(series.id, { ...t, name: `${t.name} (Copy)`, status: TEST_STATUS.DRAFT }).then(() => { setToast(`"${t.name}" duplicated.`); seriesState.refetch(); }).catch((error) => setToast(error.message));
+    testSeriesApi.createTest(series.id, { ...t, name: `${t.name} (Copy)`, status: TEST_STATUS.DRAFT }).then(() => { setToast(`"${t.name}" duplicated.`); seriesState.refetch(); }).catch((error) => setToast(error));
   };
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    testSeriesApi.deleteTest(deleteTarget.id).then(() => { setToast(`"${deleteTarget.name}" deleted.`); setDeleteTarget(null); seriesState.refetch(); }).catch((error) => setToast(error.message));
+    testSeriesApi.deleteTest(deleteTarget.id).then(() => { setToast(`"${deleteTarget.name}" deleted.`); setDeleteTarget(null); seriesState.refetch(); }).catch((error) => setToast(error));
   };
 
 
@@ -274,18 +268,14 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                       <div className="ul-ts-actions-cell">
                         <button type="button" className="ul-btn ul-btn--ghost ul-set-btn-sm ul-ts-manage-btn" onClick={() => (onManageQuestions ? onManageQuestions(t.id) : navigate(testPath(portal, series.id, t.id)))}>Manage Questions</button>
                         <button type="button" className="ul-ts-icon-btn" onClick={() => openEditTest(t)} aria-label="Edit"><IconEdit size={14} /></button>
-                        <div className="ul-ts-kebab-wrap">
-                          <button type="button" className="ul-ts-icon-btn" onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === t.id ? null : t.id); }} aria-label="More actions"><IconMore size={14} /></button>
-                          {openMenuId === t.id && (
-                            <div className="ul-ts-kebab-menu" onClick={(e) => e.stopPropagation()}>
-                              {!approvalPending && <button type="button" className="is-publish" onClick={() => { handlePublish(t); setOpenMenuId(null); }}><IconCheck size={13} /> Publish</button>}
-                              <button type="button" className="is-unpublish" onClick={() => { handleUnpublish(t); setOpenMenuId(null); }}><IconEyeOff size={13} /> Unpublish</button>
-                              <button type="button" onClick={() => { handleDuplicateTest(t); setOpenMenuId(null); }}><IconReport size={13} /> Duplicate</button>
-                              <button type="button" onClick={() => { setViewTarget(t); setOpenMenuId(null); }}><IconEye size={13} /> View Details</button>
-                              <button type="button" className="is-danger" onClick={() => { setDeleteTarget(t); setOpenMenuId(null); }}><IconClose size={13} /> Delete</button>
-                            </div>
-                          )}
-                        </div>
+                        {/* items follow the test's state: a published test offers Unpublish, a draft Publish */}
+                        <RowActionsMenu triggerClassName="ul-ts-icon-btn" icon={<IconMore size={14} />} items={[
+                          t.status !== TEST_STATUS.PUBLISHED && !approvalPending && { label: "Publish", icon: <IconCheck size={13} />, onClick: () => handlePublish(t) },
+                          t.status === TEST_STATUS.PUBLISHED && { label: "Unpublish", icon: <IconEyeOff size={13} />, onClick: () => handleUnpublish(t) },
+                          { label: "Duplicate", icon: <IconReport size={13} />, onClick: () => handleDuplicateTest(t) },
+                          { label: "View Details", icon: <IconEye size={13} />, onClick: () => setViewTarget(t) },
+                          { label: "Delete", icon: <IconClose size={13} />, danger: true, onClick: () => setDeleteTarget(t) },
+                        ]} />
                       </div>
                     </td>
                   </tr>
@@ -427,7 +417,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
         onCancel={() => setDeleteTarget(null)}
       />
 
-      {toast && <div className="ul-set-toast">{toast}</div>}
+      <PageToast message={toast} onDone={() => setToast("")} />
     </div>
   );
 }

@@ -24,7 +24,7 @@ import {
   IconLayers,
   IconPercent,
 } from "./icons";
-import ConfirmModal from "./ConfirmModal";
+import { useLogoutConfirm } from "../../../components/common/LogoutConfirm";
 import brandLogo from "../../../assets/brand-logo.png";
 import "./AdminChrome.css";
 import "../adminTheme.css";
@@ -95,18 +95,13 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [menuOpen]);
 
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const logoutConfirm = useLogoutConfirm(signOut, { description: "You'll need to sign in again to access the admin console." });
   const navigation = useRpc(dashboardApi.getNavigation);
   const approvals = usePendingApprovals();   // educator series waiting for review
 
   const handleLogout = () => {
     setMenuOpen(false);
-    setLogoutConfirmOpen(true);
-  };
-
-  const confirmLogout = () => {
-    setLogoutConfirmOpen(false);
-    signOut();
+    logoutConfirm.request();
   };
 
   const initials =
@@ -210,15 +205,7 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
         </div>
       </aside>
 
-      <ConfirmModal
-        open={logoutConfirmOpen}
-        title="Log out?"
-        description="Are you sure you want to exit? You'll need to sign in again to access the admin console."
-        confirmLabel="Log out"
-        tone="danger"
-        onConfirm={confirmLogout}
-        onCancel={() => setLogoutConfirmOpen(false)}
-      />
+      {logoutConfirm.dialog}
     </>
   );
 }

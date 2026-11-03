@@ -7,6 +7,7 @@ import Input from "../../../components/ui/Input";
 import ChipInput from "../../../components/ui/ChipInput";
 import Button from "../../../components/ui/Button";
 import { useAuth } from "../../../hooks/useAuth";
+import { useLogoutConfirm } from "../../../components/common/LogoutConfirm";
 import { useRpc } from "../../admin/hooks/useRpc";
 import { documentLabel } from "../../admin/services/educatorsApi";
 import { educatorApi } from "../services/educatorApi";
@@ -18,6 +19,7 @@ const EDITABLE = ["phone", "location", "qualifications", "experience_years", "su
 
 export default function EducatorProfilePage({ api = educatorApi }) {
   const { logout } = useAuth();
+  const logoutConfirm = useLogoutConfirm(logout);
   const request = useCallback(() => api.getProfile(), [api]);
   const { data, loading, error, refetch } = useRpc(request);
   const [form, setForm] = useState(null);
@@ -110,7 +112,7 @@ export default function EducatorProfilePage({ api = educatorApi }) {
         </PageCard>
         <PageCard title="Account">
           <p className="text-sm text-(--lp-muted)">Joined {formatDate(data.joined_at)}</p>
-          <Button type="button" variant="social" fullWidth={false} className="mt-3" onClick={() => logout()}>Log out</Button>
+          <Button type="button" variant="social" fullWidth={false} className="mt-3" onClick={logoutConfirm.request}>Log out</Button>{logoutConfirm.dialog}
         </PageCard>
       </div>
     </div>

@@ -15,9 +15,9 @@ export function useToast() {
   }, []);
 
   const showToast = useCallback(
-    (message, { actionLabel, onAction, duration = 4500 } = {}) => {
+    (message, { actionLabel, onAction, tone, duration = 4500 } = {}) => {
       const id = ++idRef.current;
-      setToasts((prev) => [...prev, { id, message, actionLabel, onAction }]);
+      setToasts((prev) => [...prev, { id, message, tone, actionLabel, onAction }]);
       window.setTimeout(() => dismiss(id), duration);
       return id;
     },
