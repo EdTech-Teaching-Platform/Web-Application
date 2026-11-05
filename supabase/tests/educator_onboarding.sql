@@ -274,14 +274,18 @@ begin
   perform pg_temp.ok(public.educator_get_status() ->> 'status' = 'approved' and public.adm_is_verified_educator(),
                      'approve: educator sees approved');
 
-  -- in_app = false skips the notice, the decision still applies
+  -- in_app = false skips the notice, the decision still applies.
+  -- Since 20261104090000 an admin can't move an approved educator back to
+  -- "changes requested" (action matrix), so this preference check uses the
+  -- system writer (no admin actor), which is not matrix-checked.
   insert into public.notification_preferences (user_id, category, in_app) values (e, 'verification', false);
   perform pg_temp.act_as(pg_temp.uid('admin'));
-  perform public.set_educator_verification(e, 'changes_requested', 'Add a selfie.');
+  perform pg_temp.expect_error(format('select public.set_educator_verification(%L, ''changes_requested'', ''x'')', e), '22023');
+  perform public.adm_set_educator_state(e, 'changes_requested', 'Add a selfie.', null);
   perform pg_temp.ok((select count(*) from public.notifications where user_id = e and category = 'verification') = 3
                      and (select review_state from public.educator_admin_state where user_id = e) = 'changes_requested',
                      'notifications: preference in_app off skips the notice only');
-  perform public.set_educator_verification(e, 'verified', null);
+  perform public.adm_set_educator_state(e, 'approved', null, null);
 
   -- suspended
   update public.educator_admin_state set account_status = 'suspended', status_reason = 'Policy review' where user_id = e;

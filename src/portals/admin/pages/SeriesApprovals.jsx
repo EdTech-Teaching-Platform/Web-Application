@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
+import { useRefetchOnChange } from "../../../services/dataSync";
 import { testSeriesApi } from "../services/testSeriesApi";
 import ConfirmModal from "../components/ConfirmModal";
 import AssetImage from "../../../components/common/AssetImage";
@@ -39,6 +40,7 @@ export default function SeriesApprovals({ api = testSeriesApi, onChanged, setToa
 
   const request = useCallback(() => api.listPendingApprovals({ search: query, page, size: PAGE_SIZE }), [api, query, page]);
   const state = useRpc(request);
+  useRefetchOnChange(state.refetch, "test-series");
   const rows = state.data?.rows || [];
   const total = Number(state.data?.total || 0);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));

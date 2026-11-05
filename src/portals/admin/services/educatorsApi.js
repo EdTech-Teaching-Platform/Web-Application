@@ -1,7 +1,8 @@
 import { supabase } from "../../../services/supabaseClient";
 import { callRpc, listResult, normalizeRpcError } from "./adminApi";
 import { invokeFunction } from "../../../services/edgeFunctions";
-import { toDbEducatorStatus, toUiEducatorStatus } from "../utils/statusMaps";
+import { notifyChanged } from "../../../services/dataSync";
+import { EDUCATOR_DECISION, toDbEducatorStatus, toUiEducatorStatus } from "../utils/statusMaps";
 
 // "government_id" + "front" -> "Government ID (front)"; certificates keep their label.
 const DOC_TYPE_LABEL = {
@@ -25,6 +26,7 @@ const mapEducator = (e) => ({
   accountStatus: e.account_status,
   verificationStatus: toUiEducatorStatus(e.verification_status),   // statusMaps: DB "approved" -> UI "verified"
   effectiveState: toUiEducatorStatus(e.effective_state || e.verification_status),
+  actions: Array.isArray(e.actions) ? e.actions : [],   // adm_educator_actions: what the admin may do now
   joinedDate: e.joined_at ? new Date(e.joined_at).toLocaleDateString("en-IN") : "—",
   lastActive: e.last_active_at ? new Date(e.last_active_at).toLocaleString("en-IN") : "—",
   rating: Number(e.rating || 0),
@@ -91,6 +93,27 @@ export const educatorsApi = {
   }),
   setAccountStatus: (id, status, reason) => callRpc("set_educator_account_status", { p_id: id, p_status: status, p_reason: reason || null }),
   delete: (id) => callRpc("delete_educator", { p_id: id }),
+  // One entry point for the action matrix (statusMaps EDUCATOR_ACTIONS).
+  perform: (id, action, reason) => {
+    switch (action) {
+      case "approve": return educatorsApi.setVerification(id, EDUCATOR_DECISION.approve);
+      case "request_changes": return educatorsApi.setVerification(id, EDUCATOR_DECISION.request_changes, reason);
+      case "reject": return educatorsApi.setVerification(id, EDUCATOR_DECISION.reject, reason);
+      case "reconsider": return educatorsApi.setVerification(id, EDUCATOR_DECISION.start_review);
+      case "deactivate": return educatorsApi.setAccountStatus(id, "inactive", reason);
+      case "suspend": return educatorsApi.setAccountStatus(id, "suspended", reason);
+      case "activate":
+      case "reactivate": return educatorsApi.setAccountStatus(id, "active");
+      case "delete": return educatorsApi.delete(id);
+      default: return Promise.reject(new Error(`Unknown educator action: ${action}`));
+    }
+  },
+  // perform + "educators" change: the cached lists ("educators:…") are dropped.
+  performAndSync: async (id, action, reason) => {
+    const result = await educatorsApi.perform(id, action, reason);
+    notifyChanged("educators", { action });
+    return result;
+  },
   createInvites: async (rows) => {
     const { data, error } = await supabase.functions.invoke("create-educator-invites", { body: { rows } });
     if (error) throw normalizeRpcError(error);

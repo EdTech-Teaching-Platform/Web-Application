@@ -66,19 +66,6 @@ function AcquiredVia({ studentId }) {
   return `${a.headName} — Regional Head${a.region ? `, ${a.region}` : ""}`;
 }
 
-// Sample test-series names shown in place of course titles in the student details modal.
-const SERIES_NAMES = [
-  "JEE Main Physics Test Series 2026",
-  "Class 10 Mathematics Weekly Series",
-  "NEET Biology Crash Course Series",
-  "Banking & SSC Reasoning Practice Series",
-  "English Proficiency Test Series",
-];
-function seriesNameFor(studentId, i) {
-  let h = 0;
-  for (const ch of String(studentId)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return SERIES_NAMES[(h + i) % SERIES_NAMES.length];
-}
 
 export default function UserManagement() {
   const [search, setSearch] = useState("");
@@ -135,14 +122,41 @@ export default function UserManagement() {
     setBlockReason("");
   };
 
+  // QA triage P2: after the SQL block / unblock succeeds, the Auth-level ban
+  // follows (set-user-ban). The SQL action already stops all access, so a
+  // failed ban is a warning with Retry, not an error.
+  const syncBan = (student, ban, reason) => studentsApi.setBan(student.id, ban, reason)
+    .catch((error) => setToast({
+      tone: "warning",
+      message: `"${student.name}" is ${ban ? "blocked" : "unblocked"} in the app, but the sign-in ${ban ? "ban" : "unban"} failed: ${error?.message || "unknown error"}`,
+      actionLabel: "Retry",
+      onAction: () => syncBan(student, ban, reason).then((ok) => ok !== false && setToast({ tone: "success", message: `Sign-in ${ban ? "ban" : "unban"} applied for "${student.name}".` })),
+    }) || false);
+  const refreshAfterStatus = () => {
+    studentsState.refetch();
+    statsState.refetch().catch(() => {});
+    if (detailsId) detailState.refetch().catch(() => {});
+  };
+
   const confirmBlock = () => {
     if (!blockTarget || !blockReason.trim()) return;
-    studentsApi.setStatus(blockTarget.id, STUDENT_STATUS.BLOCKED, blockReason.trim()).then(() => { setToast(`"${blockTarget.name}" has been blocked.`); setBlockTarget(null); setBlockReason(""); studentsState.refetch(); }).catch((error) => setToast(error));
+    const student = blockTarget;
+    const reason = blockReason.trim();
+    studentsApi.setStatus(student.id, STUDENT_STATUS.BLOCKED, reason).then(() => {
+      setToast({ tone: "success", message: `"${student.name}" has been blocked.` });
+      setBlockTarget(null); setBlockReason(""); refreshAfterStatus();
+      syncBan(student, true, reason);
+    }).catch((error) => setToast(error));
   };
 
   const confirmUnblock = () => {
     if (!unblockTarget) return;
-    studentsApi.setStatus(unblockTarget.id, STUDENT_STATUS.ACTIVE).then(() => { setToast(`"${unblockTarget.name}" has been unblocked.`); setUnblockTarget(null); studentsState.refetch(); }).catch((error) => setToast(error));
+    const student = unblockTarget;
+    studentsApi.setStatus(student.id, STUDENT_STATUS.ACTIVE).then(() => {
+      setToast({ tone: "success", message: `"${student.name}" has been unblocked.` });
+      setUnblockTarget(null); refreshAfterStatus();
+      syncBan(student, false);
+    }).catch((error) => setToast(error));
   };
 
   return (
@@ -370,24 +384,48 @@ export default function UserManagement() {
                   </div>
                 </div>
 
-                {detailsStudent.status === STUDENT_STATUS.BLOCKED && detailsStudent.blockedReason && (
-                  <div className="ul-usr-feedback-box" style={{ marginTop: 12 }}>
-                    <strong>Blocked{detailsStudent.blockedDate ? ` on ${detailsStudent.blockedDate}` : ""}</strong>
-                    {detailsStudent.blockedReason}
+                {detailsStudent.status === STUDENT_STATUS.BLOCKED && (
+                  <div className="ul-usr-feedback-box" style={{ marginTop: 12 }} role="status" aria-label="Block details">
+                    <strong>
+                      Blocked{detailsStudent.blockedAt ? ` on ${detailsStudent.blockedAt}` : ""}
+                      {detailsStudent.blockedByName ? ` by ${detailsStudent.blockedByName}` : ""}
+                    </strong>
+                    <span>Reason (admins only): {detailsStudent.blockedReason || "—"}</span>
+                    <span>The student can't sign in or use the portal until an admin unblocks the account.</span>
                   </div>
+                )}
+                {detailsStudent.blockHistory?.length > 0 && (
+                  <details style={{ marginTop: 10 }}>
+                    <summary>Block history ({detailsStudent.blockHistory.length})</summary>
+                    <ul>
+                      {detailsStudent.blockHistory.map((h, i) => (
+                        <li key={`${h.at}-${i}`}>
+                          {h.action === "blocked" ? "Blocked" : "Unblocked"} on {h.at} by {h.byName}{h.reason ? `: ${h.reason}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 )}
               </div>
 
               {/* 3. Enrolled test series (display names; the underlying enrolment records are unchanged) */}
               <div className="ul-usr-review-section">
                 <p className="ul-usr-review-section__title">Enrolled Test Series</p>
-                {detailsStudent.enrolledCourses.length === 0 ? (
+                {/* QA triage P7 (#14): the student's own enrolments, with the real titles
+                    (this used to show made-up names hashed from the student id). */}
+                {detailsStudent.enrolledSeries.length === 0 ? (
                   <p className="ul-usr-review-meta__value ul-usr-review-meta__value--muted">Not enrolled in any test series yet.</p>
                 ) : (
-                  <div className="ul-usr-course-list">
-                    {detailsStudent.enrolledCourses.map((c, i) => (
-                      <div key={c.title} className="ul-usr-course-row">
-                        <span className="ul-usr-course-row__title">{seriesNameFor(detailsStudent.id, i)}</span>
+                  <div className="ul-usr-course-list" aria-label="Enrolled test series">
+                    {detailsStudent.enrolledSeries.map((c) => (
+                      <div key={c.seriesId || c.title} className="ul-usr-course-row">
+                        <span className="ul-usr-course-row__title">
+                          {c.title}
+                          <small style={{ display: "block", opacity: 0.7 }}>
+                            Enrolled {c.enrolledDate} · {c.testsDone}/{c.testsTotal} tests · {c.attempts} attempt{c.attempts === 1 ? "" : "s"}
+                            {c.bestScore != null ? ` · best ${c.bestScore}%` : ""}
+                          </small>
+                        </span>
                         <div className="ul-usr-course-row__progress">
                           <div className="ul-usr-course-row__bar">
                             <div className="ul-usr-course-row__bar-fill" style={{ width: `${c.progress}%` }} />

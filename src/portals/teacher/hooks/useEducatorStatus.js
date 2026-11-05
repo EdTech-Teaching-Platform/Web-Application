@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { educatorApi } from "../services/educatorApi";
 import { GATE, gateFor } from "../utils/onboarding";
+import { ACCESS_DENIED_EVENT, onAccountBlocked } from "../../../services/accountBlock";
 
 export const PENDING_POLL_MS = 60000;
 
@@ -27,9 +28,15 @@ export function useEducatorStatus({ api = educatorApi, pollMs = PENDING_POLL_MS 
     mounted.current = true;
     refresh();
     window.addEventListener("focus", refresh);
+    // QA triage P2: an RPC refused mid-session (blocked / suspended account)
+    // re-checks at once, so the gate shows the full-page status screen.
+    const stopBlocked = onAccountBlocked(refresh);
+    const stopDenied = onAccountBlocked(refresh, ACCESS_DENIED_EVENT);
     return () => {
       mounted.current = false;
       window.removeEventListener("focus", refresh);
+      stopBlocked();
+      stopDenied();
     };
   }, [refresh]);
 

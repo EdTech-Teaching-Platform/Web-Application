@@ -25,13 +25,12 @@ import {
   IconRefresh, IconCheck, IconClose, IconWallet, IconShield, IconSearch,
 } from "../components/icons";
 import "./AdminDashboard.css";
-import { EDUCATOR_DECISION, educatorStatusBadge, mapEducatorStatus } from "../utils/statusMaps";
+import { EDUCATOR_ACTIONS, educatorActions, educatorDisplay, educatorStatusBadge, mapEducatorStatus } from "../utils/statusMaps";
 import { useDocumentViewer } from "../../../components/common/DocumentViewer";
 import "./EducatorVerification.css";
 import "./EducatorProfile.css";
 import PageToast from "../../../components/feedback/Toast";
 
-const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
 const DOC_STATUS_LABEL = { pending: "Pending", verified: "Verified", rejected: "Rejected" };
 const STUDENT_STATUS_LABEL = { active: "Active", completed: "Completed", at_risk: "At risk", inactive: "Inactive" };
 
@@ -62,8 +61,16 @@ function seriesForCourse(title) {
   return SERIES_NAMES[h % SERIES_NAMES.length];
 }
 
-function AccountBadge({ status }) {
-  return <span className={`ul-status-badge is-account-${status}`}>{ACCOUNT_LABEL[status]}</span>;
+// One primary badge (the effective state) plus, for an approved educator
+// only, the account badge (statusMaps educatorDisplay). QA triage P3 (#3).
+function EducatorBadges({ educator }) {
+  const { primary, account } = educatorDisplay(educator);
+  return (
+    <>
+      <span className={`ul-status-badge ${primary.badge}`} title={educator.verificationNote || undefined}>{primary.label}</span>
+      {account && <span className={`ul-status-badge ${account.badge}`}>{account.label}</span>}
+    </>
+  );
 }
 // Labels and badges come from statusMaps (the one educator vocabulary).
 function VerificationBadge({ status, note }) {
@@ -174,20 +181,13 @@ export default function EducatorProfile() {
     // Thunks: only the confirmed action runs. (This map used to hold the
     // promises themselves, so one click ran ALL six: approve + reject +
     // request changes + deactivate + suspend + delete.)
-    const actions = {
-      deactivate: () => educatorsApi.setAccountStatus(educator.id, "inactive"),
-      suspend: () => educatorsApi.setAccountStatus(educator.id, "suspended"),
-      delete: () => educatorsApi.delete(educator.id),
-      approve: () => educatorsApi.setVerification(educator.id, EDUCATOR_DECISION.approve),
-      reject: () => educatorsApi.setVerification(educator.id, EDUCATOR_DECISION.reject, reasonText),
-      request_info: () => educatorsApi.setVerification(educator.id, EDUCATOR_DECISION.request_changes, reasonText),
-    };
-    const DONE = { approve: "Educator approved.", reject: "Application rejected.", request_info: "Changes requested. The educator has been notified." };
-    if (actions[type]) {
-      actions[type]()
+    // The matrix actions (statusMaps EDUCATOR_ACTIONS) all go through
+    // educatorsApi.perform; the server refuses anything outside the matrix.
+    if (EDUCATOR_ACTIONS[type]) {
+      educatorsApi.performAndSync(educator.id, type, reasonText)
         .then(() => {
           if (type === "delete") { navigate("/admin/educatorverification"); return; }
-          setToast(DONE[type] || "Educator updated.");
+          setToast({ tone: "success", message: EDUCATOR_ACTIONS[type].done });
           detailState.refetch().catch(() => {});
         })
         .catch((error) => setToast(error));
@@ -206,8 +206,11 @@ export default function EducatorProfile() {
     suspend: { title: "Suspend this educator?", description: "This immediately blocks sign-in and hides their courses from students until you lift the suspension.", confirmLabel: "Suspend", tone: "danger" },
     delete: { title: "Delete this educator?", description: "This permanently removes their profile, courses and history from Educator Management. This cannot be undone.", confirmLabel: "Delete", tone: "danger" },
     approve: { title: "Approve & verify this educator?", description: "They will be able to publish courses and appear as a verified educator on the platform.", confirmLabel: "Approve", tone: "default" },
-    reject: { title: "Reject this application?", description: "Let the admin team know why — this reason is stored with the application.", confirmLabel: "Reject", tone: "danger", withReason: true },
-    request_info: { title: "Request changes?", description: "The educator sees your note, can update their application and resubmit it.", confirmLabel: "Request changes", tone: "default", withReason: true },
+    reject: { title: "Reject this application?", description: "The educator sees this reason. Their account becomes inactive until the application is reconsidered or resubmitted.", confirmLabel: "Reject", tone: "danger", withReason: true },
+    request_changes: { title: "Request changes?", description: "The educator sees your note, can update their application and resubmit it.", confirmLabel: "Request changes", tone: "default", withReason: true },
+    reconsider: { title: "Review this application again?", description: "The rejected application moves back to Under review and the account is reactivated, so you can approve it, request changes or reject it again.", confirmLabel: "Review and reconsider", tone: "default" },
+    activate: { title: "Activate this educator?", description: "They can sign in and teach again.", confirmLabel: "Activate", tone: "default" },
+    reactivate: { title: "Lift the suspension?", description: "They can sign in and teach again.", confirmLabel: "Reactivate", tone: "default" },
     reset_password: { title: "Reset this educator's password?", description: "Sends a password reset link to their registered email. Their current session stays active until they use it.", confirmLabel: "Send reset link", tone: "default" },
     force_logout: { title: "Force logout everywhere?", description: "Immediately ends this educator's active sessions on every device. They'll need to sign in again.", confirmLabel: "Force logout", tone: "danger" },
     reject_document: { title: "Reject this document?", description: "Tell the educator what needs to be fixed or resubmitted.", confirmLabel: "Reject document", tone: "danger", withReason: true },
@@ -245,8 +248,7 @@ export default function EducatorProfile() {
           <div>
             <div className="ul-edp-header__nameRow">
               <h2>{educator.name}</h2>
-              <AccountBadge status={educator.accountStatus} />
-              <VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} />
+              <EducatorBadges educator={educator} />
             </div>
             <p className="ul-edp-header__meta">
               {educator.subjects.join(", ")} &middot; {educator.yearsExperience} yrs experience
@@ -257,14 +259,11 @@ export default function EducatorProfile() {
           </div>
         </div>
         <div className="ul-edp-header__actions">
-          {educator.accountStatus === "active" ? (
-            <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setConfirmAction({ type: "deactivate" })}>Deactivate</button>
-          ) : (
-            <button type="button" className="ul-btn ul-btn--ghost" onClick={() => updateEducator(educator.id, { accountStatus: "active" })}>Activate</button>
-          )}
-          {educator.accountStatus !== "suspended" && (
-            <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "suspend" })}>Suspend</button>
-          )}
+          {/* only what the action matrix allows now (adm_educator_actions) */}
+          {[...educatorActions(educator, ["account"]), ...educatorActions(educator).filter((a) => a === "reconsider")].map((a) => (
+            <button key={a} type="button" className={`ul-btn ${EDUCATOR_ACTIONS[a].danger ? "ul-btn--danger" : "ul-btn--ghost"}`}
+              onClick={() => setConfirmAction({ type: a })}>{EDUCATOR_ACTIONS[a].label}</button>
+          ))}
           {SHOW_CONTACT_BUTTON && (
             <button type="button" className="ul-btn ul-btn--primary" onClick={() => { setActiveTab("communication"); setMessageOpen(true); }}>
               <IconSend size={13} /> Contact
@@ -336,15 +335,13 @@ export default function EducatorProfile() {
                   <div className="ul-edp-review__row"><span>Current status</span><VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} /></div>
                 </div>
                 <div className="ul-edp-review__actions">
-                  <button type="button" className="ul-btn ul-btn--primary" onClick={() => setConfirmAction({ type: "approve" })}>
-                    <IconCheck size={13} /> Approve
-                  </button>
-                  <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setConfirmAction({ type: "request_info" })}>
-                    Request changes
-                  </button>
-                  <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "reject" })}>
-                    Reject
-                  </button>
+                  {educatorActions(educator, ["review"]).map((a) => (
+                    <button key={a} type="button"
+                      className={`ul-btn ${a === "approve" ? "ul-btn--primary" : EDUCATOR_ACTIONS[a].danger ? "ul-btn--danger" : "ul-btn--ghost"}`}
+                      onClick={() => setConfirmAction({ type: a })}>
+                      {a === "approve" && <IconCheck size={13} />} {EDUCATOR_ACTIONS[a].label}
+                    </button>
+                  ))}
                 </div>
               </Section>
             )}
@@ -352,8 +349,7 @@ export default function EducatorProfile() {
             <Section title="Platform info">
               <div className="ul-edp-review">
                 <div className="ul-edp-review__row"><span>Joining date</span><strong>{educator.joinedDate}</strong></div>
-                <div className="ul-edp-review__row"><span>Account status</span><AccountBadge status={educator.accountStatus} /></div>
-                <div className="ul-edp-review__row"><span>Verification status</span><VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} /></div>
+                <div className="ul-edp-review__row"><span>Status</span><span><EducatorBadges educator={educator} /></span></div>
                 <div className="ul-edp-review__row"><span>Last login</span><strong>{educator.lastActive}</strong></div>
               </div>
             </Section>
@@ -594,8 +590,7 @@ export default function EducatorProfile() {
           <div className="ul-edp-col">
             <Section title="Account & access">
               <div className="ul-edp-review">
-                <div className="ul-edp-review__row"><span>Account status</span><AccountBadge status={educator.accountStatus} /></div>
-                <div className="ul-edp-review__row"><span>Verification status</span><VerificationBadge status={educator.verificationStatus} note={educator.verificationNote} /></div>
+                <div className="ul-edp-review__row"><span>Status</span><span><EducatorBadges educator={educator} /></span></div>
                 <div className="ul-edp-review__row"><span>Last login</span><strong>{educator.lastActive}</strong></div>
                 <div className="ul-edp-review__row"><span>Account created</span><strong>{educator.joinedDate}</strong></div>
                 <div className="ul-edp-review__row"><span>Assigned role</span><strong><IconShield size={12} /> {educator.role}</strong></div>
@@ -610,17 +605,15 @@ export default function EducatorProfile() {
           <div className="ul-edp-col">
             <Section title="Account actions">
               <div className="ul-edp-action-list">
-                {educator.accountStatus === "active" ? (
-                  <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setConfirmAction({ type: "deactivate" })}>Deactivate account</button>
-                ) : (
-                  <button type="button" className="ul-btn ul-btn--ghost" onClick={() => updateEducator(educator.id, { accountStatus: "active" })}>Activate account</button>
-                )}
-                {educator.accountStatus !== "suspended" && (
-                  <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "suspend" })}>Suspend account</button>
-                )}
+                {educatorActions(educator, ["account"]).map((a) => (
+                  <button key={a} type="button" className={`ul-btn ${EDUCATOR_ACTIONS[a].danger ? "ul-btn--danger" : "ul-btn--ghost"}`}
+                    onClick={() => setConfirmAction({ type: a })}>{EDUCATOR_ACTIONS[a].label} account</button>
+                ))}
                 <button type="button" className="ul-btn ul-btn--ghost" onClick={() => setConfirmAction({ type: "reset_password" })}>Reset password</button>
                 <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "force_logout" })}>Force logout</button>
-                <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "delete" })}>Delete educator</button>
+                {educatorActions(educator).includes("delete") && (
+                  <button type="button" className="ul-btn ul-btn--danger" onClick={() => setConfirmAction({ type: "delete" })}>Delete educator</button>
+                )}
               </div>
             </Section>
           </div>

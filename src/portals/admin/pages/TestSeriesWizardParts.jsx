@@ -7,7 +7,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { IconClose, IconUpload, IconDownload, IconSearch } from "../components/icons";
 import { DIFFICULTY, DIFFICULTY_LABEL, SUBJECT_OPTIONS } from "../data/testSeriesMock";
-import { QTYPE, SUBJECTIVE_BLOCKED_MESSAGE, isBlockedQuestionType, questionTypeLabel, validateQuestionDraft } from "../data/questionTypes";
+import { QTYPE, QUESTION_TYPE_OPTIONS, SUBJECTIVE_BLOCKED_MESSAGE, isBlockedQuestionType, normalizeQuestionType, questionTypeLabel, validateQuestionDraft } from "../data/questionTypes";
 import QuestionTypePicker, { QuestionAnswerFields } from "../components/QuestionTypePicker";
 import ComingSoonBadge from "../components/ComingSoonBadge";
 import {
@@ -213,12 +213,19 @@ export function CsvImporter({ existingKeys, onImport }) {
   };
   const onFile = (e) => {
     const f = e.target.files && e.target.files[0];
+    e.target.value = "";
     if (!f) return;
+    if (!/\.csv$/i.test(f.name) && !/csv|text\/plain|excel/i.test(f.type || "")) {
+      setError("Choose a .csv file (in Excel or Sheets: File > Save as / Download > CSV).");
+      setRows(null);
+      return;
+    }
+    if (f.size > 2 * 1024 * 1024) { setError("The file is larger than 2 MB. Split it into smaller files."); setRows(null); return; }
     setFileName(f.name);
     const rd = new FileReader();
     rd.onload = () => { setText(String(rd.result || "")); parse(String(rd.result || "")); };
+    rd.onerror = () => { setError("The file could not be read. Try again, or paste the CSV text below."); setRows(null); };
     rd.readAsText(f);
-    e.target.value = "";
   };
   const downloadTemplate = () => {
     const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
@@ -232,7 +239,7 @@ export function CsvImporter({ existingKeys, onImport }) {
   const importValid = () => {
     const good = report.filter((r) => r.status === ROW_STATUS.VALID);
     if (!good.length) return;
-    onImport(good.map((r) => r.question));
+    onImport(good.map((r) => r.parsed));
     const ids = new Set(good.map((r) => r._id));
     setRows((rs) => rs.filter((r) => !ids.has(r._id)));
     setFlash(`${good.length} valid question${good.length === 1 ? "" : "s"} imported. Remaining rows still need attention.`);
@@ -283,7 +290,7 @@ export function CsvImporter({ existingKeys, onImport }) {
                   <Fragment key={r._id}>
                     <tr>
                       <td>{r.line}</td>
-                      <td className="ul-tsw-clip">{r.question || <em>(empty)</em>}</td>
+                      <td className="ul-tsw-clip">{String(r.question || "") || <em>(empty)</em>}</td>
                       <td><span className={`ul-status-badge ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span></td>
                       <td>{r.issues.length ? r.issues.join(" ") : "—"}</td>
                       <td className="ul-tsw-actions">
@@ -299,9 +306,12 @@ export function CsvImporter({ existingKeys, onImport }) {
                             {["optionA", "optionB", "optionC", "optionD"].map((k) => (
                               <div className="ul-ts-form-row" key={k}><label>{k.replace("option", "Option ")}</label><input value={r[k]} onChange={(e) => patchRow(r._id, { [k]: e.target.value })} /></div>
                             ))}
-                            <div className="ul-ts-form-row"><label>Correct (A–D)</label><input value={r.correct} onChange={(e) => patchRow(r._id, { correct: e.target.value })} /></div>
+                            <div className="ul-ts-form-row"><label>Correct (A–D, A|C, True / False, or the answer)</label><input value={r.correct} onChange={(e) => patchRow(r._id, { correct: e.target.value })} /></div>
                             <div className="ul-ts-form-row"><label>Type</label>
-                              <select value={r.type || "objective"} onChange={(e) => patchRow(r._id, { type: e.target.value })}><option value="objective">objective</option><option value="subjective">subjective</option></select>
+                              {/* the real question types; subjective ones are listed as coming soon */}
+                              <select value={normalizeQuestionType(r.type) || QTYPE.MCQ_SINGLE} onChange={(e) => patchRow(r._id, { type: e.target.value })}>
+                                {QUESTION_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value} disabled={!o.available}>{o.label}{o.available ? "" : " (coming soon)"}</option>)}
+                              </select>
                             </div>
                             <div className="ul-ts-form-row"><label>Marks</label><input value={r.marks} onChange={(e) => patchRow(r._id, { marks: e.target.value })} /></div>
                             <div className="ul-ts-form-row"><label>Negative</label><input value={r.negative} onChange={(e) => patchRow(r._id, { negative: e.target.value })} /></div>

@@ -1,7 +1,8 @@
 -- =====================================================================
 -- supabase/tests/educator_lifecycle_flow_editor.sql
 --
--- The educator lifecycle flow (same steps as educator_lifecycle_flow.sql),
+-- The educator lifecycle flow (the steps of educator_lifecycle_flow.sql plus,
+-- since 20261104090000, the account round trips and the action matrix),
 -- as ONE DO block for the Supabase SQL editor. Paste the whole file and run.
 --
 -- How it reports: every step appends {step, ok, detail} to a jsonb array.
@@ -320,6 +321,96 @@ begin
   exception when others then
     v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'suspend: educator', 'ok', false, 'detail', sqlerrm));
   end;
+  -- ================================================ round trips and the action matrix (20261104090000)
+  -- educator 1: suspended above -> reactivate -> deactivate -> activate -> suspend -> reactivate
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+  begin
+    perform public.set_educator_account_status(v_edu, 'active', null);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'round trip: reactivate the suspended educator',
+               'ok', public.adm_educator_effective_state(v_edu) = 'approved', 'detail', public.adm_educator_effective_state(v_edu)));
+    perform public.set_educator_account_status(v_edu, 'inactive', 'Flow: deactivate');
+    v := public.get_educator_detail(v_edu);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'round trip: deactivate (actions now activate, delete)',
+               'ok', v #>> '{educator,account_status}' = 'inactive' and v #> '{educator,actions}' = '["activate", "delete"]'::jsonb,
+               'detail', (v #> '{educator,actions}')::text));
+    perform public.set_educator_account_status(v_edu, 'active', null);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'round trip: activate after deactivate (bug #4)',
+               'ok', public.adm_educator_effective_state(v_edu) = 'approved'
+                     and exists (select 1 from public.list_assignable_educators(p_size => 200) r where (r.row_data ->> 'id')::uuid = v_edu),
+               'detail', public.adm_educator_effective_state(v_edu)));
+    perform public.set_educator_account_status(v_edu, 'suspended', 'Flow: suspend');
+    perform public.set_educator_account_status(v_edu, 'active', null);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'round trip: suspend, then reactivate',
+               'ok', public.adm_educator_effective_state(v_edu) = 'approved', 'detail', public.adm_educator_effective_state(v_edu)));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'round trip: educator 1', 'ok', false, 'detail', sqlerrm));
+  end;
+  begin
+    perform public.set_educator_verification(v_edu, 'rejected', 'Flow: reject an approved educator');
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: an approved educator can''t be rejected', 'ok', false, 'detail', 'accepted'));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: an approved educator can''t be rejected',
+               'ok', sqlstate = '22023', 'detail', sqlerrm));
+  end;
+
+  -- educator 2 (pending after the resubmission above): no account actions; reject -> reconsider -> approve
+  begin
+    perform public.set_educator_account_status(v_edu2, 'suspended', 'Flow: suspend a pending educator');
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: a pending educator can''t be suspended', 'ok', false, 'detail', 'accepted'));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: a pending educator can''t be suspended',
+               'ok', sqlstate = '22023', 'detail', sqlerrm));
+  end;
+  begin
+    perform public.set_educator_verification(v_edu2, 'rejected', 'Flow: second rejection');
+    v := public.get_educator_detail(v_edu2);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'reject: rejected, account inactive, actions reconsider + delete (bug #3)',
+               'ok', v #>> '{educator,effective_state}' = 'rejected' and v #>> '{educator,account_status}' = 'inactive'
+                     and v #> '{educator,actions}' = '["reconsider", "delete"]'::jsonb,
+               'detail', (v #> '{educator,actions}')::text || ' ' || coalesce(v #>> '{educator,account_status}', '')));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'reject: educator 2', 'ok', false, 'detail', sqlerrm));
+  end;
+  begin
+    perform public.set_educator_account_status(v_edu2, 'inactive', 'Flow');
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: a rejected educator can''t be deactivated', 'ok', false, 'detail', 'accepted'));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: a rejected educator can''t be deactivated',
+               'ok', sqlstate = '22023', 'detail', sqlerrm));
+  end;
+  begin
+    perform public.set_educator_verification(v_edu2, 'approved', null);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: a rejected educator can''t be approved before a reconsider', 'ok', false, 'detail', 'accepted'));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'matrix: a rejected educator can''t be approved before a reconsider',
+               'ok', sqlstate = '22023', 'detail', sqlerrm));
+  end;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_edu2, 'role', 'authenticated')::text, true);
+  begin
+    v := public.educator_get_status();
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'reject: the educator sees rejected (not suspended) with the reason',
+               'ok', coalesce(v ->> 'status' = 'rejected' and v ->> 'note' = 'Flow: second rejection' and (v ->> 'can_edit')::boolean, false),
+               'detail', left(v::text, 300)));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'reject: educator 2 status', 'ok', false, 'detail', sqlerrm));
+  end;
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+  begin
+    perform public.set_educator_verification(v_edu2, 'under_review', null);
+    v := public.get_educator_detail(v_edu2);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'reconsider: under review, account active again',
+               'ok', v #>> '{educator,effective_state}' = 'under_review' and v #>> '{educator,account_status}' = 'active',
+               'detail', coalesce(v #>> '{educator,effective_state}', '') || ' / ' || coalesce(v #>> '{educator,account_status}', '')));
+    perform public.set_educator_verification(v_edu2, 'approved', null);
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'reconsider, then approve',
+               'ok', public.adm_educator_effective_state(v_edu2) = 'approved', 'detail', public.adm_educator_effective_state(v_edu2)));
+  exception when others then
+    v_steps := v_steps || jsonb_build_array(jsonb_build_object('step', 'reconsider: educator 2', 'ok', false, 'detail', sqlerrm));
+  end;
+
   execute 'reset role';
 
   -- ================================================ result (aborts: nothing is kept)

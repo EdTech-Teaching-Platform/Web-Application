@@ -68,3 +68,45 @@ export function mapEducatorStatus(status) {
 export function educatorStatusBadge(status) {
   return EDUCATOR_STATUS_BADGE[status] ?? "is-pending";
 }
+
+// ---------------------------------------------------------------------------
+// Educator actions (QA triage P3). The server decides which ones apply:
+// list_educators / get_educator_detail return `actions` from
+// adm_educator_actions (the one matrix, 20261104090000), and
+// adm_set_educator_state refuses anything else. The UI only labels them.
+export const EDUCATOR_ACTIONS = Object.freeze({
+  approve: { label: "Approve", kind: "review", confirm: "approve", done: "Educator approved." },
+  request_changes: { label: "Request changes", kind: "review", confirm: "request_info", done: "Changes requested. The educator has been notified." },
+  reject: { label: "Reject", kind: "review", danger: true, confirm: "reject", done: "Application rejected. The account is now inactive." },
+  reconsider: { label: "Review and reconsider", kind: "review", confirm: "reconsider", done: "The application is under review again." },
+  deactivate: { label: "Deactivate", kind: "account", confirm: "deactivate", done: "Educator deactivated." },
+  activate: { label: "Activate", kind: "account", confirm: "activate", done: "Educator activated." },
+  suspend: { label: "Suspend", kind: "account", danger: true, confirm: "suspend", done: "Educator suspended." },
+  reactivate: { label: "Reactivate", kind: "account", confirm: "reactivate", done: "Educator reactivated." },
+  delete: { label: "Delete", kind: "delete", danger: true, confirm: "delete", done: "Educator deleted." },
+});
+
+// The actions to show, in matrix order (unknown / internal ones such as start_review are skipped).
+export function educatorActions(educator, kinds) {
+  return (educator?.actions || []).filter((a) => EDUCATOR_ACTIONS[a] && (!kinds || kinds.includes(EDUCATOR_ACTIONS[a].kind)));
+}
+
+const ACCOUNT_BADGE = Object.freeze({
+  active: { label: "Account: Active", badge: "is-account-active" },
+  inactive: { label: "Account: Inactive", badge: "is-account-inactive" },
+  suspended: { label: "Account: Suspended", badge: "is-account-suspended" },
+});
+
+// ONE primary badge (the effective state) and, only for an approved
+// educator, a secondary account badge. Never "Active" next to "Rejected".
+//   verificationStatus: the UI review key (verified, rejected, pending, …)
+export function educatorDisplay({ verificationStatus, accountStatus }) {
+  const account = accountStatus || "active";
+  const approved = verificationStatus === "verified";
+  let primary;
+  if (account === "deleted") primary = { key: "deleted", label: "Deleted", badge: "is-rejected" };
+  else if (account === "suspended") primary = { key: "suspended", label: "Suspended", badge: "is-rejected" };
+  else if (approved && account === "inactive") primary = { key: "inactive", label: "Deactivated", badge: "is-pending" };
+  else primary = { key: verificationStatus, label: mapEducatorStatus(verificationStatus), badge: educatorStatusBadge(verificationStatus) };
+  return { primary, account: approved && ACCOUNT_BADGE[account] ? { key: account, ...ACCOUNT_BADGE[account] } : null };
+}

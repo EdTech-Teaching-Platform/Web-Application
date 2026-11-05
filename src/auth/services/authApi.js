@@ -27,6 +27,10 @@ export function authErrorMessage(error, fallback = "Something went wrong. Please
   const message = String(error?.message ?? "");
   const status = error?.status;
   if (/invalid login credentials/i.test(message)) return "Incorrect email or password.";
+  // set-user-ban (QA triage P2): a blocked account is banned in Supabase Auth.
+  if (error?.code === "user_banned" || /user is banned|user_banned/i.test(message)) {
+    return "This account has been blocked. Contact the administrator to restore access.";
+  }
   if (/email not confirmed/i.test(message)) return "Confirm your email first: open the link we sent to your inbox.";
   if (/already registered|already been registered|user_already_exists/i.test(message)) {
     return "An account with this email already exists. Log in instead.";

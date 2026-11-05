@@ -111,6 +111,42 @@ When an admin acts, it also writes `audit_logs` (`educator.verification` /
 `educator.account_status`) and, on `approved` / `rejected` /
 `changes_requested`, the verification notification.
 
+### The action matrix (`adm_educator_actions`, 20261104090000)
+
+What an admin may do now depends only on the review state and the account.
+`list_educators` rows and `get_educator_detail().educator` return it as
+`actions` (and the detail also has `effective_state`). The admin UI shows
+exactly these. `adm_set_educator_state` refuses any other admin write with
+`22023` ("… isn't available while the educator is …").
+
+| State | `actions` |
+|---|---|
+| suspended account | `reactivate`, `delete` |
+| approved + active | `deactivate`, `suspend`, `delete` |
+| approved + inactive | `activate`, `delete` |
+| rejected | `reconsider` (→ `under_review`), `delete` |
+| changes_requested | `approve`, `reject` |
+| draft / pending / under_review | `approve`, `request_changes`, `reject` (+ internal `start_review`) |
+| deleted account | none |
+
+- **Mapping to RPCs:**
+  - `approve`, `request_changes`, `reject` and `reconsider` →
+    `set_educator_verification` (`approved`, `changes_requested`, `rejected`,
+    `under_review`);
+  - `deactivate`, `activate`, `suspend` and `reactivate` →
+    `set_educator_account_status` (`inactive`, `active`, `suspended`,
+    `active`);
+  - `delete` → `delete_educator`.
+- **Rejecting** sets the account `inactive`. Leaving `rejected`
+  (`reconsider`, or the educator's own resubmission) sets it back to
+  `active`. A one-off backfill applied this to existing rejected educators.
+- **Effective state:** `rejected` wins over an inactive account, so the
+  educator still sees "rejected" with the reason and can resubmit. Suspended
+  and deleted accounts read `suspended`, and approved + inactive also reads
+  `suspended` (the admin UI labels it "Deactivated").
+- **Not checked against the matrix:** system and self writes (registration,
+  resubmission).
+
 ## RPCs
 
 ### `educator_start_onboarding(p_full_name text, p_phone text default null) → status`

@@ -5,7 +5,8 @@ import { TOAST_DURATION, normalizeToast } from "./toastModel";
 // The one toast for every portal (styles: src/styles/feedback.css).
 //   <PageToast message={toast} onDone={() => setToast("")} />
 //     message: a string, an Error / Supabase error (an error toast with its
-//     message), or {message, tone}; tone: success | error | warning | info.
+//     message), or {message, tone, actionLabel?, onAction?} (e.g. Retry);
+//     tone: success | error | warning | info.
 //     Shows while `message` is set; auto-dismisses (errors stay longer) and
 //     has a close button; both call onDone.
 //   <ToastItem/>: the presentational toast (also used by ToastStack).
@@ -61,6 +62,7 @@ export function ToastPortal({ children }) {
 
 export default function PageToast({ message, tone, onDone, duration }) {
   const { message: text, tone: resolved } = normalizeToast(message, tone);
+  const action = message && typeof message === "object" && !(message instanceof Error) ? message : null;
   // Without onDone the toast hides itself; a new message value shows again.
   const [dismissed, setDismissed] = useState(null);
   const hidden = dismissed !== null && dismissed === message;
@@ -75,7 +77,8 @@ export default function PageToast({ message, tone, onDone, duration }) {
   if (!text || hidden) return null;
   return (
     <ToastPortal>
-      <ToastItem message={text} tone={resolved} onClose={() => (done.current ? done.current() : setDismissed(message))} />
+      <ToastItem message={text} tone={resolved} actionLabel={action?.actionLabel} onAction={action?.onAction}
+        onClose={() => (done.current ? done.current() : setDismissed(message))} />
     </ToastPortal>
   );
 }

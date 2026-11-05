@@ -9,6 +9,10 @@
 //      says tokens_revoked: false and the user's refresh tokens stay valid
 //      until they expire. Blocked / suspended accounts are refused at
 //      record_login.
+// Coexists with set-user-ban (20261102090000): a blocked student is refused
+// by every student RPC and banned at the Auth level by set-user-ban, which
+// stops new sign-ins and token refreshes. Revoking sessions here neither sets
+// nor lifts a ban.
 // Body: { userId, reason?, scope?: "global" | "others" }.
 import { clients, fail, json, options, requireAdmin } from "../_shared/auth.ts";
 
@@ -32,7 +36,7 @@ Deno.serve(async (req) => {
       if (signOutError) throw signOutError;
       tokensRevoked = true;
     } else {
-      note = "The Admin API can only sign out with the user's own access token. App sessions were ended; the user's refresh tokens expire on their own.";
+      note = "The Admin API can only sign out with the user's own access token. App sessions were ended; the user's refresh tokens expire on their own. To stop the user signing in again, block the account (the block bans them at the Auth level through set-user-ban).";
     }
     return json({ revoked: ended, tokens_revoked: tokensRevoked, note });
   } catch (error) { return fail(error); }

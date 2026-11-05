@@ -99,6 +99,274 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-04: QA triage P8 items 2 and 3, the teacher wizard route and CSV import (frontend only)
+
+The #11 console error wasn't provided. Item 1 (the freeze) was skipped as
+asked; the cause below isn't related to it.
+
+### Cause
+
+- **CSV import (both portals):** `validateCsvRows` (`data/testSeriesWizard.js`)
+  returned the built question under the key `question`, overwriting the row's
+  `question` text column.
+  - **Valid rows:** as soon as one row was valid, the preview rendered
+    `{r.question}` (an object) in `TestSeriesWizardParts.jsx:286`, and React
+    threw "Objects are not valid as a React child".
+  - **Blank page:** with no error boundary before P1, that blanked the page,
+    including on `/teacher/test-series/new` (the CSV start).
+  - **Invalid rows:** the text became `null`, so the preview read "(empty)"
+    and the Fix editor lost it.
+  - **Fix editor:** its Type select still offered the legacy
+    "objective / subjective".
+  - **Why tests missed it:** the existing tests asserted the overwritten
+    shape.
+- **`/teacher/test-series/new`:** the route mounts and works for an approved
+  educator (route-level test). The only crash found in the wizard is the CSV
+  one above. If the browser console shows a different error, send it.
+
+### Fix
+
+- **Validator:** returns the built question as `parsed`; `question` stays the
+  row text.
+- **`CsvImporter`:**
+  - imports `r.parsed`;
+  - the preview shows the text;
+  - non-CSV and >2 MB files are refused with a message;
+  - a `FileReader` error shows a message;
+  - the Fix editor's Type select lists the real question types (subjective
+    ones disabled, "coming soon") with the row's type normalized.
+  - Unchanged: the template download, quoting-aware parsing, per-row
+    reasons, Coming soon for subjective rows, and importing only valid
+    rows.
+- **Error boundary:** the P1 boundary wraps the teacher and admin outlets, so
+  any remaining render error shows a panel inside the portal.
+
+### Checks
+
+- **`tests/wizard-csv.test.jsx` (10):**
+  - parsing (commas, escaped quotes, CRLF, BOM);
+  - per-row reasons and Coming soon;
+  - the template is valid;
+  - the importer (preview, import only the valid rows, the rest stay; Fix
+    keeps the text and a fixed row becomes valid; the file picker accepts
+    `.csv` and refuses others; the template download);
+  - `/teacher/test-series/new` for an approved educator, and the admin
+    wizard, both doing a CSV start and import;
+  - a crashing page shows the error panel inside the teacher portal.
+- **`tests/admin-question-types.test.jsx`:** updated to `parsed`, and checks
+  the text stays.
+- **Totals:** `npm test` 219/219, build ✅.
+
+## 2026-11-04: QA triage P3, P7, P4 item 5, P5 a/d/e (written, nothing applied)
+
+The Network / Console captures for #4 and #14 weren't provided; each cause
+below was found in the code and is covered by a test.
+
+### Causes
+
+- **#4 Activate after Deactivate:**
+  - In `EducatorProfile.jsx:263` and `:616`, "Activate" called
+    `updateEducator(...)` from the old mock store, which isn't even imported:
+    a `ReferenceError` on click, and the RPC was never called.
+  - In the list (`EducatorVerification.jsx:410`), Activate appeared only for
+    suspended educators, so a deactivated one got "Suspend".
+  - The server always allowed inactive → active.
+- **#3 Active next to Rejected:** the header showed the account badge and the
+  verification badge side by side (`EducatorProfile.jsx:248-249`), and
+  Deactivate / Suspend depended only on the account status
+  (`:260-266`), never on the review state. There was no single action
+  matrix.
+- **#14 wrong enrolled series:**
+  - `UserManagement.jsx:433` showed `seriesNameFor(student.id, i)`, a made-up
+    title hashed from the student id (the `SERIES_NAMES` sample list), instead
+    of the real title.
+  - `studentsApi.mapStudent` merged the lead's course enrolments into the
+    "Enrolled Test Series" list.
+  - Server side, `get_student_detail` also listed revoked enrolments, with
+    progress always 0.
+- **#6 tracker:** `adm_series_tracker_rows`
+  (`20261025110800_admin_rpc_tracker.sql`) built Educators only from
+  assignments and never read `origin` / `created_by`, so an educator's
+  independent series showed no educator and "No Assignments Yet".
+- **#1 "Not ready" on a published test:**
+  - `validateTestForPublish` (`testSeriesMock.js:449`) kept the old mock's
+    rules (a scheduled date/time, total and passing marks > 0); the server
+    only needs questions with correct answers.
+  - `TestDetail.jsx:268` showed the banner even when published.
+- **P5 d stale status across portals:** no test series list uses the
+  `useRpc` cache; the open views simply never refetched after a write in
+  another view, tab or portal.
+- **P5 e rejected series:** `TestDetail.jsx:252-256` showed a test-level
+  "Submit for approval" next to the series-level "Resubmit" in
+  `SeriesReviewBanner`. Question errors went to the old blank toast (#9),
+  fixed in P1.
+
+### Fix
+
+- **`20261104090000_admin_qa_fixes.sql`** (generated by `gen_qa_fixes.cjs`,
+  one preflight; requires 20261102090000):
+  - **P3:**
+    - `adm_educator_actions` (the matrix) and `adm_educator_action_for`;
+    - `adm_set_educator_state` enforces the matrix for admin writes; a reject
+      sets the account inactive, and leaving "rejected" reactivates it;
+    - "rejected" wins over "inactive" in `adm_educator_effective_state`, and
+      in the inline copies in `list_educators` and `get_educator_stats`
+      (including the "suspended" filter);
+    - `actions` are added to the list rows and the detail (plus
+      `effective_state`);
+    - the idempotent `adm_backfill_rejected_inactive()` runs once.
+  - **P7:** `get_student_detail` returns the student's active
+    `admin_series_enrollments` with `tests_total`, `tests_done`, `progress`,
+    `best_score` and `attempts`.
+  - **P4.5:** `adm_series_tracker_rows_ext()` adds `origin`, `creator_id`,
+    `creator_name` and "Independent"; `list_series_tracker` and
+    `get_series_tracker_detail` use it, and the educator filter matches the
+    creator.
+  - **Rollback:** `scripts/rollback_20261104090000_admin_qa_fixes.sql`. It
+    keeps the backfill; the revert SQL is in its header.
+  - **Trial:** `docs/trial_run_20261104090000.sql`.
+- **Frontend:**
+  - **P3:**
+    - `statusMaps.js`: `EDUCATOR_ACTIONS`, `educatorActions()` and
+      `educatorDisplay()` (one primary badge, plus the account badge only
+      when approved);
+    - `educatorsApi.perform` / `performAndSync`;
+    - the profile header, review panel, account tab and the list row menu
+      show only the server's actions, with a toast and refetch each time.
+  - **P7:** the real titles, enrolled date, tests done, attempts and best
+    score; courses kept separate.
+  - **P4.5:** the tracker's Educators cell shows the creator with a
+    "Creator" badge, plus the Independent status and filter.
+  - **P5 a / e:**
+    - readiness keeps only the real rules, and is shown only for
+      unpublished tests;
+    - no test-level submit for an educator's own series (the banner
+      handles it);
+    - Add Question is disabled, with a reason, while the series awaits
+      approval.
+  - **P5 d:**
+    - `src/services/dataSync.js` provides `notifyChanged` and
+      `useRefetchOnChange`, through a window event, `BroadcastChannel` and
+      focus;
+    - `testSeriesApi` announces every successful write;
+    - the test series list and detail, the test page, approvals, the
+      tracker and the teacher list refetch;
+    - `useRpc` drops the cached entries for a changed topic.
+- **Tests:**
+  - **`educator_lifecycle_flow_editor.sql`:** now 41 steps. It adds:
+    - the round trips reactivate → deactivate → activate → suspend →
+      reactivate;
+    - reject → reconsider → approve;
+    - the matrix refusals (reject an approved educator; suspend a pending
+      one; deactivate or approve a rejected one).
+  - **`supabase/tests/admin_qa_fixes.sql`:** two students get different
+    lists, a revoked enrolment is hidden, progress is real, and the tracker
+    shows the creator, Independent and the filter.
+  - **`educator_onboarding.sql`:** its approved → changes_requested step
+    (now refused by the matrix) uses the system writer.
+  - **`tests/qa-fixes.test.jsx` (12) and `tests/educator-state.test.jsx`
+    (+2):** the fixtures carry `actions`.
+- **Totals:** `npm test` 209/209, build ✅, all SQL tests pass, the flow is
+  41/41, the rollback applies, parser 0 errors, hardening 0 problems, verify
+  PASS (352 functions).
+
+### Apply order
+
+1. **Trial:** run `docs/trial_run_20261104090000.sql` in the SQL editor
+   (rolled back).
+2. **Push:** `supabase db push`, after the dry run, applies it after
+   20261102090000.
+3. **Check:** run `supabase/tests/educator_lifecycle_flow_editor.sql` in the
+   SQL editor (expect PASS 41 of 41) and `scripts/admin_verify_push_editor.sql`.
+
+## 2026-11-04: QA triage P2, blocking enforcement (written, nothing applied or deployed)
+
+Bugs #15 / #16 / #26.
+
+### Cause
+
+Blocking was app-level only (D6). `block_student` set
+`students.account_status = 'blocked'`, but:
+
+- **Auth:** sign-in still succeeded.
+- **RPCs:** only the write RPCs checked the block (`adm_student_writer_uid`).
+  The read RPCs (dashboard, lists, series, intro, history, stats, report, my
+  series, my feedback) took the caller from `adm_student_uid()`
+  (`20261026100200_student_rpc_series.sql:56`), which never looked at it.
+
+### Fix
+
+- **`20261102090000_student_block_enforcement.sql`:**
+  - **`adm_student_is_blocked(uuid)`:** new internal helper.
+  - **`adm_student_uid()`:** refuses a blocked caller with SQLSTATE `UL403`,
+    message and hint `account_blocked`, and a generic detail. All 15
+    `student_*` RPCs go through it, so all of them refuse at once, existing
+    tokens included.
+  - **`student_get_account_status()`:** never refused for a block; returns
+    `{blocked, status, reason_public}`, with a generic reason only.
+  - **For `set-user-ban`:** `adm_user_ban_check(uuid)` and
+    `adm_record_user_ban(...)`, both admin only (granted to authenticated
+    and allow-listed in verify).
+  - **`get_student_detail`:** adds `blocked_by`, `blocked_by_name` and
+    `block_history` (the last 10 events).
+  - **Rollback:** `scripts/rollback_20261102090000_student_block_enforcement.sql`.
+  - **Trial:** `docs/trial_run_20261102090000.sql`.
+- **Edge Function `set-user-ban`** (`verify_jwt = true`):
+  - admin only;
+  - `updateUserById(userId, {ban_duration: '876000h' | 'none'})`;
+  - bans only an account already blocked in SQL, and lifts the ban only
+    after the unblock;
+  - never bans an admin, and refuses banning yourself;
+  - audited.
+  - **`revoke-user-sessions`:** its comments and note now describe how it
+    coexists with the ban.
+- **Frontend:**
+  - **`src/services/accountBlock.js`:** detects `UL403` / `user_banned`, and
+    broadcasts `ul:account-blocked` and `ul:access-denied`.
+  - **Student RPC wrapper:** a blocked error becomes `code: account_blocked`,
+    with the generic message.
+  - **Admin / teacher wrapper:** the same, and a `42501` also broadcasts
+    `access-denied`.
+  - **Student layout:** `useAccountStatus` checks on load, on focus and on
+    the event. A blocked student sees only `AccountBlockedScreen` (generic
+    message, Log out, Check again); a network failure never locks anyone
+    out.
+  - **Login:** a banned account reads "This account has been blocked. Contact
+    the administrator to restore access."
+  - **Admin student page:**
+    - block / unblock calls `set-user-ban` after the SQL action; a failure
+      is a warning toast with Retry (`PageToast` now supports an action);
+    - the detail shows the status, date, who, reason and history;
+    - the list, stats and detail refetch.
+  - **Educators:** the gate re-checks at once on `ul:account-blocked` or
+    `ul:access-denied`, so a suspended or deactivated educator gets the
+    full-page status screen mid-session.
+
+### Checks
+
+- **`supabase/tests/student_block.sql`:** all 15 RPCs refuse a blocked
+  student with `UL403`; the status RPC still answers with a generic reason;
+  another student is unaffected; the admin detail shows the block; the ban
+  helpers are admin only; unblocking restores access; grants.
+- **Other SQL tests:** all pass; the lifecycle flow is still 29/29.
+- **Rollback:** applies, then `student_rpcs` passes.
+- **`tests/student-block.test.jsx` (11):** validators and the ban decision,
+  error mapping (student and admin wrappers, login), the blocked screen (on
+  load, after any refused RPC, on focus), the ban call, and the educator gate
+  re-check.
+- **Totals:** `npm test` 195/195, build ✅, parser 0 errors, hardening 0
+  problems, verify 14/14 PASS (348 functions).
+
+### Apply order (each step needs "approved:")
+
+1. **Trial:** run `docs/trial_run_20261102090000.sql` in the SQL editor
+   (rolled back).
+2. **Push:** `supabase migration list`, then `supabase db push --dry-run`,
+   then `supabase db push`. The pending files apply in timestamp order:
+   20261029100000, 20261029110000, 20261101090000, 20261102090000.
+3. **Verify:** run `scripts/admin_verify_push_editor.sql` (expect all PASS).
+4. **Deploy:** `npx supabase functions deploy set-user-ban --use-api`.
+
 ## 2026-11-03: QA triage P1, shared UI for every portal (frontend only)
 
 QA bugs #1, #7, #9, #10, #12, #19, and the blank-screen part of #11 / #24.

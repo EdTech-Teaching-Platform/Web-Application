@@ -5,6 +5,8 @@ import { BookOpenIcon, ClockIcon, CompassIcon, FileTextIcon, HomeIcon, UsersIcon
 import { useAuth } from "../hooks/useAuth";
 import { useSignOut } from "../hooks/useSignOut";
 import ErrorBoundary from "../components/common/ErrorBoundary";
+import { useAccountStatus } from "../portals/student/hooks/useAccountStatus";
+import AccountBlockedScreen from "../portals/student/components/AccountBlockedScreen";
 import StudentBackdrop from "../components/common/StudentBackdrop";
 import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
 import RouteFallback from "../components/common/RouteFallback";
@@ -89,6 +91,10 @@ export default function StudentLayout() {
   const { user } = useAuth();
   const signOut = useSignOut();
   const isCoursePlayer = location.pathname === "/student/courseplayer";
+  // QA triage P2: a blocked student sees only the blocked screen (checked on
+  // load and focus; any student RPC refused with account_blocked flips it).
+  const account = useAccountStatus();
+  if (account.blocked) return <AccountBlockedScreen message={account.reasonPublic} onLogout={signOut} onRetry={account.check} />;
 
   return (
     <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">

@@ -33,7 +33,7 @@ import ComingSoonBadge from "../components/ComingSoonBadge";
 import { IconClose, IconPlus, IconEdit, IconChevronLeft, IconEye } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import SeriesReviewBanner from "../components/SeriesReviewBanner";
-import { isLockedForReview, needsApproval, publishActionLabel, seriesPath, useAuthoringPortal } from "../context/authoringPortal";
+import { isLockedForReview, needsApproval, seriesPath, useAuthoringPortal } from "../context/authoringPortal";
 import QuestionImageField from "../components/QuestionImageField";
 import AssetImage from "../../../components/common/AssetImage";
 import "./AdminDashboard.css";
@@ -44,6 +44,7 @@ import "./TestSeries.css";
 import "./TestSeriesDetail.css";
 import "./TestDetail.css";
 import PageToast from "../../../components/feedback/Toast";
+import { useRefetchOnChange } from "../../../services/dataSync";
 
 function emptyQuestionForm(type = QTYPE.MCQ_SINGLE) {
   return {
@@ -74,6 +75,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
     load().catch((error) => active && setToast(error)).finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [load]);
+  useRefetchOnChange(load, "test-series");
   // Runs one RPC, reloads the series, shows a toast; errors come back as toasts.
   const run = async (request, message) => {
     if (saving) return false;
@@ -246,13 +248,17 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
           {!(approval && series.status !== SERIES_STATUS.PUBLISHED) && (
             <button type="button" className="ul-btn ul-btn--ghost" onClick={togglePublish}>{test.status === TEST_STATUS.PUBLISHED ? "Unpublish" : "Publish"}</button>
           )}
-          <button type="button" className="ul-btn ul-btn--primary" onClick={openAddQuestion}>
+          <button type="button" className="ul-btn ul-btn--primary" onClick={openAddQuestion} disabled={lockedForReview}
+            title={lockedForReview ? "This series is waiting for admin approval. You can edit it again after the review." : undefined}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><IconPlus size={14} /> Add Question</span>
           </button>
-          {test.questions.length > 0 && series.status !== SERIES_STATUS.PUBLISHED && !lockedForReview
+          {/* An educator's own series is submitted (or resubmitted after a
+              rejection) only at series level, in SeriesReviewBanner above;
+              no test-level "Submit for approval" (QA triage P5 e). */}
+          {test.questions.length > 0 && series.status !== SERIES_STATUS.PUBLISHED && !lockedForReview && !approval
             && !(portal.kind === "admin" && series.origin === "educator") && (
             <button type="button" className="ul-btn ul-btn--primary" onClick={handlePublishSeries}>
-              {approval ? publishActionLabel(portal, series) : "Publish Test Series"}
+              Publish Test Series
             </button>
           )}
         </div>
@@ -265,7 +271,8 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
         <div className="ul-stat-card"><span className="ul-stat-card__label">ATTEMPT LIMIT</span><span className="ul-stat-card__value">{test.attemptLimit}</span><span className="ul-stat-card__trend">Attempts per student</span></div>
       </div>
 
-      {!readiness.valid && (
+      {/* readiness only matters before publishing: a published test never shows "not ready" */}
+      {test.status !== TEST_STATUS.PUBLISHED && !readiness.valid && (
         <div className="ul-ts-errors" style={{ marginBottom: 14 }}>
           <strong>Not ready to publish yet:</strong>
           <ul>{readiness.errors.map((err, i) => <li key={i}>{err}</li>)}</ul>

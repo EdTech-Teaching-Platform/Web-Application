@@ -28,6 +28,7 @@ import {
   validateSeriesForPublish,
 } from "../data/testSeriesMock";
 import { useRpc } from "../hooks/useRpc";
+import { useRefetchOnChange } from "../../../services/dataSync";
 import { usePendingApprovals } from "../hooks/usePendingApprovals";
 import SeriesApprovals from "./SeriesApprovals";
 import { testSeriesApi } from "../services/testSeriesApi";
@@ -124,6 +125,8 @@ export default function TestSeries() {
   const statsRequest = useCallback(() => testSeriesApi.stats(), []);
   const listState = useRpc(listRequest);
   const statsState = useRpc(statsRequest);
+  // a change anywhere (this portal, another tab, the educator portal) refetches
+  useRefetchOnChange(() => Promise.all([listState.refetch(), statsState.refetch()]), "test-series");
   const seriesList = listState.data?.rows || [];
   const total = Number(listState.data?.total || 0);
 

@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { SUBJECT_OPTIONS } from "../data/testSeriesMock";
 import { ASSIGNMENT_STATUS_LABEL } from "../data/testAssignmentsMock";
 import { useRpc } from "../hooks/useRpc";
+import { useRefetchOnChange } from "../../../services/dataSync";
 import { trackerApi } from "../services/trackerApi";
 import {
   MATCH_TYPE,
@@ -47,7 +48,23 @@ const OVERALL_STATUS_BADGE = {
   "Needs Revision": "is-rejected",
   "Overdue": "is-rejected",
   "No Assignments Yet": "is-pending",
+  "Independent": "is-verified",   // an educator's own series, no assignments (20261104090000)
 };
+
+// The Educators cell: the creator of an educator's own series (with a
+// "Creator" badge), then the assigned educators. The creator is never counted
+// as assigned (QA triage P4 item 5, #6).
+function EducatorsCell({ group }) {
+  const creator = group.origin === "educator" && group.creatorName ? group.creatorName : null;
+  const assigned = group.educators.filter((n) => n !== creator);
+  if (!creator && !assigned.length) return "—";
+  return (
+    <>
+      {creator && <div>{creator} <span className="ul-status-badge is-verified" style={{ marginLeft: 4 }}>Creator</span></div>}
+      {assigned.map((n) => <div key={n}>{n}</div>)}
+    </>
+  );
+}
 const getDisplayStatus = (a) => a.displayStatus || a.display_status || a.status;
 const getAssignmentProgress = (a) => Number(a.progress || 0);
 
@@ -74,6 +91,7 @@ export default function TestSeriesTracker() {
   }), [search, sortBy, subjectFilter, educatorFilter, statusFilter, page]);
   const listState = useRpc(listRequest);
   const statsState = useRpc(useCallback(() => trackerApi.stats(), []));
+  useRefetchOnChange(() => Promise.all([listState.refetch(), statsState.refetch()]), "test-series");
   const grouped = (listState.data?.rows || []).map((g) => ({
     ...g,
     totalTestsRequired: g.total_required,
@@ -84,6 +102,8 @@ export default function TestSeriesTracker() {
     seriesName: g.series_name,
     overallStatus: g.overall_status,
     educators: g.educators || [],
+    origin: g.origin || "admin",
+    creatorName: g.creator_name || "",
   }));
   const trackerStats = statsState.data || {};
   const totalSeries = Number(trackerStats.total_series || 0);
@@ -99,7 +119,8 @@ export default function TestSeriesTracker() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [filtersOpen]);
 
-  const educatorOptions = useMemo(() => ["all", ...Array.from(new Set(grouped.flatMap((g) => g.educators))).sort()], [grouped]);
+  const educatorOptions = useMemo(() => ["all", ...Array.from(new Set(grouped.flatMap((g) => (
+    g.origin === "educator" && g.creatorName ? [...g.educators, g.creatorName] : g.educators)))).sort()], [grouped]);
   const activeFilterCount = [subjectFilter !== "all", educatorFilter !== "all", statusFilter !== "all"].filter(Boolean).length;
   const clearFilters = () => {
     setSubjectFilter("all");
@@ -214,6 +235,7 @@ export default function TestSeriesTracker() {
                   <option value="Needs Revision">Needs Revision</option>
                   <option value="Overdue">Overdue</option>
                   <option value="No Assignments Yet">No Assignments Yet</option>
+                  <option value="Independent">Independent</option>
                 </select>
               </label>
               <button type="button" className="ul-btn ul-btn--ghost ul-asg-filter-popover__clear" onClick={clearFilters} disabled={activeFilterCount === 0}>
@@ -237,7 +259,7 @@ export default function TestSeriesTracker() {
                 <tr>
                   <th>Test Series</th>
                   <th>Subject</th>
-                  <th>Assigned Educators</th>
+                  <th>Educators</th>
                   <th>Required</th>
                   <th>Created</th>
                   <th>Submitted</th>
@@ -252,7 +274,7 @@ export default function TestSeriesTracker() {
                   <tr key={g.seriesId || g.seriesName} className="ul-edu-row--clickable" onClick={() => setDetailSeriesId(g.seriesId || g.seriesName)}>
                     <td className="ul-asg-ellipsis">{g.seriesName}</td>
                     <td>{g.subject}</td>
-                    <td className="ul-trk-educators">{g.educators.length ? g.educators.map((n) => <div key={n}>{n}</div>) : "—"}</td>
+                    <td className="ul-trk-educators"><EducatorsCell group={g} /></td>
                     <td>{g.totalTestsRequired}</td>
                     <td>{g.testsCreated}</td>
                     <td>{g.testsSubmitted}</td>
@@ -296,7 +318,11 @@ export default function TestSeriesTracker() {
               <button type="button" className="ul-confirm-modal__close" onClick={() => setDetailSeriesId(null)} aria-label="Close"><IconClose size={15} /></button>
             </div>
             <h3 className="ul-confirm-modal__title">{detailGroup.seriesName}</h3>
-            <p className="ul-confirm-modal__desc">{detailGroup.subject} · {detailGroup.educators.join(", ") || "No educators assigned yet"}</p>
+            <p className="ul-confirm-modal__desc">
+              {detailGroup.subject} · {detailGroup.origin === "educator" && detailGroup.creatorName
+                ? `Created by ${detailGroup.creatorName}${detailGroup.educators.length ? ` · assigned: ${detailGroup.educators.join(", ")}` : " (independent)"}`
+                : detailGroup.educators.join(", ") || "No educators assigned yet"}
+            </p>
 
             <div className="ul-mgmt-detail-stats">
               <div><span>{detailGroup.totalTestsRequired}</span>Required</div>

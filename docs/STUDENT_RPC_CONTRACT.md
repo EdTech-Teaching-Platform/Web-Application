@@ -46,11 +46,19 @@ human-readable sentence you can show the user).
 
 | SQLSTATE | Meaning | Examples |
 |---|---|---|
+| `UL403` | **Account blocked** (20261102090000). Every `student_*` RPC refuses a blocked caller with message `account_blocked` (hint `account_blocked`, detail: a generic sentence). The frontend shows the full-page blocked screen. | `account_blocked` |
 | `42501` | Not signed in, not allowed, or not enrolled | "Sign in to continue.", "Enrol in this test series to take its tests.", "Your account is blocked. Contact support.", "Your access to this series was revoked. Contact support." |
 | `P0002` | Not found, or not yours (same error on purpose) | "Test series not found.", "Test not found.", "Attempt not found.", "No detailed report is available for this attempt." |
 | `P0001` | A rule blocks the action | "You have used all 2 attempts for this test.", "Time is up for this attempt.", "This attempt has already been submitted.", "This attempt has not been submitted yet.", "This test opens at …", "This test has closed.", "This test has no questions yet.", "Your profile is not set up yet…" |
 | `22023` | Bad input | "Question is not part of this test.", "Unknown option for this question.", "Unknown proctor event: …" |
 | `0A000` | Not available yet | "Paid test series cannot be bought yet." (STUB: needs payments model, F4) |
+
+### `student_get_account_status()` → `{blocked, status, reason_public}`
+
+- **Never refused for a block:** the blocked screen calls it on load and focus.
+- **`reason_public`:** a generic message when blocked (`null` otherwise); the
+  admin's internal reason is never returned.
+- **Error:** `42501` when signed out.
 
 ## Shared shapes
 

@@ -27,7 +27,7 @@ import { educatorsApi } from "../services/educatorsApi";
 import ConfirmModal from "../components/ConfirmModal";
 import BulkImportTeachers from "../components/BulkImportTeachers";
 import { IconSearch, IconStar, IconMore, IconClose, IconPlus, IconChevronLeft } from "../components/icons";
-import { EDUCATOR_STATUS_FILTERS, educatorStatusBadge, mapEducatorStatus } from "../utils/statusMaps";
+import { EDUCATOR_ACTIONS, EDUCATOR_STATUS_FILTERS, educatorActions, educatorDisplay } from "../utils/statusMaps";
 import "./AdminDashboard.css";
 import "./discounts/Discounts.css";
 import { RowMenu } from "./discounts/DiscountsShared";
@@ -36,7 +36,6 @@ import "./EducatorProfile.css";
 import "./TestSeries.css";
 import PageToast from "../../../components/feedback/Toast";
 
-const ACCOUNT_LABEL = { active: "Active", inactive: "Inactive", suspended: "Suspended" };
 const PAGE_SIZE = 8;
 
 // Stable reference: a fresh arrow function passed to useRpc on every render
@@ -90,12 +89,16 @@ const SORT_OPTIONS = [
   { key: "students", label: "Most students" },
 ];
 
-function AccountBadge({ status }) {
-  return <span className={`ul-status-badge is-account-${status}`}>{ACCOUNT_LABEL[status]}</span>;
+// Labels, badges and filter values come from statusMaps (the one educator
+// vocabulary): one primary badge (the effective state); the account badge
+// only for an approved educator (QA triage P3, #3).
+function StatusBadge({ educator }) {
+  const { primary } = educatorDisplay(educator);
+  return <span className={`ul-status-badge ${primary.badge}`}>{primary.label}</span>;
 }
-// Labels, badges and filter values come from statusMaps (the one educator vocabulary).
-function VerificationBadge({ status }) {
-  return <span className={`ul-status-badge ${educatorStatusBadge(status)}`}>{mapEducatorStatus(status)}</span>;
+function AccountBadge({ educator }) {
+  const { account } = educatorDisplay(educator);
+  return account ? <span className={`ul-status-badge ${account.badge}`}>{account.label.replace("Account: ", "")}</span> : <span className="ul-edu-cell-id__sub">—</span>;
 }
 
 export default function EducatorVerification() {
@@ -166,13 +169,20 @@ export default function EducatorVerification() {
     [statsState.data, total]
   );
 
+  // Every row action is a matrix action (statusMaps EDUCATOR_ACTIONS); the
+  // server refuses anything outside the matrix. Success and errors both show.
+  const runAction = (type, educator, reason) => educatorsApi.performAndSync(educator.id, type, reason)
+    .then(() => {
+      setToast({ tone: "success", message: EDUCATOR_ACTIONS[type]?.done || "Educator updated." });
+      listState.refetch().catch(() => {});
+      statsState.refetch().catch(() => {});
+    })
+    .catch((error) => setToast(error));
   const runConfirmed = () => {
     if (!confirmAction) return;
     const { type, educator } = confirmAction;
-    const action = type === "delete"
-      ? educatorsApi.delete(educator.id)
-      : educatorsApi.setAccountStatus(educator.id, type === "suspend" ? "suspended" : "inactive");
-    action.then(() => { setConfirmAction(null); listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error));
+    setConfirmAction(null);
+    runAction(type, educator);
   };
 
   const addErrors = useMemo(() => validateAddForm(addForm), [addForm]);
@@ -226,6 +236,24 @@ export default function EducatorVerification() {
       description: "This immediately blocks sign-in and hides their courses from students until you lift the suspension.",
       confirmLabel: "Suspend",
       tone: "danger",
+    },
+    activate: {
+      title: "Activate this educator?",
+      description: "They can sign in and teach again.",
+      confirmLabel: "Activate",
+      tone: "default",
+    },
+    reactivate: {
+      title: "Lift the suspension?",
+      description: "They can sign in and teach again.",
+      confirmLabel: "Reactivate",
+      tone: "default",
+    },
+    reconsider: {
+      title: "Review this application again?",
+      description: "The rejected application moves back to Under review and the account is reactivated.",
+      confirmLabel: "Review and reconsider",
+      tone: "default",
     },
     delete: {
       title: "Delete this educator?",
@@ -398,8 +426,8 @@ export default function EducatorVerification() {
                         <span className="ul-edu-cell-id__sub">—</span>
                       )}
                     </td>
-                    <td><VerificationBadge status={e.verificationStatus} /></td>
-                    <td><AccountBadge status={e.accountStatus} /></td>
+                    <td><StatusBadge educator={e} /></td>
+                    <td><AccountBadge educator={e} /></td>
                     <td>{e.joinedDate}</td>
                     <td className="ul-edu-actions-cell" onClick={(ev) => ev.stopPropagation()}>
                       <RowMenu
@@ -407,9 +435,11 @@ export default function EducatorVerification() {
                           { label: "View Details", onClick: () => navigate(`/admin/educatorverification/${e.id}`) },
                           // "View Courses" (Performance tab) hidden for now
                           { label: "Verification Details", onClick: () => navigate(`/admin/educatorverification/${e.id}`, { state: { tab: "documents" } }) },
-                          e.accountStatus === "suspended"
-                            ? { label: "Activate", onClick: () => educatorsApi.setAccountStatus(e.id, "active").then(() => { listState.refetch(); statsState.refetch(); }).catch((error) => setToast(error)) }
-                            : { label: "Suspend", onClick: () => setConfirmAction({ type: "suspend", educator: e }) },
+                          // the account actions, Reconsider and Delete the matrix allows for this row
+                          ...educatorActions(e, ["account", "delete"]).concat(educatorActions(e).filter((a) => a === "reconsider")).map((a) => ({
+                            label: EDUCATOR_ACTIONS[a].label, danger: EDUCATOR_ACTIONS[a].danger,
+                            onClick: () => setConfirmAction({ type: a, educator: e }),
+                          })),
                         ]}
                       />
                     </td>

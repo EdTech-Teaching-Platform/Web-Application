@@ -439,15 +439,20 @@ export function setTestStatus(seriesId, testId, status) {
   emit();
 }
 
+// Only rules that really exist (QA triage P5 a). The server publishes a test
+// with at least one question, each with a correct answer
+// (adm_validate_quiz_for_publish); a schedule is OPTIONAL (the old mock
+// required one, so a published test showed "Not ready to publish yet: a
+// scheduled date/time is required"). Total marks come from the questions.
 export function validateTestForPublish(test) {
   const errors = [];
   if (!test.name || !test.name.trim()) errors.push("Test name is required.");
   if (!test.duration || Number(test.duration) <= 0) errors.push("A valid duration (minutes) is required.");
-  if (!test.totalMarks || Number(test.totalMarks) <= 0) errors.push("Total marks is required.");
-  if (!test.passingMarks || Number(test.passingMarks) <= 0) errors.push("Passing marks is required.");
   if (test.passingMarks && test.totalMarks && Number(test.passingMarks) > Number(test.totalMarks)) errors.push("Passing marks cannot exceed total marks.");
-  if (!test.scheduledAt) errors.push("A scheduled date/time is required.");
   if (!test.questions || test.questions.length === 0) errors.push("At least one question is required before publishing.");
+  else if (test.questions.some((q) => q.kind !== "subjective" && !q.correctAnswer && !(q.correctAnswers || []).length && !q.acceptedAnswer)) {
+    errors.push("Every question needs a correct answer.");
+  }
   return { valid: errors.length === 0, errors };
 }
 

@@ -270,7 +270,11 @@ export function validateCsvRows(rows, existingKeys) {
         subject: r.subject, topic: r.topic, explanation: r.explanation,
       });
     }
-    return { ...r, status, issues, question };
+    // The built question goes in `parsed`: it used to overwrite `question`
+    // (the row's text column), so the preview rendered an object (a React
+    // crash and a blank page as soon as one row was valid) and the Fix editor
+    // lost the text of invalid rows (QA triage P8, #11).
+    return { ...r, status, issues, parsed: question };
   });
 }
 

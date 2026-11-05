@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useRpc } from "../../admin/hooks/useRpc";
+import { useRefetchOnChange } from "../../../services/dataSync";
 import { testSeriesApi } from "../../admin/services/testSeriesApi";
 import { SERIES_TABS, groupSeriesByTab } from "../utils/onboarding";
 import { Empty, ErrorState, Loading, PageCard, StatusPill } from "../components/PageState";
@@ -27,6 +28,7 @@ export default function EducatorTestSeries({ api = testSeriesApi }) {
   const [toast, setToast] = useState("");
   const request = useCallback(() => api.list({ p_page: 1, p_size: 100 }), [api]);
   const { data, loading, error, refetch } = useRpc(request);
+  useRefetchOnChange(refetch, "test-series");
   const groups = useMemo(() => groupSeriesByTab(data?.rows), [data]);
 
   // Toast from the wizard ("Submitted for approval…"), then land on the right tab.

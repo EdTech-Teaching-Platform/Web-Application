@@ -71,13 +71,25 @@ describe("admin services", () => {
 
 // -----------------------------------------------------------------------------
 describe("Educator profile: one decision per click", () => {
-  const detail = (status) => ({
-    educator: {
-      id: "e1", full_name: "Asha Rao", email: "asha@x", verification_status: status, account_status: "active",
-      subjects: ["Maths"], languages: ["English"], years_experience: 5, review_note: status === "changes_requested" ? "Add a B.Ed" : null,
-    },
-    documents: [], history: [], courses: [],
-  });
+  // actions: what adm_educator_actions (20261104090000) returns for that state
+  const ACTIONS = {
+    pending: ["approve", "request_changes", "reject", "start_review"],
+    changes_requested: ["approve", "reject"],
+    approved: ["deactivate", "suspend", "delete"],
+    "approved/inactive": ["activate", "delete"],
+    rejected: ["reconsider", "delete"],
+  };
+  const detail = (state) => {
+    const [status, account = status === "rejected" ? "inactive" : "active"] = state.split("/");
+    return {
+      educator: {
+        id: "e1", full_name: "Asha Rao", email: "asha@x", verification_status: status, account_status: account,
+        subjects: ["Maths"], languages: ["English"], years_experience: 5, review_note: status === "changes_requested" ? "Add a B.Ed" : null,
+        actions: ACTIONS[state] || ACTIONS[status] || [],
+      },
+      documents: [], history: [], courses: [],
+    };
+  };
 
   function renderProfile(states) {
     let call = 0;
@@ -114,6 +126,29 @@ describe("Educator profile: one decision per click", () => {
     await act(async () => { fireEvent.click(confirm); });
     expect(writes()).toEqual(["set_educator_verification"]);
     expect(rpc).toHaveBeenCalledWith("set_educator_verification", { p_id: "e1", p_decision: "changes_requested", p_note: "Add a B.Ed" });
+  });
+
+  it("#3: a rejected educator shows only Rejected (never Active) and only Reconsider / Delete", async () => {
+    renderProfile(["rejected"]);
+    expect((await screen.findAllByText("Rejected")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Account: Active")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Deactivate/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Suspend/ })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Review and reconsider" }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Review and reconsider" })[0]);
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name: "Review and reconsider" }).at(-1)); });
+    expect(rpc).toHaveBeenCalledWith("set_educator_verification", { p_id: "e1", p_decision: "under_review", p_note: null });
+  });
+
+  it("#4: a deactivated educator's Activate calls the RPC (it used to call an unimported mock)", async () => {
+    renderProfile(["approved/inactive", "approved"]);
+    expect((await screen.findAllByText("Deactivated")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Account: Inactive").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Activate" })[0]);
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name: "Activate" }).at(-1)); });
+    expect(writes()).toEqual(["set_educator_account_status"]);
+    expect(rpc).toHaveBeenCalledWith("set_educator_account_status", { p_id: "e1", p_status: "active", p_reason: null });
+    expect(await screen.findByText("Educator activated.")).toBeInTheDocument();
   });
 
   it("does not refetch the detail in a loop", async () => {

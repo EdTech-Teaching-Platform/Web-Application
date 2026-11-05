@@ -19,6 +19,7 @@ import {
   validateTestForPublish,
 } from "../data/testSeriesMock";
 import { useRpc } from "../hooks/useRpc";
+import { useRefetchOnChange } from "../../../services/dataSync";
 import { testSeriesApi } from "../services/testSeriesApi";
 import {
   IconClose, IconPlus, IconEdit, IconChevronLeft, IconMore, IconCheck,
@@ -57,6 +58,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const goBack = () => (onBack ? onBack() : navigate(portal.basePath));
   const loadSeries = useCallback(() => testSeriesApi.get(seriesId), [seriesId]);
   const seriesState = useRpc(loadSeries);
+  useRefetchOnChange(seriesState.refetch, "test-series");
   const series = seriesState.data;
 
   const [toast, setToast] = useState("");

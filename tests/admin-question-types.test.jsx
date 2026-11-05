@@ -137,7 +137,8 @@ describe("CSV import", () => {
     ]);
     for (const row of r) {
       expect(row.status).toBe(ROW_STATUS.INVALID);
-      expect(row.question).toBeNull();
+      expect(row.parsed).toBeNull();
+      expect(typeof row.question).toBe("string");   // the row keeps its text (it used to be overwritten)
       expect(row.issues.join(" ")).toContain("not supported yet");
       expect(row.issues.join(" ")).toContain(SUBJECTIVE_BLOCKED_MESSAGE);
     }
@@ -151,10 +152,11 @@ describe("CSV import", () => {
       '"Capital of France",,,,,Paris,1,0,fill_blank,easy,,,',
     ]);
     expect(r.map((row) => row.status)).toEqual([ROW_STATUS.VALID, ROW_STATUS.VALID, ROW_STATUS.VALID, ROW_STATUS.VALID]);
-    expect(r[0].question).toMatchObject({ type: "mcq_single", correctAnswer: "B" });
-    expect(r[1].question).toMatchObject({ type: "mcq_multi", correctAnswers: ["A", "C"] });
-    expect(r[2].question).toMatchObject({ type: "true_false", correctAnswer: "A" });
-    expect(r[3].question).toMatchObject({ type: "fill_blank", acceptedAnswer: "Paris" });
+    expect(r[0].parsed).toMatchObject({ type: "mcq_single", correctAnswer: "B" });
+    expect(r[1].parsed).toMatchObject({ type: "mcq_multi", correctAnswers: ["A", "C"] });
+    expect(r[2].parsed).toMatchObject({ type: "true_false", correctAnswer: "A" });
+    expect(r[3].parsed).toMatchObject({ type: "fill_blank", acceptedAnswer: "Paris" });
+    expect(r[0].question).toBe("One?");
   });
 
   it("flags incomplete rows for the new types", () => {

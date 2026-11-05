@@ -1,7 +1,19 @@
 import { supabase } from "../../../services/supabaseClient";
 import { startTimer } from "../utils/debugTiming";
+import { BLOCKED_MESSAGE, isAccountBlockedError, notifyAccessDenied, notifyAccountBlocked } from "../../../services/accountBlock";
 
+// Shared by the admin and teacher portals. A blocked account (UL403) or a
+// refused caller (42501, e.g. an educator suspended mid-session) is also
+// broadcast, so the gate re-checks the account at once instead of at the
+// next poll.
 export function normalizeRpcError(error) {
+  if (isAccountBlockedError(error)) {
+    notifyAccountBlocked({ source: "rpc" });
+    const blocked = new Error(BLOCKED_MESSAGE);
+    blocked.code = "account_blocked";
+    return blocked;
+  }
+  if (error?.code === "42501") notifyAccessDenied({ message: error?.message });
   const normalized = new Error(error?.message || "The admin request failed.");
   normalized.code = error?.code;
   normalized.details = error?.details;

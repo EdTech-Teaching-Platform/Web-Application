@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../../../services/supabaseClient";
+import { registerInvalidator } from "../../../services/dataSync";
 
 // Tiny stale-while-revalidate cache, opt-in per call via `cacheKey`. A page
 // that has been visited (or a filter combination that has been loaded) shows
@@ -18,6 +19,11 @@ const readCache = (key) => {
   }
   return hit.data;
 };
+// notifyChanged(topic) (services/dataSync.js) drops every cached entry whose
+// key starts with "<topic>:", so a changed list is never served stale.
+registerInvalidator((topic) => {
+  for (const key of cache.keys()) if (key.startsWith(`${topic}:`)) cache.delete(key);
+});
 try {
   supabase.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_OUT" || event === "SIGNED_IN") cache.clear();

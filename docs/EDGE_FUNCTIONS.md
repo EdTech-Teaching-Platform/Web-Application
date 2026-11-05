@@ -10,6 +10,7 @@ Nothing here is deployed by the port. Deploy only with the lead's approval.
 | `sign-educator-document` | Signed URL (10 min) for an `educator_verification_docs` row, by `documentId` (or `path`, the older UI). `adm_authorize_document_access` (20261101090000) decides with the caller's JWT: an admin for any document, the owning educator for their own, nobody else; it also writes `audit_logs` (`educator.document_access`: who, which document, view or download). It accepts the old and new `doc_url` forms (`paths.ts`). Optional `download: true`. Errors are `{error}` with 401 / 403 / 404 / 400. | Admin, or the owning educator | true |
 | `educator-upload-url` | Validates `{docType, docName, fileName, contentType, size}`. It claims a rate-limit slot through `adm_claim_educator_upload_slot` (this also refuses non-educators), then returns a service-role **signed upload URL** for `<user id>/<docType>-<docName>-<timestamp>.<ext>`. | Any educator (any verification status) | true |
 | `asset-upload-url` | Validates `{kind: 'banner' | 'question_image', fileName, contentType, size}` (JPEG, PNG or WebP; banner up to 2 MB, question image up to 3 MB). It claims a slot through `adm_claim_asset_upload_slot` (20261029110000; this also refuses anyone who isn't an admin or a verified educator, via `adm_actor_kind`), then returns `{path, signedUrl, token, publicUrl, bucket, expiresIn}`: a service-role **signed upload URL** for `<user id>/<kind>/<uuid>.<ext>` in the public bucket `test-assets`. | Admin or verified educator | true |
+| `set-user-ban` | Auth-level ban that follows a student block (QA triage P2). Validates `{userId, ban: true / false, reason?}`, checks the target with `adm_user_ban_check`, then calls `auth.admin.updateUserById(userId, {ban_duration})`: `876000h` to ban, `none` to lift. It bans only an account already blocked in SQL, lifts the ban only after the SQL unblock, never bans an admin and refuses banning yourself. Every call is audited (`adm_record_user_ban`: `user.auth_ban` / `user.auth_unban`). Errors are `{error, field?}` with 400 / 403 / 404 / 409. | Admin or super_admin | true |
 | `payment-webhook` | Placeholder (D1). Calls the `mark_payment_*` stubs, which raise `0A000`. | Gateway (HMAC) | **false** |
 | `process-refund` | Placeholder (D1). Reads `refund_requests`, which doesn't exist in the lead's database. | Admin | true |
 | `ai-generate-test` | Placeholder (unchanged). | Admin | true |
@@ -111,6 +112,7 @@ supabase functions deploy send-notification-emails
 supabase functions deploy sign-educator-document
 supabase functions deploy educator-upload-url        # after 20261028090100 and 20261028110000
 supabase functions deploy asset-upload-url           # after 20261029110000
+supabase functions deploy set-user-ban               # after 20261102090000
 # placeholders: leave undeployed until the payments model exists
 ```
 

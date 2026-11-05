@@ -1,4 +1,5 @@
 import { callRpc, listResult } from "./adminApi";
+import { notifyChanged } from "../../../services/dataSync";
 import { QTYPE, isBlockedQuestionType, normalizeQuestionType } from "../data/questionTypes";
 
 // Every read and write goes through SECURITY DEFINER RPCs: the lead's RLS
@@ -128,3 +129,19 @@ export const testSeriesApi = {
   approveSeries: (id) => callRpc("approve_educator_series", { p_series_id: id }),
   rejectSeries: (id, reason) => callRpc("reject_educator_series", { p_series_id: id, p_reason: reason }),
 };
+
+// Every successful write announces "test-series" (services/dataSync.js), so
+// all open lists and details refetch, in this tab, other tabs and the other
+// portal (QA triage P5 d). Reads are left as they are.
+const WRITES = ["createTest", "updateTest", "deleteTest", "duplicateTest", "setTestStatus",
+  "createSection", "updateSection", "deleteSection", "createQuestion", "updateQuestion", "deleteQuestion",
+  "createOption", "updateOption", "deleteOption", "deleteSeries", "createSeries", "updateSeries", "publishSeries",
+  "duplicateSeries", "saveDraft", "discardDraft", "saveWizard", "submitForApproval", "approveSeries", "rejectSeries"];
+for (const name of WRITES) {
+  const call = testSeriesApi[name];
+  testSeriesApi[name] = async (...args) => {
+    const result = await call(...args);
+    notifyChanged("test-series", { action: name });
+    return result;
+  };
+}
