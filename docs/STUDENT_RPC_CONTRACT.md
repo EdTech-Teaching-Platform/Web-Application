@@ -470,6 +470,30 @@ series.
   `notifications` (category `support_ticket`, `reference_type`
   `test_feedback`).
 
+## Notifications (20261107090000)
+
+The student's own rows of the lead's `notifications` table. An admin resolving
+a report writes one (`reference_type` `test_feedback`, `action_url`
+`/student/test-series/<series id>`, body = the admin's note). All three RPCs
+refuse a blocked student (`UL403`) and a signed-out caller (`42501`).
+
+### `student_list_notifications(p_unread_only boolean = false, p_limit int = 30)` → `{rows, unread}`
+
+- `rows`: newest first, at most `p_limit` (1–100). Each row has `id`,
+  `category`, `title`, `body`, `action_url`, `reference_type`,
+  `reference_id`, `is_read`, `read_at` and `created_at`.
+- `action_url` is null unless it starts with `/student/`.
+- `unread`: the caller's total unread count, not capped by `p_limit`.
+
+### `student_mark_notification_read(p_id uuid)` → `int`
+
+Returns 1 when one of the caller's unread rows became read, otherwise 0 (not
+theirs, unknown or already read).
+
+### `student_mark_all_notifications_read()` → `int`
+
+Returns the number of rows marked read.
+
 ## Not covered (by design, for now)
 
 - **Lesson quizzes outside a test series** (`quizzes.series_id` is null).

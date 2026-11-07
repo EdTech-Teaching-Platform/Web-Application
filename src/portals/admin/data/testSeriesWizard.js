@@ -352,6 +352,12 @@ function isFuture(dt) {
   return dt && new Date(dt).getTime() > Date.now();
 }
 
+// Source step, CSV start: valid rows are validated but not imported yet.
+export function csvPendingMessage(n) {
+  const rows = `${n} valid row${n === 1 ? "" : "s"}`;
+  return `${rows} ready. Click "Import ${rows}" above to add ${n === 1 ? "it" : "them"} to the series, then Continue.`;
+}
+
 // Errors for one step (used to gate "Continue"). Returns string[].
 export function stepErrors(step, st, ctx) {
   const e = [];
@@ -364,7 +370,11 @@ export function stepErrors(step, st, ctx) {
     case "source":
       if (st.startMethod === START_METHOD.DUPLICATE && !st.sourceSeriesId) e.push("Pick the series you want to duplicate.");
       else if (st.startMethod !== START_METHOD.DUPLICATE && st.tests.length === 0) {
-        e.push(st.startMethod === START_METHOD.CSV ? "Import at least one valid row, or go back and choose another method."
+        const ready = Number(ctx?.csvPending) || 0;
+        // QA: with valid rows validated but not imported yet, say what to click
+        // instead of "import at least one valid row" (which read as if none were valid).
+        if (st.startMethod === START_METHOD.CSV && ready > 0) e.push(csvPendingMessage(ready));
+        else e.push(st.startMethod === START_METHOD.CSV ? "Import at least one valid row, or go back and choose another method."
           : "Apply an outline to create the tests, or go back and choose another method.");
       }
       break;

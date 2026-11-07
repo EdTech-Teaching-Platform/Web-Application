@@ -10,6 +10,7 @@ import { AuthoringPortalContext, EDUCATOR_AUTHORING } from "../portals/admin/con
 import { useEducatorStatus } from "../portals/teacher/hooks/useEducatorStatus";
 import EducatorGateScreen from "../portals/teacher/components/EducatorGateScreen";
 import { GATE } from "../portals/teacher/utils/onboarding";
+import { useProfileCompletion } from "../portals/teacher/hooks/useProfileCompletion";
 import { HomeIcon, AssignmentIcon, FileTextIcon, PencilIcon, ChartIcon, UsersIcon, LogoutIcon } from "../components/ui/icons";
 
 // Educator Studio chrome (sidebar + top bar) for every /teacher/* page, behind
@@ -54,14 +55,21 @@ export default function TeacherLayout() {
   return <EducatorGate user={user} onLogout={() => logout()} />;
 }
 
-export function EducatorGate({ user, onLogout, statusApi }) {
+export function EducatorGate({ user, onLogout, statusApi, profileApi }) {
   const { status, gate, loading, error, refresh } = useEducatorStatus(statusApi ? { api: statusApi } : undefined);
   const logoutConfirm = useLogoutConfirm(onLogout);
+  const { pathname } = useLocation();
+  // QA (07 Nov): an approved educator with missing profile details is sent to
+  // the profile page (once per session), which lists what to fill in.
+  const completion = useProfileCompletion(user?.id, { enabled: gate === GATE.PORTAL, pathname, ...(profileApi ? { api: profileApi } : {}) });
   if (loading && !status) return <RouteFallback fullscreen />;
   if (gate === GATE.ONBOARDING) return <Navigate to="/teacher/onboarding" replace />;
   if (gate !== GATE.PORTAL) {
     return <><EducatorGateScreen gate={gate} status={status} error={error} onRetry={refresh} onLogout={logoutConfirm.request} />{logoutConfirm.dialog}</>;
   }
+  // the portal renders while the profile check runs (it never blocks); an
+  // incomplete profile then moves to /teacher/profile?complete=1
+  if (completion.redirectTo) return <Navigate to={completion.redirectTo} replace />;
   return <><PortalShell user={user} onLogout={logoutConfirm.request} />{logoutConfirm.dialog}</>;
 }
 

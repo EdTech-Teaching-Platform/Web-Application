@@ -51,16 +51,29 @@ const OVERALL_STATUS_BADGE = {
   "Independent": "is-verified",   // an educator's own series, no assignments (20261104090000)
 };
 
-// The Educators cell: the creator of an educator's own series (with a
-// "Creator" badge), then the assigned educators. The creator is never counted
-// as assigned (QA triage P4 item 5, #6).
+// Who created the series: the educator for their own series, "Admin" for a
+// series created in the admin portal (QA: MK / MN showed "—"). Only when the
+// server sent origin (adm_series_tracker_rows_ext, 20261104090000), so rows
+// from before that migration never guess.
+function seriesCreatorLabel(group) {
+  if (group.origin === "educator") return group.creatorName || null;
+  if (group.origin === "admin" && group.originKnown) return "Admin";
+  return null;
+}
+
+// The Educators cell: the creator (with a "Creator" badge), then the assigned
+// educators. The creator is never counted as assigned (QA triage P4 item 5, #6).
 function EducatorsCell({ group }) {
-  const creator = group.origin === "educator" && group.creatorName ? group.creatorName : null;
-  const assigned = group.educators.filter((n) => n !== creator);
+  const creator = seriesCreatorLabel(group);
+  const assigned = group.educators.filter((n) => !(group.origin === "educator" && n === creator));
   if (!creator && !assigned.length) return "—";
   return (
     <>
-      {creator && <div>{creator} <span className="ul-status-badge is-verified" style={{ marginLeft: 4 }}>Creator</span></div>}
+      {creator && (
+        <div title={group.origin === "admin" && group.creatorName ? `Created by ${group.creatorName} (admin)` : undefined}>
+          {creator} <span className="ul-status-badge is-verified" style={{ marginLeft: 4 }}>Creator</span>
+        </div>
+      )}
       {assigned.map((n) => <div key={n}>{n}</div>)}
     </>
   );
@@ -103,6 +116,7 @@ export default function TestSeriesTracker() {
     overallStatus: g.overall_status,
     educators: g.educators || [],
     origin: g.origin || "admin",
+    originKnown: typeof g.origin === "string" && g.origin !== "",
     creatorName: g.creator_name || "",
   }));
   const trackerStats = statsState.data || {};
@@ -321,7 +335,7 @@ export default function TestSeriesTracker() {
             <p className="ul-confirm-modal__desc">
               {detailGroup.subject} · {detailGroup.origin === "educator" && detailGroup.creatorName
                 ? `Created by ${detailGroup.creatorName}${detailGroup.educators.length ? ` · assigned: ${detailGroup.educators.join(", ")}` : " (independent)"}`
-                : detailGroup.educators.join(", ") || "No educators assigned yet"}
+                : `${seriesCreatorLabel(detailGroup) ? "Created by Admin · " : ""}${detailGroup.educators.join(", ") || "No educators assigned yet"}`}
             </p>
 
             <div className="ul-mgmt-detail-stats">

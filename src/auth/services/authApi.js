@@ -23,10 +23,15 @@ export function callbackUrl(redirect) {
 }
 
 // Maps Supabase Auth errors to messages a student can act on.
+// Wrong password and unknown email get the same message (never reveal whether
+// an email is registered), with a pointer to sign-up for new users.
+export const INVALID_CREDENTIALS_MESSAGE =
+  "Unable to sign in. Please check your credentials or create a new account if you're new to Universal Learning.";
+
 export function authErrorMessage(error, fallback = "Something went wrong. Please try again.") {
   const message = String(error?.message ?? "");
   const status = error?.status;
-  if (/invalid login credentials/i.test(message)) return "Incorrect email or password.";
+  if (/invalid login credentials/i.test(message)) return INVALID_CREDENTIALS_MESSAGE;
   // set-user-ban (QA triage P2): a blocked account is banned in Supabase Auth.
   if (error?.code === "user_banned" || /user is banned|user_banned/i.test(message)) {
     return "This account has been blocked. Contact the administrator to restore access.";

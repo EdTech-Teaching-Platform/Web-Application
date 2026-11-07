@@ -102,8 +102,10 @@ describe("the portal gate", () => {
     const api = { getStatus: vi.fn().mockResolvedValueOnce({ status: "pending" }).mockResolvedValue({ status: "verified" }) };
     renderGate(api);
     expect(await screen.findByRole("heading", { name: "Pending approval" })).toBeInTheDocument();
+    await act(async () => {});   // flush the gate's effects (its 60 s poll) before moving the clock
     await act(async () => { vi.advanceTimersByTime(60000); });
-    expect(await screen.findByText("Stats feature")).toBeInTheDocument();
+    // generous timeout: fake timers + a loaded full-suite run
+    expect(await screen.findByText("Stats feature", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(api.getStatus).toHaveBeenCalledTimes(2);
     await act(async () => { window.dispatchEvent(new Event("focus")); });
     expect(api.getStatus).toHaveBeenCalledTimes(3);

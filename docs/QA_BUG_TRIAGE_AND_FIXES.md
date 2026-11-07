@@ -10,7 +10,8 @@ package is in `docs/PORT_PROGRESS.md`.
 | P1 | Done (frontend) |
 | P2 | Written (`20261102090000`, `set-user-ban`, frontend), not applied or deployed |
 | P3, P4 (item 5), P5 (a, d, e), P7 | Written (`20261104090000`, frontend), not applied |
-| P8 (items 2, 3) | Done (frontend); item 1 (freeze) not started |
+| P8 | Done (frontend); item 1: the freeze was ManageDiscounts' unstable request (2026-11-07) |
+| QA 02-07 Nov (login copy, CSV alert, tracker creator, onboarding redirect, resolution notice) | Written (`20261107090000`, frontend), not applied |
 | P4 (other items), P5 (b, c, f), P6, P9 | Not started |
 
 Bugs 15 and 16 are identical (blocked student). Many of the rest share one cause, so fix by package, not one by one.

@@ -105,6 +105,8 @@ export default function TestSeriesWizard() {
   // educator's goes to an admin for approval instead of being published.
   const approval = needsApproval(portal, { origin: portal.kind });
   const [st, setSt] = useState(initialWizardState);
+  // valid CSV rows waiting for "Import N valid rows" (Source step)
+  const [csvPending, setCsvPending] = useState(0);
   // Only the duplicate start needs the series list (up to 100 rows with
   // enrolment / attempt counts); the name check is its own RPC below.
   const listRequest = useCallback(() => testSeriesApi.list({ p_page: 1, p_size: 100 }), []);
@@ -150,7 +152,7 @@ export default function TestSeriesWizard() {
     return () => clearTimeout(timer);
   }, [st.name, st.id]);
 
-  const ctx = useMemo(() => ({ existingSeries: seriesList, nameTaken: nameExists }), [seriesList, nameExists]);
+  const ctx = useMemo(() => ({ existingSeries: seriesList, nameTaken: nameExists, csvPending }), [seriesList, nameExists, csvPending]);
 
   // Keep the admin on the page while a save is running.
   useEffect(() => {
@@ -396,7 +398,7 @@ export default function TestSeriesWizard() {
 
             {st.startMethod === START_METHOD.CSV && (
               <>
-                <CsvImporter existingKeys={sourceKeys} onImport={(qs) => addToNamedTest("Imported questions", qs)} />
+                <CsvImporter existingKeys={sourceKeys} onImport={(qs) => addToNamedTest("Imported questions", qs)} onPendingChange={setCsvPending} />
                 {totalQuestions > 0 && <div className="ul-tsw-note is-ok" style={{ marginTop: 14 }}>{totalQuestions} question{totalQuestions === 1 ? "" : "s"} ready in “Imported questions”.</div>}
               </>
             )}
@@ -407,7 +409,10 @@ export default function TestSeriesWizard() {
                 {st.tests.length > 0 && <div className="ul-tsw-note is-ok" style={{ marginTop: 14 }}>{st.tests.length} draft test(s) created from the outline. Continue to configure them and add questions.</div>}
               </>
             )}
-            <Errors list={errs} />
+            {/* valid rows not imported yet: a neutral "click Import" note, not the alert */}
+            {st.startMethod === START_METHOD.CSV && csvPending > 0 && st.tests.length === 0
+              ? <div className="ul-tsw-note ul-tsw-note--pending" role="status" style={{ marginTop: 14 }}>{errs[0]}</div>
+              : <Errors list={errs} />}
           </>
         )}
 

@@ -99,6 +99,127 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-07: QA reports of 02-07 Nov (freeze, login copy, onboarding, tracker creator, resolution notice, CSV alert)
+
+### Admin freeze between modules (P8 item 1, #2)
+
+- **Cause:** `ManageDiscounts.jsx` (the default tab of Discount Management, in
+  the Management section) passed an inline arrow to `useRpc`. Every render
+  made a new request function, so `useRpc` refetched, the response rendered
+  again, and the page sent requests without end. Leaving the page left
+  hundreds of requests queued, so the next page (Reports Builder, Callback
+  Requests) never loaded. In the test it blocked the JS thread outright.
+- **Fix:** the request is a `useCallback` on (debounced search, status,
+  page). `useRpc` refetches only when they change, and the pager no longer
+  calls `refetch` by hand. Every other `useRpc` call site was checked, and
+  all are stable.
+- **Test:** `tests/admin-navigation.test.jsx` mounts the real `AdminLayout` with
+  every admin route and clicks the sidebar through 7 module pairs. It checks
+  that each page renders and nothing fetches again by itself. Before the fix
+  the Discount Management pair hung the test run.
+
+### Login copy for an unknown email
+
+`authErrorMessage` maps "Invalid login credentials" to
+`INVALID_CREDENTIALS_MESSAGE`: "Unable to sign in. Please check your
+credentials or create a new account if you're new to Universal Learning."
+- It is the same message for a wrong password and an unknown email.
+- "Create a free account" stays above the form.
+
+### CSV import alert despite valid rows
+
+- **Cause:** the Source step error "Import at least one valid row…" showed
+  while valid rows were validated but not imported yet, because
+  `st.tests` stays empty until "Import N valid rows" is clicked.
+- **Fix:**
+  - `CsvImporter` reports the number of pending valid rows
+    (`onPendingChange`).
+  - In that state the wizard shows a neutral note: "4 valid rows ready.
+    Click "Import 4 valid rows" above…" (`csvPendingMessage`).
+  - The old message shows only when there is nothing valid to import.
+- **Applies to:** the admin and teacher wizards (same component).
+
+### Tracker creator for admin-created series
+
+- **Change:** the Educators cell shows "Admin" with the Creator badge for
+  `origin = 'admin'`, and `Created by Admin` in the detail modal. The full
+  name is in the tooltip.
+- **Data:** `adm_series_tracker_rows_ext` (20261104090000, not applied yet)
+  already returns the origin.
+- **Rows without an origin** (before that migration) never guess: they show
+  "—" as before.
+- **Frontend only.**
+
+### Automatic onboarding after login (students and educators)
+
+- **Students:**
+  - `useOnboardingGate` in `StudentLayout` checks the profile once per
+    browser session, however the student signed in (email, Google,
+    callback).
+  - Missing mandatory details (name, grade, school, city, phone; from
+    `profiles` + `student_profiles`) send the student to
+    `/student/onboarding?redirect=<where they were going>`.
+  - The status comes from the saved profile, so it persists. "Skip for now"
+    now lasts only for the session (sessionStorage), where before it was
+    permanent (localStorage).
+  - `needsGoogleOnboarding` (AuthCallback) now uses the same rule; there's
+    no more "new Google account only" condition.
+  - A failed check never blocks the portal.
+- **Educators:**
+  - `draft` already redirected to `/teacher/onboarding` (unchanged).
+  - New: an approved educator whose editable profile fields fail the
+    onboarding rules (phone, location, qualifications, experience, subjects,
+    languages, bio) is sent once per session to
+    `/teacher/profile?complete=1` (`useProfileCompletion`). The page lists
+    what is missing and returns to the dashboard once complete.
+  - The portal renders while the check runs. Documents are not part of this
+    check, because the profile page can't upload them.
+
+### Student notification after a resolved report
+
+- **Cause:** `set_moderation_status` already wrote a lead `notifications` row
+  on resolve, but the student portal never read the table: its Notifications
+  page was sample data, and the route showed "Coming soon".
+- **New migration `20261107090000_student_notifications.sql`** (not applied):
+  - `student_list_notifications(p_unread_only, p_limit)` returns
+    `{rows, unread}`;
+  - `student_mark_notification_read(uuid)`;
+  - `student_mark_all_notifications_read()`;
+  - all three are SECURITY DEFINER, act only on the caller's own rows,
+    refuse a blocked student (`adm_student_uid`), and return
+    `action_url` only for `/student/` paths.
+  - Preflight: the names are free, `adm_student_uid` exists, and the
+    notifications columns exist.
+  - Lead table: select and update of `is_read` / `read_at` on own rows
+    only. No schema, RLS or policy change.
+  - Rollback: `scripts/rollback_20261107090000_student_notifications.sql`.
+  - Trial: `docs/trial_run_20261107090000.sql`.
+  - SQL test: `supabase/tests/student_notifications.sql` (19 checks, end to
+    end: report, resolve, inbox, read, other student, blocked).
+- **Frontend:**
+  - `notificationsApi` and `useStudentNotifications` (loads on mount,
+    every 60 s, on focus, and on dataSync `student-notifications`);
+  - the bell in the student navbar with an unread badge;
+  - a `ResolutionNotice` popup on any student page for the newest unread
+    resolution. "View test" marks it read and opens the series; hiding it
+    keeps it unread for the session;
+  - a real `/student/notifications` page (open, mark read, mark all read).
+
+### Checks
+
+- `npm test`: 19 files, 242 tests (`qa-nov07.test.jsx` 16,
+  `admin-navigation.test.jsx` 7).
+- `npm run build` ✅.
+- PGlite: all migrations plus `student_notifications.sql` ✅, and the trial on
+  the pre-migration schema ✅.
+- Parser: 464 bodies, 0 errors. Hardening: 437 functions, 0 problems.
+- No ESLint config in the repo, so there are no lint results.
+
+### Apply order (unchanged gate, needs "approved:")
+
+20261029100000, 20261029110000, 20261101090000, 20261102090000,
+20261104090000, then **20261107090000**. Run its trial first.
+
 ## 2026-11-04: QA triage P8 items 2 and 3, the teacher wizard route and CSV import (frontend only)
 
 The #11 console error wasn't provided. Item 1 (the freeze) was skipped as

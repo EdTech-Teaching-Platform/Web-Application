@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import { BookOpenIcon, ClockIcon, CompassIcon, FileTextIcon, HomeIcon, UsersIcon } from "../components/ui/icons";
 import { useAuth } from "../hooks/useAuth";
@@ -10,6 +10,9 @@ import AccountBlockedScreen from "../portals/student/components/AccountBlockedSc
 import StudentBackdrop from "../components/common/StudentBackdrop";
 import { AUTH_THEME_VARS } from "../auth/components/AuthKit";
 import RouteFallback from "../components/common/RouteFallback";
+import { useOnboardingGate } from "../portals/student/hooks/useOnboardingGate";
+import { useStudentNotifications } from "../portals/student/hooks/useStudentNotifications";
+import ResolutionNotice from "../portals/student/components/ResolutionNotice";
 
 // Test-series portal only. Explore / courses, wishlist, payments, messages
 // and the other mock-backed screens are hidden (see src/portals/student/routes.jsx).
@@ -94,7 +97,19 @@ export default function StudentLayout() {
   // QA triage P2: a blocked student sees only the blocked screen (checked on
   // load and focus; any student RPC refused with account_blocked flips it).
   const account = useAccountStatus();
+  // QA (07 Nov): missing mandatory profile details -> the onboarding wizard,
+  // once per session, however the student signed in.
+  const onboarding = useOnboardingGate(user, { path: `${location.pathname}${location.search}` });
+  // The inbox: bell badge + "your report was resolved" popup (20261107090000).
+  const inbox = useStudentNotifications({ enabled: !account.blocked && !onboarding.redirectTo });
+  const navigate = useNavigate();
   if (account.blocked) return <AccountBlockedScreen message={account.reasonPublic} onLogout={signOut} onRetry={account.check} />;
+  if (onboarding.redirectTo) return <Navigate to={onboarding.redirectTo} replace />;
+  if (onboarding.checking) return <RouteFallback fullscreen />;
+  const viewNotice = async (notice) => {
+    await inbox.markRead(notice.id);
+    navigate(notice.actionUrl || "/student/notifications");
+  };
 
   return (
     <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">
@@ -112,6 +127,8 @@ export default function StudentLayout() {
           navEntries={navEntries}
           onSignOut={signOut}
           user={user}
+          notificationsHref="/student/notifications"
+          notificationsCount={inbox.unread}
         />
       </div>
       <div className="relative z-10 flex min-h-0 flex-1">
@@ -149,6 +166,9 @@ export default function StudentLayout() {
         </main>
       </div>
       <MobileNav />
+      {location.pathname !== "/student/notifications" && (
+        <ResolutionNotice notifications={inbox.rows} onView={viewNotice} onOpenInbox={() => navigate("/student/notifications")} />
+      )}
     </div>
   );
 }

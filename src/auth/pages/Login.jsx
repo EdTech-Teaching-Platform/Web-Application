@@ -7,7 +7,7 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { GoogleIcon } from "../../components/ui/icons";
 import { isEmail, safeRedirect } from "../utils/validators";
-import { login, signInWithGoogle } from "../services/authApi";
+import { INVALID_CREDENTIALS_MESSAGE, login, signInWithGoogle } from "../services/authApi";
 import { ensureProfile } from "../../services/profileService";
 import { useAuth } from "../../hooks/useAuth";
 import { toAppUser } from "../../context/AuthContext";
@@ -81,7 +81,7 @@ export default function Login({ role = "student" }) {
       const profile = await ensureProfile(data.user);
       navigate(redirect || homePathForUser(toAppUser(data.user, profile)), { replace: true });
     } catch (err) {
-      setFormError(err.message || "Incorrect email or password.");
+      setFormError(err.message || INVALID_CREDENTIALS_MESSAGE);
       setSubmitting(false);
     }
   };

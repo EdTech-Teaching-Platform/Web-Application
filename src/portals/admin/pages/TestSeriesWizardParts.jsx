@@ -193,7 +193,9 @@ const STATUS_CLASS = {
   [ROW_STATUS.INCOMPLETE]: "is-pending", [ROW_STATUS.DUPLICATE]: "is-verified",
 };
 
-export function CsvImporter({ existingKeys, onImport }) {
+// onPendingChange(n): the number of valid rows validated but not imported yet,
+// so the wizard can say "click Import" instead of "import at least one valid row".
+export function CsvImporter({ existingKeys, onImport, onPendingChange }) {
   const [text, setText] = useState("");
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState(null);
@@ -203,6 +205,10 @@ export function CsvImporter({ existingKeys, onImport }) {
 
   const report = useMemo(() => (rows ? validateCsvRows(rows, existingKeys) : []), [rows, existingKeys]);
   const counts = report.reduce((m, r) => ({ ...m, [r.status]: (m[r.status] || 0) + 1 }), {});
+  const pendingValid = counts[ROW_STATUS.VALID] || 0;
+  const pendingRef = useRef(onPendingChange);
+  pendingRef.current = onPendingChange;
+  useEffect(() => { pendingRef.current?.(pendingValid); }, [pendingValid]);
 
   const parse = (src) => {
     const res = csvToRows(src);

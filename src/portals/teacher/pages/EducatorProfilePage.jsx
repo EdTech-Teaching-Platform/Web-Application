@@ -3,6 +3,8 @@
 // languages, phone, location); verification status and document statuses are
 // shown read-only (names and statuses, never the files).
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { missingEducatorDetails } from "../hooks/useProfileCompletion";
 import Input from "../../../components/ui/Input";
 import ChipInput from "../../../components/ui/ChipInput";
 import Button from "../../../components/ui/Button";
@@ -26,6 +28,10 @@ export default function EducatorProfilePage({ api = educatorApi }) {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  // ?complete=1: sent here by the portal because details are missing (QA, 07 Nov)
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const completing = params.get("complete") === "1";
 
   useEffect(() => {
     if (data) setForm(Object.fromEntries(EDITABLE.map((k) => [k, data[k] ?? (k === "subjects" || k === "languages" ? [] : "")])));
@@ -34,6 +40,8 @@ export default function EducatorProfilePage({ api = educatorApi }) {
   if (loading && !data) return <Loading label="Loading your profile…" />;
   if (error) return <ErrorState error={error} onRetry={() => refetch().catch(() => {})} />;
   if (!form) return null;
+  const missing = missingEducatorDetails(data);
+  const listMissing = (items) => items.map((m) => m.label).join(", ");
 
   const changed = Object.fromEntries(EDITABLE.filter((k) => JSON.stringify(form[k] ?? "") !== JSON.stringify(data[k] ?? (k === "subjects" || k === "languages" ? [] : ""))).map((k) => [k, form[k]]));
   const set = (patch) => { setForm((f) => ({ ...f, ...patch })); setMessage(""); };
@@ -48,7 +56,9 @@ export default function EducatorProfilePage({ api = educatorApi }) {
     try {
       await api.updateProfile(changed);
       setMessage("Profile saved.");
-      await refetch();
+      const fresh = await refetch();
+      // finished the details the portal asked for: back to the dashboard
+      if (completing && missingEducatorDetails(fresh).length === 0) navigate("/teacher/dashboard", { replace: true });
     } catch (err) {
       setErrors(fieldErrorsFrom(err));
       setMessage(err.message || "We couldn't save your profile.");
@@ -61,6 +71,12 @@ export default function EducatorProfilePage({ api = educatorApi }) {
     <div className="grid gap-6 lg:grid-cols-3">
       <PageCard title="Your profile" className="lg:col-span-2">
         <form onSubmit={save} className="space-y-4" noValidate>
+          {missing.length > 0 && (
+            <div role="alert" className="rounded-2xl bg-(--lp-yellow-soft) p-4 text-sm text-(--lp-ink)">
+              <p className="font-semibold">{completing ? "Welcome! Complete your profile to continue" : "Your profile is incomplete"}</p>
+              <p className="mt-1">Please add your {listMissing(missing)}. Students see these details on your test series.</p>
+            </div>
+          )}
           {message && <p role="status" className="rounded-2xl bg-(--lp-blue-tint) p-3 text-sm">{message}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Full name" value={data.full_name || ""} disabled readOnly />

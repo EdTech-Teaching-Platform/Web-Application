@@ -12,6 +12,7 @@ const MyTests = lazy(() => import("./pages/MyTests"));
 const Account = lazy(() => import("./pages/Account"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 const StudentOnboarding = lazy(() => import("./pages/StudentOnboarding"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 import { homePathForUser } from "../../utils/roles";
 
 // The student portal is test series only for now. Course discovery (Explore,
@@ -51,7 +52,6 @@ export const studentOnboardingRoutes = (
 
 const COMING_SOON = [
   ["messages", "Messages"],
-  ["notifications", "Notifications"],
   ["certificates", "Certificates"],
   ["orders", "Payments"],
   ["help-complaints", "Help & complaints"],
@@ -97,6 +97,8 @@ const studentRoutes = (
     <Route path="history" element={<History />} />
     <Route path="my-tests" element={<MyTests />} />
     <Route path="account" element={<Account />} />
+    {/* the real inbox (20261107090000): report resolutions and other notices */}
+    <Route path="notifications" element={<Notifications />} />
     <Route path="profile" element={<Navigate to="/student/account" replace />} />
     {TO_LIST.map((path) => <Route key={path} path={path} element={<ToSeriesList />} />)}
     {TO_HISTORY.map((path) => <Route key={path} path={path} element={<Navigate to="/student/history" replace />} />)}

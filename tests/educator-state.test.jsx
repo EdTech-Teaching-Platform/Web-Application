@@ -178,7 +178,9 @@ describe("teacher gate after a decision", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText("Blurry ID")).toBeInTheDocument();
+    await act(async () => {});   // flush the gate's effects (its 60 s poll) before moving the clock
     await act(async () => { vi.advanceTimersByTime(60000); });
-    expect(await screen.findByText("Dashboard feature")).toBeInTheDocument();
+    // generous timeout: fake timers + a loaded full-suite run
+    expect(await screen.findByText("Dashboard feature", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 });

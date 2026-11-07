@@ -91,7 +91,7 @@ describe("authErrorMessage", () => {
   it("turns Supabase errors into messages a student can act on", async () => {
     vi.doMock("../src/services/supabaseClient", () => ({ supabase: {} }));
     const { authErrorMessage, GOOGLE_NOT_CONFIGURED } = await import("../src/auth/services/authApi");
-    expect(authErrorMessage({ message: "Invalid login credentials" })).toBe("Incorrect email or password.");
+    expect(authErrorMessage({ message: "Invalid login credentials" })).toBe("Unable to sign in. Please check your credentials or create a new account if you're new to Universal Learning.");
     expect(authErrorMessage({ message: "User already registered" })).toMatch(/already exists/);
     expect(authErrorMessage({ message: "Email not confirmed" })).toMatch(/Confirm your email/);
     expect(authErrorMessage({ status: 429, message: "x" })).toMatch(/Too many attempts/);

@@ -79,7 +79,7 @@ function NavGroup({ group, pathname }) {
 // rendering before every dropdown regardless of the order it was given
 // in. `navItems`/`navGroups` are still accepted for backward
 // compatibility (they render, in that fixed order, before navEntries).
-export default function Navbar({ title, links = [], navItems, navGroups, navEntries, user, notificationsHref, onSignOut }) {
+export default function Navbar({ title, links = [], navItems, navGroups, navEntries, user, notificationsHref, notificationsCount = 0, onSignOut }) {
   const { pathname } = useLocation();
   const logoutConfirm = useLogoutConfirm(onSignOut, { description: "You'll need to sign in again to continue learning." });
 
@@ -152,10 +152,15 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
         {notificationsHref && (
           <Link
             to={notificationsHref}
-            aria-label="Notifications"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-(--lp-grey) text-(--lp-ink) transition-transform duration-200 ease-out hover:-translate-y-0.5"
+            aria-label={notificationsCount > 0 ? `Notifications, ${notificationsCount} unread` : "Notifications"}
+            className="relative flex h-10 w-10 items-center justify-center rounded-full bg-(--lp-grey) text-(--lp-ink) transition-transform duration-200 ease-out hover:-translate-y-0.5"
           >
             <BellIcon className="h-5 w-5" />
+            {notificationsCount > 0 && (
+              <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
+                {notificationsCount > 9 ? "9+" : notificationsCount}
+              </span>
+            )}
           </Link>
         )}
         {initials && (

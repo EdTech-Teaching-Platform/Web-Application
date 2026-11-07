@@ -79,7 +79,7 @@ describe("error mapping", () => {
 
   it("the login page explains a banned account", () => {
     expect(authErrorMessage({ code: "user_banned", message: "User is banned" })).toBe("This account has been blocked. Contact the administrator to restore access.");
-    expect(authErrorMessage({ message: "Invalid login credentials" })).toBe("Incorrect email or password.");
+    expect(authErrorMessage({ message: "Invalid login credentials" })).toBe("Unable to sign in. Please check your credentials or create a new account if you're new to Universal Learning.");
   });
 });
 
