@@ -67,6 +67,7 @@ const PAGE_TRANSITION_CSS = `
 `;
 
 // Screens that sit on a plain background instead of the notebook backdrop.
+const CALM_PREFIXES = ["/student/report/", "/student/test-series/", "/student/my-tests/", "/student/dashboard/series/"];
 const CALM_PAGES = ["/student/dashboard", "/student/test-series", "/student/my-tests", "/student/history", "/student/account"];
 
 export default function StudentLayout() {
@@ -155,7 +156,7 @@ export default function StudentLayout() {
               scrolls up together with the page exactly like Landing. */}
           <div className="relative min-h-full">
             {/* The dashboard is a calm working screen: no notebook doodles behind it (same for the catalogue). */}
-            {!(CALM_PAGES.includes(location.pathname) || location.pathname.startsWith("/student/report/")) && <StudentBackdrop />}
+            {!(CALM_PAGES.includes(location.pathname) || CALM_PREFIXES.some((prefix) => location.pathname.startsWith(prefix))) && <StudentBackdrop />}
             <div className="relative z-10 pt-[76px]">
               <style>{PAGE_TRANSITION_CSS}</style>
               <ErrorBoundary name="student" resetKey={`${location.pathname}${location.search}`} homeHref="/student/dashboard">
