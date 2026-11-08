@@ -66,6 +66,9 @@ const PAGE_TRANSITION_CSS = `
 @media (prefers-reduced-motion: reduce) { .ul-page-in { animation: none; } }
 `;
 
+// Screens that sit on a plain background instead of the notebook backdrop.
+const CALM_PAGES = ["/student/dashboard", "/student/test-series"];
+
 export default function StudentLayout() {
   const location = useLocation();
   const mainRef = useRef(null);
@@ -151,7 +154,8 @@ export default function StudentLayout() {
               not just the viewport-sized <main> box), fixes that: it now
               scrolls up together with the page exactly like Landing. */}
           <div className="relative min-h-full">
-            <StudentBackdrop />
+            {/* The dashboard is a calm working screen: no notebook doodles behind it (same for the catalogue). */}
+            {!CALM_PAGES.includes(location.pathname) && <StudentBackdrop />}
             <div className="relative z-10 pt-[76px]">
               <style>{PAGE_TRANSITION_CSS}</style>
               <ErrorBoundary name="student" resetKey={`${location.pathname}${location.search}`} homeHref="/student/dashboard">
