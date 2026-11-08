@@ -155,7 +155,7 @@ export default function StudentLayout() {
               scrolls up together with the page exactly like Landing. */}
           <div className="relative min-h-full">
             {/* The dashboard is a calm working screen: no notebook doodles behind it (same for the catalogue). */}
-            {!CALM_PAGES.includes(location.pathname) && <StudentBackdrop />}
+            {!(CALM_PAGES.includes(location.pathname) || location.pathname.startsWith("/student/report/")) && <StudentBackdrop />}
             <div className="relative z-10 pt-[76px]">
               <style>{PAGE_TRANSITION_CSS}</style>
               <ErrorBoundary name="student" resetKey={`${location.pathname}${location.search}`} homeHref="/student/dashboard">
