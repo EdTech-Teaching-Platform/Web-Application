@@ -67,6 +67,46 @@ const STYLES = `
 @media (prefers-reduced-motion: reduce) { .ul-ob-in { animation: none; } }
 `;
 
+// Pre-fill from the saved profile without overwriting what the student typed.
+export function prefillForm(f, profile, student) {
+  const keep = (current, saved) => (String(current ?? "").trim() ? current : String(saved ?? ""));
+  return {
+    ...f,
+    full_name: keep(f.full_name, profile?.full_name),
+    phone: keep(f.phone, profile?.phone),
+    location: keep(f.location, profile?.location),
+    grade: keep(f.grade, student?.grade),
+    school_name: keep(f.school_name, student?.school_name),
+    age: keep(f.age, student?.age),
+    parent_email: keep(f.parent_email, student?.parent_email),
+    interests: f.interests.length ? f.interests : (Array.isArray(student?.interests) ? student.interests : []),
+  };
+}
+
+export function onboardingValues(form) {
+  return {
+    full_name: form.full_name.trim(),
+    phone: form.phone.trim(),
+    location: form.location.trim(),
+    grade: form.grade,
+    school_name: form.school_name.trim(),
+    age: form.age.trim(),
+    parent_email: form.parent_email.trim() || null,
+    interests: form.interests,
+  };
+}
+
+export function savedMatches(values, { profile, student } = {}) {
+  return (student?.grade ?? "") === values.grade
+    && (student?.school_name ?? "") === values.school_name
+    && (profile?.location ?? "") === values.location;
+}
+
+export function firstInvalidStep(form) {
+  for (let s = 0; s < STEPS.length; s += 1) if (Object.keys(stepErrors(s, form)).length) return s;
+  return -1;
+}
+
 function stepErrors(step, f) {
   const e = {};
   if (step === 0) {
@@ -194,17 +234,9 @@ export default function StudentOnboarding() {
     let cancelled = false;
     profileApi.get(user.id).then(({ profile, student }) => {
       if (cancelled) return;
-      setForm((f) => ({
-        ...f,
-        full_name: profile?.full_name || f.full_name,
-        phone: profile?.phone || "",
-        location: profile?.location || "",
-        grade: student?.grade || "",
-        school_name: student?.school_name || "",
-        age: student?.age ? String(student.age) : "",
-        parent_email: student?.parent_email || "",
-        interests: Array.isArray(student?.interests) ? student.interests : [],
-      }));
+      // QA (08 Nov): fill only what the student hasn't typed yet. A slow
+      // response used to overwrite grade / school with "" mid-wizard.
+      setForm((f) => prefillForm(f, profile, student));
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [user.id]);
@@ -223,19 +255,22 @@ export default function StudentOnboarding() {
   };
 
   const finish = async () => {
+    // every step must still be valid (not only the last one on screen)
+    const bad = firstInvalidStep(form);
+    if (bad !== -1) {
+      setStep(bad);
+      setTouched(Object.fromEntries(Object.keys(stepErrors(bad, form)).map((k) => [k, true])));
+      setError("Some details are missing. Please check this step.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
-      await profileApi.save(user.id, {
-        full_name: form.full_name.trim(),
-        phone: form.phone.trim(),
-        location: form.location.trim(),
-        grade: form.grade,
-        school_name: form.school_name.trim(),
-        age: form.age.trim(),
-        parent_email: form.parent_email.trim() || null,
-        interests: form.interests,
-      });
+      const values = onboardingValues(form);
+      await profileApi.save(user.id, values);
+      // read back: the Account page shows exactly these rows
+      const saved = await profileApi.get(user.id);
+      if (!savedMatches(values, saved)) throw new Error("We couldn't save all your details (school, grade, city). Please try again.");
       navigate(destination, { replace: true });
     } catch (err) {
       setError(err?.message || "We couldn't save your details. Please try again.");

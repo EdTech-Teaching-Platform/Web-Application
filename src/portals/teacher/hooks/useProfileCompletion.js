@@ -60,8 +60,16 @@ export function useProfileCompletion(userId, { enabled = true, api = educatorApi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  // The redirect is one-shot: once the educator is on the profile page (sent
+  // there, or opened it), it is cleared, so the sidebar works again (QA 08 Nov:
+  // every link bounced back to /teacher/profile).
+  const onProfile = pathname.startsWith("/teacher/profile");
+  useEffect(() => {
+    if (onProfile && state.redirectTo) settle({ key: state.key, checking: false, redirectTo: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onProfile, state.redirectTo]);
+
   if (state.key !== key) return { checking: active, redirectTo: null };
-  // already on the profile page: no redirect needed (it shows the banner)
-  if (state.redirectTo && pathname.startsWith("/teacher/profile")) return { checking: false, redirectTo: null };
+  if (state.redirectTo && onProfile) return { checking: false, redirectTo: null };
   return { checking: state.checking, redirectTo: state.redirectTo };
 }

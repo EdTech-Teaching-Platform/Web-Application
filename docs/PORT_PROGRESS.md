@@ -99,6 +99,40 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-08: QA reports of 07-08 Nov (onboarding school/grade, educator sidebar), frontend only
+
+### School and grade from onboarding missing on the Account page
+
+- **Cause:** the onboarding wizard pre-fills from the saved profile.
+  - When that response arrived after the student had started typing, it
+    overwrote grade, school, city, age and phone with "" (an empty profile on
+    a new account).
+  - "Finish" validated only the last step (interests), so the blanked values
+    were saved.
+- **Fix** (`StudentOnboarding.jsx`):
+  - `prefillForm` fills only fields the student hasn't typed;
+  - `firstInvalidStep` checks every step on Finish and jumps back to the
+    first invalid one;
+  - after saving, the wizard reads the profile back and shows an error
+    unless grade, school and city match (`savedMatches`).
+- **Unchanged:** the Account page reads the same rows.
+- **No database change.**
+
+### Educator sidebar stuck on Profile
+
+- **Cause:** a regression from 2026-11-07. The `useProfileCompletion`
+  redirect to `/teacher/profile?complete=1` was only hidden while on
+  `/teacher/profile` and never cleared, so every sidebar link bounced back to
+  Profile for an educator with missing details.
+- **Fix:** the redirect is one-shot. It clears as soon as the educator is on
+  the profile page.
+
+### Checks
+
+- `npm test`: 21 files, 248 tests (`tests/qa-nov08.test.jsx` 6; both sidebar
+  tests fail without the fix).
+- `npm run build` ✅.
+
 ## 2026-11-07: QA reports of 02-07 Nov (freeze, login copy, onboarding, tracker creator, resolution notice, CSV alert)
 
 ### Admin freeze between modules (P8 item 1, #2)
