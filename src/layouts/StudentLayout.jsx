@@ -67,7 +67,7 @@ const PAGE_TRANSITION_CSS = `
 `;
 
 // Screens that sit on a plain background instead of the notebook backdrop.
-const CALM_PREFIXES = ["/student/report/", "/student/test-series/", "/student/my-tests/", "/student/dashboard/series/"];
+const CALM_PREFIXES = ["/student/report/", "/student/test-series/", "/student/my-tests/", "/student/dashboard/series/", "/student/test/"];
 const CALM_PAGES = ["/student/dashboard", "/student/test-series", "/student/my-tests", "/student/history", "/student/account"];
 
 export default function StudentLayout() {
