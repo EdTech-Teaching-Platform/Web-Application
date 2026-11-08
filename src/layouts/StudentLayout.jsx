@@ -115,7 +115,7 @@ export default function StudentLayout() {
   };
 
   return (
-    <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">
+    <div style={AUTH_THEME_VARS} data-modal-root className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">
       {/* The navbar floats over the scrolling page (instead of sitting above
           it), so content that scrolls up behind it softens through a frosted
           fade. The page content below gets matching top padding. Wrapper is

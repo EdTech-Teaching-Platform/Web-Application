@@ -77,21 +77,21 @@ export function FeedbackForm({ open, onClose, attemptId, questions = [], onSubmi
   }
 
   return (
-    <Modal open={open} onClose={close} title="Give feedback or report an issue"
+    <Modal open={open} onClose={close} maxWidth="max-w-lg" title="Give feedback or report an issue"
       footer={<>
         <Button type="submit" form="feedback-form" disabled={!valid || state.phase === "sending"}>
           {state.phase === "sending" ? "Sending…" : "Send"}
         </Button>
         <Button variant="secondary" onClick={close}>Cancel</Button>
       </>}>
-      <form id="feedback-form" onSubmit={submit} noValidate className="space-y-4">
+      <form id="feedback-form" onSubmit={submit} noValidate className="space-y-5">
         {state.error && <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{state.error}</p>}
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-text">What would you like to send?</legend>
           <div className="grid gap-2" role="radiogroup" aria-label="Type">
             {FEEDBACK_KINDS.map((k) => (
-              <label key={k.value} className={`flex cursor-pointer items-start gap-3 rounded-2xl px-3 py-2.5 ring-1 ${kind === k.value ? "bg-primary/5 ring-primary" : "ring-text/10"}`}>
+              <label key={k.value} className={`flex cursor-pointer items-start gap-3 rounded-xl px-3.5 py-2.5 ring-1 transition-colors duration-150 ${kind === k.value ? "bg-primary/5 ring-primary" : "ring-text/10"}`}>
                 <input type="radio" name="feedback-kind" value={k.value} checked={kind === k.value} onChange={() => setKind(k.value)} className="mt-1 accent-[var(--color-primary)]" />
                 <span><span className="block text-sm font-semibold text-text">{k.label}</span><span className="block text-xs text-text/60">{k.hint}</span></span>
               </label>
@@ -111,7 +111,7 @@ export function FeedbackForm({ open, onClose, attemptId, questions = [], onSubmi
           <div>
             <label htmlFor="feedback-category" className="mb-1 block text-sm font-medium text-text">Category (optional)</label>
             <select id="feedback-category" value={category} onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-full border border-text/15 bg-bg px-4 py-2.5 text-sm text-text">
+              className="w-full rounded-xl border border-text/15 bg-white px-3.5 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15">
               <option value="">None</option>
               {FEEDBACK_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
@@ -119,7 +119,7 @@ export function FeedbackForm({ open, onClose, attemptId, questions = [], onSubmi
           <div>
             <label htmlFor="feedback-question" className="mb-1 block text-sm font-medium text-text">Question (optional)</label>
             <select id="feedback-question" value={questionId} onChange={(e) => setQuestionId(e.target.value)}
-              className="w-full rounded-full border border-text/15 bg-bg px-4 py-2.5 text-sm text-text">
+              className="w-full rounded-xl border border-text/15 bg-white px-3.5 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15">
               <option value="">Whole test</option>
               {questions.map((q) => (
                 <option key={q.question_id} value={q.question_id}>
@@ -138,10 +138,10 @@ export function FeedbackForm({ open, onClose, attemptId, questions = [], onSubmi
             onChange={(e) => setMessage(e.target.value)}
             onBlur={() => setTouched(true)}
             maxLength={MESSAGE_MAX}
-            rows={5}
+            rows={4}
             aria-invalid={Boolean(touched && errors.message)}
             aria-describedby="feedback-count"
-            className="w-full rounded-2xl border border-text/15 bg-bg px-4 py-3 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+            className="w-full resize-none rounded-xl border border-text/15 bg-white px-4 py-3 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
           <span className="mt-1 flex justify-between text-xs">
             <span className="text-danger">{touched && errors.message ? errors.message : ""}</span>
