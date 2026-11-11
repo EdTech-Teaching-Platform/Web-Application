@@ -53,6 +53,7 @@ import "./UserManagement.css";
 import "./TestSeries.css";
 import PageToast from "../../../components/feedback/Toast";
 import RowActionsMenu from "../../../components/common/RowActionsMenu";
+import { richTextToPlain } from "../../../utils/richText";
 
 const PAGE_SIZE = 8;
 
@@ -167,7 +168,7 @@ export default function TestSeries() {
 
   const openEdit = (s) => {
     setForm({
-      name: s.name, description: s.description, subject: s.subject, audience: s.audience,
+      name: s.name, description: richTextToPlain(s.description), subject: s.subject, audience: s.audience,
       pricing: s.pricing, price: s.pricing === PRICING_TYPE.PAID ? String(s.price) : "",
       startDate: s.startDate, endDate: s.endDate, coverPath: s.cover_path || "",
     });

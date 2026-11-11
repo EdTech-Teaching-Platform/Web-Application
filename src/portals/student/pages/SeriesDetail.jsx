@@ -16,6 +16,8 @@ import LoginPrompt from "../../../public/components/LoginPrompt";
 import { ATTEMPT_STATUS, formatDate, formatMinutes, formatPercent, priceLabel } from "../utils/format";
 import { MyFeedbackList } from "../components/FeedbackForm";
 import { SeriesBanner } from "../components/TestImages";
+import RichTextBlock from "../../../components/common/RichTextBlock";
+import { richTextToPlain } from "../../../utils/richText";
 
 function testState(test, enrolled) {
   const now = Date.now();
@@ -162,6 +164,11 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
   const eyebrow = [series.exam, series.subject, series.level].filter(Boolean).join(" · ") || "Test series";
   const hasAccessNote = Boolean(series.available_until || series.enrollment?.expires_at);
   const hasRail = Boolean(series.instructions || hasAccessNote);
+  // QA (11 Nov): the description is the wizard's rich text (HTML); it showed
+  // as raw tags. Shown formatted, with who it's for and the syllabus, so a
+  // student knows what they are buying.
+  const summary = richTextToPlain(series.description);
+  const hasAbout = Boolean(summary || series.who_for || series.syllabus);
 
   return (
     <div className={`${WIDE} pb-12`}>
@@ -173,7 +180,7 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--lp-muted)">{eyebrow}</p>
           <h1 className="mt-2 break-words font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-(--lp-ink) sm:text-[2.25rem]">{series.title}</h1>
-          {series.description && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--lp-muted) sm:text-[15px]">{series.description}</p>}
+          {summary && <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-relaxed text-(--lp-muted) sm:text-[15px]">{summary}</p>}
         </div>
         <div className="shrink-0">
           {enrolled ? (
@@ -198,6 +205,24 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
 
       <div className={`grid gap-6 lg:gap-8 ${hasRail ? "lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start" : ""}`}>
         <div className="min-w-0 space-y-8">
+          {hasAbout && (
+            <section className={`${SURFACE} space-y-5 p-5 sm:p-6`} aria-labelledby="ul-series-about">
+              <h2 id="ul-series-about" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink) sm:text-xl">About this series</h2>
+              {summary && <RichTextBlock text={series.description} className="text-sm leading-relaxed text-(--lp-muted) sm:text-[15px]" />}
+              {series.who_for && (
+                <div>
+                  <h3 className="text-sm font-semibold text-(--lp-ink)">Who it's for</h3>
+                  <RichTextBlock text={series.who_for} className="mt-1.5 text-sm leading-relaxed text-(--lp-muted)" />
+                </div>
+              )}
+              {series.syllabus && (
+                <div>
+                  <h3 className="text-sm font-semibold text-(--lp-ink)">Syllabus</h3>
+                  <RichTextBlock text={series.syllabus} className="mt-1.5 text-sm leading-relaxed text-(--lp-muted)" />
+                </div>
+              )}
+            </section>
+          )}
           <section className="space-y-4">
             <h2 className="font-display text-lg font-semibold tracking-tight text-(--lp-ink) sm:text-xl">Tests</h2>
             {tests.length === 0 ? (

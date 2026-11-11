@@ -331,3 +331,45 @@ describe("delete account (#21)", () => {
     await wait();
   });
 });
+
+// -----------------------------------------------------------------------------
+describe("series description for buyers (11 Nov)", () => {
+  const HTML = "<p>Complete <strong>JEE Main</strong> physics practice.</p><ul><li>10 full mocks</li><li>Detailed solutions</li></ul><p>&nbsp;</p><script>alert(1)</script>";
+
+  it("rich text becomes readable plain text for cards and search", async () => {
+    const { richTextToPlain, sanitizeRichHtml } = await import("../src/utils/richText");
+    expect(richTextToPlain(HTML)).toBe("Complete JEE Main physics practice. 10 full mocks Detailed solutions");
+    expect(richTextToPlain("Plain old description")).toBe("Plain old description");
+    expect(richTextToPlain("")).toBe("");
+    const safe = sanitizeRichHtml('<p onclick="x()">Hi <a href="javascript:1">there</a></p><script>bad()</script>');
+    expect(safe).toBe("<p>Hi there</p>");
+  });
+
+  it("the series page shows the description formatted (no raw tags), with who it's for and the syllabus", async () => {
+    auth.user = { id: "stu-1", name: "Riya", role: "student", email: "r@x.in" };
+    rpcHandlers.student_get_series = {
+      id: SERIES_ID, title: "JEE Physics Pro", description: HTML, who_for: "Class 12 students preparing for JEE Main.",
+      syllabus: "Mechanics\nElectrostatics\nOptics", is_free: true, pricing: "free", tests_count: 0, tests: [], is_enrolled: false,
+    };
+    const { default: SeriesDetail } = await import("../src/portals/student/pages/SeriesDetail");
+    render(<MemoryRouter initialEntries={[`/student/test-series/${SERIES_ID}`]}><Routes>
+      <Route path="/student/test-series/:seriesId" element={<SeriesDetail />} />
+    </Routes></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "About this series" })).toBeInTheDocument();
+    expect(screen.queryByText(/<p>|<strong>|&nbsp;/)).toBeNull();
+    expect(screen.getByText("JEE Main", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("10 full mocks", { selector: "li" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Who it's for" })).toBeInTheDocument();
+    expect(screen.getByText("Class 12 students preparing for JEE Main.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Syllabus" })).toBeInTheDocument();
+    expect(document.querySelector("script")).toBeNull();
+    auth.user = { id: "adm-1", name: "Admin", role: "admin", email: "a@x.in" };
+  });
+
+  it("a series card shows the description as clean text", async () => {
+    const { default: SeriesShowcaseCard } = await import("../src/portals/student/components/SeriesShowcaseCard");
+    render(<MemoryRouter><SeriesShowcaseCard series={{ id: "s1", title: "JEE Physics Pro", description: HTML, is_free: true, tests_count: 3 }} index={0} onOpen={() => {}} /></MemoryRouter>);
+    expect(screen.getByText("Complete JEE Main physics practice. 10 full mocks Detailed solutions")).toBeInTheDocument();
+    expect(screen.queryByText(/<p>/)).toBeNull();
+  });
+});

@@ -1,7 +1,7 @@
 -- =====================================================================
 -- rollback_20261111090000_admin_qa_nov11.sql
 -- Undoes supabase/migrations/20261111090000_admin_qa_nov11.sql: drops the
--- delete-account objects, restores the five replaced functions to their
+-- delete-account objects, restores the six replaced functions to their
 -- previous definitions and drops the four new test_assignments columns
 -- (their values are lost).
 -- Run only with "approved:"; take a backup first.
@@ -193,6 +193,46 @@ language sql stable security definer set search_path = public, extensions as $$
     cross join lateral (select count(*) as n, coalesce(sum(x.points), 0) as marks_sum
                           from public.quiz_questions x where x.quiz_id = q.id) m
    where q.id = p_quiz;
+$$;
+
+-- adm_series_card: verbatim from 20261026100200_student_rpc_series.sql
+create or replace function public.adm_series_card(p_series_id uuid, p_student uuid) returns jsonb
+language sql stable security definer set search_path = public, extensions as $$
+  select jsonb_build_object(
+           'id', s.id,
+           'title', s.title,
+           'description', s.description,
+           'subject', coalesce(cat.name, sa.subject_label),
+           'category_id', cat.id,
+           'level', sa.level,
+           'exam', sa.exam,
+           'pricing', coalesce(sa.pricing, 'free'),
+           'price_inr', coalesce(sa.price_inr, 0),
+           'is_free', coalesce(sa.pricing, 'free') = 'free' or coalesce(sa.price_inr, 0) = 0,
+           'cover_path', sa.cover_path,
+           'available_from', s.available_from,
+           'available_until', s.available_until,
+           'access_days', sa.access_days,
+           'tests_count', coalesce(t.cnt, 0),
+           'questions_count', coalesce(t.questions, 0),
+           'total_duration_mins', coalesce(t.mins, 0))
+         || case when p_student is null then '{}'::jsonb else jsonb_build_object(
+           'is_enrolled', public.adm_student_is_enrolled(s.id, p_student),
+           'attempts_count', (select count(*) from public.quiz_attempts a
+                                join public.quizzes q on q.id = a.quiz_id
+                               where q.series_id = s.id and a.student_id = p_student)) end
+    from public.test_series s
+    left join public.test_series_admin sa on sa.series_id = s.id
+    left join public.courses c on c.id = s.course_id
+    left join public.categories cat on cat.id = coalesce(sa.subject_category_id, c.category_id)
+    left join lateral (
+      select count(*) as cnt, sum(q.time_limit_mins) as mins, sum(qc.n) as questions
+        from public.quizzes q
+        left join public.quiz_admin qa on qa.quiz_id = q.id
+        left join lateral (select count(*) as n from public.quiz_questions qq where qq.quiz_id = q.id) qc on true
+       where q.series_id = s.id and coalesce(qa.status, 'published') = 'published'
+    ) t on true
+   where s.id = p_series_id;
 $$;
 
 alter table public.test_assignments drop column if exists test_count;

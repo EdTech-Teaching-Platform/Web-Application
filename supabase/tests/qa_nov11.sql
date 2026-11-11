@@ -70,6 +70,7 @@ begin
   perform pg_temp.act_as(v_admin);
   v_series := public.upsert_test_series_full(jsonb_build_object(
     'name', 'Kirchhoff', 'pricing', 'free', 'startMethod', 'scratch',
+    'about', '<p>Circuit laws <strong>end to end</strong>.</p>', 'whoFor', 'Class 12 JEE aspirants', 'syllabus', 'KCL, KVL, mesh analysis',
     'availability', jsonb_build_object('goLive', 'now', 'mode', 'always'),
     'tests', jsonb_build_array(jsonb_build_object('name', 'Loops', 'duration', '20', 'passingPercent', '40', 'attemptLimit', '2',
       'totalMarks', '15',
@@ -125,6 +126,16 @@ begin
                      'Recently assigned: newest first, the cancelled one keeps its place (#25): ' || array_to_string(v_order, ','));
   perform pg_temp.expect_error(format('select public.update_assignment_requirements(%L, %L)', a1, '{"testCount": 2}'), 'P0002');
   perform pg_temp.ok(true, 'a cancelled assignment cannot be edited (#22)');
+end $$;
+
+-- -------------------------------------------- series card for buyers
+do $$
+declare v jsonb;
+begin
+  v := public.adm_series_card(pg_temp.id('series'), null);
+  perform pg_temp.ok(v ->> 'description' = '<p>Circuit laws <strong>end to end</strong>.</p>', 'the card keeps the description (rich text)');
+  perform pg_temp.ok(v ->> 'who_for' = 'Class 12 JEE aspirants' and v ->> 'syllabus' = 'KCL, KVL, mesh analysis',
+                     'the card returns who it is for and the syllabus');
 end $$;
 
 -- --------------------------------------------------- test marks (#18, #20)

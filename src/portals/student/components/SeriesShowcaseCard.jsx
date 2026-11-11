@@ -3,6 +3,7 @@ import { BookOpenIcon, CheckIcon, ChevronRightIcon, ClockIcon, FileTextIcon, Tar
 import { formatMinutes, priceLabel } from "../utils/format";
 import { CoverDots, CoverGlyph, glyphFor } from "./StudentKit";
 import AssetImage from "../../../components/common/AssetImage";
+import { richTextToPlain } from "../../../utils/richText";
 
 // Presentation-only card for the "Find a test series" grid. Same props and
 // behaviour as SeriesCard (series, index, onOpen, actionLabel, onAction,
@@ -102,7 +103,7 @@ export default function SeriesShowcaseCard({ series, index = 0, onOpen, actionLa
           {series.level ? <MetaChip icon={TargetIcon}>{series.level}</MetaChip> : null}
         </div>
 
-        {series.description && <p className="line-clamp-2 text-xs leading-relaxed text-text/55 max-sm:hidden">{series.description}</p>}
+        {richTextToPlain(series.description) && <p className="line-clamp-2 text-xs leading-relaxed text-text/55 max-sm:hidden">{richTextToPlain(series.description)}</p>}
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-(--lp-line) pt-3 sm:pt-4">
           <span className="font-display text-lg sm:text-xl font-bold tracking-tight text-text">{priceLabel(series)}</span>

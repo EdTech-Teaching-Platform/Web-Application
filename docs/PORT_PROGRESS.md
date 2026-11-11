@@ -175,13 +175,31 @@ Nov). The 02 Nov reports predate both.
   `set-user-ban` (warning with Retry on failure). Reject notifies the user.
 - **Data deletion** stays a manual step.
 
+### Series description for buyers (follow-up, same day)
+
+- **Cause:** the wizard's "About this series" is a rich-text box, so
+  `test_series.description` holds HTML. The student detail page and the cards
+  printed it as plain text, so buyers saw raw tags and `&nbsp;`.
+- **Fix (frontend, works for every existing series):**
+  - `src/utils/richText.js` (`sanitizeRichHtml`, `richTextToPlain`) and
+    `components/common/RichTextBlock.jsx`.
+  - The series page has an "About this series" section: the formatted
+    description (safe allow-list), plus "Who it's for" and "Syllabus". The
+    header shows a 2-line plain summary.
+  - The cards, search and the admin quick-edit form show plain text.
+- **Migration:** "Who it's for" and "Syllabus" were collected by the wizard
+  but never sent to students. `adm_series_card` now returns `who_for` and
+  `syllabus` (added to 20261111090000). Until it is applied, the section
+  shows just the description.
+
 ### New migration `20261111090000_admin_qa_nov11.sql` (not applied)
 
 - **Assignments:** the four columns on `test_assignments` (ours).
 - **Replaced (marked edits):** `create_assignments`,
   `update_assignment_requirements`, `list_assignments`,
   `get_assignment_detail`, `adm_test_json` (adds `total_marks_planned` and
-  `marks_sum`; `total_marks` unchanged).
+  `marks_sum`; `total_marks` unchanged), `adm_series_card` (adds `who_for` and
+  `syllabus`).
 - **New table** `account_deletion_requests` (RLS on, no policies, no grants;
   one pending request per user).
 - **New RPCs:** `account_request_deletion`, `account_get_deletion_request`,
@@ -193,15 +211,15 @@ Nov). The 02 Nov reports predate both.
 - **Rollback:** `scripts/rollback_20261111090000_admin_qa_nov11.sql`
   (restores the five functions verbatim).
 - **Trial:** `docs/trial_run_20261111090000.sql`.
-- **SQL test:** `supabase/tests/qa_nov11.sql` (28 checks).
+- **SQL test:** `supabase/tests/qa_nov11.sql` (30 checks).
 
 ### Checks
 
-- `npm test`: 22 files, 267 tests (`tests/qa-nov11.test.jsx` 19).
+- `npm test`: 22 files, 270 tests (`tests/qa-nov11.test.jsx` 22).
 - `npm run build` ✅.
 - PGlite: all migrations plus `qa_nov11.sql` ✅; the trial on the 20261107
   schema ✅; the rollback, then `educator_series.sql` ✅.
-- Parser: 476 bodies, 0 errors. Hardening: 448 functions, 0 problems.
+- Parser: 477 bodies, 0 errors. Hardening: 449 functions, 0 problems.
 
 ### Apply
 

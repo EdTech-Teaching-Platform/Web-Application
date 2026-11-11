@@ -2,6 +2,7 @@
 // with search (?q=), category filter (?category=), paging and enrol.
 // Public mode (/test-series): public_list_series; actions go through login.
 import { useEffect, useMemo, useState } from "react";
+import { richTextToPlain } from "../../../utils/richText";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Chip from "../../../components/ui/Chip";
 import Select from "../../../components/ui/Select";
@@ -98,7 +99,7 @@ function CatalogCard({ series, index = 0, onOpen, actionLabel, onAction, actionD
           ))}
         </ul>
 
-        {series.description && <p className="line-clamp-2 text-[13px] leading-relaxed text-text/60">{series.description}</p>}
+        {richTextToPlain(series.description) && <p className="line-clamp-2 text-[13px] leading-relaxed text-text/60">{richTextToPlain(series.description)}</p>}
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-(--lp-line) pt-4">
           <span className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">{priceLabel(series)}</span>
@@ -183,7 +184,7 @@ export default function SeriesList({ publicMode = false }) {
   const filtered = useMemo(() => {
     const needle = publicMode ? q.toLowerCase() : "";
     return (data?.items ?? []).filter((s) => {
-      if (needle && ![s.title, s.description, s.subject, s.exam].some((v) => v?.toLowerCase().includes(needle))) return false;
+      if (needle && ![s.title, richTextToPlain(s.description), s.subject, s.exam].some((v) => v?.toLowerCase().includes(needle))) return false;
       if (subject && s.subject !== subject) return false;
       if (level && s.level !== level) return false;
       if (price === "free" && !s.is_free) return false;
