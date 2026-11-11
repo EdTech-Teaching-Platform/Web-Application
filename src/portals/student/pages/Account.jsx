@@ -18,6 +18,7 @@ import { useStudentData } from "../hooks/useStudentData";
 import { profileApi } from "../services/profileApi";
 import { studentSeriesApi } from "../services/studentSeriesApi";
 import { formatPercent, formatSeconds } from "../utils/format";
+import DeleteAccountSection from "../../../components/account/DeleteAccountSection";
 
 // Short fields that sit two-up on phones; everything else takes a full row.
 const PAIRED = new Set(["location", "grade", "age", "gender"]);
@@ -195,6 +196,7 @@ export default function Account() {
       </PageHero>
       <Rise><StatsSection /></Rise>
       {user && <Rise delay={80}><ProfileForm user={user} /></Rise>}
+      {user && <Rise delay={120}><DeleteAccountSection email={user.email} /></Rise>}
     </div>
   );
 }

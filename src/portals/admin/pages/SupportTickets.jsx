@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { callbacksApi } from "../services/callbacksApi";
 import { supportTicketsApi } from "../services/supportTicketsApi";
+import DeletionRequestsTab from "./DeletionRequestsTab";
 import { useRpc } from "../hooks/useRpc";
 import { useAuth } from "../../../hooks/useAuth";
 import { IconDownload, IconSearch } from "../components/icons";
@@ -24,12 +25,18 @@ function download(rows) {
   const link = document.createElement("a"); link.href = url; link.download = "callback-report.csv"; link.click(); URL.revokeObjectURL(url);
 }
 
-export default function SupportTickets() {
-  const [tab, setTab] = useState("callbacks");
+const TABS = {
+  callbacks: ["Callback Requests", "Follow up on direct callback requests captured from the site."],
+  tickets: ["Support Tickets", "Respond to support tickets raised by students, educators and parents."],
+  deletions: ["Deletion Requests", "Review account deletion requests from students and educators."],
+};
+
+export default function SupportTickets({ initialTab = "callbacks", deletionsApi }) {
+  const [tab, setTab] = useState(initialTab);
   return <div className="ul-sup-page">
-    <div className="ul-dash-welcome"><div><h2 className="ul-dash-welcome__title">{tab === "callbacks" ? "Callback Requests" : "Support Tickets"}</h2><p className="ul-dash-welcome__subtitle">{tab === "callbacks" ? "Follow up on direct callback requests captured from the site." : "Respond to support tickets raised by students, educators and parents."}</p></div></div>
-    <div className="ul-tabs"><button type="button" className={`ul-tab${tab === "callbacks" ? " is-active" : ""}`} onClick={() => setTab("callbacks")}>Callback Requests</button><button type="button" className={`ul-tab${tab === "tickets" ? " is-active" : ""}`} onClick={() => setTab("tickets")}>Support Tickets</button></div>
-    {tab === "callbacks" ? <CallbacksTab /> : <TicketsTab />}
+    <div className="ul-dash-welcome"><div><h2 className="ul-dash-welcome__title">{TABS[tab][0]}</h2><p className="ul-dash-welcome__subtitle">{TABS[tab][1]}</p></div></div>
+    <div className="ul-tabs">{Object.entries(TABS).map(([key, [name]]) => <button key={key} type="button" className={`ul-tab${tab === key ? " is-active" : ""}`} onClick={() => setTab(key)}>{name}</button>)}</div>
+    {tab === "callbacks" ? <CallbacksTab /> : tab === "tickets" ? <TicketsTab /> : <DeletionRequestsTab {...(deletionsApi ? { api: deletionsApi } : {})} />}
   </div>;
 }
 

@@ -494,6 +494,19 @@ theirs, unknown or already read).
 
 Returns the number of rows marked read.
 
+## Delete account requests (20261111090000)
+
+Shared with educators; the caller is `auth.uid()` (students and educators
+only, `42501` otherwise). A blocked student can still ask.
+
+- `account_request_deletion(p_reason text = null)` → `{id, role, reason, status, created_at, decided_at, decision_note}`:
+  creates a pending request, or returns the existing pending one.
+- `account_get_deletion_request()` → the latest request or null.
+- `account_cancel_deletion_request()` → the withdrawn request, or null when nothing was pending.
+
+An admin approves (the account is blocked) or rejects (a `system`
+notification) with `resolve_account_deletion_request`.
+
 ## Not covered (by design, for now)
 
 - **Lesson quizzes outside a test series** (`quizzes.series_id` is null).

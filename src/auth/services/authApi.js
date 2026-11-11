@@ -34,7 +34,7 @@ export function authErrorMessage(error, fallback = "Something went wrong. Please
   if (/invalid login credentials/i.test(message)) return INVALID_CREDENTIALS_MESSAGE;
   // set-user-ban (QA triage P2): a blocked account is banned in Supabase Auth.
   if (error?.code === "user_banned" || /user is banned|user_banned/i.test(message)) {
-    return "This account has been blocked. Contact the administrator to restore access.";
+    return BLOCKED_LOGIN_MESSAGE;
   }
   if (/email not confirmed/i.test(message)) return "Confirm your email first: open the link we sent to your inbox.";
   if (/already registered|already been registered|user_already_exists/i.test(message)) {
@@ -91,6 +91,26 @@ export async function login({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
   if (error) fail(error, "We couldn't sign you in. Please try again.");
   return data;
+}
+
+// QA #26: a blocked student must not get in, even when the Auth-level ban
+// (set-user-ban) is missing or failed. Right after sign-in, a student's block
+// state is read (student_get_account_status, never refused for a block); a
+// blocked student is signed out again and sees why. A failed check (network,
+// RPC missing) never locks anyone out: the portal checks again.
+export const BLOCKED_LOGIN_MESSAGE = "This account has been blocked. Contact the administrator to restore access.";
+export async function refuseBlockedStudent(profile) {
+  if (profile?.role !== "student") return;
+  let blocked = false;
+  try {
+    const { data, error } = await supabase.rpc("student_get_account_status");
+    blocked = !error && Boolean(data?.blocked);
+  } catch { blocked = false; }
+  if (!blocked) return;
+  try { await supabase.auth.signOut(); } catch { /* the session is dropped below either way */ }
+  const err = new Error(BLOCKED_LOGIN_MESSAGE);
+  err.code = "account_blocked";
+  throw err;
 }
 
 // The provider list is public (GET /auth/v1/settings). null = couldn't tell.

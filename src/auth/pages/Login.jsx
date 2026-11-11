@@ -7,7 +7,7 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { GoogleIcon } from "../../components/ui/icons";
 import { isEmail, safeRedirect } from "../utils/validators";
-import { INVALID_CREDENTIALS_MESSAGE, login, signInWithGoogle } from "../services/authApi";
+import { INVALID_CREDENTIALS_MESSAGE, login, refuseBlockedStudent, signInWithGoogle } from "../services/authApi";
 import { ensureProfile } from "../../services/profileService";
 import { useAuth } from "../../hooks/useAuth";
 import { toAppUser } from "../../context/AuthContext";
@@ -79,6 +79,7 @@ export default function Login({ role = "student" }) {
       // then shows an educator their onboarding, review status or dashboard.
       const data = await login({ email, password });
       const profile = await ensureProfile(data.user);
+      await refuseBlockedStudent(profile);
       navigate(redirect || homePathForUser(toAppUser(data.user, profile)), { replace: true });
     } catch (err) {
       setFormError(err.message || INVALID_CREDENTIALS_MESSAGE);

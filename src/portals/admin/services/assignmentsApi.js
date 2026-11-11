@@ -1,6 +1,6 @@
 import { callRpc, listResult } from "./adminApi";
 
-const mapAssignment = (a) => ({
+export const mapAssignment = (a) => ({
   ...a,
   educatorId: a.educator_id,
   educatorName: a.educator_name || "—",

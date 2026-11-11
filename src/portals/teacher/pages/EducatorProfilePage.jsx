@@ -9,6 +9,7 @@ import Input from "../../../components/ui/Input";
 import ChipInput from "../../../components/ui/ChipInput";
 import Button from "../../../components/ui/Button";
 import { useAuth } from "../../../hooks/useAuth";
+import DeleteAccountSection from "../../../components/account/DeleteAccountSection";
 import { useLogoutConfirm } from "../../../components/common/LogoutConfirm";
 import { useRpc } from "../../admin/hooks/useRpc";
 import { documentLabel } from "../../admin/services/educatorsApi";
@@ -19,8 +20,8 @@ import { formatDate } from "../utils/format";
 
 const EDITABLE = ["phone", "location", "qualifications", "experience_years", "subjects", "languages", "bio"];
 
-export default function EducatorProfilePage({ api = educatorApi }) {
-  const { logout } = useAuth();
+export default function EducatorProfilePage({ api = educatorApi, deletionApi }) {
+  const { logout, user } = useAuth();
   const logoutConfirm = useLogoutConfirm(logout);
   const request = useCallback(() => api.getProfile(), [api]);
   const { data, loading, error, refetch } = useRpc(request);
@@ -130,6 +131,7 @@ export default function EducatorProfilePage({ api = educatorApi }) {
           <p className="text-sm text-(--lp-muted)">Joined {formatDate(data.joined_at)}</p>
           <Button type="button" variant="social" fullWidth={false} className="mt-3" onClick={logoutConfirm.request}>Log out</Button>{logoutConfirm.dialog}
         </PageCard>
+        <DeleteAccountSection email={data.email || user?.email} {...(deletionApi ? { api: deletionApi } : {})} />
       </div>
     </div>
   );

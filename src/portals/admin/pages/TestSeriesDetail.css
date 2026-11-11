@@ -18,3 +18,8 @@
 .ul-tsd-back:hover {
   color: var(--color-primary);
 }
+
+/* Marks note under "Total Marks" in the edit drawer (QA #20). Literal colours:
+   the drawer also renders inside the educator portal. */
+.ul-ts-form-hint { margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: #475467; }
+.ul-ts-form-hint--warn { color: #93370d; }

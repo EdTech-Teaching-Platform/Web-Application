@@ -27,7 +27,7 @@ import {
 import { SUBJECT_OPTIONS, AUDIENCE_OPTIONS } from "../data/testSeriesMock";
 import { GRADE_OPTIONS, EXAM_OPTIONS } from "../data/testSeriesWizard";
 import { useRpc } from "../hooks/useRpc";
-import { assignmentsApi } from "../services/assignmentsApi";
+import { assignmentsApi, mapAssignment } from "../services/assignmentsApi";
 import { IconSearch, IconClose, IconChevronDown, IconMore, IconPlus, IconBell } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
 import "../components/AdminChrome.css";
@@ -48,6 +48,20 @@ const getAssignmentProgress = (a) => Number(a.progress || 0);
 
 function StatusBadge({ status }) {
   return <span className={`ul-status-badge ${ASSIGNMENT_STATUS_BADGE_CLASS[status] || "is-pending"}`}>{ASSIGNMENT_STATUS_LABEL[status] || status}</span>;
+}
+
+// The details modal's assignment (QA #24): the list row merged with the
+// get_assignment_detail response. history comes from the response (it is
+// next to the assignment there, not on it); missing parts are empty, never
+// undefined, so the modal can't crash into a blank screen.
+export function buildDetailAssignment(data, row, id) {
+  const fromDetail = data?.assignment ? mapAssignment(data.assignment) : null;
+  if (!fromDetail && !row) return null;
+  if (id && (fromDetail?.id ?? row?.id) !== id) return null;
+  const history = (Array.isArray(data?.history) ? data.history : []).map((h) => ({
+    action: h.action || "", note: h.note || "", at: h.at || h.created_at || null, by: h.by || h.by_name || "Admin",
+  }));
+  return { ...(row || {}), ...(fromDetail || {}), history, topics: (fromDetail || row)?.topics || [] };
 }
 
 function fmtDate(d) {
@@ -172,12 +186,13 @@ export default function AssignEducators() {
   // ---- detail / form state ----
   const [detailId, setDetailId] = useState(null);
   const detailState = useRpc(useCallback(() => detailId ? assignmentsApi.detail(detailId) : Promise.resolve(null), [detailId]), { immediate: !!detailId });
-  const detailAssignment = detailState.data?.assignment ? { ...detailState.data.assignment, ...assignments.find((a) => a.id === detailId) } : assignments.find((a) => a.id === detailId) || null;
+  const detailAssignment = buildDetailAssignment(detailState.data, assignments.find((a) => a.id === detailId), detailId);
 
   const [formMode, setFormMode] = useState(null); // null | "create" | "edit"
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [formSaving, setFormSaving] = useState(false);
 
   const openCreateForm = () => {
     setForm(EMPTY_FORM);
@@ -239,8 +254,10 @@ export default function AssignEducators() {
     const seriesId = form.seriesMode === "existing" ? form.seriesId : null;
     const seriesName = form.seriesMode === "existing" ? selectedSeries?.name : form.newSeriesName.trim();
 
-    if (editingId) {
-      assignmentsApi.updateRequirements(editingId, {
+    // QA #23: wait for the save; show its error in the form, and only then
+    // close, toast and refetch (it used to toast success before the save ran).
+    const request = editingId
+      ? assignmentsApi.updateRequirements(editingId, {
         seriesId,
         seriesName,
         subject: form.subject,
@@ -257,10 +274,8 @@ export default function AssignEducators() {
         duration: Number(form.duration),
         instructions: form.instructions,
         deadline: form.deadline,
-      });
-      setToast("Assignment requirements updated. The educator has been notified.");
-    } else {
-      assignmentsApi.create({
+      })
+      : assignmentsApi.create({
         seriesMode: form.seriesMode,
         seriesId,
         newSeriesName: form.newSeriesName.trim(),
@@ -279,11 +294,20 @@ export default function AssignEducators() {
         duration: Number(form.duration),
         instructions: form.instructions,
         deadline: form.deadline,
-      }).catch((error) => setFormErrors([error.message]));
-      setToast(`${form.educatorIds.length} assignment${form.educatorIds.length === 1 ? "" : "s"} created.`);
-    }
-    assignmentsState.refetch();
-    setFormMode(null);
+      });
+    const done = editingId
+      ? "Assignment requirements updated. The educator has been notified."
+      : `${form.educatorIds.length} assignment${form.educatorIds.length === 1 ? "" : "s"} created.`;
+    setFormSaving(true);
+    return request
+      .then(() => {
+        setToast({ tone: "success", message: done });
+        setFormMode(null);
+        assignmentsState.refetch();
+        if (editingId && detailId === editingId) detailState.refetch().catch(() => {});
+      })
+      .catch((error) => setFormErrors([error?.message || "Couldn't save the assignment."]))
+      .finally(() => setFormSaving(false));
   };
 
   // ---- reassign / extend / cancel ----
@@ -681,7 +705,7 @@ export default function AssignEducators() {
             </div>
             <div className="ul-set-drawer__actions ul-ts-drawer-actions">
               <button type="button" className="ul-btn ul-btn--ghost" onClick={closeForm}>Cancel</button>
-              <button type="button" className="ul-btn ul-btn--primary" onClick={submitForm}>
+              <button type="button" className="ul-btn ul-btn--primary" onClick={submitForm} disabled={formSaving}>
                 {formMode === "edit" ? "Save Changes" : "Create Assignment"}
               </button>
             </div>
@@ -905,15 +929,17 @@ export default function AssignEducators() {
               <div className="ul-mgmt-detail-list__row"><span>Instructions</span><span>{detailAssignment.instructions || "—"}</span></div>
             </div>
 
-            {detailAssignment.submission?.overallFeedback && (
+            {detailAssignment.overallFeedback && (
               <>
                 <span className="ul-mgmt-detail-subhead">Review Feedback</span>
-                <p className="ul-asg-review-note">{detailAssignment.submission.overallFeedback}</p>
+                <p className="ul-asg-review-note">{detailAssignment.overallFeedback}</p>
               </>
             )}
 
             <span className="ul-mgmt-detail-subhead">History</span>
             <div className="ul-mgmt-activity-list">
+              {detailState.loading && !detailAssignment.history.length && <p className="ul-mgmt-activity-row__meta">Loading history…</p>}
+              {!detailState.loading && !detailAssignment.history.length && <p className="ul-mgmt-activity-row__meta">No history yet.</p>}
               {detailAssignment.history.slice().reverse().map((h, i) => (
                 <div key={i} className="ul-mgmt-activity-row">
                   <span className="ul-mgmt-activity-row__dot" />

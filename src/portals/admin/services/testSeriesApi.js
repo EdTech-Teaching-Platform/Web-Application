@@ -48,8 +48,17 @@ export function mapQuestion(question) {
 
 function mapTest(test) {
   const questions = (test.questions || []).slice().sort((a, b) => a.position - b.position).map(mapQuestion);
-  const totalMarks = Number(test.total_marks || 0);
+  // QA #18 / #20: the total the admin or educator set (e.g. the assignment's
+  // 15) is the test's total; the questions' marks so far are questionMarks.
+  // total_marks_planned / marks_sum come from 20261111090000; before it,
+  // total_marks (the questions' sum, else the planned total) is used.
+  const questionMarks = test.marks_sum != null
+    ? Number(test.marks_sum)
+    : questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+  const planned = Number(test.total_marks_planned || 0);
+  const totalMarks = planned > 0 ? planned : Number(test.total_marks || 0);
   return {
+    questionMarks,
     id: test.id,
     name: test.title,
     instructions: test.instructions || "",

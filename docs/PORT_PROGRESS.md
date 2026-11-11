@@ -99,6 +99,120 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-11: QA reports #15-#26 (02 Nov): blocking, test edit, marks, assignments, delete account
+
+Live state checked first (`migration list`, `functions list`): every migration up
+to 20261107090000 is applied and `set-user-ban` is deployed (since about 4
+Nov). The 02 Nov reports predate both.
+
+### Blocked student (#15, #16, #26)
+
+- **Already live:** the SQL block (20261102090000) and the Auth ban
+  (`set-user-ban`, called by Student Management after `block_student`).
+- **Gap 1, open sessions:** the student portal re-checked only on load and
+  focus, so a student sitting on the dashboard kept seeing it.
+  `useAccountStatus` now also checks on `visibilitychange` and every 30 s
+  while the tab is visible.
+- **Gap 2, login:** the password login refused a blocked student only through
+  the Auth ban. `refuseBlockedStudent` (authApi, called by Login after
+  `ensureProfile`) reads `student_get_account_status`. A blocked student is
+  signed out again and shown "This account has been blocked. Contact the
+  administrator…". A failed check never locks anyone out.
+
+### Edit test drawer (#17, #18, #20)
+
+- **#17, buttons:** editing an existing test now has one "Save changes"
+  button. No status is sent, so a published test stays published. Publish and
+  Unpublish are the row actions. ("Save as Draft" used to unpublish a
+  published test.)
+- **#18, edits not saved:**
+  - The saved total (`quiz_admin.total_marks_planned`) was hidden: the
+    read-back's `total_marks` is the questions' sum.
+  - The schedule came back as UTC ISO, which `datetime-local` can't show,
+    so it looked blank.
+  - Now `src/utils/datetimeLocal.js` converts both ways, and the schedule
+    is sent as ISO, so the moment picked is the one stored.
+  - Save errors (for example passing > total) show in the drawer.
+- **#20, marks:**
+  - `educator_start_assignment` already stored the assignment's total as
+    the test's planned total.
+  - `mapTest.totalMarks` is now that planned total (else the questions'
+    sum), with a new `questionMarks`.
+  - The drawer shows "Questions so far add up to 3 of 15 marks: 12 still to
+    add" (warn, don't block: decision 2).
+  - Test Detail's "Marks allocated" card now compares the right numbers.
+- **#19, toast contrast:** already fixed by P1 (shared toast,
+  `tests/shared-ui.test.jsx`); every page uses it.
+
+### Assignments (#22-#25)
+
+- **#22, cancelled assignments:** the row menu already offered only View
+  Details for closed assignments (guard added 2026-11-03), and the server
+  refuses edits. Now covered by tests.
+- **#23, Number of Tests showed 1 instead of 5:**
+  - `test_count`, `grade`, `exam` and `audience` were never stored.
+    The new migration adds them to `test_assignments` (ours); the create
+    and update RPCs write them, and the list and detail RPCs return them.
+  - The edit form also didn't wait for the save: success showed before the
+    save ran. It now awaits, and shows errors in the form.
+- **#24, blank View Details:** the modal read
+  `detailAssignment.history.slice()`, but `history` sits next to the
+  assignment in the response, so it was always undefined and crashed.
+  `buildDetailAssignment` merges the two safely. History rows carry the
+  actor's name (`by`).
+- **#25, sort:** "Recently assigned" sorts by `created_at` desc (it was the
+  date-only `assigned_date`, then code), whatever the status.
+
+### Delete account (#21): the request flow (decision 3, P9)
+
+- **Student Account and educator Profile:** a "Delete account" section. The
+  dialog explains the consequences, asks for the password again (Google-only
+  accounts type DELETE) and an optional reason. A pending request can be
+  withdrawn.
+- **Admin, Help Desk > Deletion Requests:** list, search and status filter.
+  "Approve and block" blocks a student (`block_student`) or suspends an
+  educator (a system write through `adm_set_educator_state`), then calls
+  `set-user-ban` (warning with Retry on failure). Reject notifies the user.
+- **Data deletion** stays a manual step.
+
+### New migration `20261111090000_admin_qa_nov11.sql` (not applied)
+
+- **Assignments:** the four columns on `test_assignments` (ours).
+- **Replaced (marked edits):** `create_assignments`,
+  `update_assignment_requirements`, `list_assignments`,
+  `get_assignment_detail`, `adm_test_json` (adds `total_marks_planned` and
+  `marks_sum`; `total_marks` unchanged).
+- **New table** `account_deletion_requests` (RLS on, no policies, no grants;
+  one pending request per user).
+- **New RPCs:** `account_request_deletion`, `account_get_deletion_request`,
+  `account_cancel_deletion_request` (authenticated, own row);
+  `list_account_deletion_requests` and `resolve_account_deletion_request`
+  (admin).
+- **Lead:** `notifications` insert on reject (category `system`). No lead
+  schema, RLS or policy change.
+- **Rollback:** `scripts/rollback_20261111090000_admin_qa_nov11.sql`
+  (restores the five functions verbatim).
+- **Trial:** `docs/trial_run_20261111090000.sql`.
+- **SQL test:** `supabase/tests/qa_nov11.sql` (28 checks).
+
+### Checks
+
+- `npm test`: 22 files, 267 tests (`tests/qa-nov11.test.jsx` 19).
+- `npm run build` ✅.
+- PGlite: all migrations plus `qa_nov11.sql` ✅; the trial on the 20261107
+  schema ✅; the rollback, then `educator_series.sql` ✅.
+- Parser: 476 bodies, 0 errors. Hardening: 448 functions, 0 problems.
+
+### Apply
+
+Only 20261111090000 is pending. Run its trial in the SQL editor, take a
+backup, then `migration list`, `db push --dry-run`, `db push` (needs
+"approved:"). No new Edge Function. The frontend works before the push:
+- the blocking fixes, the edit drawer, the schedule and the details modal
+  work fully;
+- the planned total, test count and delete account need the migration (the
+  delete-account section quietly shows nothing until then).
+
 ## 2026-11-08: QA reports of 07-08 Nov (onboarding school/grade, educator sidebar), frontend only
 
 ### School and grade from onboarding missing on the Account page

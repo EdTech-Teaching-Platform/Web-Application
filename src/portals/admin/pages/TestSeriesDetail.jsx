@@ -37,6 +37,7 @@ import "./UserManagement.css";
 import "./TestSeries.css";
 import "./TestSeriesDetail.css";
 import PageToast from "../../../components/feedback/Toast";
+import { fromDateTimeLocal, toDateTimeLocal } from "../../../utils/datetimeLocal";
 
 const EMPTY_TEST_FORM = {
   name: "",
@@ -49,6 +50,29 @@ const EMPTY_TEST_FORM = {
   shuffleQuestions: false,
   shuffleOptions: false,
 };
+
+// What "Save changes" checks on an existing test (QA #17 / #18). Publishing
+// keeps its own, stricter check (validateTestForPublish).
+export function editErrors(payload) {
+  const errors = [];
+  if (!payload.name) errors.push("Test name is required.");
+  if (!(payload.duration > 0)) errors.push("A valid duration (minutes) is required.");
+  if (!(payload.totalMarks > 0)) errors.push("Total marks must be more than 0.");
+  if (payload.passingMarks > payload.totalMarks && payload.totalMarks > 0) errors.push("Passing marks cannot exceed total marks.");
+  return errors;
+}
+
+// The questions' marks next to the test's total (QA #20: the total set by the
+// assignment, e.g. 15, is the target; the questions may not add up to it yet).
+export function MarksNote({ total, questionMarks, questions }) {
+  if (!questions) return <p className="ul-ts-form-hint">No questions yet: add questions worth {total || "the total"} marks.</p>;
+  if (questionMarks === total) return <p className="ul-ts-form-hint">Questions add up to {questionMarks} marks.</p>;
+  return (
+    <p className="ul-ts-form-hint ul-ts-form-hint--warn" role="note">
+      Questions so far add up to {questionMarks} of {total} marks{questionMarks < total ? `: ${total - questionMarks} still to add` : ""}.
+    </p>
+  );
+}
 
 export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onManageQuestions } = {}) {
   const routeParams = useParams();
@@ -69,6 +93,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const [formErrors, setFormErrors] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -111,7 +136,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     setForm({
       name: t.name, instructions: t.instructions, duration: String(t.duration || ""),
       totalMarks: String(t.totalMarks || ""), passingMarks: String(t.passingMarks || ""),
-      attemptLimit: String(t.attemptLimit || ""), scheduledAt: t.scheduledAt || "",
+      attemptLimit: String(t.attemptLimit || ""), scheduledAt: toDateTimeLocal(t.scheduledAt),
       shuffleQuestions: !!t.shuffleQuestions, shuffleOptions: !!t.shuffleOptions,
     });
     setEditingId(t.id);
@@ -124,6 +149,8 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     setFormErrors([]);
   };
 
+  const editingTest = formOpen === "edit" ? series.tests.find((t) => t.id === editingId) || null : null;
+
   const buildPayload = () => ({
     name: form.name.trim(),
     instructions: form.instructions.trim(),
@@ -131,18 +158,23 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     totalMarks: Number(form.totalMarks) || 0,
     passingMarks: Number(form.passingMarks) || 0,
     attemptLimit: Number(form.attemptLimit) || 1,
-    scheduledAt: form.scheduledAt,
+    scheduledAt: fromDateTimeLocal(form.scheduledAt),
     shuffleQuestions: !!form.shuffleQuestions,
     shuffleOptions: !!form.shuffleOptions,
   });
 
-  const saveAsDraft = () => {
-    const payload = { ...buildPayload(), status: TEST_STATUS.DRAFT };
-    if (formOpen === "edit") {
-      testSeriesApi.updateTest(editingId, payload).then(() => { setToast(`"${payload.name || "Test"}" saved as draft.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
-    } else {
-      testSeriesApi.createTest(series.id, payload).then(() => { setToast(`"${payload.name || "Test"}" created as draft.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
-    }
+  // QA #17 / #18: editing an existing test only saves its details. No status
+  // is sent, so a published test stays published and a draft stays a draft;
+  // Publish / Unpublish are the separate row actions.
+  const saveChanges = () => {
+    const payload = buildPayload();
+    const errors = editErrors(payload);
+    if (errors.length) { setFormErrors(errors); return; }
+    setSaving(true);
+    testSeriesApi.updateTest(editingId, payload)
+      .then(() => { setToast({ tone: "success", message: `"${payload.name}" saved.` }); closeForm(); seriesState.refetch(); })
+      .catch((error) => setFormErrors([error.message]))
+      .finally(() => setSaving(false));
   };
 
   const saveAndManageQuestions = () => {
@@ -154,21 +186,6 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
       else navigate(testPath(portal, series.id, created.id));
       seriesState.refetch();
     }).catch((error) => setFormErrors([error.message]));
-  };
-
-  const saveAndPublish = () => {
-    const existing = formOpen === "edit" ? series.tests.find((t) => t.id === editingId) : null;
-    const payload = { ...buildPayload(), status: TEST_STATUS.PUBLISHED, questions: existing ? existing.questions : [] };
-    const { valid, errors } = validateTestForPublish(payload);
-    if (!valid) {
-      setFormErrors(errors);
-      return;
-    }
-    if (formOpen === "edit") {
-      testSeriesApi.updateTest(editingId, payload).then(() => { setToast(`"${payload.name}" updated and published.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
-    } else {
-      testSeriesApi.createTest(series.id, payload).then((created) => testSeriesApi.setTestStatus(created.id, TEST_STATUS.PUBLISHED)).then(() => { setToast(`"${payload.name}" created and published.`); closeForm(); seriesState.refetch(); }).catch((error) => setFormErrors([error.message]));
-    }
   };
 
   const handlePublish = (t) => {
@@ -301,8 +318,8 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
             <div className="ul-set-drawer__body">
               <div className="ul-ts-form">
                 {formErrors.length > 0 && (
-                  <div className="ul-ts-errors">
-                    <strong>Fix the following before publishing:</strong>
+                  <div className="ul-ts-errors" role="alert">
+                    <strong>{formOpen === "edit" ? "Fix the following before saving:" : "Fix the following before publishing:"}</strong>
                     <ul>{formErrors.map((err, i) => <li key={i}>{err}</li>)}</ul>
                   </div>
                 )}
@@ -332,6 +349,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                   <div className="ul-ts-form-row">
                     <label>Total Marks</label>
                     <input type="number" min="1" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} placeholder="e.g. 40" />
+                    {editingTest && <MarksNote total={Number(form.totalMarks) || 0} questionMarks={editingTest.questionMarks} questions={editingTest.questions.length} />}
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Passing Marks</label>
@@ -367,10 +385,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
               {formOpen === "create" ? (
                 <button type="button" className="ul-btn ul-btn--primary" onClick={saveAndManageQuestions}>Next</button>
               ) : (
-                <>
-                  <button type="button" className="ul-btn ul-btn--ghost" onClick={saveAsDraft}>Save as Draft</button>
-                  {!approvalPending && <button type="button" className="ul-btn ul-btn--primary" onClick={saveAndPublish}>Publish</button>}
-                </>
+                <button type="button" className="ul-btn ul-btn--primary" onClick={saveChanges} disabled={saving}>{saving ? "Saving…" : "Save changes"}</button>
               )}
             </div>
           </div>

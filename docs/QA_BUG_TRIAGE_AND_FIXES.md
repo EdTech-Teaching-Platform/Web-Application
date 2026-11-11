@@ -12,7 +12,9 @@ package is in `docs/PORT_PROGRESS.md`.
 | P3, P4 (item 5), P5 (a, d, e), P7 | Written (`20261104090000`, frontend), not applied |
 | P8 | Done (frontend); item 1: the freeze was ManageDiscounts' unstable request (2026-11-07) |
 | QA 02-07 Nov (login copy, CSV alert, tracker creator, onboarding redirect, resolution notice) | Written (`20261107090000`, frontend), not applied |
-| P4 (other items), P5 (b, c, f), P6, P9 | Not started |
+| P2 | Applied and deployed; open-session poll and login check added (2026-11-11, frontend) |
+| P4 (items 1-4, 6), P5 (b, c), P9 | Written (`20261111090000`, frontend), not applied |
+| P5 (f), P6 | Not started |
 
 Bugs 15 and 16 are identical (blocked student). Many of the rest share one cause, so fix by package, not one by one.
 
