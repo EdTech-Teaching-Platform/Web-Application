@@ -66,6 +66,10 @@ const PAGE_TRANSITION_CSS = `
 @media (prefers-reduced-motion: reduce) { .ul-page-in { animation: none; } }
 `;
 
+// Screens that sit on a plain background instead of the notebook backdrop.
+const CALM_PREFIXES = ["/student/report/", "/student/test-series/", "/student/my-tests/", "/student/dashboard/series/", "/student/test/"];
+const CALM_PAGES = ["/student/dashboard", "/student/test-series", "/student/my-tests", "/student/history", "/student/account", "/student/notifications"];
+
 export default function StudentLayout() {
   const location = useLocation();
   const mainRef = useRef(null);
@@ -94,6 +98,9 @@ export default function StudentLayout() {
   const { user } = useAuth();
   const signOut = useSignOut();
   const isCoursePlayer = location.pathname === "/student/courseplayer";
+  // While a test is being taken (/student/test/:id/take) there is no navbar or bottom bar:
+  // nothing to tap away to mid-test, and the page gets the full height.
+  const isTestRunner = /^\/student\/test\/[^/]+\/take\/?$/.test(location.pathname);
   // QA triage P2: a blocked student sees only the blocked screen (checked on
   // load and focus; any student RPC refused with account_blocked flips it).
   const account = useAccountStatus();
@@ -112,25 +119,27 @@ export default function StudentLayout() {
   };
 
   return (
-    <div style={AUTH_THEME_VARS} className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">
+    <div style={AUTH_THEME_VARS} data-modal-root className="relative isolate flex h-screen flex-col overflow-hidden bg-[#f3f6fd] font-body text-text">
       {/* The navbar floats over the scrolling page (instead of sitting above
           it), so content that scrolls up behind it softens through a frosted
           fade. The page content below gets matching top padding. Wrapper is
           click-through; only the navbar itself (and its modal) take clicks. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 [&>*]:pointer-events-auto">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.25rem)] bg-linear-to-b from-[#f3f6fd]/80 via-[#f3f6fd]/40 to-transparent backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_55%,transparent)] [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
-          aria-hidden="true"
-        />
-        <Navbar
-          title="Universal Learning"
-          navEntries={navEntries}
-          onSignOut={signOut}
-          user={user}
-          notificationsHref="/student/notifications"
-          notificationsCount={inbox.unread}
-        />
-      </div>
+      {!isTestRunner && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 [&>*]:pointer-events-auto">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.25rem)] bg-linear-to-b from-[#f3f6fd]/80 via-[#f3f6fd]/40 to-transparent backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_55%,transparent)] [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+            aria-hidden="true"
+          />
+          <Navbar
+            title="Universal Learning"
+            navEntries={navEntries}
+            onSignOut={signOut}
+            user={user}
+            notificationsHref="/student/notifications"
+            notificationsCount={inbox.unread}
+          />
+        </div>
+      )}
       <div className="relative z-10 flex min-h-0 flex-1">
         {/* No global "Back" button here on purpose — it used to show on
             every page except Dashboard, which put it on plain sidebar
@@ -139,7 +148,7 @@ export default function StudentLayout() {
             into something else (a course, a live session, a booking)
             render their own BackButton / contextual "Back to X" action
             instead, scoped to where that specific page was entered from. */}
-        <main ref={mainRef} className={`student-main min-w-0 flex-1 pb-24 md:pb-0 ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
+        <main ref={mainRef} className={`student-main min-w-0 flex-1 ${isTestRunner ? "" : "pb-24 md:pb-0"} ${isCoursePlayer ? "overflow-hidden" : "overflow-y-auto"}`}>
           {/* SectionShapes used to sit directly on the outer h-screen/
               overflow-hidden shell above, which never scrolls — only this
               <main> does (overflow-y-auto) -- so those shapes stayed glued
@@ -151,8 +160,9 @@ export default function StudentLayout() {
               not just the viewport-sized <main> box), fixes that: it now
               scrolls up together with the page exactly like Landing. */}
           <div className="relative min-h-full">
-            <StudentBackdrop />
-            <div className="relative z-10 pt-[76px]">
+            {/* The dashboard is a calm working screen: no notebook doodles behind it (same for the catalogue). */}
+            {!(CALM_PAGES.includes(location.pathname) || CALM_PREFIXES.some((prefix) => location.pathname.startsWith(prefix))) && <StudentBackdrop />}
+            <div className={`relative z-10 ${isTestRunner ? "" : "pt-[76px]"}`}>
               <style>{PAGE_TRANSITION_CSS}</style>
               <ErrorBoundary name="student" resetKey={`${location.pathname}${location.search}`} homeHref="/student/dashboard">
                 <div key={location.pathname} className="ul-page-in">
@@ -165,7 +175,7 @@ export default function StudentLayout() {
           </div>
         </main>
       </div>
-      <MobileNav />
+      {!isTestRunner && <MobileNav />}
       {location.pathname !== "/student/notifications" && (
         <ResolutionNotice notifications={inbox.rows} onView={viewNotice} onOpenInbox={() => navigate("/student/notifications")} />
       )}

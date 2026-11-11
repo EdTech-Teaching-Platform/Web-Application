@@ -5,8 +5,7 @@ import Button from "../../../components/ui/Button";
 import ListRow from "../../../components/ui/ListRow";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, FileTextIcon } from "../../../components/ui/icons";
-import { EmptyPanel, ErrorState, LoadingState, PAGE } from "../components/PageState";
-import PageHero from "../components/PageHero";
+import { EmptyPanel, ErrorState, LoadingState } from "../components/PageState";
 import { Rise } from "../components/StudentKit";
 import { useStudentData } from "../hooks/useStudentData";
 import { studentSeriesApi } from "../services/studentSeriesApi";
@@ -41,63 +40,60 @@ export function AttemptRow({ item, onOpen }) {
 }
 
 // Presentation-only row for the redesigned page (AttemptRow above is kept as-is).
+const WIDE = "mx-auto w-full max-w-7xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8";
+const SURFACE = "rounded-2xl bg-white ring-1 ring-(--lp-line) shadow-[0_1px_2px_rgb(15_17_21/0.04)]";
+const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue-deep)";
+// One column template shared by the table header and every row so figures line up.
+const COLS = "grid-cols-[auto_minmax(0,1fr)_auto] md:grid-cols-[2.5rem_minmax(0,1fr)_5.5rem_6.5rem_6.5rem_10rem_1rem]";
+
 function HistoryRow({ item, onOpen }) {
   const status = attemptStatus(item);
   const target = attemptTarget(item);
   const finished = item.status === "submitted" || item.status === "timed_out";
   const passed = finished && item.passed;
   const subtitle = [item.series_title, `Attempt ${item.attempt_number}`, formatDate(item.submitted_at || item.started_at, true)].filter(Boolean).join(" · ");
-  const figures = finished
-    ? [
-        { label: "Score", value: formatScore(item.score, item.max_score) },
-        { label: "Percentage", value: formatPercent(item.percentage, 1) },
-        ...(item.time_taken_secs ? [{ label: "Time taken", value: formatSeconds(item.time_taken_secs) }] : []),
-      ]
-    : null;
-  const pct = Math.min(Math.max(Number(item.percentage) || 0, 0), 100);
-  const iconTone = passed ? "bg-success/15 text-success" : finished ? "bg-(--lp-blue-soft) text-primary" : "bg-(--lp-grey) text-(--lp-muted)";
+  const score = finished ? formatScore(item.score, item.max_score) : null;
+  const percentage = finished ? formatPercent(item.percentage, 1) : null;
+  const taken = finished && item.time_taken_secs ? formatSeconds(item.time_taken_secs) : null;
+  const iconTone = passed ? "bg-success/15 text-success" : finished ? "bg-(--lp-blue-soft) text-(--lp-blue-deep)" : "bg-(--lp-grey) text-(--lp-muted)";
   const Icon = passed ? CheckIcon : finished ? FileTextIcon : ClockIcon;
   const Wrapper = target ? "button" : "div";
+  const cell = "hidden text-right text-sm font-semibold tabular-nums text-(--lp-ink) md:block";
   return (
     <Wrapper
       type={target ? "button" : undefined}
       onClick={target ? () => onOpen(target) : undefined}
-      className={`group flex w-full items-center gap-4 rounded-[1.75rem] bg-white p-4 text-left shadow-[0_20px_36px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) transition-[transform,box-shadow] duration-300 ease-out sm:px-5 sm:py-5 ${
-        target ? "cursor-pointer hover:-translate-y-1 hover:shadow-[0_26px_44px_-26px_rgb(15_17_21/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" : ""
+      className={`group grid w-full items-center gap-x-4 px-4 py-4 text-left sm:px-5 ${COLS} ${
+        target ? `cursor-pointer transition-colors duration-150 hover:bg-(--lp-grey)/70 ${FOCUS} focus-visible:-outline-offset-2` : ""
       }`}
     >
-      <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${iconTone}`} aria-hidden="true">
-        <Icon className="h-5 w-5" />
+      <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${iconTone}`} aria-hidden="true">
+        <Icon className="h-[18px] w-[18px]" />
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-bold text-text">{item.test_title}</p>
+      <div className="min-w-0">
+        <p className="truncate text-[15px] font-semibold text-(--lp-ink)">{item.test_title}</p>
         <p className="truncate text-sm text-(--lp-muted)">{subtitle}</p>
+        {finished && (
+          <p className="mt-0.5 truncate text-xs font-medium tabular-nums text-text/70 md:hidden">
+            {[score, percentage, taken].filter(Boolean).join(" · ")}
+          </p>
+        )}
       </div>
-      {figures && (
-        <div className="hidden shrink-0 flex-col items-end gap-2 md:flex">
-          <dl className="flex items-start gap-5">
-            {figures.map((f) => (
-              <div key={f.label} className="flex flex-col items-end gap-0.5">
-                <dd className="text-sm font-bold leading-none text-text">{f.value}</dd>
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-(--lp-muted)">{f.label}</dt>
-              </div>
-            ))}
-          </dl>
-          <span className="h-1.5 w-full overflow-hidden rounded-full bg-(--lp-grey)" aria-hidden="true">
-            <span className={`block h-full rounded-full ${passed ? "bg-success" : "bg-(--lp-blue)"}`} style={{ width: `${pct}%` }} />
-          </span>
-        </div>
-      )}
-      <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      <span className={cell}>{score}</span>
+      <span className={cell}>{percentage}</span>
+      <span className={cell}>{taken}</span>
+      <span className="flex flex-wrap items-center justify-end gap-2">
         {passed && <StatusBadge status="success">Passed</StatusBadge>}
         <StatusBadge status={status.tone}>{status.label}</StatusBadge>
       </span>
-      {target && <ChevronRightIcon className="hidden h-4 w-4 shrink-0 text-text/30 transition-transform duration-200 ease-out group-hover:translate-x-0.5 sm:block" aria-hidden="true" />}
+      <span className="hidden justify-end md:flex" aria-hidden="true">
+        {target && <ChevronRightIcon className="h-4 w-4 text-text/30 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />}
+      </span>
     </Wrapper>
   );
 }
 
-const PAGER_BTN = "inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-primary ring-1 ring-(--lp-line) transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:bg-(--lp-blue-tint) hover:shadow-[0_8px_20px_rgb(37_87_214/0.12)] disabled:pointer-events-none disabled:translate-y-0 disabled:text-text/30 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+const PAGER_BTN = `inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-(--lp-ink) ring-1 ring-(--lp-line) transition-colors duration-200 hover:bg-(--lp-grey) disabled:pointer-events-none disabled:text-text/30 ${FOCUS}`;
 
 export default function History() {
   const navigate = useNavigate();
@@ -105,15 +101,16 @@ export default function History() {
   const { data, error, loading, reload } = useStudentData(() => studentSeriesApi.history({ page, size: PAGE_SIZE }), page);
 
   return (
-    <div className={`${PAGE} space-y-8 pb-10`}>
-      <PageHero
-        compact
-        theme="peach"
-        art="clock"
-        eyebrow="Your progress"
-        title="Test history"
-        subtitle="Every attempt you've made. Open one to see its report."
-      />
+    <div className={`${WIDE} pb-12`}>
+      <Rise>
+        <header className={`${SURFACE} flex flex-col gap-5 p-5 sm:p-8 md:flex-row md:items-center md:justify-between`}>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--lp-muted)">Your progress</p>
+            <h1 className="mt-2 font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-(--lp-ink) sm:text-[2.25rem]">Test history</h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-(--lp-muted) sm:text-[15px]">Every attempt you've made. Open one to see its report.</p>
+          </div>
+        </header>
+      </Rise>
 
       {loading ? (
         <LoadingState label="Loading your history" rows={5} />
@@ -127,16 +124,28 @@ export default function History() {
         />
       ) : (
         <>
-          <ul className="space-y-3">
-            {data.items.map((item, i) => <li key={item.attempt_id}><Rise delay={Math.min(i, 8) * 50}><HistoryRow item={item} onOpen={navigate} /></Rise></li>)}
-          </ul>
+          <Rise>
+            <div className={`${SURFACE} overflow-hidden`}>
+              <div className={`hidden grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 border-b border-(--lp-line) bg-(--lp-grey)/60 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-(--lp-muted) sm:px-5 md:grid ${COLS}`} aria-hidden="true">
+                <span className="col-span-2">Test</span>
+                <span className="text-right">Score</span>
+                <span className="text-right">Percentage</span>
+                <span className="text-right">Time taken</span>
+                <span className="text-right">Status</span>
+                <span />
+              </div>
+              <ul className="divide-y divide-(--lp-line)">
+                {data.items.map((item) => <li key={item.attempt_id}><HistoryRow item={item} onOpen={navigate} /></li>)}
+              </ul>
+            </div>
+          </Rise>
           {data.total_pages > 1 && (
             <nav className="flex items-center justify-center gap-3" aria-label="Pages">
               <button type="button" className={PAGER_BTN} disabled={page <= 1} onClick={() => setPage(page - 1)}>
                 <ChevronLeftIcon className="h-4 w-4" />
                 Previous
               </button>
-              <span className="rounded-full bg-white px-4 py-2.5 text-sm font-medium text-text/70 ring-1 ring-(--lp-line)">Page {page} of {data.total_pages}</span>
+              <span className="px-2 text-sm font-medium text-(--lp-muted)">Page {page} of {data.total_pages}</span>
               <button type="button" className={PAGER_BTN} disabled={page >= data.total_pages} onClick={() => setPage(page + 1)}>
                 Next
                 <ChevronRightIcon className="h-4 w-4" />

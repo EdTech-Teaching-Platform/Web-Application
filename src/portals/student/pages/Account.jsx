@@ -10,10 +10,8 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useSignOut } from "../../../hooks/useSignOut";
 import { isEmail, isPhone } from "../../../auth/utils/validators";
 import { AlertTriangleIcon, AwardIcon, BookOpenIcon, CheckIcon, ClockIcon, FileTextIcon, FlameIcon, LockIcon, MailIcon, StarIcon, TargetIcon } from "../../../components/ui/icons";
-import PageHero, { HERO_BTN_LIGHT } from "../components/PageHero";
-import StatBlock, { STAT_BLOCK_LABEL, STAT_BLOCK_VALUE_COMPACT } from "../components/StatBlock";
-import { ErrorState, LoadingState, PAGE } from "../components/PageState";
-import { Rise, Squiggle } from "../components/StudentKit";
+import { ErrorState, LoadingState } from "../components/PageState";
+import { Rise } from "../components/StudentKit";
 import { useStudentData } from "../hooks/useStudentData";
 import { profileApi } from "../services/profileApi";
 import { studentSeriesApi } from "../services/studentSeriesApi";
@@ -22,6 +20,8 @@ import DeleteAccountSection from "../../../components/account/DeleteAccountSecti
 
 // Short fields that sit two-up on phones; everything else takes a full row.
 const PAIRED = new Set(["location", "grade", "age", "gender"]);
+// Shown under "Parent or guardian" instead of "Personal details".
+const GUARDIAN_FIELDS = new Set(["father_name", "mother_name", "parent_email"]);
 
 const TEXT_FIELDS = [
   { name: "full_name", label: "Full name", autoComplete: "name" },
@@ -52,11 +52,26 @@ export function validateAccount(form) {
   return e;
 }
 
-function StatTile({ icon, tone, value, label, suffix }) {
+const WIDE = "mx-auto w-full max-w-7xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8";
+const SURFACE = "rounded-2xl bg-white ring-1 ring-(--lp-line) shadow-[0_1px_2px_rgb(15_17_21/0.04)]";
+const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue-deep)";
+const FIELD = "rounded-xl! bg-white! py-2.5! focus:border-(--lp-blue-deep)! focus:ring-(--lp-blue)/20!";
+
+function StatTile({ icon: Icon, value, label, suffix }) {
   return (
-    <StatBlock compact icon={icon} tone={tone}>
-      <StatCard value={value} suffix={suffix} label={label} valueClassName={STAT_BLOCK_VALUE_COMPACT} labelClassName={STAT_BLOCK_LABEL} className="gap-2" />
-    </StatBlock>
+    <div className="flex items-center gap-3.5 bg-white p-4 sm:p-5">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-(--lp-blue-tint) text-(--lp-blue-deep)" aria-hidden="true">
+        <Icon className="h-5 w-5" />
+      </span>
+      <StatCard
+        value={value}
+        suffix={suffix}
+        label={label}
+        className="min-w-0 gap-0.5"
+        valueClassName="font-display text-2xl font-semibold leading-none tabular-nums tracking-tight text-(--lp-ink)"
+        labelClassName="truncate text-xs font-medium text-(--lp-muted)"
+      />
+    </div>
   );
 }
 
@@ -65,15 +80,18 @@ function StatsSection() {
   if (loading) return <LoadingState label="Loading your stats" rows={1} />;
   if (error) return <ErrorState error={error} onRetry={reload} title="Couldn't load your stats" />;
   return (
-    <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-label="Your stats">
-      <StatTile icon={FileTextIcon} tone="blue" value={stats.tests_taken} label="Tests taken" />
-      <StatTile icon={AwardIcon} tone="yellow" value={stats.tests_passed} label="Tests passed" />
-      <StatTile icon={BookOpenIcon} tone="peach" value={stats.series_enrolled} label="Series enrolled" />
-      <StatTile icon={FlameIcon} tone="ink" value={stats.current_streak} suffix={stats.current_streak === 1 ? " day" : " days"} label="Current streak" />
-      <StatTile icon={TargetIcon} tone="yellow" value={formatPercent(stats.average_percentage, 1)} label="Average score" />
-      <StatTile icon={StarIcon} tone="sky" value={formatPercent(stats.best_percentage, 1)} label="Best score" />
-      <StatTile icon={CheckIcon} tone="ink" value={formatPercent(stats.accuracy_percentage, 1)} label="Accuracy" />
-      <StatTile icon={ClockIcon} tone="blue" value={formatSeconds(stats.total_time_secs)} label="Time practising" />
+    <section className="space-y-4" aria-label="Your stats">
+      <h2 className="font-display text-lg font-semibold tracking-tight text-(--lp-ink) sm:text-xl">Performance overview</h2>
+      <div className={`${SURFACE} grid grid-cols-2 gap-px overflow-hidden bg-(--lp-line) lg:grid-cols-4`}>
+        <StatTile icon={FileTextIcon} value={stats.tests_taken} label="Tests taken" />
+        <StatTile icon={AwardIcon} value={stats.tests_passed} label="Tests passed" />
+        <StatTile icon={BookOpenIcon} value={stats.series_enrolled} label="Series enrolled" />
+        <StatTile icon={FlameIcon} value={stats.current_streak} suffix={stats.current_streak === 1 ? " day" : " days"} label="Current streak" />
+        <StatTile icon={TargetIcon} value={formatPercent(stats.average_percentage, 1)} label="Average score" />
+        <StatTile icon={StarIcon} value={formatPercent(stats.best_percentage, 1)} label="Best score" />
+        <StatTile icon={CheckIcon} value={formatPercent(stats.accuracy_percentage, 1)} label="Accuracy" />
+        <StatTile icon={ClockIcon} value={formatSeconds(stats.total_time_secs)} label="Time practising" />
+      </div>
     </section>
   );
 }
@@ -120,49 +138,66 @@ function ProfileFields({ user, email, initial, reload, message, setMessage }) {
     }
   };
 
+  const renderField = (f) => (
+    <Input
+      key={f.name}
+      label={f.label}
+      containerClassName={PAIRED.has(f.name) ? "" : "col-span-2 sm:col-span-1"}
+      type={f.type ?? "text"}
+      value={form[f.name]}
+      autoComplete={f.autoComplete}
+      className={FIELD}
+      onChange={(e) => set(f.name, e.target.value)}
+      onBlur={() => setTouched((t) => ({ ...t, [f.name]: true }))}
+      error={touched[f.name] ? errors[f.name] : undefined}
+    />
+  );
+
   return (
-    <form onSubmit={save} noValidate className="space-y-5 rounded-[1.5rem] bg-white p-4 shadow-[0_24px_40px_-30px_rgb(15_17_21/0.4)] ring-1 ring-(--lp-line) sm:space-y-6 sm:rounded-[2rem] sm:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="relative inline-block font-display text-2xl font-bold tracking-tight text-text sm:text-3xl">
-          Profile
-          <Squiggle className="absolute -bottom-2.5 left-0 h-2 w-full text-(--lp-blue)/70" />
-        </h2>
-        <p className="inline-flex w-full max-w-full items-center gap-2 rounded-full bg-(--lp-grey) px-3.5 py-2 text-[13px] text-text/70 sm:w-auto sm:px-4 sm:text-sm">
-          <MailIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+    <form onSubmit={save} noValidate className={`${SURFACE} overflow-hidden`}>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-8">
+        <div>
+          <h2 className="font-display text-xl font-semibold tracking-tight text-(--lp-ink) sm:text-2xl">Profile</h2>
+          <p className="mt-1 text-sm text-(--lp-muted)">Keep your personal and school details up to date.</p>
+        </div>
+        <p className="inline-flex w-full max-w-full items-center gap-2 rounded-full bg-(--lp-grey) px-3.5 py-2 text-[13px] text-text/70 ring-1 ring-(--lp-line) sm:w-auto sm:px-4 sm:text-sm">
+          <MailIcon className="h-4 w-4 shrink-0 text-(--lp-blue-deep)" aria-hidden="true" />
           <span className="truncate">Signed in as {email}</span>
         </p>
       </div>
       {message.text && (
-        <p role={message.tone === "danger" ? "alert" : "status"}
-          className={`flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm ${message.tone === "danger" ? "bg-danger/10 text-danger ring-1 ring-danger/20" : "bg-success/10 text-text ring-1 ring-success/20"}`}>
-          {message.tone === "danger"
-            ? <AlertTriangleIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-            : <CheckIcon className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />}
-          <span>{message.text}</span>
-        </p>
+        <div className="px-5 pb-5 sm:px-8">
+          <p role={message.tone === "danger" ? "alert" : "status"}
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${message.tone === "danger" ? "bg-danger/10 text-danger ring-1 ring-danger/20" : "bg-success/10 text-text ring-1 ring-success/20"}`}>
+            {message.tone === "danger"
+              ? <AlertTriangleIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              : <CheckIcon className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />}
+            <span>{message.text}</span>
+          </p>
+        </div>
       )}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-5 sm:gap-y-5">
-        {TEXT_FIELDS.map((f) => (
-          <Input
-            key={f.name}
-            label={f.label}
-            containerClassName={PAIRED.has(f.name) ? "" : "col-span-2 sm:col-span-1"}
-            type={f.type ?? "text"}
-            value={form[f.name]}
-            autoComplete={f.autoComplete}
-            className="bg-(--lp-grey)! focus:bg-white!"
-            onChange={(e) => set(f.name, e.target.value)}
-            onBlur={() => setTouched((t) => ({ ...t, [f.name]: true }))}
-            error={touched[f.name] ? errors[f.name] : undefined}
-          />
-        ))}
-      </div>
-      <ChipInput label="Interests" values={form.interests} onChange={(v) => set("interests", v)} placeholder="e.g. physics, maths" max={10} />
-      <div className="flex flex-col gap-2.5 border-t border-(--lp-line) pt-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:pt-6">
+
+      <FormSection title="Personal details" description="Your name, contact and school information.">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-5 sm:gap-y-5">
+          {TEXT_FIELDS.filter((f) => !GUARDIAN_FIELDS.has(f.name)).map(renderField)}
+        </div>
+      </FormSection>
+
+      <FormSection title="Parent or guardian" description="Optional family contact details.">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-5 sm:gap-y-5">
+          {TEXT_FIELDS.filter((f) => GUARDIAN_FIELDS.has(f.name)).map(renderField)}
+        </div>
+      </FormSection>
+
+      <FormSection title="Interests" description="Topics you like to practise.">
+        <ChipInput label="Interests" values={form.interests} onChange={(v) => set("interests", v)} placeholder="e.g. physics, maths" max={10} />
+      </FormSection>
+
+      <div className="flex flex-col gap-2.5 border-t border-(--lp-line) bg-(--lp-grey)/60 px-5 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:px-8 sm:py-5">
         <Button type="submit" fullWidth={false} disabled={!valid || !dirty || saving}>{saving ? "Saving…" : "Save changes"}</Button>
         <Link
           to="/forgot-password"
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-(--lp-grey) px-5 py-3 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-(--lp-blue-soft) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className={`inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-(--lp-ink) ring-1 ring-(--lp-line) transition-colors duration-200 hover:bg-(--lp-grey) ${FOCUS}`}
         >
           <LockIcon className="h-4 w-4" aria-hidden="true" />
           Change password
@@ -172,28 +207,48 @@ function ProfileFields({ user, email, initial, reload, message, setMessage }) {
   );
 }
 
+// One settings block: title + hint on the left, the fields on the right.
+function FormSection({ title, description, children }) {
+  return (
+    <div className="grid gap-4 border-t border-(--lp-line) p-5 sm:p-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
+      <div>
+        <h3 className="font-display text-sm font-semibold text-(--lp-ink)">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-(--lp-muted)">{description}</p>
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
 export default function Account() {
   const { user } = useAuth();
   const signOut = useSignOut();
   const initials = (user?.name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   return (
-    <div className={`${PAGE} pb-10`}>
-      <PageHero
-        compact
-        theme="ink"
-        art="card"
-        eyebrow="Account"
-        title={user?.name || "Your account"}
-        lead={initials ? (
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-(--lp-yellow) font-display text-lg font-bold text-(--lp-ink) ring-4 ring-white/15 sm:h-20 sm:w-20 sm:text-2xl" aria-hidden="true">
-            {initials}
-          </span>
-        ) : null}
-      >
-        <button type="button" onClick={signOut} className={HERO_BTN_LIGHT}>
-          Sign out
-        </button>
-      </PageHero>
+    <div className={`${WIDE} pb-12`}>
+      <Rise>
+        <header className={`${SURFACE} flex flex-col gap-5 p-5 sm:p-8 md:flex-row md:items-center md:justify-between`}>
+          <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+            {initials && (
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-(--lp-blue-soft) font-display text-lg font-semibold text-(--lp-blue-deep) sm:h-[4.5rem] sm:w-[4.5rem] sm:text-2xl" aria-hidden="true">
+                {initials}
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--lp-muted)">Account</p>
+              <h1 className="mt-1.5 break-words font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-(--lp-ink) sm:text-[2.25rem]">{user?.name || "Your account"}</h1>
+              {user?.email && <p className="mt-1 truncate text-sm text-(--lp-muted)">{user.email}</p>}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={signOut}
+            className={`inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-(--lp-ink) ring-1 ring-(--lp-line) transition-colors duration-200 hover:bg-(--lp-grey) md:shrink-0 ${FOCUS}`}
+          >
+            Sign out
+          </button>
+        </header>
+      </Rise>
       <Rise><StatsSection /></Rise>
       {user && <Rise delay={80}><ProfileForm user={user} /></Rise>}
       {user && <Rise delay={120}><DeleteAccountSection email={user.email} /></Rise>}
