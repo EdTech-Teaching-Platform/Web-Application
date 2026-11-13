@@ -41,6 +41,8 @@ import "./EducatorProfile.css";
 import "./AssignEducators.css";
 import PageToast from "../../../components/feedback/Toast";
 import RowActionsMenu from "../../../components/common/RowActionsMenu";
+import { scrollToFirstInvalid } from "../../../utils/scrollToFirstInvalid";
+import { allocationSummary, defaultAllocation, shareOf, validateAssignmentForm } from "../data/assignmentForm";
 
 const money = () => ""; // placeholder kept out — no currency on this page
 const getDisplayStatus = (a) => a.displayStatus || a.status;
@@ -55,10 +57,12 @@ function StatusBadge({ status }) {
 // next to the assignment there, not on it); missing parts are empty, never
 // undefined, so the modal can't crash into a blank screen.
 export function buildDetailAssignment(data, row, id) {
-  const fromDetail = data?.assignment ? mapAssignment(data.assignment) : null;
+  // No id = the modal is closed (QA 13 Nov: the cached detail response used to
+  // keep it open after X). A response for another assignment is ignored.
+  if (!id) return null;
+  const fromDetail = data?.assignment && data.assignment.id === id ? mapAssignment(data.assignment) : null;
   if (!fromDetail && !row) return null;
-  if (id && (fromDetail?.id ?? row?.id) !== id) return null;
-  const history = (Array.isArray(data?.history) ? data.history : []).map((h) => ({
+  const history = (fromDetail && Array.isArray(data?.history) ? data.history : []).map((h) => ({
     action: h.action || "", note: h.note || "", at: h.at || h.created_at || null, by: h.by || h.by_name || "Admin",
   }));
   return { ...(row || {}), ...(fromDetail || {}), history, topics: (fromDetail || row)?.topics || [] };
@@ -97,6 +101,7 @@ const EMPTY_FORM = {
   duration: 60,
   instructions: "",
   deadline: "",
+  allocation: [],   // educator id per test (create only; QA 13 Nov)
 };
 
 export default function AssignEducators() {
@@ -186,6 +191,13 @@ export default function AssignEducators() {
   // ---- detail / form state ----
   const [detailId, setDetailId] = useState(null);
   const detailState = useRpc(useCallback(() => detailId ? assignmentsApi.detail(detailId) : Promise.resolve(null), [detailId]), { immediate: !!detailId });
+  // Escape closes the details popup.
+  useEffect(() => {
+    if (!detailId) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setDetailId(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [detailId]);
   const detailAssignment = buildDetailAssignment(detailState.data, assignments.find((a) => a.id === detailId), detailId);
 
   const [formMode, setFormMode] = useState(null); // null | "create" | "edit"
@@ -193,10 +205,34 @@ export default function AssignEducators() {
   const [formErrors, setFormErrors] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [formSaving, setFormSaving] = useState(false);
+  // QA (13 Nov): each field shows its own message and the drawer scrolls to
+  // the first one (formErrors is now only for errors from the server).
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [errorTick, setErrorTick] = useState(0);
+  const formBodyRef = useRef(null);
+  useEffect(() => {
+    if (errorTick) scrollToFirstInvalid(formBodyRef.current);
+  }, [errorTick]);
+  // a fixed field loses its message as soon as it is valid
+  useEffect(() => {
+    setFieldErrors((prev) => {
+      const keys = Object.keys(prev);
+      if (!keys.length) return prev;
+      const now = Object.fromEntries(validateAssignmentForm(form, { mode: formMode || "create" }).map((e) => [e.field, e.message]));
+      const next = Object.fromEntries(keys.filter((k) => now[k]).map((k) => [k, now[k]]));
+      return Object.keys(next).length === keys.length && keys.every((k) => next[k] === prev[k]) ? prev : next;
+    });
+  }, [form, formMode]);
+  const fieldProps = (name) => (fieldErrors[name]
+    ? { "aria-invalid": true, "aria-describedby": `asg-err-${name}` }
+    : {});
+  const FieldMsg = ({ name }) => (fieldErrors[name] ? <p className="ul-field-error" id={`asg-err-${name}`}>{fieldErrors[name]}</p> : null);
+  const allocation = formMode === "create" ? defaultAllocation(form.testCount, form.educatorIds, form.allocation) : [];
 
   const openCreateForm = () => {
     setForm(EMPTY_FORM);
     setFormErrors([]);
+    setFieldErrors({});
     setEditingId(null);
     setFormMode("create");
   };
@@ -222,33 +258,21 @@ export default function AssignEducators() {
       deadline: a.deadline,
     });
     setFormErrors([]);
+    setFieldErrors({});
     setEditingId(a.id);
     setFormMode("edit");
   };
   const closeForm = () => setFormMode(null);
 
-  const validateForm = (f) => {
-    const errors = [];
-    if (f.seriesMode === "existing" && !f.seriesId) errors.push("Select an existing test series, or switch to \"New test series\".");
-    if (f.seriesMode === "new" && !f.newSeriesName.trim()) errors.push("Enter a name for the new test series.");
-    if (!f.subject) errors.push("Subject is required.");
-    if (!f.testName.trim()) errors.push("Test / question paper name is required.");
-    if (f.educatorIds.length === 0) errors.push("Select at least one educator.");
-    if (!f.deadline) errors.push("A deadline is required.");
-    if (!Number.isInteger(Number(f.testCount)) || Number(f.testCount) < 1) errors.push("Number of tests must be a whole number of 1 or more.");
-    if (!f.questionCount || Number(f.questionCount) <= 0) errors.push("Question count must be a positive number.");
-    else if (Number(f.testCount) > 0 && Number(f.questionCount) < Number(f.testCount)) errors.push("Question count must be at least the number of tests.");
-    if (!f.totalMarks || Number(f.totalMarks) <= 0) errors.push("Total marks must be a positive number.");
-    if (!f.duration || Number(f.duration) <= 0) errors.push("Duration must be a positive number.");
-    return errors;
-  };
-
   const submitForm = () => {
-    const errors = validateForm(form);
+    const errors = validateAssignmentForm(form, { mode: formMode });
+    setFormErrors([]);
     if (errors.length) {
-      setFormErrors(errors);
+      setFieldErrors(Object.fromEntries(errors.map((e) => [e.field, e.message])));
+      setErrorTick((t) => t + 1);
       return;
     }
+    setFieldErrors({});
     const topics = form.topicsText.split(",").map((t) => t.trim()).filter(Boolean);
     const selectedSeries = form.seriesMode === "existing" ? seriesList.find((s) => s.id === form.seriesId) : null;
     const seriesId = form.seriesMode === "existing" ? form.seriesId : null;
@@ -276,6 +300,7 @@ export default function AssignEducators() {
         deadline: form.deadline,
       })
       : assignmentsApi.create({
+        allocation: allocationSummary(allocation, form.educatorIds),   // QA (13 Nov): who builds which tests
         seriesMode: form.seriesMode,
         seriesId,
         newSeriesName: form.newSeriesName.trim(),
@@ -297,7 +322,7 @@ export default function AssignEducators() {
       });
     const done = editingId
       ? "Assignment requirements updated. The educator has been notified."
-      : `${form.educatorIds.length} assignment${form.educatorIds.length === 1 ? "" : "s"} created.`;
+      : `${allocationSummary(allocation, form.educatorIds).length} assignment${allocationSummary(allocation, form.educatorIds).length === 1 ? "" : "s"} created.`;
     setFormSaving(true);
     return request
       .then(() => {
@@ -306,7 +331,7 @@ export default function AssignEducators() {
         assignmentsState.refetch();
         if (editingId && detailId === editingId) detailState.refetch().catch(() => {});
       })
-      .catch((error) => setFormErrors([error?.message || "Couldn't save the assignment."]))
+      .catch((error) => { setFormErrors([error?.message || "Couldn't save the assignment."]); setErrorTick((t) => t + 1); })
       .finally(() => setFormSaving(false));
   };
 
@@ -342,15 +367,14 @@ export default function AssignEducators() {
       .then(() => assignmentsState.refetch()).catch((error) => setToast(error));
     setToast(
       reviewDecision === "approved"
-        ? "Submission approved. Educator notified (mock)."
+        ? "Submission approved. The educator has been notified."
         : reviewDecision === "revision"
-        ? "Revision requested. Educator notified (mock)."
-        : "Submission rejected. Educator notified (mock)."
+        ? "Revision requested. The educator has been notified."
+        : "Submission rejected. The educator has been notified."
     );
     setReviewTarget(null);
   };
 
-  const detailNotifications = (detailState.data?.notifications || []).map((n) => ({ ...n, createdAt: n.created_at, educatorName: detailAssignment?.educatorName }));
 
   return (
     <>
@@ -538,17 +562,17 @@ export default function AssignEducators() {
                 <h3 className="ul-set-drawer__title">{formMode === "edit" ? "Edit Assignment Requirements" : "New Test Assignment"}</h3>
                 <p className="ul-set-drawer__sub">
                   {formMode === "edit"
-                    ? "Changes are sent to the educator as a mock notification."
+                    ? "The educator is notified of the changes in their portal."
                     : "Assign one or more educators to build a test or question paper."}
                 </p>
               </div>
             </div>
-            <div className="ul-set-drawer__body">
+            <div className="ul-set-drawer__body" ref={formBodyRef}>
               <div className="ul-ts-form">
-                {formErrors.length > 0 && (
-                  <div className="ul-ts-errors">
+                {(formErrors.length > 0 || Object.keys(fieldErrors).length > 0) && (
+                  <div className="ul-ts-errors" role="alert" data-invalid={Object.keys(fieldErrors).length === 0 || undefined}>
                     <strong>Fix the following:</strong>
-                    <ul>{formErrors.map((err, i) => <li key={i}>{err}</li>)}</ul>
+                    <ul>{[...Object.values(fieldErrors), ...formErrors].map((err, i) => <li key={i}>{err}</li>)}</ul>
                   </div>
                 )}
 
@@ -564,16 +588,18 @@ export default function AssignEducators() {
                 {formMode === "create" && form.seriesMode === "existing" && (
                   <div className="ul-ts-form-row">
                     <label>Select Test Series</label>
-                    <select value={form.seriesId} onChange={(e) => setForm({ ...form, seriesId: e.target.value })}>
+                    <select value={form.seriesId} onChange={(e) => setForm({ ...form, seriesId: e.target.value })} {...fieldProps("seriesId")}>
                       <option value="">Select a test series…</option>
                       {seriesList.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
+                    <FieldMsg name="seriesId" />
                   </div>
                 )}
                 {formMode === "create" && form.seriesMode === "new" && (
                   <div className="ul-ts-form-row">
                     <label>New Test Series Name</label>
-                    <input type="text" value={form.newSeriesName} onChange={(e) => setForm({ ...form, newSeriesName: e.target.value })} placeholder="e.g. Class 12 Chemistry Mock Series" />
+                    <input type="text" value={form.newSeriesName} onChange={(e) => setForm({ ...form, newSeriesName: e.target.value })} placeholder="e.g. Class 12 Chemistry Mock Series" {...fieldProps("newSeriesName")} />
+                    <FieldMsg name="newSeriesName" />
                   </div>
                 )}
 
@@ -585,8 +611,9 @@ export default function AssignEducators() {
                       <option value="__other__">Other…</option>
                     </select>
                     {!ASSIGN_SUBJECTS.includes(form.subject) && (
-                      <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Type the subject" style={{ marginTop: 6 }} autoFocus />
+                      <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Type the subject" style={{ marginTop: 6 }} autoFocus {...fieldProps("subject")} />
                     )}
+                    <FieldMsg name="subject" />
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Topics (comma-separated)</label>
@@ -620,13 +647,14 @@ export default function AssignEducators() {
 
                 <div className="ul-ts-form-row">
                   <label>Test / Question Paper Name</label>
-                  <input type="text" value={form.testName} onChange={(e) => setForm({ ...form, testName: e.target.value })} placeholder="e.g. Full Mock Test 3 — Thermodynamics" />
+                  <input type="text" value={form.testName} onChange={(e) => setForm({ ...form, testName: e.target.value })} placeholder="e.g. Full Mock Test 3 — Thermodynamics" {...fieldProps("testName")} />
+                  <FieldMsg name="testName" />
                 </div>
 
                 {formMode === "create" && (
                   <div className="ul-ts-form-row">
                     <label>Assign To (select one or more educators)</label>
-                    <div className="ul-asg-educator-list">
+                    <div className="ul-asg-educator-list" data-invalid={fieldErrors.educatorIds ? true : undefined} aria-describedby={fieldErrors.educatorIds ? "asg-err-educatorIds" : undefined}>
                       {eligibleEducators.length === 0 && !eligibleState.loading && (
                         <p className="ul-edu-empty">No approved, active educators yet. Approve an educator in Educator Management first.</p>
                       )}
@@ -647,19 +675,52 @@ export default function AssignEducators() {
                         </label>
                       ))}
                     </div>
+                    <FieldMsg name="educatorIds" />
                   </div>
                 )}
 
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Number of Tests</label>
-                    <input type="number" min="1" step="1" value={form.testCount} onChange={(e) => setForm({ ...form, testCount: e.target.value })} />
+                    <input type="number" min="1" step="1" value={form.testCount} onChange={(e) => setForm({ ...form, testCount: e.target.value })} {...fieldProps("testCount")} />
+                    <FieldMsg name="testCount" />
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Question Count (all tests)</label>
-                    <input type="number" min="1" value={form.questionCount} onChange={(e) => setForm({ ...form, questionCount: e.target.value })} />
+                    <input type="number" min="1" value={form.questionCount} onChange={(e) => setForm({ ...form, questionCount: e.target.value })} {...fieldProps("questionCount")} />
+                    <FieldMsg name="questionCount" />
                   </div>
                 </div>
+
+                {/* QA (13 Nov): who builds each test */}
+                {formMode === "create" && form.educatorIds.length > 0 && allocation.length > 0 && allocation.length <= 50 && (
+                  <div className="ul-ts-form-row ul-asg-allocation" data-invalid={fieldErrors.allocation ? true : undefined}>
+                    <label>Who builds each test</label>
+                    <ol className="ul-asg-allocation__list">
+                      {allocation.map((educatorId, i) => (
+                        <li key={i}>
+                          <span>Test {i + 1}</span>
+                          <select aria-label={`Educator for test ${i + 1}`} value={educatorId}
+                            onChange={(e) => { const next = [...allocation]; next[i] = e.target.value; setForm({ ...form, allocation: next }); }}>
+                            {form.educatorIds.map((id) => <option key={id} value={id}>{eligibleEducators.find((x) => x.id === id)?.name || "Educator"}</option>)}
+                          </select>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="ul-asg-allocation__sum">
+                      {allocationSummary(allocation, form.educatorIds).map((a) => {
+                        const name = eligibleEducators.find((x) => x.id === a.educatorId)?.name || "Educator";
+                        const marks = shareOf(form.totalMarks, a.tests, form.testCount);
+                        const questions = Math.max(1, Math.round(shareOf(form.questionCount, a.tests, form.testCount)));
+                        return `${name}: ${a.tests} test${a.tests === 1 ? "" : "s"} (${questions} questions${marks ? `, ${marks} marks` : ""})`;
+                      }).join(" · ")}
+                    </p>
+                    {form.educatorIds.length === 1 && Number(form.testCount) > 1 && (
+                      <p className="ul-asg-allocation__hint">One educator builds all {Number(form.testCount)} tests. Select more educators to split them.</p>
+                    )}
+                    <FieldMsg name="allocation" />
+                  </div>
+                )}
                 {Number(form.testCount) > 0 && Number(form.questionCount) > 0 && (
                   <p style={{ margin: "-4px 0 0", fontSize: 11.5, color: "var(--color-text-muted)" }}>
                     {Number(form.testCount)} test{Number(form.testCount) === 1 ? "" : "s"} · about {Math.ceil(Number(form.questionCount) / Number(form.testCount))} question{Math.ceil(Number(form.questionCount) / Number(form.testCount)) === 1 ? "" : "s"}
@@ -683,17 +744,20 @@ export default function AssignEducators() {
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Total Marks (all tests)</label>
-                    <input type="number" min="1" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} />
+                    <input type="number" min="1" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} {...fieldProps("totalMarks")} />
+                    <FieldMsg name="totalMarks" />
                   </div>
                 </div>
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Duration per Test (minutes)</label>
-                    <input type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
+                    <input type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} {...fieldProps("duration")} />
+                    <FieldMsg name="duration" />
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Deadline</label>
-                    <input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+                    <input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} {...fieldProps("deadline")} />
+                    <FieldMsg name="deadline" />
                   </div>
                 </div>
 
@@ -717,7 +781,7 @@ export default function AssignEducators() {
       <ConfirmModal
         open={!!assignReqObj}
         title="Assign educator"
-        description={assignReqObj ? `Approve "${assignReqObj.testName}" (${assignReqObj.subject}, ${assignReqObj.questionCount} questions, ${assignReqObj.totalMarks} marks) and assign an educator to build it. They will be notified (mock).` : ""}
+        description={assignReqObj ? `Approve "${assignReqObj.testName}" (${assignReqObj.subject}, ${assignReqObj.questionCount} questions, ${assignReqObj.totalMarks} marks) and assign an educator to build it. They will be notified in their portal.` : ""}
         confirmLabel="Assign & Notify"
         compact
         onConfirm={() => {
@@ -771,7 +835,7 @@ export default function AssignEducators() {
       <ConfirmModal
         open={!!reassignTarget}
         title="Reassign educator"
-        description={'This resets the assignment back to "Assigned" and clears any existing submission. The new educator will be notified (mock).'}
+        description={'This resets the assignment back to "Assigned" and clears any existing submission. The new educator will be notified in their portal.'}
         confirmLabel="Reassign"
         onConfirm={() => {
           assignmentsApi.reassign(reassignTarget, reassignEducatorId)
@@ -794,7 +858,7 @@ export default function AssignEducators() {
       <ConfirmModal
         open={!!extendTarget}
         title="Extend deadline"
-        description="The educator will be notified of the new deadline (mock)."
+        description="The educator will be notified of the new deadline in their portal."
         confirmLabel="Save New Deadline"
         onConfirm={() => {
           assignmentsApi.extend(extendTarget, extendDate)
@@ -814,7 +878,7 @@ export default function AssignEducators() {
       <ConfirmModal
         open={!!cancelTarget}
         title="Cancel this assignment?"
-        description="The educator will be notified that the assignment was cancelled (mock). This cannot be undone."
+        description="The educator will be notified that the assignment was cancelled. This cannot be undone."
         confirmLabel="Cancel Assignment"
         tone="danger"
         onConfirm={() => {
@@ -951,22 +1015,6 @@ export default function AssignEducators() {
               ))}
             </div>
 
-            {detailNotifications.length > 0 && (
-              <>
-                <span className="ul-mgmt-detail-subhead">Educator Notifications</span>
-                <div className="ul-mgmt-activity-list">
-                  {detailNotifications.map((n) => (
-                    <div key={n.id} className="ul-mgmt-activity-row">
-                      <span className="ul-mgmt-activity-row__dot" />
-                      <div className="ul-mgmt-activity-row__body">
-                        <p className="ul-mgmt-activity-row__text"><strong>{n.title}</strong> — {n.message}</p>
-                        <p className="ul-mgmt-activity-row__meta">{fmtDateTime(n.createdAt)} · to {n.educatorName} (mock, not delivered)</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
 
           </div>
         </div>

@@ -222,14 +222,16 @@ describe("student onboarding after sign-in", () => {
     await waitFor(() => expect(screen.getByRole("link", { name: "Notifications" })).toBeInTheDocument());
   });
 
-  it("hiding the popup keeps the notification unread in the inbox", async () => {
+  // QA (13 Nov): a dismissed popup came back at every sign-in; dismissing now
+  // marks it read on the server (it stays listed in Notifications).
+  it("dismissing the popup marks it read, so it doesn't come back at the next login", async () => {
     rpcData.student_list_notifications = { rows: [resolved], unread: 1 };
+    rpcData.student_mark_notification_read = 1;
     await renderStudent();
     await screen.findByText("Your reported issue was resolved");
-    fireEvent.click(screen.getByRole("button", { name: "Hide for now" }));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Dismiss" })); });
     expect(screen.queryByText("Your reported issue was resolved")).toBeNull();
-    expect(screen.getByRole("link", { name: "Notifications, 1 unread" })).toBeInTheDocument();
-    expect(rpc).not.toHaveBeenCalledWith("student_mark_notification_read", expect.anything());
+    expect(rpc).toHaveBeenCalledWith("student_mark_notification_read", { p_id: "n1" });
   });
 
   it("the Notifications page lists real rows, opens one, and marks all read", async () => {

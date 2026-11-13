@@ -1,4 +1,5 @@
 import { callRpc, listResult } from "./adminApi";
+import { notifyChanged } from "../../../services/dataSync";
 
 export const mapAssignment = (a) => ({
   ...a,
@@ -65,3 +66,14 @@ export const assignmentsApi = {
   }),
   rejectRequest: (requestId, reason) => callRpc("reject_request", { p_request: requestId, p_reason: reason || null }),
 };
+
+// Every write announces "assignments" (services/dataSync.js), so the sidebar
+// badge and any open list refresh (QA, 13 Nov).
+for (const name of ["create", "updateRequirements", "reassign", "extend", "cancel", "startReview", "review", "assignRequest", "rejectRequest"]) {
+  const call = assignmentsApi[name];
+  assignmentsApi[name] = async (...args) => {
+    const result = await call(...args);
+    notifyChanged("assignments", { action: name });
+    return result;
+  };
+}

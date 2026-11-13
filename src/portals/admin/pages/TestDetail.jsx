@@ -21,6 +21,7 @@ import {
   TEST_STATUS_LABEL,
   TEST_STATUS_BADGE_CLASS,
   validateTestForPublish,
+  marksMismatch,
   validateSeriesForPublish,
 } from "../data/testSeriesMock";
 import { testSeriesApi } from "../services/testSeriesApi";
@@ -266,10 +267,20 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
 
       <div className="ul-stats ul-ts-stats">
         <div className="ul-stat-card"><span className="ul-stat-card__label">QUESTIONS</span><span className="ul-stat-card__value">{test.questions.length}</span><span className="ul-stat-card__trend">In this Test</span></div>
-        <div className="ul-stat-card"><span className="ul-stat-card__label">MARKS ALLOCATED</span><span className="ul-stat-card__value">{marksUsed} / {test.totalMarks}</span><span className="ul-stat-card__trend">{marksUsed === test.totalMarks ? "Fully allocated" : "Check totals before publishing"}</span></div>
+        <div className="ul-stat-card"><span className="ul-stat-card__label">MARKS ALLOCATED</span><span className="ul-stat-card__value">{marksUsed} / {test.totalMarks}</span><span className="ul-stat-card__trend">{marksUsed === test.totalMarks ? "Fully allocated" : marksUsed < test.totalMarks ? `${test.totalMarks - marksUsed} marks still to add` : `${marksUsed - test.totalMarks} marks over the total`}</span></div>
         <div className="ul-stat-card"><span className="ul-stat-card__label">SCHEDULED</span><span className="ul-stat-card__value" style={{ fontSize: 13 }}>{test.scheduledAt ? new Date(test.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}</span><span className="ul-stat-card__trend">{test.scheduledAt ? new Date(test.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "Not scheduled"}</span></div>
         <div className="ul-stat-card"><span className="ul-stat-card__label">ATTEMPT LIMIT</span><span className="ul-stat-card__value">{test.attemptLimit}</span><span className="ul-stat-card__trend">Attempts per student</span></div>
       </div>
+
+      {/* QA (13 Nov): a test published before the marks rule existed, or edited
+          since, can be out of balance; say so plainly (students are scored on
+          the questions' marks) */}
+      {test.status === TEST_STATUS.PUBLISHED && marksMismatch(test) && (
+        <div className="ul-ts-errors" role="alert" style={{ marginBottom: 14 }}>
+          <strong>Marks don't match the total:</strong>
+          <ul><li>{marksMismatch(test).replace(" before publishing", "")}. Students are scored on the questions' marks until this is fixed.</li></ul>
+        </div>
+      )}
 
       {/* readiness only matters before publishing: a published test never shows "not ready" */}
       {test.status !== TEST_STATUS.PUBLISHED && !readiness.valid && (

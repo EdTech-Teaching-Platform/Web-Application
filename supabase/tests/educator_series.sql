@@ -215,7 +215,7 @@ declare
 begin
   perform pg_temp.act_as(pg_temp.id('admin'));
   aid := (public.create_assignments(jsonb_build_object('seriesMode', 'existing', 'seriesId', adm, 'subject', 'Maths',
-            'testName', 'Algebra set', 'educatorIds', jsonb_build_array(pg_temp.id('e2')), 'questionCount', 10,
+            'testName', 'Algebra set', 'educatorIds', jsonb_build_array(pg_temp.id('e2')), 'questionCount', 10, 'totalMarks', 4,
             'deadline', current_date + 5, 'topics', jsonb_build_array('Linear equations'))))[1];
   insert into public.assignment_comments (assignment_id, comment, author_id) values (aid, 'Keep it at JEE level.', pg_temp.id('admin'));
 

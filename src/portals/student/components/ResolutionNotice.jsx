@@ -4,8 +4,10 @@ import { isResolutionNotice } from "../services/notificationsApi";
 
 // The "your reported issue was resolved" popup (QA, 07 Nov). Shown on any
 // student page for the newest UNREAD resolution in the inbox. "View" marks it
-// read and opens the test series; "Later" hides it for this browser session
-// only; it stays unread in Notifications (the bell) either way.
+// read and opens the test series. Dismissing it (X or "All notifications")
+// also marks it read (onDismiss), so it never comes back at the next login
+// (QA, 13 Nov: it reappeared on every sign-in); it stays in Notifications.
+// If marking read fails, it is hidden for this browser session instead.
 const hiddenKey = "ul.student.resolution.hidden";
 
 function readHidden() {
@@ -15,7 +17,7 @@ function writeHidden(set) {
   try { window.sessionStorage.setItem(hiddenKey, JSON.stringify([...set])); } catch { /* storage unavailable */ }
 }
 
-export default function ResolutionNotice({ notifications, onView, onOpenInbox }) {
+export default function ResolutionNotice({ notifications, onView, onOpenInbox, onDismiss }) {
   const [hidden, setHidden] = useState(readHidden);
   const notice = (notifications || []).find((n) => isResolutionNotice(n) && !n.isRead && !hidden.has(n.id));
   if (!notice) return null;
@@ -26,6 +28,7 @@ export default function ResolutionNotice({ notifications, onView, onOpenInbox })
     next.add(notice.id);
     writeHidden(next);
     setHidden(next);
+    Promise.resolve(onDismiss?.(notice)).catch(() => { /* stays hidden for the session */ });
   };
 
   return (
@@ -51,7 +54,7 @@ export default function ResolutionNotice({ notifications, onView, onOpenInbox })
             </button>
           </div>
         </div>
-        <button type="button" aria-label="Hide for now" className="rounded-full p-1.5 text-text/45 hover:bg-(--lp-grey)" onClick={hide}>
+        <button type="button" aria-label="Dismiss" className="rounded-full p-1.5 text-text/45 hover:bg-(--lp-grey)" onClick={hide}>
           <XIcon className="h-4 w-4" />
         </button>
       </div>

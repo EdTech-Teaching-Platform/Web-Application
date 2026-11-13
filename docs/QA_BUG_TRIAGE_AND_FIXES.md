@@ -15,6 +15,7 @@ package is in `docs/PORT_PROGRESS.md`.
 | P2 | Applied and deployed; open-session poll and login check added (2026-11-11, frontend) |
 | P4 (items 1-4, 6), P5 (b, c), P9 | Written (`20261111090000`, frontend), not applied |
 | P5 (f), P6 | Not started |
+| QA 13 Nov (marks on publish, assignment form scroll + allocation, badge, details close, CMS, notifications) | Written (`20261114090000`, frontend), not applied |
 
 Bugs 15 and 16 are identical (blocked student). Many of the rest share one cause, so fix by package, not one by one.
 

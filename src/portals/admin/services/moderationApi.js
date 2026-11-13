@@ -1,4 +1,5 @@
 import { callRpc, listResult } from "./adminApi";
+import { notifyChanged } from "../../../services/dataSync";
 
 // Content Moderation: student feedback, queries and issue reports on tests
 // (test_feedback; RPCs in 20261027100300_feedback_rpc_admin.sql).
@@ -18,6 +19,28 @@ export const STATUS_ACTIONS = [
   { status: "resolved", label: "Resolve", needsNote: true },
   { status: "dismissed", label: "Dismiss", needsNote: true },
 ];
+
+// The actions that make sense for a status (QA, 13 Nov: a resolved item
+// still offered Dismiss). A closed item (resolved / dismissed) can only be
+// reopened (back to in review) to change its outcome.
+const REOPEN = { status: "in_review", label: "Reopen (mark in review)", needsNote: false };
+export function actionsFor(status) {
+  switch (status) {
+    case "new": return STATUS_ACTIONS;
+    case "in_review": return STATUS_ACTIONS.filter((a) => a.status !== "in_review");
+    case "resolved":
+    case "dismissed": return [REOPEN];
+    default: return STATUS_ACTIONS.filter((a) => a.status !== status);
+  }
+}
+
+// How the note to the student is shown: only a resolved item uses the green
+// "resolution" look (QA, 13 Nov: an in-review note looked resolved).
+export function noteStyle(status) {
+  if (status === "resolved") return { tone: "resolved", title: "Resolution sent to the student" };
+  if (status === "dismissed") return { tone: "dismissed", title: "Reason sent to the student" };
+  return { tone: "review", title: "Note to the student (still in review)" };
+}
 
 export function mapModerationRow(r) {
   if (!r) return null;
@@ -77,8 +100,11 @@ export const moderationApi = {
   },
   stats: () => callRpc("get_moderation_stats"),
   get: async (id) => mapModerationItem(await callRpc("get_moderation_item", { p_id: id })),
-  setStatus: async (id, status, note = "") =>
-    mapModerationRow(await callRpc("set_moderation_status", { p_id: id, p_status: status, p_note: note.trim() || null })),
+  setStatus: async (id, status, note = "") => {
+    const row = mapModerationRow(await callRpc("set_moderation_status", { p_id: id, p_status: status, p_note: note.trim() || null }));
+    notifyChanged("moderation", { action: "setStatus" });   // the sidebar badge refreshes
+    return row;
+  },
   filterOptions: () => callRpc("get_moderation_filter_options"),
 };
 

@@ -73,7 +73,7 @@ begin
     'about', '<p>Circuit laws <strong>end to end</strong>.</p>', 'whoFor', 'Class 12 JEE aspirants', 'syllabus', 'KCL, KVL, mesh analysis',
     'availability', jsonb_build_object('goLive', 'now', 'mode', 'always'),
     'tests', jsonb_build_array(jsonb_build_object('name', 'Loops', 'duration', '20', 'passingPercent', '40', 'attemptLimit', '2',
-      'totalMarks', '15',
+      'totalMarks', '3',
       'questions', jsonb_build_array(jsonb_build_object('type', 'mcq_single', 'text', 'Current law?', 'marks', '3',
         'options', jsonb_build_array(jsonb_build_object('key', 'A', 'text', 'KCL'), jsonb_build_object('key', 'B', 'text', 'Ohm')),
         'correctAnswers', jsonb_build_array('A')))))), true);

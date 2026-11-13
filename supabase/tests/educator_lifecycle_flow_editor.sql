@@ -167,7 +167,7 @@ begin
   begin
     ids := public.create_assignments(jsonb_build_object(
       'seriesMode', 'new', 'newSeriesName', 'Flow series ' || v_edu, 'subject', 'Mathematics',
-      'testName', 'Flow algebra test', 'educatorIds', jsonb_build_array(v_edu), 'questionCount', 1,
+      'testName', 'Flow algebra test', 'educatorIds', jsonb_build_array(v_edu), 'questionCount', 1, 'totalMarks', 4,
       'deadline', current_date + 7));
     v_assignment := ids[1];
     select a.series_id into v_series from public.test_assignments a where a.id = v_assignment;

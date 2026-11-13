@@ -162,7 +162,7 @@ begin
   begin
     ids := public.create_assignments(jsonb_build_object(
       'seriesMode', 'new', 'newSeriesName', 'Flow series ' || pg_temp.id('edu'), 'subject', 'Mathematics',
-      'testName', 'Flow algebra test', 'educatorIds', jsonb_build_array(pg_temp.id('edu')), 'questionCount', 1,
+      'testName', 'Flow algebra test', 'educatorIds', jsonb_build_array(pg_temp.id('edu')), 'questionCount', 1, 'totalMarks', 4,
       'deadline', current_date + 7));
     perform set_config('flow.assignment', ids[1]::text, true);
     perform set_config('flow.series', (select series_id::text from public.test_assignments where id = ids[1]), true);

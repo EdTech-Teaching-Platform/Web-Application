@@ -121,7 +121,7 @@ describe("P7: the student's real test series", () => {
 
 // -----------------------------------------------------------------------------
 describe("P5 a: readiness only for rules that exist", () => {
-  const q = { kind: "objective", correctAnswer: "A" };
+  const q = { kind: "objective", correctAnswer: "A", marks: 4 };
   it("a schedule is optional; questions and correct answers are what counts", () => {
     expect(validateTestForPublish({ name: "Unit 1", duration: 30, totalMarks: 4, passingMarks: 0, scheduledAt: "", questions: [q] }))
       .toEqual({ valid: true, errors: [] });

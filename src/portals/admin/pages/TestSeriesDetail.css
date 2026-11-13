@@ -23,3 +23,4 @@
    the drawer also renders inside the educator portal. */
 .ul-ts-form-hint { margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: #475467; }
 .ul-ts-form-hint--warn { color: #93370d; }
+.ul-ts-form-row input[aria-invalid="true"] { border-color: #f04438 !important; box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12); }

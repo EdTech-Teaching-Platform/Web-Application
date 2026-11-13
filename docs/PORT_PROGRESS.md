@@ -99,6 +99,109 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-14: QA reports of 13 Nov (marks on publish, assignment form, badge, details popup, CMS, notifications)
+
+The Supabase CLI wouldn't start in this environment ("spawn UNKNOWN"), so
+whether 20261111090000 is applied wasn't confirmed. It was left untouched,
+and the new SQL is a new migration that requires it.
+
+### Publishing with mismatched marks (two reports: 10 of 40, 16 of 10)
+
+- **Server:** `adm_validate_quiz_for_publish` (`set_test_status`) and
+  `adm_series_publish_problem` (wizard publish, educator series approval)
+  refuse a test whose questions' marks differ from its planned total, for
+  example "the questions add up to 10 marks but the test's total is 40".
+  Tests without a planned total are unchanged.
+- **Frontend:** `validateTestForPublish` has the same rule (`marksMismatch`).
+  Test Detail's card says "N marks still to add" or "N marks over the total".
+  A test already published with a mismatch gets a red "Marks don't match the
+  total" notice; it isn't unpublished automatically.
+- **Existing test fixtures updated:** the educator flow and series SQL tests
+  gave their assignments a total that matches their questions.
+
+### Assignment form: scroll to the first problem
+
+- `validateAssignmentForm` (`data/assignmentForm.js`) returns
+  `{field, message}`. Each field shows its own message and is marked
+  `aria-invalid`.
+- On a failed Create or Save, the drawer scrolls to the first one and focuses
+  it (`utils/scrollToFirstInvalid.js`, shared). Messages clear as fields
+  are fixed, and typed values stay.
+- The Edit Test drawer uses the same helper.
+
+### Number of tests vs educators
+
+- New Assignment has a "Who builds each test" list: Test 1 → ASHIKA,
+  Test 2 → Ravi. By default the tests are spread one per selected educator;
+  the admin can change them. A summary shows each educator's tests,
+  questions and marks.
+- More educators than tests is an error on the allocation. One educator with
+  several tests is allowed and stated ("One educator builds all 2 tests").
+- `create_assignments` takes `allocation`: one assignment per educator with
+  their share of tests, questions and marks.
+
+### Assign Educators badge
+
+- **Count:** `get_admin_nav` counts open assignments (assigned, in progress,
+  submitted, under review, revision requested) over `adm_assignment_rows()`,
+  the rows the list shows.
+- **Freshness:** the sidebar loaded the badges once at sign-in. It now
+  refreshes on "assignments" / "educators" / "moderation" changes (the
+  assignment and moderation APIs announce writes), on focus and every minute.
+- **Tooltip:** each badge says what it counts.
+
+### Assignment details popup wouldn't close
+
+- **Cause:** a regression from 2026-11-11. `buildDetailAssignment` ignored a
+  null id, so the cached detail response kept the popup open after X.
+- **Fix:** a null id now means closed, and Escape also closes it.
+
+### "The assign pop up should be in the educator side"
+
+- **Before:** the admin's details popup listed the educator's messages ("New
+  test assignment…", "mock, not delivered"); educators never saw them.
+- **Admin:** that section is removed, and the "(mock)" wording is gone.
+- **Educator:** the new RPCs `educator_list_assignment_notifications`,
+  `educator_mark_assignment_notification_read` and
+  `educator_mark_all_assignment_notifications_read` feed a popup for the
+  newest unread message ("View assignment" / Dismiss, both mark it read) and
+  an unread count on "Assigned".
+
+### Same popup at every login
+
+The student "your report was resolved" popup only hid itself for the browser
+session. Dismissing it (X or "All notifications") now marks it read on the
+server, so it doesn't come back; it stays listed in Notifications. The
+educator popup works the same way.
+
+### Content Moderation
+
+- **Note styling:** the note to the student is green only once resolved;
+  "still in review" is amber and dismissed is grey (`noteStyle`).
+- **Actions:** they depend on the status (`actionsFor`). New: in review,
+  resolve, dismiss. In review: resolve, dismiss. Resolved or dismissed:
+  only "Reopen (mark in review)".
+
+### New migration `20261114090000_admin_qa_nov14.sql` (not applied; needs 20261111090000)
+
+- **Replaced (marked edits):** `adm_validate_quiz_for_publish`,
+  `adm_series_publish_problem`, `get_admin_nav`, `create_assignments`.
+- **New:** the 3 educator notification RPCs (verified educators, own rows).
+- No lead table, schema, RLS or policy change.
+- **Rollback:** `scripts/rollback_20261114090000_admin_qa_nov14.sql`.
+- **Trial:** `docs/trial_run_20261114090000.sql`.
+- **SQL test:** `supabase/tests/qa_nov14.sql`.
+
+### Checks
+
+- `npm test`: 23 files, 289 tests (`tests/qa-nov14.test.jsx` 19; the
+  details-close test fails without the fix).
+- `npm run build` ✅.
+- PGlite: all migrations, then every SQL test ✅, except `admin_rpcs.sql`,
+  which already failed before this change (it expects discount RPCs that
+  don't exist). The trial on the 20261111 schema ✅; the rollback ✅.
+- Parser: 485 bodies, 0 errors. Hardening: 456 functions, 0 problems.
+
 ## 2026-11-11: QA reports #15-#26 (02 Nov): blocking, test edit, marks, assignments, delete account
 
 Live state checked first (`migration list`, `functions list`): every migration up

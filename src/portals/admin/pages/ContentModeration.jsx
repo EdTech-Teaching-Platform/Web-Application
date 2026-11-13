@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IconSearch, IconClose } from "../components/icons";
 import { useRpc } from "../hooks/useRpc";
-import { KIND_LABEL, STATUS_ACTIONS, STATUS_LABEL, moderationApi } from "../services/moderationApi";
+import { KIND_LABEL, STATUS_LABEL, actionsFor, moderationApi, noteStyle } from "../services/moderationApi";
 import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
 import "./EducatorVerification.css";
@@ -240,8 +240,8 @@ export function ItemDetail({ id, onClose, onChanged, setToast, api = moderationA
               )}
 
               {item.adminNote && (
-                <div className="ul-cmi-resolution">
-                  <h4 className="ul-cmi-h">Note to the student</h4>
+                <div className={`ul-cmi-resolution ul-cmi-note--${noteStyle(item.status).tone}`} data-tone={noteStyle(item.status).tone}>
+                  <h4 className="ul-cmi-h">{noteStyle(item.status).title}</h4>
                   <p className="ul-cmi-p">{item.adminNote}</p>
                 </div>
               )}
@@ -272,17 +272,17 @@ export function ItemDetail({ id, onClose, onChanged, setToast, api = moderationA
             <div className="ul-cmi-actionbox">
               {closed && (
                 <p className="ul-cmi-muted" role="status">
-                  This item is {STATUS_LABEL[item.status].toLowerCase()}. Nothing more is needed; you can still reopen it or change the outcome.
+                  This item is {STATUS_LABEL[item.status].toLowerCase()}. Nothing more is needed; reopen it if it needs more work.
                 </p>
               )}
               <label className="ul-cmi-label" htmlFor="mod-note">
-                {closed ? "New note to the student (needed to change the outcome)" : "Note to the student (required to resolve or dismiss)"}
+                {closed ? "Note (optional)" : "Note to the student (required to resolve or dismiss)"}
               </label>
               <textarea id="mod-note" rows={3} maxLength={2000} value={note} disabled={!!saving}
                 onChange={(e) => { setNote(e.target.value); setError(""); }} />
               {error && <p className="ul-rh-error" role="alert">{error}</p>}
               <div className="ul-cmi-btnrow">
-                {STATUS_ACTIONS.filter((a) => a.status !== item.status).map((a) => (
+                {actionsFor(item.status).map((a) => (
                   <button key={a.status} type="button"
                     className={`ul-btn ${a.status === "resolved" ? "ul-btn--primary" : "ul-btn--ghost"}`}
                     disabled={!!saving} aria-busy={saving === a.status || undefined} onClick={() => act(a)}>

@@ -57,4 +57,18 @@ export const educatorApi = {
   addAssignmentComment: (id, comment, questionId) => callRpc("educator_add_assignment_comment", {
     p_assignment_id: id, p_comment: comment, p_question_id: questionId || null,
   }),
+  // Assignment messages from the admin (new assignment, requirements changed,
+  // deadline, review outcome, cancelled), 20261114090000. Returns {rows, unread}.
+  listAssignmentNotifications: async ({ unreadOnly = false, limit = 20 } = {}) => {
+    const data = await callRpc("educator_list_assignment_notifications", { p_unread_only: unreadOnly, p_limit: limit });
+    return {
+      rows: (data?.rows || []).map((n) => ({
+        id: n.id, assignmentId: n.assignment_id, type: n.type, title: n.title || "", message: n.message || "",
+        isRead: Boolean(n.is_read), createdAt: n.created_at,
+      })),
+      unread: Number(data?.unread || 0),
+    };
+  },
+  markAssignmentNotificationRead: (id) => callRpc("educator_mark_assignment_notification_read", { p_id: id }),
+  markAllAssignmentNotificationsRead: () => callRpc("educator_mark_all_assignment_notifications_read"),
 };

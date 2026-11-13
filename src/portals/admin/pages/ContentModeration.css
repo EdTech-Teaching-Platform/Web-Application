@@ -510,3 +510,9 @@
   background: #e8f5ec; border: 1px solid #cfe8d7;
 }
 .ul-cmi-resolution .ul-cmi-h { margin-top: 0; color: #2f7a47; }
+
+/* Note to the student, by status (QA, 13 Nov): green only once resolved. */
+.ul-cmi-resolution.ul-cmi-note--review { background: #fffaeb; border-color: #fedf89; }
+.ul-cmi-resolution.ul-cmi-note--review .ul-cmi-h { color: #93370d; }
+.ul-cmi-resolution.ul-cmi-note--dismissed { background: #f2f4f7; border-color: #e4e7ec; }
+.ul-cmi-resolution.ul-cmi-note--dismissed .ul-cmi-h { color: #344054; }

@@ -1,5 +1,5 @@
 import { Suspense, useState } from "react";
-import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import RouteFallback from "../components/common/RouteFallback";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import { useLogoutConfirm } from "../components/common/LogoutConfirm";
@@ -11,6 +11,8 @@ import { useEducatorStatus } from "../portals/teacher/hooks/useEducatorStatus";
 import EducatorGateScreen from "../portals/teacher/components/EducatorGateScreen";
 import { GATE } from "../portals/teacher/utils/onboarding";
 import { useProfileCompletion } from "../portals/teacher/hooks/useProfileCompletion";
+import { useAssignmentNotifications } from "../portals/teacher/hooks/useAssignmentNotifications";
+import AssignmentNotice from "../portals/teacher/components/AssignmentNotice";
 import { HomeIcon, AssignmentIcon, FileTextIcon, PencilIcon, ChartIcon, UsersIcon, LogoutIcon } from "../components/ui/icons";
 
 // Educator Studio chrome (sidebar + top bar) for every /teacher/* page, behind
@@ -55,7 +57,7 @@ export default function TeacherLayout() {
   return <EducatorGate user={user} onLogout={() => logout()} />;
 }
 
-export function EducatorGate({ user, onLogout, statusApi, profileApi }) {
+export function EducatorGate({ user, onLogout, statusApi, profileApi, notificationsApi }) {
   const { status, gate, loading, error, refresh } = useEducatorStatus(statusApi ? { api: statusApi } : undefined);
   const logoutConfirm = useLogoutConfirm(onLogout);
   const { pathname } = useLocation();
@@ -70,11 +72,19 @@ export function EducatorGate({ user, onLogout, statusApi, profileApi }) {
   // the portal renders while the profile check runs (it never blocks); an
   // incomplete profile then moves to /teacher/profile?complete=1
   if (completion.redirectTo) return <Navigate to={completion.redirectTo} replace />;
-  return <><PortalShell user={user} onLogout={logoutConfirm.request} />{logoutConfirm.dialog}</>;
+  return <><PortalShell user={user} onLogout={logoutConfirm.request} notificationsApi={notificationsApi} />{logoutConfirm.dialog}</>;
 }
 
-function PortalShell({ user, onLogout }) {
+function PortalShell({ user, onLogout, notificationsApi }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  // QA (13 Nov): the admin's assignment messages reach the educator here
+  // (popup for the newest unread one, count on "Assigned").
+  const inbox = useAssignmentNotifications(notificationsApi ? { api: notificationsApi } : undefined);
+  const viewNotice = (n) => {
+    inbox.markRead(n.id).catch(() => {});
+    navigate(n.type !== "cancelled" && n.assignmentId ? `/teacher/assigned/${n.assignmentId}` : "/teacher/assigned");
+  };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pageTitle = PAGE_TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Dashboard";
   const name = user?.name || "Educator";
@@ -105,6 +115,10 @@ function PortalShell({ user, onLogout }) {
               <NavLink key={to} to={to} end={end} className={navLinkClass} onClick={() => setSidebarOpen(false)}>
                 <Icon className="shrink-0" />
                 <span className="flex-1 truncate">{label}</span>
+                {to === "/teacher/assigned" && inbox.unread > 0 && (
+                  <span className="rounded-full bg-(--lp-yellow) px-2 py-0.5 text-[10px] font-bold text-(--lp-ink)"
+                    aria-label={`${inbox.unread} new assignment message${inbox.unread === 1 ? "" : "s"}`}>{inbox.unread > 9 ? "9+" : inbox.unread}</span>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -143,6 +157,7 @@ function PortalShell({ user, onLogout }) {
           </header>
         </div>
 
+        <AssignmentNotice notifications={inbox.rows} onView={viewNotice} onDismiss={(n) => inbox.markRead(n.id).catch(() => {})} />
         <main className="flex-1 px-3 pb-8 pt-5 sm:px-5 lg:px-6 lg:pt-6">
           <div className="mx-auto w-full max-w-[1280px]">
             <AuthoringPortalContext.Provider value={EDUCATOR_AUTHORING}>

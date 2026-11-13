@@ -177,7 +177,7 @@ export default function StudentLayout() {
       </div>
       {!isTestRunner && <MobileNav />}
       {location.pathname !== "/student/notifications" && (
-        <ResolutionNotice notifications={inbox.rows} onView={viewNotice} onOpenInbox={() => navigate("/student/notifications")} />
+        <ResolutionNotice notifications={inbox.rows} onView={viewNotice} onDismiss={(n) => inbox.markRead(n.id)} onOpenInbox={() => navigate("/student/notifications")} />
       )}
     </div>
   );

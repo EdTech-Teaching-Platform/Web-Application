@@ -480,7 +480,16 @@ submission first.
 | `educator_add_assignment_comment(p_assignment_id, p_comment, p_question_id default null)` | `{id, comment, question_id, from: "me", created_at}`. The comment is 1–2000 characters; the question must belong to the series. |
 
 The educator builds and publishes with the shared RPCs. Publishing completes
-the assignment.
+the assignment. Publishing needs the questions' marks to add up to the test's
+total (20261114090000).
+
+### Assignment messages (20261114090000)
+
+| RPC | Returns |
+|---|---|
+| `educator_list_assignment_notifications(p_unread_only boolean default false, p_limit int default 20)` | `{rows: [{id, assignment_id, type, title, message, is_read, created_at}], unread}`, newest first, limit 1–100. The types are `assigned`, `updated`, `deadline_changed`, `revision_requested`, `approved`, `rejected` and `cancelled`. |
+| `educator_mark_assignment_notification_read(p_id uuid)` | `1` if one of the caller's unread rows became read, else `0`. |
+| `educator_mark_all_assignment_notifications_read()` | The number of rows marked read. |
 
 ## Profile, stats, dashboard (verified educators)
 

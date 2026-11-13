@@ -444,14 +444,37 @@ export function setTestStatus(seriesId, testId, status) {
 // (adm_validate_quiz_for_publish); a schedule is OPTIONAL (the old mock
 // required one, so a published test showed "Not ready to publish yet: a
 // scheduled date/time is required"). Total marks come from the questions.
+// The questions' marks against the test's total; null when they match (or no
+// total is set). Message says how many marks to add or remove.
+export function questionMarksOf(test) {
+  if (test?.questionMarks != null) return Number(test.questionMarks);
+  return (test?.questions || []).reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+}
+export function marksMismatch(test) {
+  const total = Number(test?.totalMarks) || 0;
+  if (!(total > 0) || !(test?.questions || []).length) return null;
+  const used = questionMarksOf(test);
+  if (used === total) return null;
+  return used < total
+    ? `Questions add up to ${used} of ${total} marks. Add ${total - used} more mark${total - used === 1 ? "" : "s"} (or lower the total) before publishing.`
+    : `Questions add up to ${used} marks, more than the total of ${total}. Remove ${used - total} mark${used - total === 1 ? "" : "s"} (or raise the total) before publishing.`;
+}
+
 export function validateTestForPublish(test) {
   const errors = [];
   if (!test.name || !test.name.trim()) errors.push("Test name is required.");
   if (!test.duration || Number(test.duration) <= 0) errors.push("A valid duration (minutes) is required.");
   if (test.passingMarks && test.totalMarks && Number(test.passingMarks) > Number(test.totalMarks)) errors.push("Passing marks cannot exceed total marks.");
   if (!test.questions || test.questions.length === 0) errors.push("At least one question is required before publishing.");
-  else if (test.questions.some((q) => q.kind !== "subjective" && !q.correctAnswer && !(q.correctAnswers || []).length && !q.acceptedAnswer)) {
-    errors.push("Every question needs a correct answer.");
+  else {
+    if (test.questions.some((q) => q.kind !== "subjective" && !q.correctAnswer && !(q.correctAnswers || []).length && !q.acceptedAnswer)) {
+      errors.push("Every question needs a correct answer.");
+    }
+    // QA (13 Nov): the questions' marks must add up to the test's total
+    // exactly (10 of 40 and 16 of 10 were both published). Same rule on the
+    // server (adm_validate_quiz_for_publish, 20261114090000).
+    const mismatch = marksMismatch(test);
+    if (mismatch) errors.push(mismatch);
   }
   return { valid: errors.length === 0, errors };
 }

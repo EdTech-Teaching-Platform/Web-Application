@@ -38,6 +38,7 @@ import "./TestSeries.css";
 import "./TestSeriesDetail.css";
 import PageToast from "../../../components/feedback/Toast";
 import { fromDateTimeLocal, toDateTimeLocal } from "../../../utils/datetimeLocal";
+import { scrollToFirstInvalid } from "../../../utils/scrollToFirstInvalid";
 
 const EMPTY_TEST_FORM = {
   name: "",
@@ -53,6 +54,16 @@ const EMPTY_TEST_FORM = {
 
 // What "Save changes" checks on an existing test (QA #17 / #18). Publishing
 // keeps its own, stricter check (validateTestForPublish).
+// The fields behind editErrors' messages (for aria-invalid + scrolling).
+export function editErrorFields(payload) {
+  const bad = {};
+  if (!payload.name) bad.name = true;
+  if (!(payload.duration > 0)) bad.duration = true;
+  if (!(payload.totalMarks > 0)) bad.totalMarks = true;
+  if (payload.passingMarks > payload.totalMarks && payload.totalMarks > 0) bad.passingMarks = true;
+  return bad;
+}
+
 export function editErrors(payload) {
   const errors = [];
   if (!payload.name) errors.push("Test name is required.");
@@ -94,6 +105,11 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
   const [saving, setSaving] = useState(false);
+  // QA (13 Nov): on a failed save, scroll the drawer to the first bad field
+  const [badFields, setBadFields] = useState({});
+  const [errorTick, setErrorTick] = useState(0);
+  const drawerBodyRef = useRef(null);
+  useEffect(() => { if (errorTick) scrollToFirstInvalid(drawerBodyRef.current); }, [errorTick]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -147,6 +163,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const closeForm = () => {
     setFormOpen(null);
     setFormErrors([]);
+    setBadFields({});
   };
 
   const editingTest = formOpen === "edit" ? series.tests.find((t) => t.id === editingId) || null : null;
@@ -169,7 +186,8 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
   const saveChanges = () => {
     const payload = buildPayload();
     const errors = editErrors(payload);
-    if (errors.length) { setFormErrors(errors); return; }
+    if (errors.length) { setFormErrors(errors); setBadFields(editErrorFields(payload)); setErrorTick((t) => t + 1); return; }
+    setBadFields({});
     setSaving(true);
     testSeriesApi.updateTest(editingId, payload)
       .then(() => { setToast({ tone: "success", message: `"${payload.name}" saved.` }); closeForm(); seriesState.refetch(); })
@@ -315,7 +333,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                 <p className="ul-set-drawer__sub">{formOpen === "create" ? "Fill in the test details, then add Questions next." : "Fill in the test details. You can save as a draft and publish later."}</p>
               </div>
             </div>
-            <div className="ul-set-drawer__body">
+            <div className="ul-set-drawer__body" ref={drawerBodyRef}>
               <div className="ul-ts-form">
                 {formErrors.length > 0 && (
                   <div className="ul-ts-errors" role="alert">
@@ -326,7 +344,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
 
                 <div className="ul-ts-form-row">
                   <label>Test Name</label>
-                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Physics Full Mock Test 1" />
+                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Physics Full Mock Test 1" aria-invalid={badFields.name || undefined} />
                 </div>
 
                 <div className="ul-ts-form-row">
@@ -337,7 +355,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Duration (minutes)</label>
-                    <input type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="e.g. 60" />
+                    <input type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="e.g. 60" aria-invalid={badFields.duration || undefined} />
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Attempt Limit</label>
@@ -348,12 +366,12 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Total Marks</label>
-                    <input type="number" min="1" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} placeholder="e.g. 40" />
+                    <input type="number" min="1" value={form.totalMarks} onChange={(e) => setForm({ ...form, totalMarks: e.target.value })} placeholder="e.g. 40" aria-invalid={badFields.totalMarks || undefined} />
                     {editingTest && <MarksNote total={Number(form.totalMarks) || 0} questionMarks={editingTest.questionMarks} questions={editingTest.questions.length} />}
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Passing Marks</label>
-                    <input type="number" min="1" value={form.passingMarks} onChange={(e) => setForm({ ...form, passingMarks: e.target.value })} placeholder="e.g. 16" />
+                    <input type="number" min="1" value={form.passingMarks} onChange={(e) => setForm({ ...form, passingMarks: e.target.value })} placeholder="e.g. 16" aria-invalid={badFields.passingMarks || undefined} />
                   </div>
                 </div>
 

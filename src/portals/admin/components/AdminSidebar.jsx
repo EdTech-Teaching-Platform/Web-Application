@@ -4,6 +4,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useSignOut } from "../../../hooks/useSignOut";
 import { dashboardApi } from "../services/adminApi";
 import { useRpc } from "../hooks/useRpc";
+import { useRefetchOnChange } from "../../../services/dataSync";
 import { usePendingApprovals } from "../hooks/usePendingApprovals";
 import sidebarBooksImg from "../../../assets/illustrations/sidebar-books.png";
 import {
@@ -79,6 +80,18 @@ const NAV_SECTIONS = [
 // `open` / `onClose` only matter below the 900px breakpoint (see
 // AdminChrome.css) where the sidebar becomes an off-canvas drawer opened
 // from AdminTopbar's hamburger button. On desktop it just renders in place.
+// What each sidebar number counts (QA, 13 Nov: "2" next to Assign Educators
+// had no explanation). Shown as the tooltip and read by screen readers.
+const BADGE_HINTS = {
+  "/admin/testseries/assign-educators": (n) => `${n} open assignment${n === 1 ? "" : "s"}: assigned, in progress or waiting for review (completed and cancelled ones aren't counted)`,
+  "/admin/educatorverification": (n) => `${n} educator${n === 1 ? "" : "s"} waiting for verification`,
+  "/admin/contentmoderation": (n) => `${n} report${n === 1 ? "" : "s"} waiting for review`,
+  "/admin/supporttickets": (n) => `${n} new callback request${n === 1 ? "" : "s"}`,
+};
+export function badgeHint(route, count) {
+  return BADGE_HINTS[route]?.(count) ?? `${count} waiting`;
+}
+
 export default function AdminSidebar({ open = false, onClose = () => {} }) {
   const { user } = useAuth();
   // Real sign-out: ends the Supabase session, clears per-user storage, reloads at /login.
@@ -97,6 +110,17 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
 
   const logoutConfirm = useLogoutConfirm(signOut, { description: "You'll need to sign in again to access the admin console." });
   const navigation = useRpc(dashboardApi.getNavigation);
+  // QA (13 Nov): the badges were read once at sign-in and never refreshed.
+  // They now refresh after any change to what they count, on focus and every
+  // minute.
+  useRefetchOnChange(navigation.refetch, "assignments");
+  useRefetchOnChange(navigation.refetch, "educators", { onFocus: false });
+  useRefetchOnChange(navigation.refetch, "moderation", { onFocus: false });
+  useEffect(() => {
+    const t = setInterval(() => { Promise.resolve(navigation.refetch()).catch(() => {}); }, 60000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const approvals = usePendingApprovals();   // educator series waiting for review
 
   const handleLogout = () => {
@@ -156,9 +180,11 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
                 >
                   <item.icon size={17} />
                   <span>{item.label}</span>
-                  {navigation.data?.find((navItem) => navItem.route === item.to)?.badge > 0 && (
-                    <span className="ul-sidebar__badge">{navigation.data.find((navItem) => navItem.route === item.to).badge}</span>
-                  )}
+                  {navigation.data?.find((navItem) => navItem.route === item.to)?.badge > 0 && (() => {
+                    const count = navigation.data.find((navItem) => navItem.route === item.to).badge;
+                    const hint = badgeHint(item.to, count);
+                    return <span className="ul-sidebar__badge" title={hint} aria-label={hint}>{count}</span>;
+                  })()}
                   {item.to === "/admin/testseries" && approvals.count > 0 && (
                     <span className="ul-sidebar__badge" title="Educator series waiting for approval (Test Series → Approvals)"
                       aria-label={`${approvals.count} series waiting for approval`}>{approvals.count}</span>
