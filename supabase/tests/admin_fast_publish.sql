@@ -203,10 +203,11 @@ begin
   perform pg_temp.ok(public.series_name_exists(' Fp Series ', null) and not public.series_name_exists('fp series', sid),
                      'name check: case and spaces ignored, the series itself excluded');
 
-  bad := jsonb_set(pg_temp.payload(null, 'FP bad 1', false), '{tests,1,questions,0,type}', '"subjective"');
-  perform pg_temp.expect_error(format('select public.upsert_test_series_full(%L)', bad), '22023', 'coming soon');
-  bad := jsonb_set(pg_temp.payload(null, 'FP bad 2', false), '{tests,1,questions,0,type}', '"long_answer"');
-  perform pg_temp.expect_error(format('select public.upsert_test_series_full(%L)', bad), '22023', 'coming soon');
+  -- 20261115090000: subjective and long-answer questions are accepted again (graded by AI)
+  bad := jsonb_set(pg_temp.payload(null, 'FP subj 1', false), '{tests,1,questions,0,type}', '"subjective"');
+  perform pg_temp.ok(public.upsert_test_series_full(bad) is not null, 'a subjective question is accepted');
+  bad := jsonb_set(pg_temp.payload(null, 'FP subj 2', false), '{tests,1,questions,0,type}', '"long_answer"');
+  perform pg_temp.ok(public.upsert_test_series_full(bad) is not null, 'a long-answer question is accepted');
   bad := jsonb_set(pg_temp.payload(null, 'FP bad 3', false), '{tests,0,questions,4,correctAnswer}', '""');
   perform pg_temp.expect_error(format('select public.upsert_test_series_full(%L)', bad), '22023', 'Fill-in-the-blank questions need an accepted answer.');
   bad := jsonb_set(pg_temp.payload(null, 'FP bad 4', false), '{tests,1,questions,0,type}', '"essay"');

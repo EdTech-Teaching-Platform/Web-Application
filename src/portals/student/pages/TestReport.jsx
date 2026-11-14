@@ -1,5 +1,8 @@
 // Attempt report (student_get_report): the stored snapshot written at submit.
 // Charts are plain CSS / SVG (ProgressRing, DonutChart); no chart library.
+// Written answers are graded by AI after submission (20261115090000): while
+// that runs the page shows its progress, then reloads the report, which then
+// carries per-question AI feedback and an overall "AI evaluation" section.
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Chip from "../../../components/ui/Chip";
@@ -13,12 +16,14 @@ import { attemptApi } from "../services/attemptApi";
 import { isRuleError } from "../services/studentRpc";
 import { formatDate, formatMinutes, formatPercent, formatScore, formatSeconds } from "../utils/format";
 import { FeedbackForm } from "../components/FeedbackForm";
+import { useAiEvaluation } from "../hooks/useAiEvaluation";
 import { QuestionFigure, SeriesBanner } from "../components/TestImages";
 
 const STATUS = {
   correct: { label: "Correct", tone: "success" },
   incorrect: { label: "Incorrect", tone: "danger" },
   skipped: { label: "Skipped", tone: "neutral" },
+  partial: { label: "Partly correct", tone: "warning" },
   pending: { label: "Pending review", tone: "warning" },
 };
 
@@ -100,8 +105,34 @@ const Q_TONE = {
   correct: "bg-success/15 text-success",
   incorrect: "bg-danger/15 text-danger",
   skipped: "bg-(--lp-grey) text-(--lp-muted)",
+  partial: "bg-(--lp-yellow-soft) text-(--lp-ink)",
   pending: "bg-warning/15 text-warning",
 };
+
+// The AI's feedback on one written answer.
+function AiFeedback({ evaluation }) {
+  const lists = [
+    ["What you did well", evaluation.strengths],
+    ["To improve", evaluation.improvements],
+    ["Points missed", evaluation.key_points_missed],
+  ].filter(([, items]) => Array.isArray(items) && items.length > 0);
+  return (
+    <div className="mt-4 rounded-xl bg-(--lp-blue-tint) px-4 py-3 text-sm text-text/85">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-(--lp-blue-deep)">AI feedback</p>
+      {evaluation.feedback && <p className="mt-1.5 leading-relaxed">{evaluation.feedback}</p>}
+      {lists.length > 0 && (
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          {lists.map(([title, items]) => (
+            <div key={title}>
+              <p className="text-xs font-semibold text-text/70">{title}</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4">{items.map((x) => <li key={x}>{x}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function QuestionReview({ question, hidden }) {
   const s = STATUS[question.status] ?? STATUS.skipped;
@@ -110,6 +141,7 @@ export function QuestionReview({ question, hidden }) {
       <div className="flex flex-wrap items-center gap-3">
         <span className={`grid h-9 min-w-9 place-items-center rounded-lg px-2 text-sm font-semibold ${Q_TONE[question.status] ?? Q_TONE.skipped}`}>Q{question.position}</span>
         <StatusBadge status={s.tone}>{s.label}</StatusBadge>
+        {question.ai_evaluation && <span className="rounded-full bg-(--lp-blue-soft) px-2.5 py-0.5 text-[11px] font-semibold text-(--lp-blue-deep)">Graded by AI</span>}
         <span className="ml-auto rounded-full bg-(--lp-grey) px-3 py-1 text-xs font-semibold text-text/70">
           {question.status === "pending" ? `${question.points} marks, awaiting review` : `${question.points_earned ?? 0} / ${question.points}`}
         </span>
@@ -140,10 +172,42 @@ export function QuestionReview({ question, hidden }) {
           )}
         </dl>
       )}
+      {question.ai_evaluation && <AiFeedback evaluation={question.ai_evaluation} />}
       {question.explanation && <p className="mt-4 rounded-xl bg-(--lp-blue-tint) px-4 py-3 text-sm leading-relaxed text-text/80"><strong>Explanation:</strong> {question.explanation}</p>}
       {hidden && !question.options?.length && <p className="mt-3 text-xs text-text/50">Answers are hidden for this test.</p>}
       <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.1em] text-(--lp-muted)">{[question.section, question.topic, question.difficulty].filter(Boolean).join(" · ")}</p>
     </li>
+  );
+}
+
+// The AI's overall evaluation of the written answers.
+function AiReport({ ai }) {
+  const groups = [
+    ["Strengths", ai.strengths, "bg-success/10"],
+    ["Areas to improve", ai.areas_to_improve, "bg-danger/10"],
+    ["Study tips", ai.study_tips, "bg-(--lp-blue-tint)"],
+  ].filter(([, items]) => Array.isArray(items) && items.length > 0);
+  return (
+    <section className={CARD} aria-labelledby="ul-ai-report">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id="ul-ai-report" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">AI evaluation of your written answers</h2>
+        <span className="rounded-full bg-(--lp-blue-soft) px-2.5 py-0.5 text-[11px] font-semibold text-(--lp-blue-deep)">AI</span>
+      </div>
+      {ai.summary && <p className="mt-3 text-sm leading-relaxed text-text/85">{ai.summary}</p>}
+      {groups.length > 0 && (
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {groups.map(([title, items, tone]) => (
+            <div key={title} className={`rounded-xl ${tone} px-4 py-3`}>
+              <p className="text-sm font-semibold text-(--lp-ink)">{title}</p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm text-text/85">{items.map((x) => <li key={x}>{x}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="mt-4 text-xs text-(--lp-muted)">
+        Written answers were marked by AI{ai.evaluated_at ? ` on ${formatDate(ai.evaluated_at, true)}` : ""}. If you think a mark is wrong, tell us with "Give feedback or report an issue".
+      </p>
+    </section>
   );
 }
 
@@ -179,6 +243,7 @@ export default function TestReport() {
     report?.test_id ?? "none",
   );
 
+  const ai = useAiEvaluation(report, attemptId, { onDone: reload });
   const questions = useMemo(() => report?.questions ?? [], [report]);
   const shown = useMemo(() => (filter === "all" ? questions : questions.filter((q) => q.status === filter)), [questions, filter]);
 
@@ -199,7 +264,7 @@ export default function TestReport() {
   const s = report.summary;
   const c = report.comparison;
   const b = report.breakdowns ?? {};
-  const counts = { correct: s.correct_count, incorrect: s.incorrect_count, skipped: s.skipped_count, pending: s.pending_count };
+  const counts = { correct: s.correct_count, partial: s.partial_count || 0, incorrect: s.incorrect_count, skipped: s.skipped_count, pending: s.pending_count };
   const canRetake = Boolean(intro?.can_start);
 
   return (
@@ -232,12 +297,30 @@ export default function TestReport() {
             : "This test was submitted automatically when time ran out."}
         </Notice>
       )}
-      {s.pending_count > 0 && (
+      {s.pending_count > 0 && ai.phase === "running" && (
+        <p role="status" className="flex items-start gap-3 rounded-xl bg-(--lp-blue-tint) px-5 py-4 text-sm text-text ring-1 ring-(--lp-blue)/25">
+          <span className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-(--lp-blue-deep) border-t-transparent" aria-hidden="true" />
+          <span>
+            AI is evaluating your {s.pending_count} written {s.pending_count === 1 ? "answer" : "answers"} ({s.pending_marks} marks). This usually takes under a minute;
+            your score and feedback update here when it's done.
+          </span>
+        </p>
+      )}
+      {s.pending_count > 0 && ai.phase === "failed" && (
+        <Notice>
+          We couldn't evaluate your written answers automatically just now.{" "}
+          {ai.canRetry
+            ? <button type="button" onClick={ai.retry} className="font-semibold text-(--lp-blue-deep) underline">Try again</button>
+            : "Please report it with \"Give feedback or report an issue\" below."}
+        </Notice>
+      )}
+      {s.pending_count > 0 && !["running", "failed"].includes(ai.phase) && (
         <Notice>
           {s.pending_count} written {s.pending_count === 1 ? "answer is" : "answers are"} pending review ({s.pending_marks} marks).
           Your score below leaves them out, so it may change once they're graded.
         </Notice>
       )}
+      {report.ai?.status === "done" && <AiReport ai={report.ai} />}
 
       <section className="grid overflow-hidden rounded-2xl bg-white ring-1 ring-(--lp-line) shadow-[0_1px_2px_rgb(15_17_21/0.04)] md:grid-cols-[15rem_minmax(0,1fr)]">
         <div className="flex flex-col items-center justify-center gap-3 border-b border-(--lp-line) p-6 sm:p-8 md:border-b-0 md:border-r">
@@ -282,6 +365,7 @@ export default function TestReport() {
             centerSub="correct"
             segments={[
               { label: "Correct", value: questions.length ? (s.correct_count / questions.length) * 100 : 0, colorClass: "stroke-success" },
+              { label: "Partly correct", value: questions.length ? ((s.partial_count || 0) / questions.length) * 100 : 0, colorClass: "stroke-(--lp-yellow)" },
               { label: "Incorrect", value: questions.length ? (s.incorrect_count / questions.length) * 100 : 0, colorClass: "stroke-danger" },
               { label: "Skipped", value: questions.length ? (s.skipped_count / questions.length) * 100 : 0, colorClass: "stroke-text/20" },
               { label: "Pending", value: questions.length ? (s.pending_count / questions.length) * 100 : 0, colorClass: "stroke-warning" },

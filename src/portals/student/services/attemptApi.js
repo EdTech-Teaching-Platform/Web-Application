@@ -1,4 +1,5 @@
 import { callRpc } from "./studentRpc";
+import { invokeFunction } from "../../../services/edgeFunctions";
 
 // Taking a test (docs/STUDENT_RPC_CONTRACT.md "Taking a test"). Scoring and
 // deadlines are server-side; the client only renders and autosaves.
@@ -32,6 +33,10 @@ export const attemptApi = {
     callRpc("student_log_proctor_event", { p_attempt_id: attemptId, p_event_type: eventType, p_meta: meta }),
   submit: (attemptId) => callRpc("student_submit_attempt", { p_attempt_id: attemptId }),
   report: (attemptId) => callRpc("student_get_report", { p_attempt_id: attemptId }),
+  // AI evaluation of written answers (20261115090000): start it (idempotent;
+  // the server runs it in the background) and follow its status.
+  requestAiEvaluation: (attemptId) => invokeFunction("evaluate-subjective", { attemptId }),
+  aiEvaluationStatus: (attemptId) => callRpc("student_ai_eval_status", { p_attempt_id: attemptId }),
 };
 
 export default attemptApi;

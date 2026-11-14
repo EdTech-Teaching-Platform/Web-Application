@@ -9,7 +9,7 @@ vi.mock("../src/services/supabaseClient", () => ({ supabase: { rpc: vi.fn() } })
 
 import QuestionTypePicker, { QuestionAnswerFields } from "../src/portals/admin/components/QuestionTypePicker";
 import {
-  QTYPE, SUBJECTIVE_BLOCKED_MESSAGE, isBlockedQuestionType, normalizeQuestionType, questionPayload, rejectBlockedQuestions,
+  QTYPE, isBlockedQuestionType, isWrittenType, normalizeQuestionType, questionPayload, rejectBlockedQuestions,
   validateQuestionDraft,
 } from "../src/portals/admin/data/questionTypes";
 import { csvToRows, normalizeWizardState, validateCsvRows, validateWizard, ROW_STATUS, initialWizardState } from "../src/portals/admin/data/testSeriesWizard";
@@ -19,48 +19,46 @@ import { AI_ENABLED, SUBJECTIVE_ENABLED } from "../src/portals/admin/utils/featu
 
 afterEach(() => cleanup());
 
+// Short / long / subjective questions are on since 20261115090000: their
+// answers are graded by AI (evaluate-subjective). AI test building stays off.
 describe("feature flags", () => {
-  it("keeps AI and subjective questions switched off", () => {
+  it("AI test building off; subjective questions (AI-graded) on", () => {
     expect(AI_ENABLED).toBe(false);
-    expect(SUBJECTIVE_ENABLED).toBe(false);
+    expect(SUBJECTIVE_ENABLED).toBe(true);
   });
 });
 
 // -----------------------------------------------------------------------------
 describe("question type picker", () => {
-  const AVAILABLE = ["MCQ (single answer)", "MCQ (multiple answers)", "True / False", "Fill in the blank"];
-  const SOON = ["Short answer", "Long answer", "Subjective"];
+  const ALL = ["MCQ (single answer)", "MCQ (multiple answers)", "True / False", "Fill in the blank", "Short answer", "Long answer", "Subjective"];
 
   for (const variant of ["cards", "pills"]) {
-    it(`(${variant}) offers MCQ, true / false and fill in the blank, and badges the rest as coming soon`, () => {
-      const onChange = vi.fn();
-      render(<QuestionTypePicker variant={variant} value="mcq_single" onChange={onChange} />);
+    it(`(${variant}) offers every type, with no "Coming soon"`, () => {
+      render(<QuestionTypePicker variant={variant} value="mcq_single" onChange={vi.fn()} />);
       const radios = screen.getAllByRole("radio");
       expect(radios).toHaveLength(7);
-      for (const label of AVAILABLE) {
-        expect(radios.find((r) => r.textContent.startsWith(label))).toBeEnabled();
-      }
-      for (const label of SOON) {
-        const btn = radios.find((r) => r.textContent.startsWith(label));
-        expect(btn).toBeDisabled();
-        expect(btn).toHaveAttribute("aria-disabled", "true");
-        expect(btn).toHaveTextContent("Coming soon");
-      }
-      expect(screen.getAllByText("Coming soon")).toHaveLength(3);
+      for (const label of ALL) expect(radios.find((r) => r.textContent.startsWith(label))).toBeEnabled();
+      expect(screen.queryByText("Coming soon")).toBeNull();
     });
 
-    it(`(${variant}) never selects a coming-soon type, and selects the available ones`, () => {
+    it(`(${variant}) selects written types too`, () => {
       const onChange = vi.fn();
       render(<QuestionTypePicker variant={variant} value="mcq_single" onChange={onChange} />);
       const radios = screen.getAllByRole("radio");
       fireEvent.click(radios.find((r) => r.textContent.startsWith("Subjective")));
-      fireEvent.click(radios.find((r) => r.textContent.startsWith("Long answer")));
-      expect(onChange).not.toHaveBeenCalled();
-      fireEvent.click(radios.find((r) => r.textContent.startsWith("MCQ (multiple answers)")));
       fireEvent.click(radios.find((r) => r.textContent.startsWith("Fill in the blank")));
-      expect(onChange.mock.calls.map((c) => c[0])).toEqual(["mcq_multi", "fill_blank"]);
+      expect(onChange.mock.calls.map((c) => c[0])).toEqual(["subjective", "fill_blank"]);
     });
   }
+
+  it("a written question asks for a model answer and an optional marking guide", () => {
+    const onChange = vi.fn();
+    render(<QuestionAnswerFields q={{ type: "subjective", modelAnswer: "", answerInstructions: "" }} onChange={onChange} />);
+    fireEvent.change(screen.getByLabelText("Model answer"), { target: { value: "Charge is conserved." } });
+    fireEvent.change(screen.getByLabelText("Marking guide (optional)"), { target: { value: "2 + 3" } });
+    expect(onChange).toHaveBeenCalledWith({ modelAnswer: "Charge is conserved." });
+    expect(onChange).toHaveBeenCalledWith({ answerInstructions: "2 + 3" });
+  });
 
   it("shows multi-select correct answers for MCQ (multiple) and an accepted answer for fill in the blank", () => {
     const onChange = vi.fn();
@@ -77,20 +75,22 @@ describe("question type picker", () => {
 
 // -----------------------------------------------------------------------------
 describe("question rules", () => {
-  it("treats every subjective spelling as blocked", () => {
+  it("every subjective spelling is a written (AI-graded) type, and none is blocked", () => {
     for (const t of ["short_answer", "long_answer", "subjective", "descriptive", "Long answer", "essay"]) {
-      expect(isBlockedQuestionType(t)).toBe(true);
+      expect(isWrittenType(t)).toBe(true);
+      expect(isBlockedQuestionType(t)).toBe(false);
     }
     for (const t of ["mcq", "objective", "mcq_multi", "true_false", "fill_blank", "numerical"]) {
-      expect(isBlockedQuestionType(t)).toBe(false);
+      expect(isWrittenType(t)).toBe(false);
     }
     expect(normalizeQuestionType("objective")).toBe(QTYPE.MCQ_SINGLE);
     expect(normalizeQuestionType("numerical")).toBe(QTYPE.FILL_BLANK);
   });
 
-  it("validates each type and refuses subjective drafts", () => {
+  it("validates each type; a written question needs a model answer", () => {
     const base = { text: "Q?", marks: 2, negativeMarks: 0 };
-    expect(validateQuestionDraft({ ...base, type: "subjective" })).toContain(SUBJECTIVE_BLOCKED_MESSAGE);
+    expect(validateQuestionDraft({ ...base, type: "subjective" })).toContain("Add a model answer: the AI grades students' answers against it.");
+    expect(validateQuestionDraft({ ...base, type: "long_answer", modelAnswer: "Because." })).toEqual([]);
     expect(validateQuestionDraft({ ...base, type: "fill_blank", acceptedAnswer: " " })).toContain("Enter the accepted answer.");
     expect(validateQuestionDraft({ ...base, type: "true_false", correctAnswer: "" })).toContain("Choose True or False as the correct answer.");
     expect(validateQuestionDraft({ ...base, type: "mcq_multi", optionA: "a", optionB: "b", optionC: "c", optionD: "d", correctAnswers: [] }))
@@ -111,12 +111,15 @@ describe("question rules", () => {
       type: "fill_blank", options: [], correctAnswer: "Paris",
     });
     expect(questionPayload({ ...q, type: "mcq_single", correctAnswer: "A" })).not.toHaveProperty("modelAnswer");
+    expect(questionPayload({ ...q, type: "subjective", modelAnswer: " Because. ", answerInstructions: " 2 + 3 " })).toMatchObject({
+      type: "subjective", options: [], modelAnswer: "Because.", answerInstructions: "2 + 3",
+    });
   });
 
-  it("splits imported questions into accepted and rejected", () => {
+  it("imports keep written questions now", () => {
     const { accepted, rejected } = rejectBlockedQuestions([{ type: "mcq" }, { type: "long_answer" }, { type: "fill_blank" }]);
-    expect(accepted.map((q) => q.type)).toEqual(["mcq", "fill_blank"]);
-    expect(rejected).toEqual([{ question: { type: "long_answer" }, reason: SUBJECTIVE_BLOCKED_MESSAGE }]);
+    expect(accepted.map((q) => q.type)).toEqual(["mcq", "long_answer", "fill_blank"]);
+    expect(rejected).toEqual([]);
   });
 });
 
@@ -129,19 +132,16 @@ describe("CSV import", () => {
     return validateCsvRows(rows, new Set());
   }
 
-  it("rejects short answer, long answer and subjective rows with a clear message", () => {
+  it("imports written rows with their model answer (correct column); without one they're incomplete", () => {
     const r = report([
-      '"Explain gravity",,,,,,5,0,subjective,medium,Physics,,',
-      '"Define force",,,,,,2,0,short_answer,easy,Physics,,',
+      '"Explain gravity",,,,,"Mass attracts mass.",5,0,subjective,medium,Physics,,',
+      '"Define force",,,,,"A push or a pull.",2,0,short_answer,easy,Physics,,',
       '"Describe the water cycle",,,,,,8,0,long_answer,hard,Geography,,',
     ]);
-    for (const row of r) {
-      expect(row.status).toBe(ROW_STATUS.INVALID);
-      expect(row.parsed).toBeNull();
-      expect(typeof row.question).toBe("string");   // the row keeps its text (it used to be overwritten)
-      expect(row.issues.join(" ")).toContain("not supported yet");
-      expect(row.issues.join(" ")).toContain(SUBJECTIVE_BLOCKED_MESSAGE);
-    }
+    expect(r.map((row) => row.status)).toEqual([ROW_STATUS.VALID, ROW_STATUS.VALID, ROW_STATUS.INCOMPLETE]);
+    expect(r[0].parsed).toMatchObject({ type: "subjective", modelAnswer: "Mass attracts mass.", negativeMarks: 0 });
+    expect(r[2].issues.join(" ")).toMatch(/Model answer is missing/);
+    expect(r[2].question).toBe("Describe the water cycle");   // the row keeps its text
   });
 
   it("imports MCQ (single and multiple), true / false and fill in the blank rows", () => {
@@ -168,27 +168,26 @@ describe("CSV import", () => {
 
 // -----------------------------------------------------------------------------
 describe("AI / paste import", () => {
-  it("does not offer short or long answers to the AI generator", () => {
-    expect(AI_QUESTION_TYPE_OPTIONS).not.toContain("short_answer");
-    expect(AI_QUESTION_TYPE_OPTIONS).not.toContain("long_answer");
+  it("the AI generator may offer short and long answers (AI building itself is still off)", () => {
+    expect(AI_QUESTION_TYPE_OPTIONS).toContain("short_answer");
+    expect(AI_QUESTION_TYPE_OPTIONS).toContain("long_answer");
   });
 
-  it("rejects subjective questions in a pasted paper with a warning", () => {
+  it("a pasted paper keeps its written questions", () => {
     const test = stripBlockedQuestions({
       sections: [{ questions: [{ type: "mcq" }, { type: "long_answer" }, { type: "short_answer" }] }],
       warnings: [],
     });
-    expect(test.sections[0].questions).toEqual([{ type: "mcq" }]);
-    expect(test.warnings[0]).toMatch(/^2 short \/ long answer questions were rejected/);
+    expect(test.sections[0].questions).toEqual([{ type: "mcq" }, { type: "long_answer" }, { type: "short_answer" }]);
+    expect(test.warnings).toEqual([]);
     const parsed = parseQuestionPaper("1. Explain the theory of relativity in detail.\n\n2. Which is a prime? a) 4 b) 6 c) 7 d) 9\nAnswer: c");
-    const types = parsed.sections.flatMap((s) => s.questions.map((q) => q.type));
-    expect(types.every((t) => !isBlockedQuestionType(t))).toBe(true);
+    expect(parsed.sections.flatMap((x) => x.questions).length).toBeGreaterThan(0);
   });
 });
 
 // -----------------------------------------------------------------------------
 describe("wizard drafts", () => {
-  it("moves legacy objective questions to MCQ and blocks saving while a subjective one remains", () => {
+  it("moves legacy objective questions to MCQ; a written question needs its model answer", () => {
     const state = normalizeWizardState({
       ...initialWizardState(),
       name: "Series",
@@ -199,15 +198,16 @@ describe("wizard drafts", () => {
     });
     expect(state.tests[0].questions[0]).toMatchObject({ type: "mcq_single", correctAnswers: ["A"] });
     const v = validateWizard(state, { existingSeries: [] });
-    const msg = v.draftErrors.find((e) => e.includes("subjective"));
-    expect(msg).toMatch(/^Remove the 1 short \/ long \/ subjective question/);
-    expect(v.errors).toContain(msg);
+    expect(v.draftErrors.find((e) => e.includes("Remove the"))).toBeUndefined();
+    expect(v.errors.join(" ")).toMatch(/1 question is missing options, a correct answer or a model answer/);
+    const fixed = { ...state, tests: [{ ...state.tests[0], questions: state.tests[0].questions.map((q) => (q.wid === "q2" ? { ...q, modelAnswer: "Because." } : q)) }] };
+    expect(validateWizard(fixed, { existingSeries: [] }).errors.join(" ")).not.toMatch(/missing options/);
   });
 });
 
 // -----------------------------------------------------------------------------
 describe("loading questions from the server", () => {
-  it("keeps the real type, multi answers and the accepted answer; marks subjective ones", () => {
+  it("keeps the real type, multi answers, the accepted answer and a written question's model answer", () => {
     const opts = (labels, correct) => labels.map((label, i) => ({ id: `o${i}`, option_key: "ABCD"[i], label, is_correct: correct.includes(i), position: i }));
     expect(mapQuestion({ id: "1", type: "mcq", options: opts(["a", "b", "c", "d"], [0, 2]) })).toMatchObject({
       type: "mcq_multi", kind: "objective", correctAnswers: ["A", "C"],
@@ -216,7 +216,8 @@ describe("loading questions from the server", () => {
       type: "fill_blank", acceptedAnswer: "Paris",
     });
     const subj = mapQuestion({ id: "3", type: "subjective", options: opts(["Manual grading: see rubric"], [0]) });
-    expect(subj).toMatchObject({ type: "subjective", kind: "subjective" });
-    expect(subj).not.toHaveProperty("modelAnswer");
+    expect(subj).toMatchObject({ type: "subjective", kind: "subjective", modelAnswer: "" });
+    expect(mapQuestion({ id: "4", type: "long_answer", answer_instructions: "2 + 3", options: opts(["Because."], [0]) }))
+      .toMatchObject({ kind: "subjective", modelAnswer: "Because.", answerInstructions: "2 + 3" });
   });
 });

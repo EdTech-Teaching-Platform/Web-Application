@@ -1,6 +1,6 @@
 import { callRpc, listResult } from "./adminApi";
 import { notifyChanged } from "../../../services/dataSync";
-import { QTYPE, isBlockedQuestionType, normalizeQuestionType } from "../data/questionTypes";
+import { QTYPE, isBlockedQuestionType, isWrittenType, normalizeQuestionType } from "../data/questionTypes";
 
 // Every read and write goes through SECURITY DEFINER RPCs: the lead's RLS
 // gives admins read-only access to test_series / quizzes / quiz_questions /
@@ -22,9 +22,12 @@ export function mapQuestion(question) {
   return {
     id: question.id,
     type,
-    kind: isBlockedQuestionType(type) ? "subjective" : "objective",
+    kind: isWrittenType(type) ? "subjective" : "objective",   // written answers are graded by AI
     storedType: question.type,
     acceptedAnswer: type === QTYPE.FILL_BLANK && answerLabel !== MANUAL_GRADING_PLACEHOLDER ? answerLabel : "",
+    // written (AI-graded) questions: the model answer is the stored answer
+    modelAnswer: [QTYPE.SHORT_ANSWER, QTYPE.LONG_ANSWER, QTYPE.SUBJECTIVE].includes(type) && answerLabel !== MANUAL_GRADING_PLACEHOLDER
+      ? answerLabel : "",
     text: question.body || "",
     optionA: options.find((o) => o.option_key === "A")?.label || "",
     optionB: options.find((o) => o.option_key === "B")?.label || "",

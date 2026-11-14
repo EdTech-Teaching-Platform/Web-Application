@@ -157,6 +157,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
       ...emptyQuestionForm(q.type),
       text: q.text, image: q.image || "", imageAlt: q.imageAlt || "", optionA: q.optionA, optionB: q.optionB, optionC: q.optionC, optionD: q.optionD,
       correctAnswer: q.correctAnswer, correctAnswers: q.correctAnswers || [], acceptedAnswer: q.acceptedAnswer || "",
+      modelAnswer: q.modelAnswer || "", answerInstructions: q.answerInstructions || "",
       marks: q.marks, negativeMarks: q.negativeMarks, difficulty: q.difficulty, subject: q.subject, explanation: q.explanation || "",
     });
     setBuilderStep(isBlockedQuestionType(q.type) ? "locked" : "form");
@@ -463,7 +464,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                       ) : q.type === QTYPE.FILL_BLANK ? (
                         <p className="ul-td-preview-answer-box">Typed answer. Accepted: {q.acceptedAnswer || "—"}</p>
                       ) : (
-                        <p className="ul-td-preview-answer-box">Answer box shown to the student (reviewed later; shows "pending review").</p>
+                        <p className="ul-td-preview-answer-box">Answer box shown to the student, graded by AI after submission.{q.modelAnswer ? ` Model answer: ${q.modelAnswer}` : ""}</p>
                       )}
                       <span className="ul-td-preview-marks">{q.marks} marks{q.negativeMarks ? ` · −${q.negativeMarks} negative` : ""}</span>
                     </div>

@@ -1,7 +1,11 @@
 -- =====================================================================
 -- supabase/tests/admin_block_subjective.sql
 --
--- Smoke tests for 20261027090000_admin_block_subjective.sql.
+-- Smoke tests for 20261027090000_admin_block_subjective.sql, as changed by
+-- 20261115090000_student_ai_evaluation.sql: short / long / subjective
+-- questions can be created, edited and copied again (graded by AI); a
+-- subjective question still takes no options; fill in the blank still needs
+-- an accepted answer.
 -- LOCAL / DISPOSABLE DATABASE ONLY (inserts fixtures into auth.users and lead
 -- tables). One transaction, rolled back. Needs an admin in adm_admin_users:
 -- the test allowlists its own fixture admin.
@@ -69,16 +73,14 @@ set local role authenticated;
 do $$
 declare v jsonb;
 begin
-  -- creating subjective types is refused, whatever the spelling
-  perform pg_temp.expect_error(format('select public.create_question(%L, %L)', current_setting('test.clean'),
-    '{"type":"short_answer","text":"Why?","marks":2}'), '22023');
-  perform pg_temp.expect_error(format('select public.create_question(%L, %L)', current_setting('test.clean'),
-    '{"type":"long_answer","text":"Why?","marks":2}'), '22023');
-  perform pg_temp.expect_error(format('select public.create_question(%L, %L)', current_setting('test.clean'),
-    '{"type":"subjective","text":"Why?","marks":2}'), '22023');
-  perform pg_temp.expect_error(format('select public.create_question(%L, %L)', current_setting('test.clean'),
-    '{"type":"descriptive","text":"Why?","marks":2}'), '22023');
-  perform pg_temp.ok(true, 'create: short / long / subjective / descriptive refused (22023)');
+  -- 20261115090000: subjective types can be created again, whatever the spelling
+  v := public.create_question(current_setting('test.clean')::uuid, '{"type":"short_answer","text":"Why?","marks":2}');
+  perform pg_temp.ok(v ->> 'lead_type' = 'short_answer', 'create: short answer allowed');
+  v := public.create_question(current_setting('test.clean')::uuid, '{"type":"long_answer","text":"Why?","marks":2}');
+  v := public.create_question(current_setting('test.clean')::uuid, '{"type":"subjective","text":"Why?","marks":2,"modelAnswer":"Because."}');
+  perform pg_temp.ok((v -> 'options' -> 0 ->> 'label') = 'Because.', 'create: subjective allowed, model answer stored');
+  v := public.create_question(current_setting('test.clean')::uuid, '{"type":"descriptive","text":"Why?","marks":2}');
+  perform pg_temp.ok(true, 'create: short / long / subjective / descriptive allowed');
 
   -- fill in the blank needs an accepted answer
   perform pg_temp.expect_error(format('select public.create_question(%L, %L)', current_setting('test.clean'),
@@ -100,24 +102,24 @@ begin
     '{"type":"mcq_single","text":"One?","marks":1,"optionA":"x","optionB":"y","optionC":"z","optionD":"w","correctAnswer":"B"}');
   perform pg_temp.ok(v ->> 'lead_type' = 'multiple_choice', 'create: MCQ single works');
 
-  -- editing an existing subjective question is refused; reading it still works
-  perform pg_temp.expect_error(format('select public.update_question(%L, %L)', current_setting('test.subj'), '{"text":"Explain more"}'), '22023');
-  perform pg_temp.expect_error(format('select public.update_question(%L, %L)', current_setting('test.subj'), '{"marks":9}'), '22023');
+  -- 20261115090000: an existing subjective question can be edited; it still takes no options
+  v := public.update_question(current_setting('test.subj')::uuid, '{"text":"Explain more"}');
+  perform pg_temp.ok(v ->> 'body' = 'Explain more', 'update: a subjective question can be edited');
+  v := public.update_question(current_setting('test.subj')::uuid, '{"marks":9}');
   perform pg_temp.expect_error(format('select public.create_question_option(%L, %L)', current_setting('test.subj'), '{"label":"x"}'), '22023');
   perform pg_temp.expect_error(format('select public.update_question_option(%L, %L)',
     (select id from public.quiz_question_options where question_id = current_setting('test.subj')::uuid limit 1), '{"label":"y"}'), '22023');
   perform pg_temp.ok((public.get_test_series((select series_id from public.quizzes where id = current_setting('test.quiz')::uuid))) is not null,
-    'existing subjective question: edits refused, series still readable');
+    'existing subjective question: options refused, series still readable');
 
-  -- turning an objective question into a subjective one is refused
-  perform pg_temp.expect_error(format('select public.update_question(%L, %L)', current_setting('test.mcq'), '{"type":"subjective"}'), '22023');
   v := public.update_question(current_setting('test.mcq')::uuid, '{"text":"Pick one (edited)"}');
-  perform pg_temp.ok(v ->> 'body' = 'Pick one (edited)', 'update: objective edits still work; switching to subjective refused');
+  perform pg_temp.ok(v ->> 'body' = 'Pick one (edited)', 'update: objective edits still work');
 
-  -- duplicating a test with a subjective question is refused; a clean one copies
-  perform pg_temp.expect_error(format('select public.duplicate_test(%L)', current_setting('test.quiz')), '22023');
+  -- 20261115090000: tests with subjective questions can be duplicated
+  v := public.duplicate_test(current_setting('test.quiz')::uuid);
+  perform pg_temp.ok((v ->> 'question_count')::int = 2, 'duplicate: a test with a subjective question copies (2 questions)');
   v := public.duplicate_test(current_setting('test.clean')::uuid);
-  perform pg_temp.ok((v ->> 'question_count')::int = 4, 'duplicate: refused with subjective, works without (4 questions copied)');
+  perform pg_temp.ok((v ->> 'question_count')::int = 8, 'duplicate: the clean test copies (8 questions)');
 
   -- deleting the subjective question still works
   perform public.delete_question(current_setting('test.subj')::uuid);

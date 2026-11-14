@@ -2,10 +2,10 @@
 // imports. Values are the types the server accepts (adm_map_question_type):
 //   mcq_single, mcq_multi, true_false -> lead multiple_choice / true_false
 //   fill_blank                        -> lead fill_in_blank (accepted answer)
-//   short_answer, long_answer, subjective -> lead short_answer, manual grading:
-//   COMING SOON. The pickers show them disabled, every import rejects them,
-//   and the server refuses to create or edit them
-//   (20261027090000_admin_block_subjective.sql). Existing ones stay readable.
+//   short_answer, long_answer, subjective -> lead short_answer, graded by AI
+//   after submission (evaluate-subjective, 20261115090000) against the model
+//   answer (stored as the question's answer) and an optional marking guide
+//   (answer_instructions, seen only by the evaluator).
 import { SUBJECTIVE_ENABLED } from "../utils/featureFlags";
 import { isUnsavedImage } from "../../../services/assetPaths";
 
@@ -29,9 +29,9 @@ export const QUESTION_TYPE_OPTIONS = [
   { value: QTYPE.MCQ_MULTI, label: "MCQ (multiple answers)", hint: "Four options, one or more correct. Scored only when every correct option is picked." },
   { value: QTYPE.TRUE_FALSE, label: "True / False", hint: "The student picks True or False." },
   { value: QTYPE.FILL_BLANK, label: "Fill in the blank", hint: "Typed answer, checked against the accepted answer (case and extra spaces ignored)." },
-  { value: QTYPE.SHORT_ANSWER, label: "Short answer", hint: "A few words or a sentence, graded by a teacher." },
-  { value: QTYPE.LONG_ANSWER, label: "Long answer", hint: "A paragraph or more, graded by a teacher." },
-  { value: QTYPE.SUBJECTIVE, label: "Subjective", hint: "Free-form answer graded against a rubric." },
+  { value: QTYPE.SHORT_ANSWER, label: "Short answer", hint: "A few words or a sentence, graded by AI against your model answer." },
+  { value: QTYPE.LONG_ANSWER, label: "Long answer", hint: "A paragraph or more, graded by AI against your model answer." },
+  { value: QTYPE.SUBJECTIVE, label: "Subjective", hint: "Free-form answer graded by AI against your model answer and marking guide." },
 ].map((o) => ({ ...o, available: SUBJECTIVE_ENABLED || !BLOCKED.has(o.value) }));
 
 const ALIASES = {
@@ -56,6 +56,11 @@ export function isBlockedQuestionType(type) {
   return !SUBJECTIVE_ENABLED && BLOCKED.has(normalizeQuestionType(type));
 }
 
+// Short / long / subjective: a written answer graded by AI.
+export function isWrittenType(type) {
+  return BLOCKED.has(normalizeQuestionType(type));
+}
+
 export function isChoiceType(type) {
   const t = normalizeQuestionType(type);
   return t === QTYPE.MCQ_SINGLE || t === QTYPE.MCQ_MULTI || t === QTYPE.TRUE_FALSE;
@@ -77,6 +82,8 @@ export function blankQuestionFields(type = QTYPE.MCQ_SINGLE) {
     correctAnswer: "",
     correctAnswers: [],
     acceptedAnswer: "",
+    modelAnswer: "",
+    answerInstructions: "",
   };
 }
 
@@ -101,7 +108,17 @@ export function validateQuestionDraft(q) {
   }
   if (type === QTYPE.TRUE_FALSE && !["A", "B"].includes(q.correctAnswer)) errors.push("Choose True or False as the correct answer.");
   if (type === QTYPE.FILL_BLANK && !String(q.acceptedAnswer ?? "").trim()) errors.push("Enter the accepted answer.");
+  if (isWrittenType(type) && !isBlockedQuestionType(type) && !modelAnswerOf(q)) {
+    errors.push("Add a model answer: the AI grades students' answers against it.");
+  }
   return errors;
+}
+
+// The model answer of a written question (editor field, or an import's answer column).
+export function modelAnswerOf(q) {
+  const pick = [q.modelAnswer, q.acceptedAnswer, typeof q.correctAnswer === "string" ? q.correctAnswer : ""]
+    .map((v) => String(v ?? "").trim()).find(Boolean);
+  return pick || "";
 }
 
 // The create / update payload for create_question, update_question and
@@ -125,6 +142,15 @@ export function questionPayload(q) {
   if (type === QTYPE.FILL_BLANK) {
     const answer = String(q.acceptedAnswer ?? "").trim();
     return { ...base, options: [], correctAnswer: answer, correctAnswers: [answer] };
+  }
+  if (isWrittenType(type)) {
+    // graded by AI: the model answer is stored as the question's answer, the
+    // marking guide as answer_instructions (only the evaluator sees it)
+    return {
+      ...base, options: [], correctAnswer: "", correctAnswers: [],
+      modelAnswer: modelAnswerOf(q),
+      answerInstructions: String(q.answerInstructions ?? q.rubric ?? "").trim(),
+    };
   }
   if (type === QTYPE.TRUE_FALSE) {
     return { ...base, options: TRUE_FALSE_OPTIONS, correctAnswer: q.correctAnswer, correctAnswers: [q.correctAnswer] };

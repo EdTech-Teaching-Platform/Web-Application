@@ -14,6 +14,7 @@ Nothing here is deployed by the port. Deploy only with the lead's approval.
 | `payment-webhook` | Placeholder (D1). Calls the `mark_payment_*` stubs, which raise `0A000`. | Gateway (HMAC) | **false** |
 | `process-refund` | Placeholder (D1). Reads `refund_requests`, which doesn't exist in the lead's database. | Admin | true |
 | `ai-generate-test` | Placeholder (unchanged). | Admin | true |
+| `evaluate-subjective` | AI evaluation of a student's written answers (20261115090000). `POST {attemptId}` from the report page.<br>• `student_ai_eval_request` (as the student) checks ownership and claims the job: one at a time, at most 3 tries.<br>• Not claimed: it returns the status. Claimed: it answers 202 and continues in the background (`EdgeRuntime.waitUntil`).<br>• `adm_ai_eval_context` (service role) gives the question, marks, model answer, marking guide and student answer; no name or email.<br>• OpenAI `chat.completions` with a strict JSON schema; `normalizeEvaluation` clamps marks to 0..max in 0.5 steps.<br>• `adm_ai_eval_complete` (service role) writes the grades, the score and the report's AI section. Any error goes to `adm_ai_eval_fail`.<br>• Errors are `{error}` with 400 / 403 / 404. | The student who owns the attempt | true |
 
 The admin check (`_shared/auth.ts` → `_shared/roles.ts`) accepts `profiles.role` of
 `admin` or `super_admin`.
@@ -28,7 +29,9 @@ supabase secrets set ASSET_UPLOAD_LIMIT_PER_HOUR=60                             
 supabase secrets set EDUCATOR_INVITE_REDIRECT_URL=https://<site>/teacher/login     # optional
 supabase secrets set EMAIL_CRON_SECRET=...                                         # optional alternative to the service-role bearer
 # optional: EMAIL_BATCH_SIZE (default 100), EDUCATOR_DOCS_URL_TTL (seconds, default 600, 60..3600)
-# placeholders only: PAYMENT_WEBHOOK_SECRET, PAYMENT_PROVIDER_KEY, PAYMENT_REFUND_URL, OPENAI_API_KEY, OPENAI_MODEL
+supabase secrets set OPENAI_API_KEY=sk-...                                        # required by evaluate-subjective (never commit it)
+supabase secrets set OPENAI_MODEL=gpt-4o-mini                                      # optional (default gpt-4o-mini)
+# placeholders only: PAYMENT_WEBHOOK_SECRET, PAYMENT_PROVIDER_KEY, PAYMENT_REFUND_URL
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are supplied by the
@@ -113,6 +116,7 @@ supabase functions deploy sign-educator-document
 supabase functions deploy educator-upload-url        # after 20261028090100 and 20261028110000
 supabase functions deploy asset-upload-url           # after 20261029110000
 supabase functions deploy set-user-ban               # after 20261102090000
+supabase functions deploy evaluate-subjective        # after 20261115090000, with OPENAI_API_KEY set
 # placeholders: leave undeployed until the payments model exists
 ```
 

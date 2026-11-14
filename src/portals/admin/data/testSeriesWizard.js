@@ -222,7 +222,7 @@ export function validateCsvRows(rows, existingKeys) {
     const invalid = [];
     const type = toType(r.type);
     const blocked = type && isBlockedQuestionType(type);
-    if (!type) invalid.push(`Unknown question type "${r.type}" (use mcq, mcq_multi, true_false or fill_blank).`);
+    if (!type) invalid.push(`Unknown question type "${r.type}" (use mcq, mcq_multi, true_false, fill_blank, short_answer, long_answer or subjective).`);
     else if (blocked) invalid.push(`Row type "${r.type}" is not supported yet. ${SUBJECTIVE_BLOCKED_MESSAGE}`);
     if (!r.question) incomplete.push("Question text is missing.");
     if (!blocked && (type === QTYPE.MCQ_SINGLE || type === QTYPE.MCQ_MULTI)) {
@@ -238,6 +238,9 @@ export function validateCsvRows(rows, existingKeys) {
       else if (!trueFalseKey(r.correct)) invalid.push(`Correct answer "${r.correct}" must be True or False.`);
     }
     if (type === QTYPE.FILL_BLANK && !r.correct) incomplete.push("Accepted answer is missing (put it in the correct column).");
+    // written questions are graded by AI against the model answer (20261115090000)
+    const written = !blocked && [QTYPE.SHORT_ANSWER, QTYPE.LONG_ANSWER, QTYPE.SUBJECTIVE].includes(type);
+    if (written && !r.correct) incomplete.push("Model answer is missing (put it in the correct column; the AI grades against it).");
     if (r.marks !== "" && !(Number(r.marks) > 0)) invalid.push(`Marks "${r.marks}" must be a positive number.`);
     if (r.negative !== "" && !(Number(r.negative) >= 0)) invalid.push(`Negative marks "${r.negative}" must be 0 or more.`);
     if (toDifficulty(r.difficulty) === null) invalid.push(`Difficulty "${r.difficulty}" must be easy, medium or hard.`);
@@ -264,8 +267,9 @@ export function validateCsvRows(rows, existingKeys) {
         correctAnswer: keys[0] || "",
         correctAnswers: keys,
         acceptedAnswer: type === QTYPE.FILL_BLANK ? r.correct : "",
+        modelAnswer: written ? r.correct : "",
         marks: r.marks !== "" ? Number(r.marks) : 4,
-        negativeMarks: r.negative !== "" ? Number(r.negative) : isMcq ? 1 : 0,
+        negativeMarks: written ? 0 : r.negative !== "" ? Number(r.negative) : isMcq ? 1 : 0,
         difficulty: toDifficulty(r.difficulty),
         subject: r.subject, topic: r.topic, explanation: r.explanation,
       });
@@ -452,7 +456,7 @@ export function validateWizard(st, ctx) {
       if (missingAnswer(q)) missing += 1;
     });
   });
-  if (missing) errors.push(`${missing} question${missing === 1 ? " is" : "s are"} missing options or a correct answer.`);
+  if (missing) errors.push(`${missing} question${missing === 1 ? " is" : "s are"} missing options, a correct answer or a model answer.`);
   const blocked = blockedQuestionCount(st.tests);
   if (blocked) {
     const msg = `Remove the ${blocked} short / long / subjective question${blocked === 1 ? "" : "s"}: ${SUBJECTIVE_BLOCKED_MESSAGE}`;

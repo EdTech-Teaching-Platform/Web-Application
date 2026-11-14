@@ -82,7 +82,7 @@ function QuestionInput({ question, value, onChange }) {
         value={text}
         onChange={(e) => onChange(e.target.value)}
       />
-      <span className="mt-1 block text-xs text-text/50">Written answers are reviewed by a teacher after you submit.</span>
+      <span className="mt-1 block text-xs text-text/50">Written answers are evaluated by AI right after you submit.</span>
     </label>
   );
 }

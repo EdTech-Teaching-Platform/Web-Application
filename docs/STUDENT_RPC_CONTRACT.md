@@ -494,6 +494,34 @@ theirs, unknown or already read).
 
 Returns the number of rows marked read.
 
+## AI evaluation of written answers (20261115090000)
+
+Short, long and subjective answers are "pending" after submit. The report page
+starts the evaluation through the Edge Function `evaluate-subjective` and
+follows it with:
+
+- `student_ai_eval_request(p_attempt_id uuid)` → `{status, claimed, can_retry?}`.
+  Used by the Edge Function with the student's JWT. `status` is one of
+  `running`, `done`, `failed`, `not_needed` or `not_ready`.
+  `claimed: true` means "run it now": one job at a time, at most 3 tries, and
+  a job stuck for 3 minutes can be claimed again.
+- `student_ai_eval_status(p_attempt_id uuid)` → `{status, tries, can_retry, completed_at}`.
+  `status` is one of `none`, `running`, `done` or `failed`. No internal
+  error text is returned.
+
+Both refuse another student's attempt (`P0002`), a signed-out caller
+(`42501`) and a blocked student (`UL403`).
+
+When it's done, `student_get_report` returns the updated report:
+- each graded written row has `status` `correct`, `partial` or
+  `incorrect`, `points_earned`, and `ai_evaluation`:
+  `{marks_awarded, verdict, feedback, strengths[], improvements[], key_points_missed[]}`;
+- `summary` has the final score, percentage, passed, `partial_count`,
+  `provisional: false` and `ai_evaluated: true`;
+- breakdowns, strengths / weaknesses and comparison are rebuilt;
+- `ai` is `{status: "done", model, evaluated_at, evaluated_count, summary,
+  strengths[], areas_to_improve[], study_tips[]}`.
+
 ## Delete account requests (20261111090000)
 
 Shared with educators; the caller is `auth.uid()` (students and educators

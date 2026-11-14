@@ -66,6 +66,27 @@ export default function QuestionTypePicker({ value, onChange, variant = "cards",
 // (optionA..D, correctAnswer, correctAnswers, acceptedAnswer).
 export function QuestionAnswerFields({ q, onChange }) {
   const type = normalizeQuestionType(q.type);
+  if (type === QTYPE.SHORT_ANSWER || type === QTYPE.LONG_ANSWER || type === QTYPE.SUBJECTIVE) {
+    // AI evaluation (20261115090000): graded against these after submission
+    return (
+      <>
+        <div className="ul-ts-form-row">
+          <label htmlFor="q-model-answer">Model answer</label>
+          <textarea id="q-model-answer" rows={type === QTYPE.SHORT_ANSWER ? 2 : 4} value={q.modelAnswer || ""}
+            onChange={(e) => onChange({ modelAnswer: e.target.value })}
+            placeholder="What a full-marks answer says" />
+          <span className="ul-tsw-hint">Students' answers are graded by AI against this after they submit. Students see it in their report when answers are shown.</span>
+        </div>
+        <div className="ul-ts-form-row">
+          <label htmlFor="q-marking-guide">Marking guide (optional)</label>
+          <textarea id="q-marking-guide" rows={3} value={q.answerInstructions || ""}
+            onChange={(e) => onChange({ answerInstructions: e.target.value })}
+            placeholder="e.g. 2 marks for the definition, 2 for an example, 1 for the unit" />
+          <span className="ul-tsw-hint">How marks are split. Only the evaluator sees it.</span>
+        </div>
+      </>
+    );
+  }
   if (type === QTYPE.FILL_BLANK) {
     return (
       <div className="ul-ts-form-row">
