@@ -12,6 +12,7 @@ import QuestionImage from "./QuestionImage";
 import { CheckIcon, XIcon, ClockIcon } from "../ui/icons";
 import { isSubjective, questionTypeMeta } from "../../portals/teacher/data/testSeriesData";
 import { describeAnswer, describeCorrect, formatDuration, stripTags } from "./scoreAttempt";
+import { sanitizeRichHtml } from "../../utils/richText";
 
 const STATUS_META = {
   correct: { label: "Correct", tone: "success" },
@@ -55,7 +56,7 @@ function ReviewItem({ q, row, answers, mode }) {
           {subj ? `${row.maxMarks} marks` : `${row.marks > 0 ? "+" : ""}${fmt(row.marks)} / ${row.maxMarks}`}
         </span>
       </div>
-      <div className="mt-2 text-sm text-text [&_p]:mb-1" dangerouslySetInnerHTML={{ __html: stripTags(q.text) ? q.text : "<p><em>Question text not written yet.</em></p>" }} />
+      <div className="mt-2 text-sm text-text [&_p]:mb-1" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(stripTags(q.text) ? q.text : "<p><em>Question text not written yet.</em></p>") }} />
       {q.image && <QuestionImage image={q.image} className="mt-2" />}
 
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
@@ -76,7 +77,7 @@ function ReviewItem({ q, row, answers, mode }) {
         <div className="mt-3 rounded-xl bg-surface px-3 py-3 text-sm">
           <p className="eyebrow mb-1">Educator view (preview only)</p>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Model answer</p>
-          <div className="mt-0.5 text-text [&_p]:mb-1" dangerouslySetInnerHTML={{ __html: stripTags(q.modelAnswer) ? q.modelAnswer : "<p><em>No model answer written yet.</em></p>" }} />
+          <div className="mt-0.5 text-text [&_p]:mb-1" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(stripTags(q.modelAnswer) ? q.modelAnswer : "<p><em>No model answer written yet.</em></p>") }} />
           <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted">Rubric</p>
           {rubric.length === 0 ? (
             <p className="mt-0.5 text-xs italic text-muted">No rubric criteria set.</p>
@@ -96,7 +97,7 @@ function ReviewItem({ q, row, answers, mode }) {
       {stripTags(q.explanation) && (
         <div className="mt-3 rounded-xl bg-pastel-blue px-3 py-2 text-xs text-pastel-blue-ink">
           <span className="font-bold">Explanation: </span>
-          <span dangerouslySetInnerHTML={{ __html: q.explanation }} />
+          <span dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(q.explanation) }} />
         </div>
       )}
     </li>

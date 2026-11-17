@@ -99,6 +99,50 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-18: security audit
+
+The full reports are in `security-audit/`.
+**Assessment:** NOT READY until SEC-03 is verified (the lead's RLS on their
+tables can't be seen from the repo; read-only queries are in
+`security-audit/PENDING_ISSUES.md`).
+
+### Fixed (verified)
+
+- **SEC-01, stored XSS:** 17 raw-HTML renders plus the rich-text editor now go
+  through `sanitizeRichHtml` (src/utils/richText.js); links keep only safe
+  addresses.
+- **SEC-02, headers:** `vercel.json` sets HSTS, nosniff, frame-deny,
+  referrer, permissions, an enforced `frame-ancestors` CSP, and a full CSP in
+  report-only mode.
+- **SEC-06, Edge Functions:** constant-time secret comparison
+  (`_shared/security.ts`).
+- **SEC-07, CORS:** an optional `ALLOWED_ORIGINS` allow-list.
+- **SEC-08, dependencies:** `npm audit fix` (follow-redirects, vite,
+  source-map-js).
+
+### New tests
+
+- `supabase/tests/security_rbac_sweep.sql`: all 372 functions called as anon
+  and as a student; RLS, grants and `search_path`.
+- `supabase/tests/security_idor.sql`: 25 real-ID cross-user checks.
+- `tests/security.test.jsx`: 21 tests.
+
+### Checks
+
+- `npm test`: 25 files, 327 tests.
+- `npm run build` ✅.
+- All SQL suites ✅, except `admin_rpcs.sql`, which already failed before the
+  audit.
+
+### Pending
+
+- **Blockers until verified:** SEC-03, SEC-04 and SEC-05 (lead RLS, lead
+  functions, Auth settings).
+- **Deploy and config:** redeploy the Edge Functions and set
+  `ALLOWED_ORIGINS`.
+- **Dependencies:** dev-only vitest advisories, and the vite / picomatch build
+  advisory.
+
 ## 2026-11-15: AI evaluation of written (subjective) answers
 
 The lead asked for an OpenAI call in the background: the question and the

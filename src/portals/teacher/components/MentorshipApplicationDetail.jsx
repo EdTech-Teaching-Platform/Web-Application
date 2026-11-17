@@ -7,6 +7,7 @@ import { relativeDate } from "./CoursePortfolioCard";
 import StructuredResponseForm from "./StructuredResponseForm";
 import { MENTORSHIP_DECLINE_REASONS, MENTORSHIP_INFO_REASONS } from "../data/mentorshipData";
 import { APPLICATION_STATUS_META } from "./MentorshipApplicationCard";
+import { sanitizeRichHtml } from "../../../utils/richText";
 import {
   XIcon,
   AlertTriangleIcon,
@@ -110,7 +111,7 @@ export default function MentorshipApplicationDetail({
                   <BookIcon className="h-3.5 w-3.5" />
                   Goals
                 </p>
-                <div className="prose prose-sm max-w-none rounded-2xl bg-white p-4 text-sm text-text shadow-soft" dangerouslySetInnerHTML={{ __html: application.goals }} />
+                <div className="prose prose-sm max-w-none rounded-2xl bg-white p-4 text-sm text-text shadow-soft" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(application.goals) }} />
               </div>
 
               <div>

@@ -5,7 +5,7 @@
 // opted out since the campaign was published are marked not_requested.
 // Env: RESEND_API_KEY, EMAIL_FROM (e.g. "Universal Learning <noreply@example.com>"),
 //      optional EMAIL_CRON_SECRET, EMAIL_BATCH_SIZE (default 100).
-import { clients, fail, json, options, requireServiceRole } from "../_shared/auth.ts";
+import { clients, fail, json, options, requireServiceRole, safeEqual } from "../_shared/auth.ts";
 
 type Row = {
   id: string; user_id: string; campaign_id: string;
@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
   const preflight = options(req); if (preflight) return preflight;
   try {
     const cronSecret = Deno.env.get("EMAIL_CRON_SECRET");
-    if (!(cronSecret && req.headers.get("x-cron-secret") === cronSecret)) requireServiceRole(req);
+    if (!(cronSecret && safeEqual(req.headers.get("x-cron-secret") ?? "", cronSecret))) requireServiceRole(req);
     const apiKey = Deno.env.get("RESEND_API_KEY");
     const from = Deno.env.get("EMAIL_FROM");
     if (!apiKey || !from) throw new Error("RESEND_API_KEY and EMAIL_FROM must be configured");

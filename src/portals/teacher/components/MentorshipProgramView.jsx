@@ -12,6 +12,7 @@ import { initials } from "../data/studentDirectory";
 import { relativeDate } from "./CoursePortfolioCard";
 import { mentorshipProgress, mentorshipSessions } from "../data/mentorshipData";
 import { formatDateLabel, formatTime12 } from "../data/teacherAvailability";
+import { sanitizeRichHtml } from "../../../utils/richText";
 import {
   ArrowLeftIcon,
   VideoIcon,
@@ -216,7 +217,7 @@ function GoalsTab({ mentorship, onAddReflection }) {
     <div className="flex flex-col gap-6">
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Goals at application</p>
-        <div className="prose prose-sm max-w-none rounded-2xl bg-white p-4 text-sm text-text shadow-soft" dangerouslySetInnerHTML={{ __html: mentorship.goalsAtApplication }} />
+        <div className="prose prose-sm max-w-none rounded-2xl bg-white p-4 text-sm text-text shadow-soft" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(mentorship.goalsAtApplication) }} />
       </div>
 
       <div>
@@ -242,7 +243,7 @@ function GoalsTab({ mentorship, onAddReflection }) {
             {mentorship.reflections.map((r) => (
               <div key={r.id} className="rounded-2xl bg-white p-3.5 shadow-soft">
                 <p className="mb-1 text-xs text-muted">{relativeDate(r.at)}</p>
-                <div className="prose prose-sm max-w-none text-sm text-text" dangerouslySetInnerHTML={{ __html: r.html }} />
+                <div className="prose prose-sm max-w-none text-sm text-text" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(r.html) }} />
               </div>
             ))}
           </div>
@@ -256,7 +257,7 @@ function GoalsTab({ mentorship, onAddReflection }) {
             {mentorship.menteeReflections.map((r) => (
               <div key={r.id} className="rounded-xl bg-rotation-3/10 p-3.5 ring-1 ring-rotation-3/20">
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">From mentee · {relativeDate(r.at)}</p>
-                <div className="prose prose-sm max-w-none text-sm text-text" dangerouslySetInnerHTML={{ __html: r.html }} />
+                <div className="prose prose-sm max-w-none text-sm text-text" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(r.html) }} />
               </div>
             ))}
           </div>

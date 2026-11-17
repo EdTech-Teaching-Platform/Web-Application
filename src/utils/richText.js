@@ -7,7 +7,12 @@
 //   richTextToPlain(text)  -> readable plain text (tags removed, entities decoded)
 //   looksLikeHtml(text)    -> whether the text contains markup
 
-const ALLOWED = new Set(["B", "STRONG", "I", "EM", "U", "UL", "OL", "LI", "BR", "P", "DIV", "H3", "H4"]);
+// Security audit (2026-11-18, SEC-01): every place that renders stored HTML
+// goes through sanitizeRichHtml. Formatting tags only; no attributes except a
+// safe href (http / https / mailto) on links, which open in a new tab.
+const ALLOWED = new Set(["B", "STRONG", "I", "EM", "U", "S", "SUB", "SUP", "UL", "OL", "LI", "BR", "HR", "P", "DIV", "SPAN",
+  "H2", "H3", "H4", "BLOCKQUOTE", "CODE", "PRE", "A"]);
+const SAFE_HREF = /^(https?:|mailto:)/i;
 const BLOCK = new Set(["P", "DIV", "LI", "BR", "H3", "H4", "UL", "OL"]);
 
 export function looksLikeHtml(text) {
@@ -27,12 +32,20 @@ export function sanitizeRichHtml(html) {
     Array.from(node.childNodes).forEach((ch) => {
       if (ch.nodeType === 3) return;
       if (ch.nodeType !== 1 || ch.tagName === "SCRIPT" || ch.tagName === "STYLE") { node.removeChild(ch); return; }
-      if (!ALLOWED.has(ch.tagName)) {
+      // a link without a safe address is unwrapped (its text stays)
+      const unsafeLink = ch.tagName === "A" && !SAFE_HREF.test((ch.getAttribute("href") || "").trim());
+      if (!ALLOWED.has(ch.tagName) || unsafeLink) {
         walk(ch);
         while (ch.firstChild) node.insertBefore(ch.firstChild, ch);
         node.removeChild(ch);
       } else {
+        const href = ch.tagName === "A" ? (ch.getAttribute("href") || "").trim() : "";
         Array.from(ch.attributes).forEach((a) => ch.removeAttribute(a.name));
+        if (ch.tagName === "A" && SAFE_HREF.test(href)) {
+          ch.setAttribute("href", href);
+          ch.setAttribute("target", "_blank");
+          ch.setAttribute("rel", "noopener noreferrer nofollow");
+        }
         walk(ch);
       }
     });

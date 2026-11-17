@@ -19,6 +19,7 @@ import { builderPath } from "../components/contentData";
 import { formatMoney } from "../../../utils/formatMoney";
 import { formatBytes, lessonStatus, quizTotalPoints } from "../components/contentData";
 import { LESSON_TYPE_META } from "../components/LessonRow";
+import { sanitizeRichHtml } from "../../../utils/richText";
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -364,7 +365,7 @@ function LessonPlayer({ lesson, onBack }) {
 
       {lesson.type === "article" &&
         (lesson.content ? (
-          <div className="prose prose-sm max-w-none text-text/80" dangerouslySetInnerHTML={{ __html: lesson.content }} />
+          <div className="prose prose-sm max-w-none text-text/80" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(lesson.content) }} />
         ) : (
           <p className="rounded-xl bg-bg px-4 py-8 text-center text-sm text-muted">This article hasn't been written yet.</p>
         ))}
@@ -374,7 +375,7 @@ function LessonPlayer({ lesson, onBack }) {
       {lesson.type === "assignment" && (
         <div className="flex flex-col gap-4">
           {lesson.instructions ? (
-            <div className="prose prose-sm max-w-none text-text/80" dangerouslySetInnerHTML={{ __html: lesson.instructions }} />
+            <div className="prose prose-sm max-w-none text-text/80" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(lesson.instructions) }} />
           ) : (
             <p className="rounded-xl bg-bg px-4 py-8 text-center text-sm text-muted">No instructions written yet.</p>
           )}

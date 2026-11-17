@@ -8,6 +8,7 @@ import SegmentedControl from "../../../components/ui/SegmentedControl";
 import IconBadge, { toneForKey } from "../../../components/ui/IconBadge";
 import { LockIcon, CheckIcon, QuizIcon, ClockIcon, CertificateIcon } from "../../../components/ui/icons";
 import { derivedTestTypes, durationRange, formatDate, priceLabel, questionTypesUsed, seriesPoints, seriesQuestionCount, seriesTestCount, topicsCovered } from "../data/testSeriesData";
+import { sanitizeRichHtml } from "../../../utils/richText";
 
 export function quickFacts(series) {
   const range = durationRange(series);
@@ -123,7 +124,7 @@ export function StudentSeriesDetail({ series }) {
           <section>
             <h3 className="text-base font-bold text-text">About this test series</h3>
             {series.about && stripped(series.about) ? (
-              <div className="prose prose-sm mt-2 max-w-none text-sm leading-relaxed text-muted [&_a]:text-primary [&_h3]:mt-3 [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: series.about }} />
+              <div className="prose prose-sm mt-2 max-w-none text-sm leading-relaxed text-muted [&_a]:text-primary [&_h3]:mt-3 [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(series.about) }} />
             ) : (
               <p className="mt-2 text-sm text-muted">The description you write in Step 1 appears here.</p>
             )}

@@ -1,18 +1,33 @@
 import { createClient, type SupabaseClient, type User } from "https://esm.sh/@supabase/supabase-js@2";
+import { allowedOriginFor, safeEqual } from "./security.ts";
+export { allowedOriginFor, safeEqual };
 
-export const corsHeaders = {
+// Security audit (2026-11-18, SEC-07): CORS. With the secret ALLOWED_ORIGINS
+// unset every origin is allowed, as before (bearer-token auth, no cookies).
+// Set it to a comma-separated list (e.g. "https://app.example.com,https://www.example.com")
+// to answer only those origins.
+export const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-signature, x-supabase-api-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+let currentOrigin = "";
+function cors() {
+  const allow = allowedOriginFor(currentOrigin, Deno.env.get("ALLOWED_ORIGINS"));
+  return allow === "*" ? corsHeaders : { ...corsHeaders, "Access-Control-Allow-Origin": allow, Vary: "Origin" };
+}
+
 export function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(data), { status, headers: { ...cors(), "Content-Type": "application/json" } });
 }
 
 export function options(req: Request) {
-  return req.method === "OPTIONS" ? new Response("ok", { headers: corsHeaders }) : null;
+  currentOrigin = req.headers.get("Origin") ?? "";
+  return req.method === "OPTIONS" ? new Response("ok", { headers: cors() }) : null;
 }
+
+
 
 export function clients(req: Request) {
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -47,7 +62,7 @@ export async function requireAdmin(req: Request, client: SupabaseClient) {
 export function requireServiceRole(req: Request) {
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!service || token !== service) throw new Error("Authentication required");
+  if (!service || !safeEqual(token, service)) throw new Error("Authentication required");
 }
 
 export function fail(error: unknown) {
@@ -63,5 +78,5 @@ export async function hmacValid(req: Request, body: string, secretName: string) 
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
   const expected = [...new Uint8Array(signature)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return supplied.replace(/^sha256=/, "") === expected;
+  return safeEqual(supplied.replace(/^sha256=/, ""), expected);
 }

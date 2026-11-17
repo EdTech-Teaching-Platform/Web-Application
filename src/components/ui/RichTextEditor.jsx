@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { BoldIcon, ItalicIcon, ListBulletIcon, HeadingIcon, LinkIcon } from "./icons";
+import { sanitizeRichHtml } from "../../utils/richText";
 
 // RichTextEditor — a lightweight contentEditable editor with a fixed
 // toolbar (bold/italic/heading/list/link). Not a portal-local piece: full
@@ -58,7 +59,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Start t
         ref={(node) => {
           ref.current = node;
           if (node && !seeded.current) {
-            node.innerHTML = value || "";
+            node.innerHTML = sanitizeRichHtml(value || "");
             seeded.current = true;
           }
         }}

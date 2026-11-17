@@ -17,6 +17,7 @@ import Modal from "../ui/Modal";
 import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, FlagIcon, GridIcon, XIcon } from "../ui/icons";
 import { questionTypeMeta, isSubjective } from "../../portals/teacher/data/testSeriesData";
 import { formatDuration, isAnswered, parseNegativeMarking, penaltyFor, scoreAttempt, stripTags, validateTestForRun, wordCount } from "./scoreAttempt";
+import { sanitizeRichHtml } from "../../utils/richText";
 
 const draftKey = (mode, seriesId, testId) => `ul.testrun.${mode}.${seriesId}.${testId}`;
 
@@ -370,7 +371,7 @@ export default function TestRunner({ series, test, sectionTitle, mode = "live", 
 
           <div
             className="mt-4 text-[15px] leading-relaxed text-text [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
-            dangerouslySetInnerHTML={{ __html: stripTags(q.text) ? q.text : "<p><em>Question text not written yet.</em></p>" }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(stripTags(q.text) ? q.text : "<p><em>Question text not written yet.</em></p>") }}
           />
           {q.image && <QuestionImage image={q.image} className="mt-4" />}
 

@@ -9,6 +9,7 @@ import Select from "../../../components/ui/Select";
 import EmptyState from "../../../components/ui/EmptyState";
 import { CheckIcon, QuizIcon } from "../../../components/ui/icons";
 import { isSubjective, questionTypeMeta, stripHtml } from "../data/testSeriesData";
+import { sanitizeRichHtml } from "../../../utils/richText";
 
 const PAGE = 5;
 
@@ -26,7 +27,7 @@ function PreviewQuestion({ q, index }) {
       </div>
       <div
         className="mt-2 text-sm leading-relaxed text-text [&_p]:mb-1.5 [&_ul]:list-disc [&_ul]:pl-5"
-        dangerouslySetInnerHTML={{ __html: stripHtml(q.text) ? q.text : "<p><em>Question text not written yet.</em></p>" }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(stripHtml(q.text) ? q.text : "<p><em>Question text not written yet.</em></p>") }}
       />
       {q.image && <QuestionImage image={q.image} className="mt-3" />}
 

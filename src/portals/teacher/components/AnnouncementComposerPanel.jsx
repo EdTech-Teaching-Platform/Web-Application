@@ -4,6 +4,7 @@ import Button from "../../../components/ui/Button";
 import FileDropzone from "../../../components/ui/FileDropzone";
 import RichTextEditor from "../../../components/ui/RichTextEditor";
 import { BellIcon, CalendarIcon, MegaphoneIcon, FileGenericIcon } from "../../../components/ui/icons";
+import { sanitizeRichHtml } from "../../../utils/richText";
 
 function stripHtml(html) {
   return (html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -164,7 +165,7 @@ export default function AnnouncementComposerPanel({ open, course, editing, onClo
               </div>
               <div
                 className="mt-3 text-sm leading-relaxed text-muted [&_h3]:mt-2 [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_a]:text-primary [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: bodyHtml || "<p class='text-muted'>Your message will appear here as you type…</p>" }}
+                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(bodyHtml || "<p class='text-muted'>Your message will appear here as you type…</p>") }}
               />
               {file && (
                 <div className="mt-3 flex items-center gap-2 rounded-xl bg-bg px-3 py-2.5 text-xs">

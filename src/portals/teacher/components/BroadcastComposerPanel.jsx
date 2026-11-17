@@ -15,6 +15,7 @@ import { useMessaging } from "../context/MessagingContext";
 import BroadcastAudienceBuilder from "./BroadcastAudienceBuilder";
 import { AudienceChips, ChannelIcons, SectionCard, TypePill, CHANNEL_ICONS } from "./BroadcastShared";
 import { AlertTriangleIcon, CheckIcon, FileGenericIcon, SendIcon, ArrowRightIcon } from "../../../components/ui/icons";
+import { sanitizeRichHtml } from "../../../utils/richText";
 import {
   ATTACHMENT_EXTENSIONS,
   BODY_MAX,
@@ -109,7 +110,7 @@ function LivePreview({ form, recipients, hasSeries, seriesName }) {
           </div>
           <p className="text-base font-bold leading-snug text-text">{subject}</p>
           {hasBody ? (
-            <div className="text-sm leading-relaxed text-text [&_a]:text-primary [&_a]:underline [&_h3]:mt-2 [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: body }} />
+            <div className="text-sm leading-relaxed text-text [&_a]:text-primary [&_a]:underline [&_h3]:mt-2 [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(body) }} />
           ) : (
             <p className="text-sm text-muted">Your message body appears here as you type.</p>
           )}

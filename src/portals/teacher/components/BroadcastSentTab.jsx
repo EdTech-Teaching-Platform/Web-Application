@@ -8,6 +8,7 @@ import { useMessaging } from "../context/MessagingContext";
 import { Avatar, AudienceChips, ChannelIcons, SideDrawer, TypePill } from "./BroadcastShared";
 import { ChevronRightIcon, DuplicateIcon, MegaphoneIcon, RepeatIcon } from "../../../components/ui/icons";
 import { audienceLabels, broadcastStats, emptyCompose, formatDateTime, relativeTime, stripHtml } from "../data/messagingData";
+import { sanitizeRichHtml } from "../../../utils/richText";
 
 const FILTERS = ["All", "Delivered", "Opened", "Failed"];
 const STATUS_BADGE = { opened: ["success", "Opened"], delivered: ["neutral", "Delivered"], failed: ["danger", "Failed"] };
@@ -133,7 +134,7 @@ export default function BroadcastSentTab({ env, onDuplicate, onGoCompose, onToas
               <ChannelIcons channels={open.channels} />
               {open.resends > 0 && <span className="text-xs text-muted">Resent {open.resends}x · {relativeTime(open.lastResendAt)}</span>}
             </div>
-            <div className="rounded-2xl bg-white p-4 text-sm leading-relaxed text-text shadow-soft [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: open.bodyHtml }} />
+            <div className="rounded-2xl bg-white p-4 text-sm leading-relaxed text-text shadow-soft [&_a]:text-primary [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(open.bodyHtml) }} />
             <div>
               <div className="mb-2 flex flex-wrap gap-2">
                 {FILTERS.map((f) => (

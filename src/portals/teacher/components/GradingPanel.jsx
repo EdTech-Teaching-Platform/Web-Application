@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "../../../components/ui/Button";
 import RichTextEditor from "../../../components/ui/RichTextEditor";
 import QuestionImage from "../../../components/testseries/QuestionImage";
+import { sanitizeRichHtml } from "../../../utils/richText";
 import {
   XIcon,
   LinkIcon,
@@ -239,7 +240,7 @@ export default function GradingPanel({ submission, lesson, queuePosition, queueT
                     {lesson.allowResubmission && <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">Resubmission allowed</span>}
                   </div>
                   {lesson.instructions && (
-                    <div className="prose prose-sm max-w-none rounded-xl bg-bg px-4 py-3 text-sm text-muted" dangerouslySetInnerHTML={{ __html: lesson.instructions }} />
+                    <div className="prose prose-sm max-w-none rounded-xl bg-bg px-4 py-3 text-sm text-muted" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(lesson.instructions) }} />
                   )}
                   {lesson.image && <QuestionImage image={lesson.image} />}
                 </div>

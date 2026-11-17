@@ -4,6 +4,7 @@ import ChipInput from "../../../components/ui/ChipInput";
 import RichTextEditor from "../../../components/ui/RichTextEditor";
 import Switch from "../../../components/ui/Switch";
 import { PlusIcon, TrashIcon, UsersIcon, ClockIcon } from "../../../components/ui/icons";
+import { sanitizeRichHtml } from "../../../utils/richText";
 
 function newId() {
   return `q-${Math.random().toString(36).slice(2, 9)}`;
@@ -139,7 +140,7 @@ export default function MentorshipSettingsPanel({ settings, activeCount, onUpdat
             <p className="mt-2 font-display text-lg">Apply for 1:1 Mentorship</p>
           </div>
           <div className="flex flex-col gap-4 p-5">
-            <div className="prose prose-sm max-w-none text-sm text-text" dangerouslySetInnerHTML={{ __html: settings.pitch }} />
+            <div className="prose prose-sm max-w-none text-sm text-text" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(settings.pitch) }} />
             <div>
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Focus areas</p>
               <div className="flex flex-wrap gap-1.5">
