@@ -34,7 +34,7 @@ function MobileNav() {
     { href: "/student/account", label: "Account", icon: UsersIcon },
   ];
   return (
-    <nav className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-full bg-white/95 p-1.5 shadow-[0_14px_40px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) backdrop-blur md:hidden">
+    <nav aria-label="Student mobile" className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 gap-1 rounded-full bg-white/95 p-1.5 shadow-[0_14px_40px_rgba(15,17,21,0.18)] ring-1 ring-(--lp-line) backdrop-blur md:hidden">
       {items.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href || (!item.exact && pathname.startsWith(`${item.href}/`)) || Boolean(item.alsoActive?.some((p) => pathname === p || pathname.startsWith(`${p}/`)));

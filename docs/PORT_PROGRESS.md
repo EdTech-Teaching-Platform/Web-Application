@@ -3491,3 +3491,12 @@ backslash.
 - `AuthCallback` sends a student whose Google account was just created (first sign-in) and who has no profile details (no grade, school, phone or city) and no prior skip to onboarding, then to `?redirect=` or the dashboard.
 - Saves through the existing `profileApi.save` (profiles + student_profiles, own row, existing RLS). No migrations, no new columns. "Skipped" is a localStorage flag (`ul.onboarding.skipped.<userId>`).
 - Not collected (no column): parent phone, learning goal, ID upload.
+
+## Accessibility baseline (2026-11-19)
+- Frontend only, no migrations, no Supabase changes. Details in `docs/ACCESSIBILITY.md`.
+- New: `src/components/common/RouteA11y.jsx` (skip link, per-route title, route announcer, focus to main), mounted once in `AppRoutes.jsx`.
+- `src/index.css`: appended a11y block (focus-visible baseline, reduced-motion backstop, forced-colors, prefers-contrast, skip-link styles).
+- `aria-label` added to 9 `<nav>` elements; optional `<track kind="captions">` in `VideoLessonPlayer` (only when `lesson.captionsUrl` is set).
+- Tests: `tests/accessibility.test.jsx` (7).
+- Open: colour-token contrast (success/warning/lilac as small text), real caption files, div/span onClick review, manual screen-reader pass.
+- Note: `tests/test-assets.test.jsx` has 2 failures that also occur on pristine HEAD (not caused by this change).

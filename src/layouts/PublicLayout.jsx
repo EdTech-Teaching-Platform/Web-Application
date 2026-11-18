@@ -66,7 +66,7 @@ export default function PublicLayout() {
           Universal Learning
         </Link>
 
-        <nav className="hidden items-center gap-7 text-sm font-medium lg:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-7 text-sm font-medium lg:flex">
           {NAV_LINKS.map((link) => {
             // Item 9 fix: this nav only ever links to in-page scroll anchors
             // on the current page (Landing/Explore), so "active" is real

@@ -379,3 +379,87 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ==========================================================================
+ * Accessibility baseline (WCAG 2.1 AA) — additive, low specificity.
+ * Everything uses :where() (specificity 0) or is scoped to a11y-* classes,
+ * so any component-level style still wins and existing layouts are unchanged.
+ * ========================================================================== */
+:root {
+  --a11y-focus: #1d4ed8; /* 6.7:1 on white, 5.8:1 on #fcf9f8 */
+  --a11y-focus-on-dark: #ffffff;
+}
+
+/* 2.4.7 Focus Visible — keyboard users always get a ring unless a
+ * component defines its own. */
+:where(a, button, input, select, textarea, summary, [role="button"], [role="tab"], [role="menuitem"], [tabindex]):focus-visible {
+  outline: 2px solid var(--a11y-focus);
+  outline-offset: 2px;
+}
+
+/* Controls that suppress the outline (Tailwind outline-none) and declare no
+ * ring/border replacement of their own get one back for keyboard focus. */
+:is(input, select, textarea, button, a).outline-none:focus-visible:not([class*="focus:"]):not([class*="focus-visible:"]):not([class*="ring"]) {
+  outline: 2px solid var(--a11y-focus);
+  outline-offset: 2px;
+}
+
+/* Programmatic focus targets (main, headings) should not show a ring. */
+:where([tabindex="-1"]):focus { outline: none; }
+
+/* 2.4.1 Bypass Blocks — skip link, visible only when focused. */
+.a11y-skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100000;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.a11y-skip-link:focus,
+.a11y-skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 3px solid #fcd34d;
+  outline-offset: 2px;
+}
+
+/* 2.3.3 Animation from Interactions / vestibular safety — a global backstop
+ * for Tailwind animate-*, transitions and smooth scrolling, on top of the
+ * per-component reduced-motion rules already in this file. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Windows High Contrast / forced-colors: keep focus and boundaries visible. */
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, summary, [role="button"], [role="tab"], [tabindex]):focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  .a11y-skip-link:focus { outline-color: Highlight; }
+}
+
+/* Users who ask for more contrast get stronger focus rings. */
+@media (prefers-contrast: more) {
+  :root { --a11y-focus: #0b2a8a; }
+  :where(a, button, input, select, textarea, summary, [role="button"], [role="tab"], [tabindex]):focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* 1.4.4 Resize Text — never let the browser shrink the user's text size. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

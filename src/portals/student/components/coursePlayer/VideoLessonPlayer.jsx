@@ -225,7 +225,13 @@ const VideoLessonPlayer = forwardRef(function VideoLessonPlayer(
             }
           }}
           onClick={togglePlay}
-        />
+          crossOrigin={lesson.captionsUrl ? "anonymous" : undefined}
+        >
+          {/* WCAG 1.2.2 Captions: rendered only when the lesson provides a WebVTT file */}
+          {lesson.captionsUrl && (
+            <track kind="captions" src={lesson.captionsUrl} srcLang={lesson.captionsLang || "en"} label={lesson.captionsLabel || "English"} default />
+          )}
+        </video>
         {!loading && !playing && (
           <button
             type="button"

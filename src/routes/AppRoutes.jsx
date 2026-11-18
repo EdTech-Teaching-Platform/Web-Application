@@ -12,6 +12,7 @@ const RegionalHeadLayout = lazy(() => import("../layouts/RegionalHeadLayout"));
 import NotFound from "../components/common/NotFound";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 import ScrollToTop from "../components/common/ScrollToTop";
+import RouteA11y from "../components/common/RouteA11y";
 
 
 
@@ -40,6 +41,7 @@ const RegionalHeadInvite = lazy(() => import("../portals/admin/pages/RegionalHea
 export default function AppRoutes() {
   return (
     <>
+      <RouteA11y />
       <ScrollToTop />
       <Suspense fallback={<RouteFallback fullscreen />}>
       <Routes>

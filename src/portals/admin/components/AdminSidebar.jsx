@@ -164,7 +164,7 @@ export default function AdminSidebar({ open = false, onClose = () => {} }) {
           </button>
         </div>
 
-        <nav className="ul-sidebar__nav scrollbar-thin">
+        <nav aria-label="Admin" className="ul-sidebar__nav scrollbar-thin">
           {NAV_SECTIONS.map((section) => (
             <div key={section.heading} className="ul-sidebar__section">
               <span className="ul-sidebar__heading">{section.heading}</span>
