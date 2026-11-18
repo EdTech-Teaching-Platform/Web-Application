@@ -102,7 +102,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
       </Link>
 
       {(navItems || navGroups || navEntries) && (
-        <nav aria-label="Primary" className="ml-4 hidden min-w-0 items-center gap-1 rounded-full bg-(--lp-grey)/80 p-1 ring-1 ring-(--lp-line)/70 lg:flex">
+        <nav className="ml-4 hidden min-w-0 items-center gap-1 rounded-full bg-(--lp-grey)/80 p-1 ring-1 ring-(--lp-line)/70 lg:flex">
           {navItems?.map((item) => (
             <Link
               key={item.href}
@@ -143,7 +143,7 @@ export default function Navbar({ title, links = [], navItems, navGroups, navEntr
           search (src/public/pages/ExplorePage.jsx) remains the real
           search entry point. `ml-auto` moves here so the bell/avatar
           group stays cleanly right-aligned without the gap it left. */}
-      <nav aria-label="Account" className="ml-auto flex shrink-0 items-center gap-2 text-sm text-text/60">
+      <nav className="ml-auto flex shrink-0 items-center gap-2 text-sm text-text/60">
         {links.map((l) => (
           <Link key={l.href} to={l.href} className="hover:text-primary">
             {l.label}

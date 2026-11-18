@@ -138,7 +138,7 @@ export default function SiteFooter() {
           <p className="text-xs text-white/45">
             © {year} Universal Learning. All rights reserved.
           </p>
-          <nav aria-label="Legal" className="hidden items-center gap-5 text-xs text-white/45 sm:flex">
+          <nav className="hidden items-center gap-5 text-xs text-white/45 sm:flex">
             <Link to="/privacy" className="transition-colors duration-150 hover:text-(--lp-yellow)">
               Privacy
             </Link>

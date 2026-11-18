@@ -110,7 +110,7 @@ function PortalShell({ user, onLogout, notificationsApi }) {
             </div>
           </div>
           <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-(--lp-muted)/70">Menu</div>
-          <nav aria-label="Educator" className="flex flex-1 flex-col gap-1 overflow-y-auto">
+          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
             {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
               <NavLink key={to} to={to} end={end} className={navLinkClass} onClick={() => setSidebarOpen(false)}>
                 <Icon className="shrink-0" />

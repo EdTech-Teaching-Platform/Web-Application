@@ -33,7 +33,7 @@ export default function RHSidebar({ open, onClose, head, region, openCount }) {
           </div>
           <button type="button" className="ul-sidebar__close" onClick={onClose} aria-label="Close menu"><IconClose size={18} /></button>
         </div>
-        <nav aria-label="Regional head" className="ul-sidebar__nav scrollbar-thin">
+        <nav className="ul-sidebar__nav scrollbar-thin">
           <div className="ul-sidebar__section">
             <span className="ul-sidebar__heading">Region workspace</span>
             {NAV.map((item) => (

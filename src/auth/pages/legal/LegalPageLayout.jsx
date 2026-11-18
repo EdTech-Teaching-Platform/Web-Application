@@ -57,7 +57,7 @@ export default function LegalPageLayout({ title, lastUpdated, sections, backLabe
         <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
           {/* Desktop: sticky anchored TOC. Mobile: a plain top-of-page list
               (same <nav>, just not sticky/side-by-side below lg). */}
-          <nav aria-label="On this page" className="rounded-3xl bg-(--lp-grey) p-5 lg:sticky lg:top-6 lg:self-start">
+          <nav className="rounded-3xl bg-(--lp-grey) p-5 lg:sticky lg:top-6 lg:self-start">
             <span className="inline-flex rounded-full bg-(--lp-yellow) px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-(--lp-ink)">
               Contents
             </span>
