@@ -54,6 +54,8 @@ export const educatorApi = {
   listAssignments: (status) => callRpc("educator_list_assignments", { p_status: status || null }),
   getAssignment: (id) => callRpc("educator_get_assignment", { p_assignment_id: id }),
   startAssignment: (id) => callRpc("educator_start_assignment", { p_assignment_id: id }),
+  // The next test of a multi-test assignment ("<name> - Test 2"), 20261118090000.
+  addAssignmentTest: (id) => callRpc("educator_add_assignment_test", { p_assignment_id: id }),
   addAssignmentComment: (id, comment, questionId) => callRpc("educator_add_assignment_comment", {
     p_assignment_id: id, p_comment: comment, p_question_id: questionId || null,
   }),

@@ -29,6 +29,7 @@
 | AI evaluation request and status | ❌ | 🔒 | — | — | `student_ai_evaluation.sql` |
 | AI context and grade saving (`adm_ai_eval_*`) | ❌ | ❌ | ❌ | ❌ (service role only) | `student_ai_evaluation.sql` |
 | Delete-account request | ❌ | 🔒 | 🔒 | decide | `qa_nov11.sql` |
+| Delete own account (`adm_account_delete_self`) | ❌ | ❌ direct (service role only, via delete-account) | ❌ direct | ❌ | `qa_nov18.sql` |
 | Educator onboarding (`educator_start/save/submit_onboarding`) | ❌ | — | ✅ (any educator) | — | `educator_onboarding.sql` |
 | Create, edit and delete series, tests, questions | ❌ | ❌ | 🔒 own series (not while pending approval) | ✅ all | `educator_series.sql`, IDOR |
 | Assignments (`educator_list/get/start_assignment`, comments) | ❌ | ❌ | 🔒 own | ✅ create, manage, review | `educator_series.sql`, IDOR |
@@ -44,6 +45,7 @@
 | Function | Anon | Student | Teacher | Admin | Other |
 |---|---|---|---|---|---|
 | evaluate-subjective | ❌ | 🔒 own attempt | — | — | — |
+| delete-account (QA 18 Nov) | ❌ | 🔒 own account, password re-checked | 🔒 own account, password re-checked | ❌ (refused in SQL) | — |
 | educator-upload-url | ❌ | ❌ | ✅ | — | — |
 | asset-upload-url | ❌ | ❌ | ✅ (verified) | ✅ | — |
 | sign-educator-document | ❌ | ❌ | 🔒 own | ✅ | — |

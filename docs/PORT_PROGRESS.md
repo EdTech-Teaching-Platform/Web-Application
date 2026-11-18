@@ -99,6 +99,21 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-18: QA batch (delete account, attempt limit, assigned tests, notification back link)
+
+- **Migration `20261118090000_admin_qa_nov18.sql`** (needs 20261111090000; NOT applied). Rollback: `scripts/rollback_20261118090000_admin_qa_nov18.sql` (tested locally). Trial: `docs/trial_run_20261118090000.sql`. Tests: `supabase/tests/qa_nov18.sql`.
+  - **Delete account without approval:** `account_deletion_requests.self_service` (new column, our table); `adm_account_delete_self(p_user, p_reason)`, **service role only**: records the deletion, closes a pending request, blocks the student or suspends the educator, ends sessions; refuses admins. `adm_account_deletion_json` returns `self_service`.
+  - **Assigned number of tests:** `assignment_tests` (new, ours; FK to `quizzes` ON DELETE CASCADE, indexed; RLS on, no grants; backfilled from `test_assignments.test_id`); `adm_assignment_test_progress`, `adm_assignment_test_payload`; `educator_list_assignments` / `adm_educator_assignment_json` / `educator_start_assignment` replaced; new `educator_add_assignment_test`.
+- **New Edge Function `delete-account`** (`verify_jwt = true`, NOT deployed): it re-checks the password with Supabase Auth (Google-only accounts: typed DELETE), calls `adm_account_delete_self`, then `auth.admin.deleteUser(id, true)` (soft delete; it falls back to a permanent ban).
+- **Frontend:**
+  - `DeleteAccountSection` now deletes directly, shows a confirmation and signs out. The admin Deletion Requests tab labels self-service rows "Deleted by user".
+  - `AssignedWork`: "N tests to create · x created · y to go", a tests list, and "Add test k of N" (`utils/assignmentProgress.js`).
+  - Notifications pass `state.from = "notifications"`, so the series page's back link returns to Notifications, with the scroll position restored.
+- **Attempt limit (QA #2):** not reproduced. The wizard saves "Attempts allowed" into `quizzes.max_attempts`, and `student_start_attempt` refuses the attempt after the limit (end-to-end check in `qa_nov18.sql`: the 3rd attempt with limit 2 is refused). Needs QA's network response if it happens again.
+- **Open items:**
+  - Deploy order: push 20261111090000, then 20261114090000, 20261115090000 and 20261118090000. Then deploy `delete-account`.
+  - Data erasure in the lead's tables (profiles and the rest) follows the retention policy; only Auth is soft-deleted.
+
 ## 2026-11-18: security audit
 
 The full reports are in `security-audit/`.

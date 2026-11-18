@@ -74,7 +74,7 @@ export default function DeletionRequestsTab({ api = accountDeletionsApi }) {
         <div className="ul-set-table__row" key={row.id}>
           <span><strong>{row.name || "Unknown"}</strong><small>{row.email}{row.reason ? ` · "${row.reason}"` : ""}</small></span>
           <span>{row.role === "educator" ? "Educator" : "Student"}</span>
-          <span className="ul-status-badge">{label(row.status)}</span>
+          <span className="ul-status-badge">{row.selfService ? "Deleted by user" : label(row.status)}</span>
           <span>{when(row.createdAt)}</span>
           <button type="button" className="ul-btn ul-btn--ghost" onClick={() => { setSelected(row); setNote(""); }}>View</button>
         </div>
@@ -87,7 +87,7 @@ export default function DeletionRequestsTab({ api = accountDeletionsApi }) {
     </div>
     {selected && <div className="ul-audit-modal-backdrop" role="presentation"><div className="ul-audit-modal" role="dialog" aria-modal="true" aria-label="Deletion request">
       <h3>{selected.name || "Unknown"} · {selected.role === "educator" ? "Educator" : "Student"}</h3>
-      <p>{selected.email} · requested {when(selected.createdAt, true)} · {label(selected.status)}</p>
+      <p>{selected.email} · {selected.selfService ? "deleted" : "requested"} {when(selected.createdAt, true)} · {selected.selfService ? "Deleted by the user (no approval needed)" : label(selected.status)}</p>
       <p>{selected.reason ? `Reason: ${selected.reason}` : "No reason given."}</p>
       {selected.status === "pending" ? <>
         <p>Approving blocks the account at once (a student is blocked, an educator suspended) and bans its sign-in. Delete the account's data afterwards.</p>

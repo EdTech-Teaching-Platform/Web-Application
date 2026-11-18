@@ -1,7 +1,10 @@
 // /student/notifications: the student's real inbox (student_list_notifications,
 // 20261107090000). Report resolutions from the admin's content moderation land
 // here and stay after the popup is gone. Opening one marks it read and follows
-// its link (the test series) when it has one.
+// its link (the test series) when it has one. QA 18 Nov: the link carries
+// state.from = "notifications", so the series page's back link returns here,
+// and the list's scroll position is restored.
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BellIcon, ChevronRightIcon } from "../../../components/ui/icons";
 import { useStudentNotifications } from "../hooks/useStudentNotifications";
@@ -19,6 +22,7 @@ function when(iso) {
 const WIDE = "mx-auto w-full max-w-4xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8";
 const SURFACE = "rounded-2xl bg-white ring-1 ring-(--lp-line) shadow-[0_1px_2px_rgb(15_17_21/0.04)]";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lp-blue-deep)";
+const NOTIFICATIONS_SCROLL_KEY = "ul-student-notifications-scroll";
 
 export default function Notifications({ api = notificationsApi }) {
   const navigate = useNavigate();
@@ -26,8 +30,23 @@ export default function Notifications({ api = notificationsApi }) {
 
   const open = async (item) => {
     if (!item.isRead) await inbox.markRead(item.id);
-    if (item.actionUrl) navigate(item.actionUrl);
+    if (item.actionUrl) {
+      try { sessionStorage.setItem(NOTIFICATIONS_SCROLL_KEY, String(window.scrollY || 0)); } catch { /* storage off */ }
+      navigate(item.actionUrl, { state: { from: "notifications" } });
+    }
   };
+
+  // Back from a notification's link: return to where the student was.
+  const hasRows = inbox.rows.length > 0;
+  useEffect(() => {
+    if (!hasRows) return;
+    let y = null;
+    try {
+      y = sessionStorage.getItem(NOTIFICATIONS_SCROLL_KEY);
+      sessionStorage.removeItem(NOTIFICATIONS_SCROLL_KEY);
+    } catch { y = null; }
+    if (y != null && Number(y) > 0) window.scrollTo?.(0, Number(y));
+  }, [hasRows]);
 
   return (
     <div className={`${WIDE} pb-12`}>

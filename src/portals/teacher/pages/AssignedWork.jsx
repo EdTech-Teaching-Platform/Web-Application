@@ -3,7 +3,10 @@
 // educator_get_assignment). Start (educator_start_assignment) creates the test
 // shell, then the educator builds it in the shared manage view and publishes
 // the series directly (adm_publish_test_series), which completes the
-// assignment.
+// assignment. QA 18 Nov: an assignment can ask for several tests (the admin's
+// "Number of tests"); the list and the detail show how many are required,
+// created and still to go, and "Add test 2 of 2" creates the next one
+// (educator_add_assignment_test, 20261118090000).
 import { useCallback, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useRpc } from "../../admin/hooks/useRpc";
@@ -11,6 +14,20 @@ import { testSeriesApi } from "../../admin/services/testSeriesApi";
 import { educatorApi } from "../services/educatorApi";
 import { Empty, ErrorState, Loading, PageCard, StatusPill } from "../components/PageState";
 import { formatDate } from "../utils/format";
+import { assignmentTestProgress } from "../utils/assignmentProgress";
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function TestsProgressBar({ progress }) {
+  const pct = Math.min(100, Math.round((progress.created / progress.required) * 100));
+  return (
+    <div className="mt-2" aria-hidden="true">
+      <div className="h-1.5 overflow-hidden rounded-full bg-(--lp-grey)">
+        <div className="h-full rounded-full bg-(--lp-ink)" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
 
 const FILTERS = [
   { key: "open", label: "Open" },
@@ -48,6 +65,16 @@ export function AssignmentList({ api = educatorApi }) {
               <StatusPill status={a.display_status} />
             </div>
             <p className="mt-3 text-sm">Due <strong>{formatDate(a.deadline)}</strong> · {a.question_count} questions · {a.duration_minutes} min</p>
+            {(() => {
+              const p = assignmentTestProgress(a);
+              if (!p) return null;
+              return (
+                <div className="mt-2 text-sm">
+                  <p><strong>{plural(p.required, "test")} to create</strong> · {p.created} created · {p.remaining} to go</p>
+                  <TestsProgressBar progress={p} />
+                </div>
+              );
+            })()}
             {a.comment_count > 0 && <p className="mt-1 text-xs text-(--lp-muted)">{a.comment_count} comment{a.comment_count === 1 ? "" : "s"}</p>}
             <Link to={`/teacher/assigned/${a.id}`} className="mt-3 inline-flex rounded-full bg-(--lp-ink) px-4 py-2 text-sm font-semibold text-white">Open</Link>
           </article>
@@ -70,6 +97,9 @@ export function AssignmentDetail({ api = educatorApi, seriesApi = testSeriesApi 
   if (error) return <ErrorState error={error} onRetry={() => refetch().catch(() => {})} />;
   const { assignment: a, series, test, history = [], comments = [] } = data;
   const closed = ["completed", "cancelled", "rejected"].includes(a.status);
+  const progress = assignmentTestProgress(a);
+  const canAddTest = progress && !closed && progress.remaining > 0 && progress.created > 0
+    && ["in_progress", "revision_requested"].includes(a.status);
 
   const run = async (key, fn, done) => {
     if (busy) return;
@@ -98,7 +128,8 @@ export function AssignmentDetail({ api = educatorApi, seriesApi = testSeriesApi 
         action={<StatusPill status={a.display_status} />}
       >
         <dl className="grid gap-3 text-sm sm:grid-cols-3">
-          {[["Series", series?.title], ["Subject", a.subject], ["Deadline", formatDate(a.deadline)], ["Questions", a.question_count],
+          {[["Series", series?.title], ["Subject", a.subject], ["Deadline", formatDate(a.deadline)],
+            ...(progress ? [["Tests to create", progress.required]] : []), ["Questions", progress && progress.required > 1 ? `${a.question_count} in total` : a.question_count],
             ["Question types", a.question_type_mix], ["Difficulty", a.difficulty], ["Total marks", a.total_marks],
             ["Duration", `${a.duration_minutes} min`], ["Topics", (a.topics || []).join(", ") || "—"]].map(([k, v]) => (
             <div key={k}><dt className="text-xs text-(--lp-muted)">{k}</dt><dd className="font-medium">{v ?? "—"}</dd></div>
@@ -113,7 +144,7 @@ export function AssignmentDetail({ api = educatorApi, seriesApi = testSeriesApi 
               {busy === "start" ? "Starting…" : "Start"}
             </button>
           )}
-          {test && (
+          {test && !(progress && progress.tests.length > 1) && (
             <button type="button" className="rounded-full bg-(--lp-ink) px-5 py-2.5 text-sm font-semibold text-white"
               onClick={() => navigate(`/teacher/test-series/${a.series_id}/tests/${test.id}`)}>Open the builder</button>
           )}
@@ -125,6 +156,41 @@ export function AssignmentDetail({ api = educatorApi, seriesApi = testSeriesApi 
           )}
         </div>
       </PageCard>
+
+      {progress && (
+        <PageCard title="Tests for this assignment" action={<span className="text-sm font-semibold">{progress.created} of {progress.required} created</span>}>
+          <p className="text-sm">
+            The admin asked for <strong>{plural(progress.required, "test")}</strong>.{" "}
+            {progress.remaining > 0 ? `${plural(progress.remaining, "test")} still to create.` : "All of them are created."}
+            {progress.created > 0 && ` ${progress.published} of ${progress.created} published.`}
+          </p>
+          <div role="progressbar" aria-label="Tests created" aria-valuemin={0} aria-valuemax={progress.required} aria-valuenow={progress.created}>
+            <TestsProgressBar progress={progress} />
+          </div>
+          {progress.tests.length > 0 && (
+            <ul className="mt-4 divide-y divide-(--lp-line) rounded-2xl border border-(--lp-line)">
+              {progress.tests.map((t, i) => (
+                <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                  <span className="min-w-0">
+                    <span className="font-semibold">Test {i + 1}: {t.title}</span>
+                    <span className="block text-xs text-(--lp-muted)">{plural(Number(t.questions_count || 0), "question")} · {t.status === "published" ? "Published" : "Draft"}</span>
+                  </span>
+                  <Link to={`/teacher/test-series/${a.series_id}/tests/${t.id}`} className="rounded-full border border-(--lp-ink) px-4 py-1.5 text-xs font-semibold">Open the builder</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {progress.created === 0 && !closed && a.status === "assigned" && (
+            <p className="mt-3 text-xs text-(--lp-muted)">Press Start to create the first test.</p>
+          )}
+          {canAddTest && (
+            <button type="button" className="mt-4 rounded-full bg-(--lp-ink) px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50" disabled={!!busy}
+              onClick={() => run("add", () => api.addAssignmentTest(a.id), `Test ${progress.created + 1} of ${progress.required} created.`)}>
+              {busy === "add" ? "Creating…" : `Add test ${progress.created + 1} of ${progress.required}`}
+            </button>
+          )}
+        </PageCard>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <PageCard title="Comments">

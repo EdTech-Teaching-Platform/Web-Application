@@ -5,7 +5,7 @@
 // Presentation-only redesign: same data, routes and handlers as before. Calm,
 // professional look shared with the other student pages.
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChevronRightIcon, ClockIcon, FileTextIcon, BookOpenIcon, TargetIcon } from "../../../components/ui/icons";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { EmptyPanel, ErrorState, LoadingState } from "../components/PageState";
@@ -101,8 +101,10 @@ function TestRow({ test, enrolled, onOpen, onReport, index }) {
 
 // `from` says which screen the student opened this series from, so the page
 // sits under that tab and "back" returns there: "browse" (Test Series list),
-// "mine" (My Tests) or "dashboard".
+// "mine" (My Tests) or "dashboard". A link from the notifications inbox passes
+// state.from = "notifications" (QA 18 Nov), and back returns to the inbox.
 const BACK = {
+  notifications: { to: "/student/notifications", label: "← Notifications", errLabel: "Back to notifications" },
   browse: { to: "/student/test-series", label: "← All test series", errLabel: "Back to all test series" },
   mine: { to: "/student/my-tests", label: "← My tests", errLabel: "Back to my tests" },
   dashboard: { to: "/student/dashboard", label: "← Dashboard", errLabel: "Back to dashboard" },
@@ -111,6 +113,7 @@ const BACK = {
 export default function SeriesDetail({ publicMode = false, from = "browse" }) {
   const { seriesId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [enrolling, setEnrolling] = useState(false);
   const [notice, setNotice] = useState("");
   const [loginOpen, setLoginOpen] = useState(false);
@@ -142,7 +145,7 @@ export default function SeriesDetail({ publicMode = false, from = "browse" }) {
     return undefined;
   };
 
-  const back = publicMode ? { to: "/test-series", label: "← All test series", errLabel: "Back to all test series" } : (BACK[from] ?? BACK.browse);
+  const back = publicMode ? { to: "/test-series", label: "← All test series", errLabel: "Back to all test series" } : (BACK[location.state?.from === "notifications" ? "notifications" : from] ?? BACK.browse);
   const backTo = back.to;
 
   if (loading) return <div className={WIDE}><LoadingState label="Loading test series" /></div>;

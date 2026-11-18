@@ -253,51 +253,7 @@ describe("assignments (#22, #23, #24, #25)", () => {
 
 // -----------------------------------------------------------------------------
 describe("delete account (#21)", () => {
-  function fakeApi(initial = null) {
-    let current = initial;
-    return {
-      mine: vi.fn(async () => current),
-      request: vi.fn(async (reason) => { current = { id: "r1", status: "pending", reason, createdAt: "2026-11-11T05:00:00Z" }; return current; }),
-      cancel: vi.fn(async () => { current = { ...current, status: "cancelled" }; return current; }),
-    };
-  }
-
-  it("asks for the password and DELETE, then sends the request; it can be withdrawn", async () => {
-    const { default: DeleteAccountSection } = await import("../src/components/account/DeleteAccountSection");
-    const api = fakeApi();
-    const verify = vi.fn(async () => {});
-    render(<DeleteAccountSection email="s@x.in" api={api} verify={verify} passwordCheck={async () => true} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Delete account…" }));
-    const dialog = screen.getByRole("dialog", { name: "Delete your account?" });
-    expect(within(dialog).getByText(/administrator reviews the request/i)).toBeInTheDocument();
-    const submit = within(dialog).getByRole("button", { name: "Request deletion" });
-    expect(submit).toBeDisabled();
-    fireEvent.change(within(dialog).getByLabelText("Your password"), { target: { value: "secret1" } });
-    fireEvent.change(within(dialog).getByLabelText("Type DELETE to confirm"), { target: { value: "delete" } });
-    fireEvent.change(within(dialog).getByLabelText(/Reason/), { target: { value: "Moving abroad" } });
-    expect(submit).toBeEnabled();
-    fireEvent.click(submit);
-    expect(await screen.findByText(/Your deletion request was sent/)).toBeInTheDocument();
-    expect(verify).toHaveBeenCalledWith("s@x.in", "secret1");
-    expect(api.request).toHaveBeenCalledWith("Moving abroad");
-    expect(await screen.findByText(/You asked to delete your account/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Withdraw request" }));
-    expect(await screen.findByText("Your deletion request was withdrawn.")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Delete account…" })).toBeInTheDocument();
-  });
-
-  it("a wrong password is shown and nothing is requested", async () => {
-    const { default: DeleteAccountSection } = await import("../src/components/account/DeleteAccountSection");
-    const api = fakeApi();
-    const verify = vi.fn(async () => { throw new Error("That password isn't right."); });
-    render(<DeleteAccountSection email="s@x.in" api={api} verify={verify} passwordCheck={async () => true} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Delete account…" }));
-    fireEvent.change(screen.getByLabelText("Your password"), { target: { value: "nope" } });
-    fireEvent.change(screen.getByLabelText("Type DELETE to confirm"), { target: { value: "DELETE" } });
-    fireEvent.click(screen.getByRole("button", { name: "Request deletion" }));
-    expect(await screen.findByText("That password isn't right.")).toBeInTheDocument();
-    expect(api.request).not.toHaveBeenCalled();
-  });
+  // The user-side dialog is a direct deletion since QA 18 Nov: tests/qa-nov18.test.jsx.
 
   it("admin: approving blocks the account, then bans its sign-in; reject notifies", async () => {
     const { default: DeletionRequestsTab } = await import("../src/portals/admin/pages/DeletionRequestsTab");
