@@ -99,6 +99,26 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-19: independent tester's website and admin-portal audit (frontend only, no migration)
+
+- **index.html:** real title, meta description, Open Graph / Twitter tags (absolute URLs use the vercel.app domain: change them when the custom domain is live), theme colour, a CSS loader inside #root, and a <noscript> message.
+- **Indexing:** public/robots.txt disallows /admin, /teacher, /student, /regionalhead and /auth/. vercel.json sends X-Robots-Tag: noindex, nofollow for the portals. The usePageMeta hook (new) sets the title plus a robots noindex meta tag on the admin login, the admin layout and the 404 page.
+- **Admin login:**
+  - inline errors for an empty field or an invalid email (trimmed);
+  - one generic message, "Invalid email or password.", also for a non-admin account;
+  - network and other errors mapped by authErrorMessage;
+  - one request at a time;
+  - after 5 failed attempts, a 30-second pause (per tab; Supabase Auth's server rate limit stays the real protection);
+  - a "session expired" notice and a return to the page the admin was on;
+  - a signed-in admin opening /admin/login is sent to the dashboard.
+- **AuthContext.sessionEnded** ("expired" / "user"): AdminLayout and ProtectedRoute pass it to the login pages. /login?expired=1 shows the notice.
+- **Student / educator login:** the button stays enabled so an empty submit shows the inline errors, and there is a double-submit guard.
+- **Other:**
+  - footer: social icons without a URL are hidden;
+  - html/body overflow-x: clip;
+  - brand-logo.png resized from 715x1024 (605 KB) to 224x320 (127 KB).
+- **Tests:** tests/qa-audit-nov19.test.jsx.
+
 ## 2026-11-18: QA batch (delete account, attempt limit, assigned tests, notification back link)
 
 - **Migration `20261118090000_admin_qa_nov18.sql`** (needs 20261111090000; NOT applied). Rollback: `scripts/rollback_20261118090000_admin_qa_nov18.sql` (tested locally). Trial: `docs/trial_run_20261118090000.sql`. Tests: `supabase/tests/qa_nov18.sql`.

@@ -1,0 +1,10 @@
+# Universal Learning (QA audit BUG-02). The portals are private; the public
+# pages and the test-series catalogue may be indexed.
+User-agent: *
+Disallow: /admin
+Disallow: /teacher
+Disallow: /student
+Disallow: /regionalhead
+Disallow: /auth/
+Disallow: /reset-password
+Allow: /

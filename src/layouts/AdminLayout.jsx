@@ -5,6 +5,7 @@ import RouteFallback from "../components/common/RouteFallback";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import { useAuth } from "../hooks/useAuth";
 import { canUseAdminPortal } from "../utils/roles";
+import usePageMeta from "../hooks/usePageMeta";
 import { supabase } from "../services/supabaseClient";
 import AdminSidebar from "../portals/admin/components/AdminSidebar";
 import AdminTopbar from "../portals/admin/components/AdminTopbar";
@@ -56,8 +57,9 @@ function DashboardFloatingIcons() {
 // don't need to touch AppRoutes.jsx / portals/admin/routes.jsx (per the
 // project README, portal work shouldn't require editing those files).
 export default function AdminLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, sessionEnded } = useAuth();
   const location = useLocation();
+  usePageMeta({ title: "Admin", noindex: true });
   // Mobile-only slide-in drawer state for AdminSidebar (see AdminChrome.css
   // — hidden off-canvas below 900px, opened via the hamburger in AdminTopbar).
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -99,7 +101,12 @@ export default function AdminLayout() {
     return null;
   }
   if (!user) {
-    return <Navigate to="/admin/login" replace />;
+    // QA audit (19 Nov): come back to this page after signing in, and say so
+    // when the session expired (not after a normal logout).
+    return (
+      <Navigate to="/admin/login" replace
+        state={{ from: `${location.pathname}${location.search}`, reason: sessionEnded === "expired" ? "expired" : undefined }} />
+    );
   }
   // admin and super_admin (mapped to the app role "admin" in utils/roles.js)
   if (!roleAllowsPortal) {

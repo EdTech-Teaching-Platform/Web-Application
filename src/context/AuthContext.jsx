@@ -71,12 +71,17 @@ export function toAppUser(authUser, profile) {
 //   logout   signs out, clears per-user storage
 //   setUser  sets a local, NOT persisted user: only the mock teacher and
 //            regional-head flows use it; it never grants server access
+//   sessionEnded  "expired" when a signed-in session ended without logout()
+//            (token refresh failed, signed out elsewhere), "user" after
+//            logout(), null otherwise. Guards use it for the login notice.
 export function AuthProvider({ children }) {
   const [user, setUserState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recovery, setRecovery] = useState(false);
   const [error, setError] = useState("");
+  const [sessionEnded, setSessionEnded] = useState(null);
   const currentId = useRef(null);
+  const loggingOut = useRef(false);
 
   const loadProfile = useCallback(async (authUser) => {
     // Show the cached profile immediately (stale-while-revalidate), then
@@ -112,6 +117,7 @@ export function AuthProvider({ children }) {
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
       const authUser = session?.user ?? null;
       if (!authUser) {
+        if (currentId.current) setSessionEnded(loggingOut.current ? "user" : "expired");
         currentId.current = null;
         setUserState(null);
         setLoading(false);
@@ -119,6 +125,7 @@ export function AuthProvider({ children }) {
       }
       const changedUser = currentId.current !== authUser.id;
       currentId.current = authUser.id;
+      if (changedUser) setSessionEnded(null);
       // TOKEN_REFRESHED / USER_UPDATED for the same user keep the loaded profile.
       if (changedUser || event === "SIGNED_IN" || event === "INITIAL_SESSION") {
         if (changedUser) setLoading(true);
@@ -136,9 +143,12 @@ export function AuthProvider({ children }) {
   }, [loadProfile]);
 
   const logout = useCallback(async (scope = "local") => {
+    loggingOut.current = true;
     try {
       await signOutRequest(scope);
     } finally {
+      loggingOut.current = false;
+      setSessionEnded("user");
       currentId.current = null;
       setUserState(null);
       setRecovery(false);
@@ -150,8 +160,8 @@ export function AuthProvider({ children }) {
   const clearRecovery = useCallback(() => setRecovery(false), []);
 
   const value = useMemo(
-    () => ({ user, role: user?.role ?? null, loading, recovery, error, logout, setUser, clearRecovery }),
-    [user, loading, recovery, error, logout, setUser, clearRecovery]
+    () => ({ user, role: user?.role ?? null, loading, recovery, error, sessionEnded, logout, setUser, clearRecovery }),
+    [user, loading, recovery, error, sessionEnded, logout, setUser, clearRecovery]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -17,7 +17,7 @@ import brandLogo from "../../assets/brand-logo.png";
 import { InstagramIcon, LinkedInIcon, MailIcon } from "../../components/ui/icons";
 
 // Social links. Paste the real profile URLs into LINKEDIN_URL / INSTAGRAM_URL;
-// until then those two icons stay visible but inactive (no made-up URLs).
+// until then those two icons are hidden (QA audit: no dead buttons, no made-up URLs).
 const SUPPORT_EMAIL = "support@universallearning.app";
 const LINKEDIN_URL = "";
 const INSTAGRAM_URL = "";
@@ -92,7 +92,7 @@ export default function SiteFooter() {
               Learn from expert educators, build practical skills, and grow at your own pace.
             </p>
             <div className="mt-4 flex items-center gap-2.5 sm:mt-6">
-              {SOCIAL_LINKS.map(({ label, icon: Icon, href }) => {
+              {SOCIAL_LINKS.filter((l) => l.href).map(({ label, icon: Icon, href }) => {
                 const cls = "grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/70";
                 return href ? (
                   <a

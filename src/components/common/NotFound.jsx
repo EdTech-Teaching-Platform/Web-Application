@@ -3,6 +3,7 @@ import Button from "../ui/Button";
 import { SearchIcon } from "../ui/icons";
 import { AUTH_THEME_VARS, AuthShapes, BrandMark } from "../../auth/components/AuthKit";
 import { Squiggle } from "../../public/components/landing/LandingUI";
+import usePageMeta from "../../hooks/usePageMeta";
 
 // 404 page (the catch-all route). Same blue / ink / yellow look as the landing
 // and login pages, with a way back and a few places worth going instead.
@@ -15,6 +16,7 @@ const QUICK_LINKS = [
 export default function NotFound() {
   const location = useLocation();
   const navigate = useNavigate();
+  usePageMeta({ title: "Page not found", noindex: true });
   const canGoBack = typeof window !== "undefined" && window.history.length > 1;
 
   return (

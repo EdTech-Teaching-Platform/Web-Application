@@ -1,7 +1,7 @@
 // Login: email + password, or Google (Supabase Auth). After sign-in the user
 // is routed by role (student -> /student/dashboard, admin / super_admin ->
 // /admin/logindashboard), or to a same-site ?redirect=.
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -50,6 +50,9 @@ export default function Login({ role = "student" }) {
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  // QA audit (19 Nov): one request at a time, even on a fast double click.
+  const busyRef = useRef(false);
+  const expired = searchParams.get("expired") === "1";
 
   const errors = useMemo(() => {
     const e = {};
@@ -70,8 +73,9 @@ export default function Login({ role = "student" }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
-    if (!isValid) return;
+    if (!isValid || busyRef.current) return;
 
+    busyRef.current = true;
     setSubmitting(true);
     setFormError("");
     try {
@@ -84,6 +88,7 @@ export default function Login({ role = "student" }) {
     } catch (err) {
       setFormError(err.message || INVALID_CREDENTIALS_MESSAGE);
       setSubmitting(false);
+      busyRef.current = false;
     }
   };
 
@@ -134,6 +139,9 @@ export default function Login({ role = "student" }) {
         {shownError && (
           <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">{shownError}</p>
         )}
+        {!shownError && expired && (
+          <p role="status" className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-text">Your session has expired. Please log in again.</p>
+        )}
 
         <Input
           label="Email"
@@ -162,7 +170,7 @@ export default function Login({ role = "student" }) {
           </Link>
         </div>
 
-        <Button type="submit" variant="ink" disabled={!isValid || submitting}>
+        <Button type="submit" variant="ink" disabled={submitting}>
           {submitting ? "Logging in…" : "Log In"}
         </Button>
 

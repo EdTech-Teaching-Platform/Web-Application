@@ -40,6 +40,14 @@ body {
   font-family: var(--font-body);
 }
 
+/* QA audit (19 Nov): never a sideways page scroll on phones, even if one
+ * decorative shape pokes past the edge. `clip` (not `hidden`) keeps
+ * position: sticky headers working and adds no scroll container. */
+html,
+body {
+  overflow-x: clip;
+}
+
 /* Keep each decorative shape layer above its section's own background but
  * behind the section content. This makes the shared shapes visible on
  * public and student pages without affecting the separate auth flows. */

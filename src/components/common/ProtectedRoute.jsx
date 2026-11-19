@@ -8,7 +8,7 @@ import brandLogo from "../../assets/brand-logo.png";
 // never bounces a signed-in user to /login.
 // Usage: <Route element={<ProtectedRoute role="student" />}>…</Route>
 export default function ProtectedRoute({ role, children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, sessionEnded } = useAuth();
   const location = useLocation();
   if (loading) {
     // Blue-tinted backdrop + logo mark, same as the student/landing pages (no old
@@ -25,7 +25,8 @@ export default function ProtectedRoute({ role, children }) {
   }
   if (!user) {
     const redirect = `${location.pathname}${location.search}${location.hash}`;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+    const expired = sessionEnded === "expired" ? "&expired=1" : "";   // QA audit (19 Nov)
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}${expired}`} replace />;
   }
   if (role && user.role !== role) {
     // A role with no portal of its own (e.g. parent) would loop back here.

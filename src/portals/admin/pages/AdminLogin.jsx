@@ -1,6 +1,11 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../../services/supabaseClient";
+import { useAuth } from "../../../hooks/useAuth";
+import { canUseAdminPortal } from "../../../utils/roles";
+import { isEmail } from "../../../auth/utils/validators";
+import { authErrorMessage } from "../../../auth/services/authApi";
+import usePageMeta from "../../../hooks/usePageMeta";
 import {
   IconEye,
   IconEyeOff,
@@ -74,8 +79,47 @@ function IconArrowRight({ size = 16, color = "currentColor" }) {
   );
 }
 
+// QA audit (19 Nov): inline field errors (empty / invalid email), generic
+// error messages, one request at a time, a short pause after 5 failed
+// attempts (Supabase Auth also rate-limits on the server), a session-expired
+// notice, a return to the page the admin was on, and an already signed-in
+// admin skips this page (Back after logging in).
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_SECONDS = 30;
+const LOCK_KEY = "ul-admin-login-lock";
+
+function readLock() {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(LOCK_KEY) || "null");
+    return v && typeof v === "object" ? { failures: Number(v.failures) || 0, until: Number(v.until) || 0 } : { failures: 0, until: 0 };
+  } catch { return { failures: 0, until: 0 }; }
+}
+function writeLock(v) {
+  try { sessionStorage.setItem(LOCK_KEY, JSON.stringify(v)); } catch { /* storage off */ }
+}
+// Only an internal admin page (never this login page or another site).
+function adminTarget(from) {
+  const path = typeof from === "string" ? from : "";
+  return /^\/admin\/(?!login)[\w\-/]*(\?[^\s]*)?$/.test(path) ? path : "/admin/logindashboard";
+}
+
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
+  const busyRef = useRef(false);
+  usePageMeta({ title: "Admin sign in", noindex: true });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [lock, setLock] = useState(readLock);
+  const [now, setNow] = useState(() => Date.now());
+  const lockedFor = Math.max(0, Math.ceil((lock.until - now) / 1000));
+  const expired = location.state?.reason === "expired";
+  const target = adminTarget(location.state?.from);
+  useEffect(() => {
+    if (!lockedFor) return undefined;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [lockedFor]);
   const [stage, setStage] = useState("credentials"); // "credentials" | "loading"
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -89,11 +133,11 @@ export default function AdminLogin() {
       // (AdminLayout.jsx's .ul-main__page) picks up right where this
       // leaves off — no blank/paused frame in between.
       const timer = setTimeout(() => {
-        navigate("/admin/logindashboard", { replace: true });
+        navigate(target, { replace: true });
       }, 220);
       return () => clearTimeout(timer);
     }
-  }, [stage, navigate]);
+  }, [stage, navigate, target]);
 
   useEffect(() => {
   if (!sessionActive) return undefined;
@@ -108,44 +152,76 @@ export default function AdminLogin() {
   return () => window.clearInterval(interval);
 }, [sessionActive]);
 
+  const fail = (message, countsAsFailure = false) => {
+    let shown = message;
+    if (countsAsFailure) {
+      const failures = lock.failures + 1;
+      const next = failures >= MAX_FAILED_ATTEMPTS
+        ? { failures: 0, until: Date.now() + LOCKOUT_SECONDS * 1000 }
+        : { failures, until: 0 };
+      writeLock(next);
+      setLock(next);
+      setNow(Date.now());
+      if (next.until) shown = "";
+    }
+    setError(shown);
+    setStage("credentials");
+  };
+
   const handleCredentialsSubmit = async (event) => {
     event.preventDefault();
+    if (busyRef.current || lockedFor > 0) return;
     const email = form.email.trim();
-
-    if (!email || !form.password) {
-      setError("Enter your email and password to continue.");
+    const errs = {};
+    if (!email) errs.email = "Enter your email address.";
+    else if (!isEmail(email)) errs.email = "Enter a valid email address, like name@example.com.";
+    if (!form.password) errs.password = "Enter your password.";
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) {
+      setError("");
       return;
     }
 
+    busyRef.current = true;
     setError("");
     setStage("loading");
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: form.password });
-    if (signInError) {
-      setError(signInError.message);
-      setStage("credentials");
-      return;
-    }
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: form.password });
+      if (signInError) {
+        const invalid = /invalid login credentials/i.test(signInError.message || "");
+        fail(invalid ? "Invalid email or password." : authErrorMessage(signInError), invalid);
+        return;
+      }
 
-    const { data: admin, error: adminError } = await supabase.rpc("get_admin_me");
-    if (adminError || !admin) {
-      await supabase.auth.signOut();
-      setError("Not authorized");
-      setStage("credentials");
-      return;
-    }
+      const { data: admin, error: adminError } = await supabase.rpc("get_admin_me");
+      if (adminError || !admin) {
+        await supabase.auth.signOut();
+        fail("Invalid email or password.", true);
+        return;
+      }
 
-    const { error: loginError } = await supabase.rpc("record_login", {
-      p_user_agent: navigator.userAgent,
-    });
-    if (loginError) {
-      await supabase.auth.signOut();
-      setError(loginError.message);
-      setStage("credentials");
-      return;
+      const { error: loginError } = await supabase.rpc("record_login", {
+        p_user_agent: navigator.userAgent,
+      });
+      if (loginError) {
+        await supabase.auth.signOut();
+        fail(authErrorMessage(loginError, "We couldn't sign you in. Please try again."));
+        return;
+      }
+      writeLock({ failures: 0, until: 0 });
+      setSessionActive(true);
+      setStage("leaving");
+    } catch (err) {
+      fail(authErrorMessage(err, "We couldn't sign you in. Please try again."));
+    } finally {
+      busyRef.current = false;
     }
-    setSessionActive(true);
-    setStage("leaving");
   };
+
+  // Already signed in as an admin (e.g. Back after logging in): skip the form.
+  if (!authLoading && user && canUseAdminPortal(user) && stage === "credentials") {
+    return <Navigate to={target} replace />;
+  }
 
   return (
     <div style={LANDING_THEME_VARS} className={`ul-login${stage === "leaving" ? " ul-login--leaving" : ""}`}>
@@ -174,9 +250,12 @@ export default function AdminLogin() {
                   className="ul-login__field ul-login__field--icon"
                   placeholder="Enter your email address"
                   value={form.email}
-                  onChange={(event) => setForm({ ...form, email: event.target.value })}
+                  aria-invalid={fieldErrors.email ? "true" : undefined}
+                  aria-describedby={fieldErrors.email ? "admin-email-error" : undefined}
+                  onChange={(event) => { setForm({ ...form, email: event.target.value }); if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: "" }); }}
                 />
               </div>
+              {fieldErrors.email && <p id="admin-email-error" className="ul-login__error">{fieldErrors.email}</p>}
 
               <label className="ul-login__label" htmlFor="admin-password">Password</label>
               <div className="ul-login__field-wrap">
@@ -188,7 +267,9 @@ export default function AdminLogin() {
                   className="ul-login__field ul-login__field--icon ul-login__field--password"
                   placeholder="Enter your password"
                   value={form.password}
-                  onChange={(event) => setForm({ ...form, password: event.target.value })}
+                  aria-invalid={fieldErrors.password ? "true" : undefined}
+                  aria-describedby={fieldErrors.password ? "admin-password-error" : undefined}
+                  onChange={(event) => { setForm({ ...form, password: event.target.value }); if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: "" }); }}
                 />
                 <button
                   type="button"
@@ -200,9 +281,16 @@ export default function AdminLogin() {
                 </button>
               </div>
 
-              {error && <p className="ul-login__error">{error}</p>}
+              {fieldErrors.password && <p id="admin-password-error" className="ul-login__error">{fieldErrors.password}</p>}
 
-              <button className="ul-login__submit" type="submit">
+              {expired && !error && !lockedFor && <p className="ul-login__error" role="status">Your session has expired. Please sign in again.</p>}
+              {(error || lockedFor > 0) && (
+                <p className="ul-login__error" role="alert">
+                  {lockedFor > 0 ? `Too many failed attempts. Try again in ${lockedFor} second${lockedFor === 1 ? "" : "s"}.` : error}
+                </p>
+              )}
+
+              <button className="ul-login__submit" type="submit" disabled={lockedFor > 0}>
                 Sign In <IconArrowRight size={16} />
               </button>
             </form>
