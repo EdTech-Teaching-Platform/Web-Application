@@ -9,7 +9,7 @@
 // Dates are suggestions for urgency/pacing only — official CBSE dates may
 // change, and the footnote says so. Update BOARD_EXAM_START (and the phase
 // end dates) each academic year.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircleIcon, ClockIcon, TargetIcon } from "../../../components/ui/icons";
 import { ArrowUpRight, PillButton, Reveal, Sticker } from "./LandingUI";
@@ -158,139 +158,9 @@ function Roadmap({ activeIdx, fraction }) {
 }
 
 
-// ─── Hanging alarm clock ───────────────────────────────────────────────────
-// Hangs on two chains from the black ticker strip above this section. When it
-// scrolls into view it lowers out from under the strip, swings like a pendulum
-// and keeps swaying slowly and never stops. The second hand steps once per second in
-// time with the countdown. Large screens only; static under reduced motion.
-const HANG_CSS = `
-.ul-hang { position: absolute; left: 45%; top: -100px; width: 140px; height: 290px; margin-left: -70px; z-index: 20; pointer-events: none; }
-.ul-hang-mount { position: absolute; top: 0; left: 50%; z-index: 2; width: 46px; height: 12px; margin-left: -23px; border-radius: 0 0 10px 10px; background: var(--lp-ink-soft); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.24); }
-.ul-hang-mount::after { content: ""; position: absolute; left: 50%; bottom: 2.5px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--lp-yellow); }
-.ul-hang-clip { position: absolute; inset: 10px 0 0 0; clip-path: inset(0 -120px -200px -120px); }
-.ul-hang-drop { transform: translateY(-100%); }
-.ul-hang-swing { transform-origin: 50% 0; }
-.ul-hang-hover { transform-origin: 50% 0; transition: transform 1.3s cubic-bezier(0.3, 1.9, 0.45, 1); }
-.ul-hang-hover[data-held="true"] { transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.3, 1); }
-.ul-hang-zone { position: absolute; left: 0; right: 0; top: 70px; bottom: 0; z-index: 3; pointer-events: auto; cursor: grab; }
-.ul-hang[data-live="true"] .ul-hang-drop { animation: ul-hang-drop 1s cubic-bezier(0.22, 0.8, 0.3, 1) both; }
-.ul-hang[data-live="true"] .ul-hang-swing { animation: ul-hang-swing 5.6s ease-out 0.8s both, ul-hang-idle 6s ease-in-out 6.4s infinite; }
-.ul-hang-chains { display: block; width: 116px; height: 90px; margin: 0 auto; overflow: visible; }
-.ul-hang-clock { position: relative; width: 104px; height: 104px; margin: -4px auto 0; filter: drop-shadow(0 16px 18px rgba(0,0,0,0.5)); }
-.ul-hang-bell { position: absolute; top: -8px; width: 30px; height: 15px; border-radius: 15px 15px 0 0; background: var(--lp-yellow); box-shadow: inset 0 -3px 0 rgba(15,17,21,0.18); }
-.ul-hang-bell.l { left: 8px; transform: rotate(-26deg); }
-.ul-hang-bell.r { right: 8px; transform: rotate(26deg); }
-.ul-hang-face { position: relative; display: block; width: 100%; height: 100%; }
-.ul-hang-sec { transition: transform 0.3s cubic-bezier(0.34, 1.7, 0.5, 1); }
-@keyframes ul-hang-drop { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-@keyframes ul-hang-swing {
-  0% { transform: rotate(0deg); } 11% { transform: rotate(-24deg); } 28% { transform: rotate(18deg); }
-  44% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 74% { transform: rotate(-4.5deg); }
-  88% { transform: rotate(2deg); } 100% { transform: rotate(0deg); }
-}
-@keyframes ul-hang-idle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(3.6deg); } 75% { transform: rotate(-3.6deg); } }
-@media (prefers-reduced-motion: reduce) {
-  .ul-hang-drop { transform: none; animation: none !important; }
-  .ul-hang-swing { animation: none !important; }
-  .ul-hang-hover { transform: none !important; transition: none; }
-  .ul-hang-sec { transition: none; }
-}
-`;
-
 const FACE_TICKS = Array.from({ length: 60 }, (_, i) => i);
 
-function HangingClock({ now }) {
-  const ref = useRef(null);
-  const [live, setLive] = useState(() => typeof IntersectionObserver === "undefined");
-  // bumped every time the clock re-enters the viewport, so the big swing replays
-  const [swingRun, setSwingRun] = useState(0);
-  const [tilt, setTilt] = useState(0);
-  const [held, setHeld] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") return undefined;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setLive(true);
-          setSwingRun((n) => n + 1);
-        }
-      },
-      { threshold: 0.4, rootMargin: "0px 0px -8% 0px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Hover: the clock swings toward the side the cursor is on (up to ~20deg),
-  // then springs back with a little overshoot when the cursor leaves.
-  const handleMove = (e) => {
-    const rect = ref.current?.getBoundingClientRect();
-    if (!rect) return;
-    const dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-    setHeld(true);
-    setTilt(-Math.max(-1, Math.min(1, dx)) * 20);
-  };
-  const handleLeave = () => {
-    setHeld(false);
-    setTilt(0);
-  };
-
-  const date = new Date(now);
-  const secAngle = Math.floor(now / 1000) * 6; // keeps counting up, so it never rewinds at :59
-  const minAngle = date.getMinutes() * 6 + date.getSeconds() * 0.1;
-  const hourAngle = (date.getHours() % 12) * 30 + date.getMinutes() * 0.5;
-  const rot = (deg) => ({ transformOrigin: "60px 60px", transform: `rotate(${deg}deg)` });
-
-  return (
-    <div ref={ref} className="ul-hang hidden lg:block" data-live={live ? "true" : "false"} aria-hidden="true">
-      <style>{HANG_CSS}</style>
-      <span className="ul-hang-mount" />
-      <div className="ul-hang-clip">
-        <div className="ul-hang-drop">
-          <div className="ul-hang-hover" data-held={held ? "true" : "false"} style={{ transform: `rotate(${tilt}deg)` }}>
-          <div key={swingRun} className="ul-hang-swing">
-            <svg className="ul-hang-chains" viewBox="0 0 116 100" preserveAspectRatio="none" fill="none">
-              <path d="M58 0 29 100" stroke="#2a2f3a" strokeWidth="2.6" strokeDasharray="5 2.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-              <path d="M58 0 87 100" stroke="#2a2f3a" strokeWidth="2.6" strokeDasharray="5 2.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-            </svg>
-            <div className="ul-hang-clock">
-              <span className="ul-hang-bell l" />
-              <span className="ul-hang-bell r" />
-              <svg className="ul-hang-face" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="58" fill="var(--lp-yellow)" />
-                <circle cx="60" cy="60" r="50" fill="#fff" />
-                {FACE_TICKS.map((i) => {
-                  const major = i % 5 === 0;
-                  return (
-                    <line
-                      key={i}
-                      x1="60" x2="60" y1={major ? 13 : 14.5} y2={major ? 22 : 17.5}
-                      stroke="var(--lp-ink)" strokeOpacity={major ? 1 : 0.3} strokeWidth={major ? 2.6 : 1}
-                      strokeLinecap="round" transform={`rotate(${i * 6} 60 60)`}
-                    />
-                  );
-                })}
-                <g style={rot(hourAngle)}><rect x="58.4" y="32" width="3.2" height="30" rx="1.6" fill="var(--lp-ink)" /></g>
-                <g style={rot(minAngle)}><rect x="58.8" y="21" width="2.4" height="41" rx="1.2" fill="var(--lp-ink)" /></g>
-                <g className="ul-hang-sec" style={rot(secAngle)}>
-                  <rect x="59.2" y="19" width="1.6" height="52" rx="0.8" fill="var(--lp-blue-deep)" />
-                </g>
-                <circle cx="60" cy="60" r="4.2" fill="var(--lp-yellow)" stroke="var(--lp-ink)" strokeWidth="1.6" />
-              </svg>
-            </div>
-          </div>
-          </div>
-        </div>
-      </div>
-      <span className="ul-hang-zone" onMouseMove={handleMove} onMouseLeave={handleLeave} />
-    </div>
-  );
-}
-
-// Small alarm clock beside the headline, phones only (the large hanging clock
-// above covers lg+). Live hands, gentle ring-wobble, static under reduced motion.
+// Small alarm clock beside the headline, phones only. Live hands, gentle ring-wobble, static under reduced motion.
 function MobileClock({ now }) {
   const date = new Date(now);
   const secAngle = Math.floor(now / 1000) * 6;
@@ -372,7 +242,6 @@ export default function ExamCountdownBanner() {
 
       <div className={SHELL}>
         <Reveal className="relative">
-          <HangingClock now={now} />
           <div className="relative overflow-hidden rounded-[28px] bg-(--lp-ink) px-5 py-8 text-white max-sm:bg-transparent max-sm:px-0 max-sm:py-2 max-sm:text-(--lp-ink) sm:rounded-[40px] sm:px-12 sm:py-14">
             {/* background atmosphere */}
             <div className="pointer-events-none absolute inset-0 max-sm:hidden" aria-hidden="true">
