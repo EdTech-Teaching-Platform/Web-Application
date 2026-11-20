@@ -1,13 +1,16 @@
 // Stored test image paths and their URLs (no imports: safe for data modules
 // and tests). Re-exported by assetsApi.js; see there for the upload flow.
 export const ASSET_BUCKET = "test-assets";
-export const ASSET_KIND = { BANNER: "banner", QUESTION: "question_image" };
+export const ASSET_KIND = { BANNER: "banner", QUESTION: "question_image", ANSWER_PAGE: "answer_page" };
 export const ASSET_INPUT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 // Same limits as asset-upload-url (after resizing). The picked file itself
 // may be larger: it is resized first.
 export const ASSET_LIMITS = {
   [ASSET_KIND.BANNER]: { maxWidth: 1600, maxBytes: 2 * 1024 * 1024, label: "2 MB" },
   [ASSET_KIND.QUESTION]: { maxWidth: 1200, maxBytes: 3 * 1024 * 1024, label: "3 MB" },
+  // A photo of a handwritten answer page (answer-uploads bucket, 20261120090000):
+  // big enough to read handwriting, well under the 10 MB file limit.
+  [ASSET_KIND.ANSWER_PAGE]: { maxWidth: 2000, maxBytes: 8 * 1024 * 1024, label: "8 MB" },
 };
 export const MAX_INPUT_BYTES = 20 * 1024 * 1024;
 

@@ -9,6 +9,9 @@ import { attemptApi } from "../services/attemptApi";
 //   phase: idle | running | done | failed | unavailable
 //   unavailable = the function isn't deployed / configured: the page keeps
 //   the plain "pending review" notice.
+// Client decision (20 Nov): written answers are marked by the teacher only
+// (20261120090000), so the AI evaluation is off. The code stays for later.
+export const AI_EVALUATION_ENABLED = false;
 export const AI_POLL_MS = 4000;
 export const AI_MAX_POLLS = 60;   // ~4 minutes
 
@@ -17,9 +20,9 @@ export function needsAiEvaluation(report) {
   return Boolean(s && s.pending_count > 0 && report?.ai?.status !== "done");
 }
 
-export function useAiEvaluation(report, attemptId, { onDone, api = attemptApi, pollMs = AI_POLL_MS, maxPolls = AI_MAX_POLLS } = {}) {
+export function useAiEvaluation(report, attemptId, { onDone, api = attemptApi, pollMs = AI_POLL_MS, maxPolls = AI_MAX_POLLS, enabled = AI_EVALUATION_ENABLED } = {}) {
   const [state, setState] = useState({ phase: "idle", canRetry: false });
-  const needed = needsAiEvaluation(report);
+  const needed = enabled && needsAiEvaluation(report);
   const doneRef = useRef(onDone);
   useEffect(() => { doneRef.current = onDone; });
   const timer = useRef(null);

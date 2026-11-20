@@ -127,7 +127,7 @@ describe("useAiEvaluation", () => {
     const statuses = ["running", "running", "done"];
     const api = { requestAiEvaluation: vi.fn(async () => ({ status: "running" })), aiEvaluationStatus: vi.fn(async () => ({ status: statuses.shift() })) };
     const onDone = vi.fn();
-    const { result } = renderHook(() => useAiEvaluation(pending, "a1", { api, onDone, pollMs: 10 }));
+    const { result } = renderHook(() => useAiEvaluation(pending, "a1", { api, onDone, pollMs: 10, enabled: true }));
     expect(result.current.phase).toBe("running");
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(result.current.phase).toBe("done"));
@@ -137,7 +137,7 @@ describe("useAiEvaluation", () => {
 
   it("a failed job offers Try again when the server allows it", async () => {
     const api = { requestAiEvaluation: vi.fn(async () => ({ status: "running" })), aiEvaluationStatus: vi.fn(async () => ({ status: "failed", can_retry: true })) };
-    const { result } = renderHook(() => useAiEvaluation(pending, "a1", { api, pollMs: 10 }));
+    const { result } = renderHook(() => useAiEvaluation(pending, "a1", { api, pollMs: 10, enabled: true }));
     await waitFor(() => expect(result.current.phase).toBe("failed"));
     expect(result.current.canRetry).toBe(true);
     api.aiEvaluationStatus.mockResolvedValue({ status: "done" });
@@ -149,7 +149,7 @@ describe("useAiEvaluation", () => {
   it("no function deployed: unavailable (the page keeps the plain pending notice)", async () => {
     const err = Object.assign(new Error("The evaluate-subjective function isn't available (not deployed?)."), { status: 404 });
     const api = { requestAiEvaluation: vi.fn(async () => { throw err; }), aiEvaluationStatus: vi.fn() };
-    const { result } = renderHook(() => useAiEvaluation(pending, "a1", { api, pollMs: 10 }));
+    const { result } = renderHook(() => useAiEvaluation(pending, "a1", { api, pollMs: 10, enabled: true }));
     await waitFor(() => expect(result.current.phase).toBe("unavailable"));
     expect(api.aiEvaluationStatus).not.toHaveBeenCalled();
   });
@@ -183,39 +183,25 @@ describe("report page", () => {
     render(<MemoryRouter initialEntries={["/student/report/a1"]}><Routes><Route path="/student/report/:attemptId" element={<TestReport />} /></Routes></MemoryRouter>);
   }
 
-  it("starts the AI evaluation for pending written answers, then shows the AI report", async () => {
-    let evaluated = false;
-    rpcHandlers.student_get_report = () => (evaluated ? graded : base());
-    invoke.mockImplementation(async () => { evaluated = true; return { data: { status: "done" }, error: null }; });
+  // 20 Nov: teachers mark written answers; the AI evaluation is switched off
+  // (AI_EVALUATION_ENABLED = false). The hook tests above still cover it.
+  it("pending written answers wait for the teacher: the AI is not called", async () => {
+    rpcHandlers.student_get_report = base();
+    rpcHandlers.student_list_answer_uploads = { can_upload: false, uploads: [] };
     await renderReport();
-    expect(await screen.findByRole("heading", { name: "AI evaluation of your written answers" })).toBeInTheDocument();
-    expect(invoke).toHaveBeenCalledWith("evaluate-subjective", { body: { attemptId: "a1" } });
-    expect(screen.getByText("Solid basics; work on reasoning.")).toBeInTheDocument();
-    expect(screen.getByText("Practise derivations")).toBeInTheDocument();
+    expect(await screen.findByText(/1 written answer is waiting for your teacher's marks \(10 marks\)/)).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(invoke).not.toHaveBeenCalledWith("evaluate-subjective", expect.anything());
+    expect(screen.queryByText(/AI is evaluating/)).toBeNull();
+  });
+
+  it("an older AI-graded report still shows its AI feedback", async () => {
+    rpcHandlers.student_get_report = graded;
+    await renderReport();
+    expect(await screen.findByText("Solid basics; work on reasoning.")).toBeInTheDocument();
     expect(screen.getByText("Good statement; link it to charge conservation.")).toBeInTheDocument();
-    expect(screen.getAllByText("Partly correct").length).toBeGreaterThan(0);
     expect(screen.getByText("7.5 / 10")).toBeInTheDocument();
     expect(screen.getByText("Graded by AI")).toBeInTheDocument();
-    expect(screen.queryByText(/pending review/i)).toBeNull();
-  });
-
-  it("while it runs, says so", async () => {
-    rpcHandlers.student_get_report = base();
-    rpcHandlers.student_ai_eval_status = { status: "running" };
-    invoke.mockResolvedValue({ data: { status: "running" }, error: null });
-    await renderReport();
-    expect(await screen.findByText(/AI is evaluating your 1 written answer/)).toBeInTheDocument();
-  });
-
-  it("if it fails, offers Try again", async () => {
-    rpcHandlers.student_get_report = base();
-    invoke.mockResolvedValue({ data: null, error: Object.assign(new Error("Edge Function returned a non-2xx status code"), { context: { status: 500, json: async () => ({ error: "OpenAI 500" }) } }) });
-    await renderReport();
-    expect(await screen.findByText(/couldn't evaluate your written answers automatically/)).toBeInTheDocument();
-    invoke.mockResolvedValue({ data: { status: "running" }, error: null });
-    rpcHandlers.student_ai_eval_status = { status: "running" };
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByText(/AI is evaluating/)).toBeInTheDocument();
   });
 
   it("an already evaluated report doesn't call the AI again", async () => {

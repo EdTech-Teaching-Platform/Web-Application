@@ -99,6 +99,37 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-20: written answers, typed or uploaded, marked by the teacher (client request)
+
+Decisions (asked 20 Nov):
+- teacher-only marking (the AI evaluation is switched off: `AI_EVALUATION_ENABLED = false`; do NOT deploy `evaluate-subjective`);
+- uploads per written question, up to 5 files of 10 MB;
+- uploads open during the test and for 15 minutes after it ends;
+- the series educator and admins mark.
+
+- **Migration `20261120090000_admin_written_answers.sql`** (needs 20261115090000; NOT applied).
+  - Rollback: `scripts/rollback_20261120090000_admin_written_answers.sql` (tested; it leaves the bucket and published marks).
+  - Trial: `docs/trial_run_20261120090000.sql`. Tests: `supabase/tests/written_answers.sql` (51 checks).
+  - **Storage:** private bucket `answer-uploads` (10 MB; JPEG / PNG / WebP / PDF). No storage policies.
+  - **Tables (ours; RLS on, no grants):** `answer_uploads`, `answer_upload_requests` (60 an hour), `written_answer_grades`, `written_evaluations`.
+  - **Student RPCs:** `student_answer_upload_slot`, `student_register_answer_upload` (it checks the path shape and that the storage object exists), `student_remove_answer_upload`, `student_list_answer_uploads`.
+  - **Grader RPCs** (`adm_can_manage_series`): `grading_list_attempts`, `grading_get_attempt`, `grading_save`.
+    - Draft or publish. Publishing waits for the upload window, needs every answered question marked, then updates quiz_answers, quiz_attempts and the report (`teacher_evaluation` per question, `report.teacher`) and notifies the student (`assessment_result`, a link to the report).
+    - Educators see a candidate code; admins also see the name.
+  - `adm_answer_upload_access`: the student who uploaded the file, or a grader.
+  - **Trigger** `attempt_reports_written_answers` (BEFORE INSERT on our `attempt_reports`): an upload-only answer becomes 'pending', not 'skipped'. A report without uploads is unchanged.
+  - **Fixed** a 15 Nov leftover: `adm_series_content_problem` refused written questions when an educator submitted a series for approval.
+- **New Edge Function `answer-uploads`** (`verify_jwt = true`, NOT deployed): `upload` gives a signed upload URL, `view` a 10-minute signed URL. Every check runs as the caller.
+- **Frontend:**
+  - **Test runner:** "Type answer" / "Upload answer sheet" on written questions (`AnswerUploader`: camera or files, resize to 2000 px, progress, view, remove). Uploads count as answered. Proctoring pauses while the picker is open (`useProctor` `pause` / `resume`), and a "Return to full screen" prompt follows.
+  - **Report:** "Add your answer sheets" during the 15 minutes, the teacher's overall and per-question feedback, and the uploaded sheets.
+  - **Marking:** `src/components/grading` (GradingQueue, GradingWorkspace) at `/teacher/evaluate` (new nav item "Evaluate") and `/admin/evaluations` (sidebar "Evaluate Answers").
+- **Tests:** `tests/written-answers.test.jsx` (18). The AI report tests are updated: the AI isn't called.
+- **Open items:**
+  - deploy order: 20261111090000, 20261114090000, 20261115090000, 20261118090000, 20261120090000, then the `answer-uploads` function;
+  - removed files stay in storage (Supabase blocks SQL deletes), so a cleanup job is a later item;
+  - there's no AI reading of handwriting.
+
 ## 2026-11-19: independent tester's website and admin-portal audit (frontend only, no migration)
 
 - **index.html:** real title, meta description, Open Graph / Twitter tags (absolute URLs use the vercel.app domain: change them when the custom domain is live), theme colour, a CSS loader inside #root, and a <noscript> message.

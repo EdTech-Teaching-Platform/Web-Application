@@ -15,6 +15,8 @@ const AssignmentList = lazy(() => import("./pages/AssignedWork").then((m) => ({ 
 const AssignmentDetail = lazy(() => import("./pages/AssignedWork").then((m) => ({ default: m.AssignmentDetail })));
 const EducatorTestSeries = lazy(() => import("./pages/EducatorTestSeries"));
 const EducatorStats = lazy(() => import("./pages/EducatorStats"));
+const EvaluateList = lazy(() => import("./pages/Evaluate").then((m) => ({ default: m.EvaluateList })));
+const EvaluateAttempt = lazy(() => import("./pages/Evaluate").then((m) => ({ default: m.EvaluateAttempt })));
 const EducatorProfilePage = lazy(() => import("./pages/EducatorProfilePage"));
 const EducatorOnboarding = lazy(() => import("./pages/EducatorOnboarding"));
 const TestSeriesWizard = lazy(() => import("../admin/pages/TestSeriesWizard"));
@@ -39,6 +41,8 @@ const teacherRoutes = (
     <Route path="test-series/new" element={<TestSeriesWizard />} />
     <Route path="test-series/:seriesId" element={<TestSeriesDetail />} />
     <Route path="test-series/:seriesId/tests/:testId" element={<TestDetail />} />
+    <Route path="evaluate" element={<EvaluateList />} />
+    <Route path="evaluate/:attemptId" element={<EvaluateAttempt />} />
     <Route path="stats" element={<EducatorStats />} />
     <Route path="profile" element={<EducatorProfilePage />} />
 

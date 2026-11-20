@@ -26,3 +26,5 @@ verify_jwt = true
 verify_jwt = true
 [functions.delete-account]
 verify_jwt = true
+[functions.answer-uploads]
+verify_jwt = true

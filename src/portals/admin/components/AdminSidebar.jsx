@@ -44,6 +44,7 @@ const NAV_SECTIONS = [
       { to: "/admin/testseries", label: "Create Test Series", icon: IconBook, end: true },
       { to: "/admin/testseries/assign-educators", label: "Assign Educators", icon: IconTeach },
       { to: "/admin/testseries/tracker", label: "Test Series Tracker", icon: IconLayers },
+      { to: "/admin/evaluations", label: "Evaluate Answers", icon: IconReport },
       { to: "/admin/testseries/performance-analytics", label: "Test Performance Analytics", icon: IconChart },
     ],
   },

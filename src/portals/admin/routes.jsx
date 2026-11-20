@@ -14,6 +14,8 @@ const TestSeriesDetail = lazy(() => import("./pages/TestSeriesDetail"));
 const TestDetail = lazy(() => import("./pages/TestDetail"));
 const AssignEducators = lazy(() => import("./pages/AssignEducators"));
 const TestSeriesTracker = lazy(() => import("./pages/TestSeriesTracker"));
+const EvaluationList = lazy(() => import("./pages/Evaluations").then((m) => ({ default: m.EvaluationList })));
+const EvaluationAttempt = lazy(() => import("./pages/Evaluations").then((m) => ({ default: m.EvaluationAttempt })));
 const TestPerformanceAnalytics = lazy(() => import("./pages/TestPerformanceAnalytics"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const PaymentOversight = lazy(() => import("./pages/PaymentOversight"));
@@ -57,6 +59,8 @@ const adminRoutes = (
       <Route path="testseries/ai-builder" element={<AITestBuilder />} />
       <Route path="testseries/assign-educators" element={<AssignEducators />} />
       <Route path="testseries/tracker" element={<TestSeriesTracker />} />
+      <Route path="evaluations" element={<EvaluationList />} />
+      <Route path="evaluations/:attemptId" element={<EvaluationAttempt />} />
       <Route path="testseries/performance-analytics" element={<TestPerformanceAnalytics />} />
       <Route path="testseries/:seriesId" element={<TestSeriesDetail />} />
       <Route path="testseries/:seriesId/tests/:testId" element={<TestDetail />} />

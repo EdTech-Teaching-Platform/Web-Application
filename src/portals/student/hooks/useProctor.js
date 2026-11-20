@@ -58,20 +58,38 @@ export function attachProctorListeners({ win = window, doc = document, onEvent }
   return () => handlers.forEach(([target, type, fn]) => target.removeEventListener(type, fn));
 }
 
+// Leaving the window or full screen while the camera / file picker is open
+// to upload an answer sheet (20261120090000) isn't a violation. Copy, paste
+// and right-click stay blocked.
+export const PAUSABLE_EVENTS = [PROCTOR_EVENTS.visibilityHidden, PROCTOR_EVENTS.windowBlur, PROCTOR_EVENTS.fullscreenExit];
+export const PICKER_PAUSE_MS = 3 * 60 * 1000;   // at most; resume() ends it sooner
+export const RESUME_GRACE_MS = 1500;            // the focus / fullscreen events right after returning
+
 // enabled: listen only while the attempt is running (not while loading or
 // after submit). onEvent receives (type, meta).
-export function useProctor({ enabled, onEvent }) {
+//   pause(ms)  ignore window changes for up to ms (the upload picker is open)
+//   resume()   back to normal after a short grace
+const systemNow = () => Date.now();
+export function useProctor({ enabled, onEvent, now = systemNow }) {
   const handler = useRef(onEvent);
+  const pausedUntil = useRef(0);
   useEffect(() => {
     handler.current = onEvent;
   });
 
   useEffect(() => {
     if (!enabled) return undefined;
-    return attachProctorListeners({ onEvent: (type, meta) => handler.current?.(type, meta) });
-  }, [enabled]);
+    return attachProctorListeners({
+      onEvent: (type, meta) => {
+        if (PAUSABLE_EVENTS.includes(type) && now() < pausedUntil.current) return;
+        handler.current?.(type, meta);
+      },
+    });
+  }, [enabled]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { enterFullscreen: useCallback(() => enterFullscreen(), []), supported: fullscreenSupported() };
+  const pause = useCallback((ms = PICKER_PAUSE_MS) => { pausedUntil.current = now() + ms; }, [now]);
+  const resume = useCallback(() => { pausedUntil.current = Math.min(pausedUntil.current, now() + RESUME_GRACE_MS); }, [now]);
+  return { enterFullscreen: useCallback(() => enterFullscreen(), []), supported: fullscreenSupported(), pause, resume };
 }
 
 export default useProctor;

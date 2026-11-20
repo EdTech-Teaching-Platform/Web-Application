@@ -29,6 +29,8 @@
 | AI evaluation request and status | ❌ | 🔒 | — | — | `student_ai_evaluation.sql` |
 | AI context and grade saving (`adm_ai_eval_*`) | ❌ | ❌ | ❌ | ❌ (service role only) | `student_ai_evaluation.sql` |
 | Delete-account request | ❌ | 🔒 | 🔒 | decide | `qa_nov11.sql` |
+| Upload answer sheets (`student_*_answer_upload*`) | ❌ | 🔒 own attempt, written questions, window open | — | — | `written_answers.sql` |
+| Mark written answers (`grading_*`) | ❌ | ❌ | 🔒 own series (candidate code, no name) | ✅ all (with name) | `written_answers.sql` |
 | Delete own account (`adm_account_delete_self`) | ❌ | ❌ direct (service role only, via delete-account) | ❌ direct | ❌ | `qa_nov18.sql` |
 | Educator onboarding (`educator_start/save/submit_onboarding`) | ❌ | — | ✅ (any educator) | — | `educator_onboarding.sql` |
 | Create, edit and delete series, tests, questions | ❌ | ❌ | 🔒 own series (not while pending approval) | ✅ all | `educator_series.sql`, IDOR |
@@ -45,6 +47,7 @@
 | Function | Anon | Student | Teacher | Admin | Other |
 |---|---|---|---|---|---|
 | evaluate-subjective | ❌ | 🔒 own attempt | — | — | — |
+| answer-uploads (20 Nov) | ❌ | 🔒 upload / view own answer sheets (test time + 15 min) | 🔒 view sheets of own series | ✅ view | — |
 | delete-account (QA 18 Nov) | ❌ | 🔒 own account, password re-checked | 🔒 own account, password re-checked | ❌ (refused in SQL) | — |
 | educator-upload-url | ❌ | ❌ | ✅ | — | — |
 | asset-upload-url | ❌ | ❌ | ✅ (verified) | ✅ | — |

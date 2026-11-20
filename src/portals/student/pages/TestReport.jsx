@@ -3,7 +3,11 @@
 // Written answers are graded by AI after submission (20261115090000): while
 // that runs the page shows its progress, then reloads the report, which then
 // carries per-question AI feedback and an overall "AI evaluation" section.
-import { useMemo, useState } from "react";
+// Since 20 Nov (20261120090000) the teacher marks written answers instead (the
+// AI hook is switched off): pending answers wait for the teacher, the report
+// then shows the teacher's marks and feedback, and for 15 minutes after the
+// test the student can still add answer sheets here.
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Chip from "../../../components/ui/Chip";
 import DonutChart from "../../../components/ui/DonutChart";
@@ -18,13 +22,18 @@ import { formatDate, formatMinutes, formatPercent, formatScore, formatSeconds } 
 import { FeedbackForm } from "../components/FeedbackForm";
 import { useAiEvaluation } from "../hooks/useAiEvaluation";
 import { QuestionFigure, SeriesBanner } from "../components/TestImages";
+import AnswerUploader from "../components/AnswerUploader";
+import { answerUploadsApi, formatFileSize } from "../../../services/answerUploadsApi";
+import { isWrittenType } from "../../admin/data/questionTypes";
+
+const isWrittenRow = (q) => q?.type === "short_answer" || isWrittenType(q?.ui_type);
 
 const STATUS = {
   correct: { label: "Correct", tone: "success" },
   incorrect: { label: "Incorrect", tone: "danger" },
   skipped: { label: "Skipped", tone: "neutral" },
   partial: { label: "Partly correct", tone: "warning" },
-  pending: { label: "Pending review", tone: "warning" },
+  pending: { label: "Awaiting teacher's marks", tone: "warning" },
 };
 
 const WIDE = "mx-auto w-full max-w-7xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8";
@@ -134,16 +143,61 @@ function AiFeedback({ evaluation }) {
   );
 }
 
-export function QuestionReview({ question, hidden }) {
+// The teacher's marks and feedback on one written answer.
+function TeacherFeedback({ evaluation }) {
+  return (
+    <div className="mt-4 rounded-xl bg-success/10 px-4 py-3 text-sm text-text/85">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-success">Teacher's feedback</p>
+      <p className="mt-1.5 leading-relaxed">{evaluation.feedback || "No comments."}</p>
+    </div>
+  );
+}
+
+function UploadedFiles({ files, api }) {
+  const [error, setError] = useState("");
+  if (!files?.length) return null;
+  const view = async (f) => {
+    setError("");
+    const tab = typeof window.open === "function" ? window.open("", "_blank") : null;
+    try {
+      const url = await api.fileUrl(f.id);
+      if (tab) tab.location.href = url;
+      else window.location.assign(url);
+    } catch (err) {
+      tab?.close?.();
+      setError(err.message || "Couldn't open the file.");
+    }
+  };
+  return (
+    <div className="mt-3">
+      <p className="text-xs font-semibold text-text/70">Your answer sheet{files.length === 1 ? "" : "s"}</p>
+      <ul className="mt-1.5 flex flex-wrap gap-2">
+        {files.map((f, i) => (
+          <li key={f.id}>
+            <button type="button" onClick={() => view(f)}
+              className={`inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-(--lp-blue-deep) ring-1 ring-(--lp-line) hover:bg-(--lp-blue-tint) ${FOCUS}`}>
+              {f.contentType === "application/pdf" ? "PDF" : `Page ${i + 1}`} · {formatFileSize(f.size)}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {error && <p role="alert" className="mt-1 text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
+
+export function QuestionReview({ question, hidden, files = [], api = answerUploadsApi }) {
   const s = STATUS[question.status] ?? STATUS.skipped;
   return (
     <li className={CARD}>
       <div className="flex flex-wrap items-center gap-3">
         <span className={`grid h-9 min-w-9 place-items-center rounded-lg px-2 text-sm font-semibold ${Q_TONE[question.status] ?? Q_TONE.skipped}`}>Q{question.position}</span>
         <StatusBadge status={s.tone}>{s.label}</StatusBadge>
-        {question.ai_evaluation && <span className="rounded-full bg-(--lp-blue-soft) px-2.5 py-0.5 text-[11px] font-semibold text-(--lp-blue-deep)">Graded by AI</span>}
+        {question.teacher_evaluation
+          ? <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-[11px] font-semibold text-success">Marked by teacher</span>
+          : question.ai_evaluation && <span className="rounded-full bg-(--lp-blue-soft) px-2.5 py-0.5 text-[11px] font-semibold text-(--lp-blue-deep)">Graded by AI</span>}
         <span className="ml-auto rounded-full bg-(--lp-grey) px-3 py-1 text-xs font-semibold text-text/70">
-          {question.status === "pending" ? `${question.points} marks, awaiting review` : `${question.points_earned ?? 0} / ${question.points}`}
+          {question.status === "pending" ? `${question.points} marks, awaiting your teacher` : `${question.points_earned ?? 0} / ${question.points}`}
         </span>
       </div>
       <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed text-(--lp-ink)">{question.text}</p>
@@ -166,13 +220,16 @@ export function QuestionReview({ question, hidden }) {
         </ul>
       ) : (
         <dl className="mt-4 space-y-2 rounded-xl bg-(--lp-grey) px-4 py-3 text-sm">
-          <div><dt className="inline font-medium text-text/70">Your answer: </dt><dd className="inline text-text">{question.student_answer || "Not answered"}</dd></div>
+          <div><dt className="inline font-medium text-text/70">Your answer: </dt><dd className="inline whitespace-pre-line text-text">{question.student_answer || (files.length ? "Uploaded as answer sheets (below)" : "Not answered")}</dd></div>
           {question.correct_answer && (
             <div><dt className="inline font-medium text-text/70">{question.status === "pending" ? "Model answer: " : "Accepted answer: "}</dt><dd className="inline text-text">{question.correct_answer}</dd></div>
           )}
         </dl>
       )}
-      {question.ai_evaluation && <AiFeedback evaluation={question.ai_evaluation} />}
+      <UploadedFiles files={files} api={api} />
+      {question.teacher_evaluation
+        ? <TeacherFeedback evaluation={question.teacher_evaluation} />
+        : question.ai_evaluation && <AiFeedback evaluation={question.ai_evaluation} />}
       {question.explanation && <p className="mt-4 rounded-xl bg-(--lp-blue-tint) px-4 py-3 text-sm leading-relaxed text-text/80"><strong>Explanation:</strong> {question.explanation}</p>}
       {hidden && !question.options?.length && <p className="mt-3 text-xs text-text/50">Answers are hidden for this test.</p>}
       <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.1em] text-(--lp-muted)">{[question.section, question.topic, question.difficulty].filter(Boolean).join(" · ")}</p>
@@ -211,6 +268,41 @@ function AiReport({ ai }) {
   );
 }
 
+// The teacher's overall feedback (published marks).
+function TeacherReport({ teacher }) {
+  return (
+    <section className={CARD} aria-labelledby="ul-teacher-report">
+      <h2 id="ul-teacher-report" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">Your teacher's evaluation</h2>
+      <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-text/85">{teacher.overall_feedback || "Your written answers have been marked. See the feedback on each question below."}</p>
+      {teacher.evaluated_at && <p className="mt-3 text-xs text-(--lp-muted)">Marked on {formatDate(teacher.evaluated_at, true)}. If you think a mark is wrong, tell us with "Give feedback or report an issue".</p>}
+    </section>
+  );
+}
+
+// For 15 minutes after the test: add the handwritten answer sheets.
+function LateUploads({ attemptId, questions, uploads, onChange }) {
+  const written = questions.filter(isWrittenRow);
+  if (!uploads?.canUpload || written.length === 0) return null;
+  const until = uploads.windowClosesAt ? new Date(uploads.windowClosesAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : null;
+  return (
+    <section className={CARD} aria-labelledby="ul-late-uploads">
+      <h2 id="ul-late-uploads" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">Add your answer sheets</h2>
+      <p className="mt-1 text-sm text-(--lp-muted)">
+        Wrote answers on paper? Upload photos or a PDF for each written question{until ? ` until ${until}` : ""}. Your typed answers can't be changed any more.
+      </p>
+      <ol className="mt-4 space-y-4">
+        {written.map((q) => (
+          <li key={q.question_id}>
+            <p className="mb-2 text-sm font-semibold text-(--lp-ink)">Q{q.position}. <span className="font-normal text-text/80">{String(q.text || "").slice(0, 160)}</span></p>
+            <AnswerUploader attemptId={attemptId} questionId={q.question_id} files={uploads.byQuestion[q.question_id] || []}
+              canUpload={uploads.canUpload} onChange={onChange} label="Answer sheet for this question" />
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function Notice({ children }) {
   return (
     <p role="status" className="flex items-start gap-3 rounded-xl bg-warning/10 px-5 py-4 text-sm text-text ring-1 ring-warning/30">
@@ -245,6 +337,15 @@ export default function TestReport() {
 
   const ai = useAiEvaluation(report, attemptId, { onDone: reload });
   const questions = useMemo(() => report?.questions ?? [], [report]);
+  const [uploads, setUploads] = useState(null);
+  const hasWritten = questions.some(isWrittenRow);
+  useEffect(() => {
+    if (!attemptId || !hasWritten) return undefined;
+    let alive = true;
+    answerUploadsApi.list(attemptId).then((u) => { if (alive) setUploads(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [attemptId, hasWritten]);
+  const onUploadsChange = (next) => { setUploads(next); Promise.resolve(reload()).catch(() => {}); };
   const shown = useMemo(() => (filter === "all" ? questions : questions.filter((q) => q.status === filter)), [questions, filter]);
 
   if (loading) return <div className={WIDE}><LoadingState label="Loading your report" /></div>;
@@ -316,11 +417,13 @@ export default function TestReport() {
       )}
       {s.pending_count > 0 && !["running", "failed"].includes(ai.phase) && (
         <Notice>
-          {s.pending_count} written {s.pending_count === 1 ? "answer is" : "answers are"} pending review ({s.pending_marks} marks).
-          Your score below leaves them out, so it may change once they're graded.
+          {s.pending_count} written {s.pending_count === 1 ? "answer is" : "answers are"} waiting for your teacher's marks ({s.pending_marks} marks).
+          Your score below leaves them out for now. You'll get a notification when they're marked.
         </Notice>
       )}
-      {report.ai?.status === "done" && <AiReport ai={report.ai} />}
+      <LateUploads attemptId={attemptId} questions={questions} uploads={uploads} onChange={onUploadsChange} />
+      {report.teacher?.status === "published" && <TeacherReport teacher={report.teacher} />}
+      {report.ai?.status === "done" && !report.teacher && <AiReport ai={report.ai} />}
 
       <section className="grid overflow-hidden rounded-2xl bg-white ring-1 ring-(--lp-line) shadow-[0_1px_2px_rgb(15_17_21/0.04)] md:grid-cols-[15rem_minmax(0,1fr)]">
         <div className="flex flex-col items-center justify-center gap-3 border-b border-(--lp-line) p-6 sm:p-8 md:border-b-0 md:border-r">
@@ -432,7 +535,7 @@ export default function TestReport() {
         </div>
         {s.answers_hidden && <p className="text-sm text-(--lp-muted)">Correct answers and explanations are hidden for this test.</p>}
         <ol className="space-y-4">
-          {shown.map((q) => <QuestionReview key={q.question_id} question={q} hidden={s.answers_hidden} />)}
+          {shown.map((q) => <QuestionReview key={q.question_id} question={q} hidden={s.answers_hidden} files={uploads?.byQuestion[q.question_id] || []} />)}
         </ol>
       </section>
     </div>

@@ -303,10 +303,10 @@ describe("report page", () => {
 
   it("shows the pending-review state for written answers", async () => {
     await renderReport();
-    expect(screen.getByText(/1 written answer is pending review \(5 marks\)/)).toBeInTheDocument();
+    expect(screen.getByText(/1 written answer is waiting for your teacher's marks \(5 marks\)/)).toBeInTheDocument();
     expect(screen.getByText(/Passed \(provisional\)/)).toBeInTheDocument();
-    expect(screen.getAllByText("Pending review").length).toBeGreaterThan(0);
-    expect(screen.getByText("5 marks, awaiting review")).toBeInTheDocument();
+    expect(screen.getAllByText("Awaiting teacher's marks").length).toBeGreaterThan(0);
+    expect(screen.getByText("5 marks, awaiting your teacher")).toBeInTheDocument();
   });
 
   it("shows skipped questions with the accepted answer", async () => {

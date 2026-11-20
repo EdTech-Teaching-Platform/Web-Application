@@ -2,14 +2,20 @@
 // resumes the attempt; answers autosave (debounced); the timer counts down to
 // the SERVER deadline and submits at zero; window changes are recorded as
 // violations and the server auto-submits over the limit.
-import { useEffect, useRef, useState } from "react";
+// Written questions (20261120090000): type the answer, or upload photos / a
+// PDF of the handwritten answer (AnswerUploader). Uploads count as answered;
+// proctoring pauses while the camera or file picker is open. The teacher
+// marks written answers after the test.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { ErrorState, LoadingState, PAGE } from "../components/PageState";
 import { isAnswered, useAttemptRunner } from "../hooks/useAttemptRunner";
-import { useProctor } from "../hooks/useProctor";
+import { fullscreenElement, useProctor } from "../hooks/useProctor";
+import AnswerUploader from "../components/AnswerUploader";
+import { listAnswerUploads } from "../../../services/answerUploadsApi";
 import { formatClock } from "../utils/format";
 import EmailWatermark from "../components/EmailWatermark";
 import { QuestionFigure, SeriesThumb } from "../components/TestImages";
@@ -30,7 +36,51 @@ function SaveIndicator({ status }) {
   return <span className={`text-xs ${status === "error" ? "text-danger" : "text-text/50"}`} aria-live="polite">{text}</span>;
 }
 
-function QuestionInput({ question, value, onChange }) {
+// Type the answer, or upload the handwritten sheet. Both stay available: a
+// typed answer is kept when switching, and the teacher sees both.
+export function WrittenAnswer({ question, value, onChange, upload }) {
+  const text = typeof value === "string" ? value : "";
+  const files = upload?.files || [];
+  const [mode, setMode] = useState(files.length && !text.trim() ? "upload" : "type");
+  const tab = (key, label) => (
+    <button type="button" role="tab" aria-selected={mode === key} onClick={() => setMode(key)}
+      className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${mode === key ? "bg-text text-white" : "bg-white text-text ring-1 ring-text/15 hover:bg-text/5"}`}>
+      {label}
+    </button>
+  );
+  return (
+    <div>
+      {upload && (
+        <div role="tablist" aria-label="How do you want to answer?" className="mb-3 flex flex-wrap gap-2">
+          {tab("type", "Type answer")}
+          {tab("upload", `Upload answer sheet${files.length ? ` (${files.length})` : ""}`)}
+        </div>
+      )}
+      {mode === "type" || !upload ? (
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-medium text-text">Your answer</span>
+          <textarea
+            className="min-h-40 w-full rounded-2xl border border-text/15 bg-bg px-4 py-3 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+            value={text}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </label>
+      ) : (
+        <AnswerUploader
+          attemptId={upload.attemptId} questionId={question.id} files={files} canUpload={upload.canUpload}
+          onChange={upload.onChange} onPickStart={upload.onPickStart} onPickEnd={upload.onPickEnd}
+        />
+      )}
+      <span className="mt-2 block text-xs text-text/50">
+        Your teacher marks written answers after you submit.
+        {upload && mode === "type" && files.length > 0 && ` You've also uploaded ${files.length} file${files.length === 1 ? "" : "s"} for this answer.`}
+        {upload && " You can still upload answer sheets for 15 minutes after the test ends."}
+      </span>
+    </div>
+  );
+}
+
+function QuestionInput({ question, value, onChange, upload }) {
   const name = `q-${question.id}`;
   if (question.type === "multiple_choice" || question.type === "true_false") {
     const multi = Boolean(question.multi_select);
@@ -74,25 +124,15 @@ function QuestionInput({ question, value, onChange }) {
       </label>
     );
   }
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-text">Your answer</span>
-      <textarea
-        className="min-h-40 w-full rounded-2xl border border-text/15 bg-bg px-4 py-3 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-        value={text}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <span className="mt-1 block text-xs text-text/50">Written answers are evaluated by AI right after you submit.</span>
-    </label>
-  );
+  return <WrittenAnswer key={question.id} question={question} value={text} onChange={onChange} upload={upload} />;
 }
 
-export function Palette({ questions, answers, marked, current, onGoTo }) {
+export function Palette({ questions, answers, marked, current, onGoTo, isDone = (q) => isAnswered(answers[q.id]) }) {
   return (
     <nav aria-label="Question palette">
       <ol className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-5">
         {questions.map((q, i) => {
-          const answered = isAnswered(answers[q.id]);
+          const answered = isDone(q);
           const isMarked = Boolean(marked[q.id]);
           const state = [answered ? "answered" : "not answered", isMarked ? "marked for review" : null].filter(Boolean).join(", ");
           return (
@@ -134,6 +174,20 @@ export default function TestRunner() {
   const { state, remaining } = runner;
   const live = state.phase === "running" || state.phase === "warning";
   const proctor = useProctor({ enabled: begun && live, onEvent: (type, meta) => runner.reportViolation(type, meta) });
+  const attemptId = state.attempt?.attempt_id;
+  const [uploads, setUploads] = useState(null);
+  const [needFullscreen, setNeedFullscreen] = useState(false);
+  useEffect(() => {
+    if (!attemptId) return undefined;
+    let alive = true;
+    listAnswerUploads(attemptId).then((u) => { if (alive) setUploads(u); }).catch(() => { if (alive) setUploads(null); });
+    return () => { alive = false; };
+  }, [attemptId]);
+  const onPickStart = useCallback(() => { proctor.pause(); setNeedFullscreen(false); }, [proctor]);
+  const onPickEnd = useCallback(() => {
+    proctor.resume();
+    setTimeout(() => { if (proctor.supported && !fullscreenElement()) setNeedFullscreen(true); }, 600);
+  }, [proctor]);
 
   // Ask before leaving while the attempt is open (the timer keeps running).
   useEffect(() => {
@@ -170,7 +224,8 @@ export default function TestRunner() {
       </div>
     );
   }
-  const answeredCount = questions.filter((q) => isAnswered(answers[q.id])).length;
+  const isDone = (q) => isAnswered(answers[q.id]) || (uploads?.byQuestion[q.id]?.length ?? 0) > 0;
+  const answeredCount = questions.filter(isDone).length;
   const markedCount = questions.filter((q) => marked[q.id]).length;
   const lowTime = remaining !== null && remaining <= 300;
 
@@ -225,6 +280,13 @@ export default function TestRunner() {
         <p className="sr-only" aria-live="assertive">{Math.round(remaining / 60)} minutes left</p>
       )}
 
+      {needFullscreen && live && (
+        <div role="status" className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-primary/10 px-4 py-3 text-sm text-text">
+          <span>Uploading took you out of full screen. This wasn't counted as a violation.</span>
+          <Button fullWidth={false} onClick={async () => { await proctor.enterFullscreen(); setNeedFullscreen(false); }}>Return to full screen</Button>
+        </div>
+      )}
+
       {state.error && state.phase === "running" && (
         <p role="alert" className="mb-4 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
           {state.error.message} Your answers are saved; try submitting again.
@@ -249,7 +311,13 @@ export default function TestRunner() {
           {question.answer_instructions && <p className="mt-2 text-xs text-text/60">{question.answer_instructions}</p>}
 
           <div className="mt-5">
-            <QuestionInput question={question} value={answers[question.id]} onChange={(v) => runner.answer(question.id, v)} />
+            <QuestionInput
+              question={question} value={answers[question.id]} onChange={(v) => runner.answer(question.id, v)}
+              upload={uploads ? {
+                attemptId, files: uploads.byQuestion[question.id] || [], canUpload: uploads.canUpload,
+                onChange: setUploads, onPickStart, onPickEnd,
+              } : null}
+            />
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -273,7 +341,7 @@ export default function TestRunner() {
           <p className="mb-3 text-sm font-semibold text-text">
             {answeredCount} of {questions.length} answered{markedCount ? ` · ${markedCount} marked` : ""}
           </p>
-          <Palette questions={questions} answers={answers} marked={marked} current={current} onGoTo={runner.goTo} />
+          <Palette questions={questions} answers={answers} marked={marked} current={current} onGoTo={runner.goTo} isDone={isDone} />
         </aside>
       </div>
 

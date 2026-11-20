@@ -13,7 +13,7 @@ import { GATE } from "../portals/teacher/utils/onboarding";
 import { useProfileCompletion } from "../portals/teacher/hooks/useProfileCompletion";
 import { useAssignmentNotifications } from "../portals/teacher/hooks/useAssignmentNotifications";
 import AssignmentNotice from "../portals/teacher/components/AssignmentNotice";
-import { HomeIcon, AssignmentIcon, FileTextIcon, PencilIcon, ChartIcon, UsersIcon, LogoutIcon } from "../components/ui/icons";
+import { HomeIcon, AssignmentIcon, FileTextIcon, PencilIcon, ChartIcon, UsersIcon, LogoutIcon, CheckCircleIcon } from "../components/ui/icons";
 
 // Educator Studio chrome (sidebar + top bar) for every /teacher/* page, behind
 // the verification gate:
@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { to: "/teacher/assigned", label: "Assigned", icon: AssignmentIcon },
   { to: "/teacher/test-series", label: "Test Series", icon: FileTextIcon, end: true },
   { to: "/teacher/test-series/new", label: "Create Test Series", icon: PencilIcon },
+  { to: "/teacher/evaluate", label: "Evaluate", icon: CheckCircleIcon },
   { to: "/teacher/stats", label: "Stats", icon: ChartIcon },
   { to: "/teacher/profile", label: "Profile", icon: UsersIcon },
 ];
