@@ -46,7 +46,7 @@ afterEach(() => cleanup());
 describe("index.html, robots and headers (WEB-01, WEB-02, BUG-01, BUG-02)", () => {
   const html = read("index.html");
   it("has a loader inside #root and a noscript message", () => {
-    expect(html).toMatch(/<div id="root">\s*<div class="ul-boot"/);
+    expect(html).toMatch(/<div id="root"><!--app-html-->\s*<div class="ul-boot"/);
     expect(html).toMatch(/<noscript>[\s\S]*enable JavaScript[\s\S]*<\/noscript>/);
   });
   it("has a real title, description, Open Graph and Twitter tags", () => {
@@ -63,12 +63,13 @@ describe("index.html, robots and headers (WEB-01, WEB-02, BUG-01, BUG-02)", () =
   });
   it("vercel.json sends X-Robots-Tag noindex for the portals and keeps the SPA rewrite", () => {
     const cfg = JSON.parse(read("vercel.json"));
-    const rule = cfg.headers.find((h) => h.headers.some((x) => x.key === "X-Robots-Tag"));
+    const rule = cfg.headers.find((h) => h.source.includes("admin") && h.headers.some((x) => x.key === "X-Robots-Tag"));
     expect(rule.headers[0].value).toBe("noindex, nofollow");
     const re = new RegExp(`^${rule.source.replace(/\(\/\.\*\)\?/, "(/.*)?")}$`);
     for (const p of ["/admin", "/admin/login", "/teacher/dashboard", "/student/test-series"]) expect(re.test(p)).toBe(true);
     expect(re.test("/test-series")).toBe(false);
-    expect(cfg.rewrites[0]).toEqual({ source: "/(.*)", destination: "/index.html" });
+    expect(cfg.rewrites.at(-1)).toEqual({ source: "/((?!api/).*)", destination: "/app.html" });
+    expect(cfg.headers.find((h) => h.source === "/api/(.*)").headers[0]).toEqual({ key: "X-Robots-Tag", value: "noindex, nofollow" });
   });
 });
 

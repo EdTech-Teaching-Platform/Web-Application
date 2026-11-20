@@ -117,8 +117,15 @@ describe("SEC-02 security headers (vercel.json)", () => {
     expect(all["Permissions-Policy"]).toMatch(/camera=\(\)/);
     expect(all["Content-Security-Policy-Report-Only"]).toMatch(/default-src 'self'/);
   });
-  it("keeps the SPA rewrite", () => {
-    expect(cfg.rewrites).toEqual([{ source: "/(.*)", destination: "/index.html" }]);
+  it("routes: the auth / proxy functions, server-rendered public pages, then the SPA shell for the rest", () => {
+    expect(cfg.rewrites).toEqual([
+      { source: "/api/auth/:action", destination: "/api/auth?__action=:action" },
+      { source: "/api/sb/:path*", destination: "/api/sb?__path=:path*" },
+      { source: "/", destination: "/api/page?__path=/" },
+      { source: "/test-series", destination: "/api/page?__path=/test-series" },
+      { source: "/test-series/:id", destination: "/api/page?__path=/test-series/:id" },
+      { source: "/((?!api/).*)", destination: "/app.html" },
+    ]);
   });
 });
 

@@ -40,13 +40,15 @@
     </style>
   </head>
   <body>
-    <div id="root">
+    <!-- Between the app-html markers: the loader, or on public pages the
+         server-rendered content (api/page.js, QA audit WEB-03). -->
+    <div id="root"><!--app-html-->
       <div class="ul-boot" role="status" aria-live="polite">
         <div class="ul-boot__mark" aria-hidden="true"></div>
         <p class="ul-boot__name">Universal Learning</p>
         <span class="ul-boot__msg">Loading…</span>
       </div>
-    </div>
+    <!--/app-html--></div>
     <noscript>
       <div class="ul-boot">
         <p class="ul-boot__name">Universal Learning</p>

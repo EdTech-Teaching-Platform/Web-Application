@@ -128,4 +128,4 @@ select policyname, cmd, roles, qual from pg_policies where schemaname = 'storage
 
 - **SEC-11:** an old project's public anon key in history. Optional: delete that old Supabase project.
 - **SEC-14:** any signed-in user can use student RPCs on their own data.
-- **SEC-16:** tokens in localStorage (the supabase-js default). Enforcing the CSP later reduces the remaining risk.
+- **SEC-16:** tokens in localStorage. **Addressed (21 Nov), effective once `VITE_AUTH_MODE=cookie` is on:** the server layer (`api/auth.js`, `api/sb.js`) keeps the tokens in HttpOnly cookies, so JavaScript can't read them. Until the switch is on, the old behaviour stays.

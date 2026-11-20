@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/postbuild-shell.mjs",
     "lint": "oxlint",
     "test": "vitest run",
     "preview": "vite preview"

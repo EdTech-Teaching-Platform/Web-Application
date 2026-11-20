@@ -99,6 +99,41 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
+## 2026-11-21: server layer (HttpOnly-cookie sessions, server-rendered public pages)
+
+Decisions (asked 21 Nov):
+- every Supabase call goes through our own Vercel functions;
+- server HTML for the public pages only;
+- behind a switch (`VITE_AUTH_MODE=cookie`).
+
+- **Vercel functions** (3; Hobby allows 12):
+  - `api/auth.js`: `/api/auth/<action>` for login, signup, logout, session, recover, user, oauth and callback. Tokens are only ever in HttpOnly, SameSite=Lax, Secure cookies scoped to `/api` (`ul_at`, `ul_rt`, plus `ul_pkce` for Google and email links).
+  - `api/sb.js`: `/api/sb/<rest|functions|storage>/v1/...` forwards to Supabase with the anon key and the user's token from the cookie, refreshes it when it has expired, and answers `x-ul-session: expired` when it's gone.
+  - `api/page.js` (+ `api/_lib/pages.js`): `/`, `/test-series` and `/test-series/:id` are server-rendered (content, title / description / Open Graph / canonical / JSON-LD) into the SPA shell; CDN cache 5 minutes (QA audit WEB-03).
+- **Security:**
+  - POSTs need the `x-ul-client: web` header and a same-site Origin;
+  - the proxy refuses `auth/v1` and ignores any Authorization the browser sends;
+  - post-login redirects are same-site paths only;
+  - with `SUPABASE_SECRET_KEY` (new-style `sb_secret_`), Auth requests carry the user's IP in `sb-forwarded-for`, so Supabase's per-IP limits stay per user;
+  - a legacy service_role key is never used.
+- **Build:** `npm run build` runs `vite build`, then `scripts/postbuild-shell.mjs` (`dist/index.html` becomes `dist/app.html`, so "/" can reach the page function). vercel.json rewrites the auth, proxy and page routes, and everything else (except /api) to `/app.html`.
+- **Frontend:**
+  - `src/services/cookieAuth.js` stands in for `supabase.auth` (same methods and events, no tokens);
+  - `supabaseClient.js` uses it when `VITE_AUTH_MODE=cookie`, otherwise the old localStorage session;
+  - `vite.config.js` runs `/api/auth` and `/api/sb` in `npm run dev`;
+  - the login page shows "Your email is confirmed" for a link opened on another device.
+- **Tests:** `tests/server-layer.test.js` (27). The vercel.json / index.html tests are updated.
+- **To switch on** (in order):
+  1. Supabase, Auth → URL configuration: add `https://<site>/api/auth/callback**` to Redirect URLs.
+  2. Supabase, API keys: create a new **secret** key, and set it in Vercel as `SUPABASE_SECRET_KEY` (server only, no VITE_ prefix).
+  3. Enable `security_sb_forwarded_for_enabled` through the Management API.
+  4. Vercel: set `VITE_AUTH_MODE=cookie` (and optionally `PUBLIC_SITE_URL`) and redeploy. A Vite variable is fixed at build time, so switching back also needs a redeploy.
+  5. Test on a preview first: email + Google sign-in, sign-up confirmation, password reset, uploads, Edge Functions. On protected previews, enable "Protection Bypass for Automation" (`VERCEL_AUTOMATION_BYPASS_SECRET`) so `api/page.js` can read `/app.html`.
+- **Open items:**
+  - everyone signs in again once after the switch (old localStorage sessions aren't carried over);
+  - remove the localStorage path once cookie mode is proven;
+  - tighten the CSP `connect-src` afterwards: the browser only needs Supabase directly for signed uploads and the public settings / catalogue calls.
+
 ## 2026-11-20: written answers, typed or uploaded, marked by the teacher (client request)
 
 Decisions (asked 20 Nov):

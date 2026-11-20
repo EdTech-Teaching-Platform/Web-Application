@@ -53,6 +53,9 @@ export default function Login({ role = "student" }) {
   // QA audit (19 Nov): one request at a time, even on a fast double click.
   const busyRef = useRef(false);
   const expired = searchParams.get("expired") === "1";
+  // Cookie mode: an email confirmation link opened on another device confirms
+  // the account but can't sign in there (api/auth.js callback).
+  const emailConfirmed = searchParams.get("notice") === "email_confirmed";
 
   const errors = useMemo(() => {
     const e = {};
@@ -138,6 +141,9 @@ export default function Login({ role = "student" }) {
       <form className="mt-4 space-y-3 sm:mt-6 sm:space-y-5" onSubmit={handleSubmit} noValidate>
         {shownError && (
           <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">{shownError}</p>
+        )}
+        {!shownError && emailConfirmed && (
+          <p role="status" className="rounded-xl bg-success/10 px-4 py-3 text-sm text-text">Your email is confirmed. Please log in.</p>
         )}
         {!shownError && expired && (
           <p role="status" className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-text">Your session has expired. Please log in again.</p>
