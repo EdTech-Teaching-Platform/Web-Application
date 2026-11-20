@@ -1,0 +1,42 @@
+/* Closed state: the native <select> keeps its page-specific styling; we only
+   swap the OS arrow for a chevron and add a focus ring. */
+select.ul-asel.ul-asel {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a91a0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 14px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+select.ul-asel.ul-asel:disabled { cursor: not-allowed; }
+select.ul-asel.ul-asel:focus-visible {
+  border-color: var(--color-primary, #2557d6);
+  box-shadow: 0 0 0 3px rgba(37, 87, 214, .14);
+}
+
+/* Open menu (rendered in a portal so modals/tables never clip it). */
+.ul-asel__menu {
+  position: fixed; z-index: 10000;
+  max-width: calc(100vw - 16px); overflow-y: auto;
+  margin: 0; padding: 6px; list-style: none;
+  background: var(--color-card, #fff);
+  border: 1px solid var(--color-border, #e6e8ee); border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(15, 17, 21, .16);
+  font-family: inherit;
+  animation: ul-asel-in .12s ease-out;
+}
+.ul-asel__opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 500; line-height: 1.35;
+  color: var(--color-text-secondary, #3b4252);
+}
+.ul-asel__opt > span { overflow-wrap: anywhere; }
+.ul-asel__opt.is-active { background: var(--color-bg-secondary, #f5f6f8); }
+.ul-asel__opt.is-selected { color: var(--color-primary, #2557d6); font-weight: 700; }
+.ul-asel__opt.is-disabled { opacity: .45; cursor: not-allowed; }
+@keyframes ul-asel-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

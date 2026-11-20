@@ -15,6 +15,7 @@
 // every action below mutates local mock state, nothing is sent to a
 // backend.
 
+import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useRpc } from "../hooks/useRpc";
@@ -410,13 +411,13 @@ export default function EducatorProfile() {
               <IconSearch size={14} color="var(--color-text-muted)" />
               <input type="text" placeholder="Search students by name, email or test series…" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
             </label>
-            <select className="ul-edu-select" value={studentStatusFilter} onChange={(e) => setStudentStatusFilter(e.target.value)}>
+            <AdminSelect className="ul-edu-select" value={studentStatusFilter} onChange={(e) => setStudentStatusFilter(e.target.value)}>
               <option value="all">Status: All</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
               <option value="at_risk">At risk</option>
               <option value="inactive">Inactive</option>
-            </select>
+            </AdminSelect>
           </div>
           <div className="ul-card ul-edu-table-card">
             {filteredStudents.length === 0 ? (

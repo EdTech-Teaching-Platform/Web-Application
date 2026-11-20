@@ -11,6 +11,7 @@
 // Emails are MOCK: no real email is sent. Each invite is written to a mock
 // email log and its secure link can be copied/opened to test acceptance.
 
+import AdminSelect from "../components/AdminSelect";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEducators } from "../data/educatorsMock";
@@ -257,11 +258,11 @@ export default function RegionalHeads() {
             </button>
           )}
         </label>
-        <select className="ul-edu-select" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
+        <AdminSelect className="ul-edu-select" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}>
           <option value="all">Region: All</option>
           {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select className="ul-edu-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        </AdminSelect>
+        <AdminSelect className="ul-edu-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">Status: All</option>
           <option value="active">Active</option>
           <option value="pending">Pending{pendingCount ? ` (${pendingCount})` : ""}</option>
@@ -269,7 +270,7 @@ export default function RegionalHeads() {
           <option value="rejected">Rejected</option>
           <option value="revoked">Revoked</option>
           <option value="removed">Removed</option>
-        </select>
+        </AdminSelect>
       </div>
 
       <div className="ul-card ul-edu-table-card">
@@ -370,10 +371,10 @@ export default function RegionalHeads() {
           </div>
           <div className="ul-ts-form-row">
             <label>Region</label>
-            <select value={inviteForm.region} onChange={(e) => setInviteForm((f) => ({ ...f, region: e.target.value }))}>
+            <AdminSelect value={inviteForm.region} onChange={(e) => setInviteForm((f) => ({ ...f, region: e.target.value }))}>
               <option value="">Select a region…</option>
               {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </AdminSelect>
           </div>
           {inviteError && <p className="ul-rh-error">{inviteError}</p>}
         </div>
@@ -393,17 +394,17 @@ export default function RegionalHeads() {
         <div className="ul-rh-form">
           <div className="ul-ts-form-row">
             <label>Educator</label>
-            <select value={promoteEducatorId} onChange={(e) => setPromoteEducatorId(e.target.value)}>
+            <AdminSelect value={promoteEducatorId} onChange={(e) => setPromoteEducatorId(e.target.value)}>
               <option value="">Select an educator…</option>
               {eligibleEducators.map((e) => <option key={e.id} value={e.id}>{e.name} — {e.email}</option>)}
-            </select>
+            </AdminSelect>
           </div>
           <div className="ul-ts-form-row">
             <label>Region</label>
-            <select value={promoteRegion} onChange={(e) => setPromoteRegion(e.target.value)}>
+            <AdminSelect value={promoteRegion} onChange={(e) => setPromoteRegion(e.target.value)}>
               <option value="">Select a region…</option>
               {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </AdminSelect>
           </div>
           {promoteError && <p className="ul-rh-error">{promoteError}</p>}
         </div>
@@ -423,10 +424,10 @@ export default function RegionalHeads() {
         <div className="ul-rh-form">
           <div className="ul-ts-form-row">
             <label>New region</label>
-            <select value={reassignRegion} onChange={(e) => setReassignRegion(e.target.value)}>
+            <AdminSelect value={reassignRegion} onChange={(e) => setReassignRegion(e.target.value)}>
               <option value="">Select a region…</option>
               {REGIONS.filter((r) => !reassignTarget || r !== reassignTarget.region).map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </AdminSelect>
           </div>
           {reassignError && <p className="ul-rh-error">{reassignError}</p>}
         </div>
@@ -446,10 +447,10 @@ export default function RegionalHeads() {
         <div className="ul-rh-form">
           <div className="ul-ts-form-row">
             <label>New region</label>
-            <select value={reassignInvRegion} onChange={(e) => { setReassignInvRegion(e.target.value); setReassignInvError(""); }}>
+            <AdminSelect value={reassignInvRegion} onChange={(e) => { setReassignInvRegion(e.target.value); setReassignInvError(""); }}>
               <option value="">Select a region…</option>
               {REGIONS.filter((r) => !reassignInv || r !== reassignInv.region).map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </AdminSelect>
           </div>
           {reassignInvError && <p className="ul-rh-error">{reassignInvError}</p>}
         </div>

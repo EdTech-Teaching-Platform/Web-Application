@@ -1,4 +1,5 @@
 // Discount History — read-only audit trail of every discount action.
+import AdminSelect from "../../components/AdminSelect";
 import { useEffect, useMemo, useState } from "react";
 import { IconSearch } from "../../components/icons";
 import { useDiscountState, refreshExpiry } from "../../data/discountsMock";
@@ -33,8 +34,8 @@ export default function DiscountHistory() {
       </PageHeader>
       <div className="ul-edu-toolbar ul-dsc-filters">
         <label className="ul-edu-search"><IconSearch size={14} color="var(--color-text-muted)" /><input type="text" placeholder="Search actions, people or details…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-        <select className="ul-edu-select" value={action} onChange={(e) => setAction(e.target.value)}><option value="all">Action: All</option>{actions.map((a) => <option key={a} value={a}>{a}</option>)}</select>
-        <select className="ul-edu-select" value={campaign} onChange={(e) => setCampaign(e.target.value)}><option value="all">Discount: All</option>{names.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select>
+        <AdminSelect className="ul-edu-select" value={action} onChange={(e) => setAction(e.target.value)}><option value="all">Action: All</option>{actions.map((a) => <option key={a} value={a}>{a}</option>)}</AdminSelect>
+        <AdminSelect className="ul-edu-select" value={campaign} onChange={(e) => setCampaign(e.target.value)}><option value="all">Discount: All</option>{names.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</AdminSelect>
         <label className="ul-dsc-date"><span>From</span><input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} /></label>
         <label className="ul-dsc-date"><span>To</span><input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></label>
       </div>

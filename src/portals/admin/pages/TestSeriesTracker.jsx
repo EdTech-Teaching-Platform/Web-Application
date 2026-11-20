@@ -9,6 +9,7 @@
 // .ul-confirm-modal / .ul-mgmt-detail-* (ConfirmModal.css /
 // ManagementDashboards.css), .ul-stat-card (AdminDashboard.css).
 
+import AdminSelect from "../components/AdminSelect";
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SUBJECT_OPTIONS } from "../data/testSeriesMock";
@@ -215,11 +216,11 @@ export default function TestSeriesTracker() {
           )}
         </label>
 
-        <select className="ul-edu-select ul-edu-select--sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+        <AdminSelect className="ul-edu-select ul-edu-select--sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="deadline_asc">Deadline: soonest first</option>
           <option value="completion_desc">Completion: highest first</option>
           <option value="name_asc">Series name: A–Z</option>
-        </select>
+        </AdminSelect>
 
         <div className="ul-asg-filter-popover-wrap" ref={filterRef}>
           <button type="button" className={`ul-btn ul-btn--ghost ul-asg-filters-toggle${filtersOpen ? " is-open" : ""}`} onClick={() => setFiltersOpen((v) => !v)}>
@@ -229,20 +230,20 @@ export default function TestSeriesTracker() {
             <div className="ul-asg-filter-popover">
               <label className="ul-asg-filter-field">
                 <span>Subject</span>
-                <select value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setPage(1); }}>
+                <AdminSelect value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setPage(1); }}>
                   <option value="all">All subjects</option>
                   {SUBJECT_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                </AdminSelect>
               </label>
               <label className="ul-asg-filter-field">
                 <span>Educator</span>
-                <select value={educatorFilter} onChange={(e) => { setEducatorFilter(e.target.value); setPage(1); }}>
+                <AdminSelect value={educatorFilter} onChange={(e) => { setEducatorFilter(e.target.value); setPage(1); }}>
                   {educatorOptions.map((e) => <option key={e} value={e}>{e === "all" ? "All educators" : e}</option>)}
-                </select>
+                </AdminSelect>
               </label>
               <label className="ul-asg-filter-field">
                 <span>Overall Status</span>
-                <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+                <AdminSelect value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
                   <option value="all">All statuses</option>
                   <option value="On Track">On Track</option>
                   <option value="Complete">Complete</option>
@@ -250,7 +251,7 @@ export default function TestSeriesTracker() {
                   <option value="Overdue">Overdue</option>
                   <option value="No Assignments Yet">No Assignments Yet</option>
                   <option value="Independent">Independent</option>
-                </select>
+                </AdminSelect>
               </label>
               <button type="button" className="ul-btn ul-btn--ghost ul-asg-filter-popover__clear" onClick={clearFilters} disabled={activeFilterCount === 0}>
                 Clear Filters

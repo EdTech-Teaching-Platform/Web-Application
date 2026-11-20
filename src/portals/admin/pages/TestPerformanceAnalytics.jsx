@@ -11,6 +11,7 @@
 // .ul-card / .ul-card__head / .ul-card__eyebrow (AdminDashboard.css),
 // .ul-report-bars family (ReportsBuilder.css).
 
+import AdminSelect from "../components/AdminSelect";
 import { useCallback, useState } from "react";
 import { useRpc } from "../hooks/useRpc";
 import { performanceApi } from "../services/performanceApi";
@@ -267,30 +268,30 @@ export default function TestPerformanceAnalytics() {
       </div>
 
       <div className="ul-tpa-filters">
-        <select value={seriesFilter} onChange={(e) => { setSeriesFilter(e.target.value); setTestFilter("all"); }}>
+        <AdminSelect value={seriesFilter} onChange={(e) => { setSeriesFilter(e.target.value); setTestFilter("all"); }}>
           <option value="all">All Test Series</option>
           {seriesOptions.map(([id, name]) => (
             <option key={id} value={id}>{name}</option>
           ))}
-        </select>
-        <select value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setTestFilter("all"); }}>
+        </AdminSelect>
+        <AdminSelect value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setTestFilter("all"); }}>
           <option value="all">All Subjects</option>
           {options.subjects.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
-        </select>
-        <select value={testFilter} onChange={(e) => setTestFilter(e.target.value)}>
+        </AdminSelect>
+        <AdminSelect value={testFilter} onChange={(e) => setTestFilter(e.target.value)}>
           <option value="all">All Tests</option>
           {testOptions.map((t) => (
             <option key={t.testId} value={t.testId}>{t.testName}</option>
           ))}
-        </select>
-        <select value={educatorFilter} onChange={(e) => setEducatorFilter(e.target.value)}>
+        </AdminSelect>
+        <AdminSelect value={educatorFilter} onChange={(e) => setEducatorFilter(e.target.value)}>
           <option value="all">All Educators</option>
           {educatorOptions.map((name) => (
             <option key={name} value={name}>{name}</option>
           ))}
-        </select>
+        </AdminSelect>
         <div className="ul-tpa-dates">
         <div className="ul-tpa-date-field">
           <label htmlFor="tpa-from">From</label>
@@ -386,12 +387,12 @@ export default function TestPerformanceAnalytics() {
             <div className="ul-card__head ul-tpa-lb__head">
               <span className="ul-card__eyebrow">Leaderboard &amp; Ranking</span>
             </div>
-            <select className="ul-tpa-lb__select" value={lbSeriesId} onChange={(e) => setLbSeries(e.target.value)} aria-label="Leaderboard test series">
+            <AdminSelect className="ul-tpa-lb__select" value={lbSeriesId} onChange={(e) => setLbSeries(e.target.value)} aria-label="Leaderboard test series">
               <option value="all">All Test Series</option>
               {lbSeriesOptions.map(([id, name]) => (
                 <option key={id} value={id}>{name}</option>
               ))}
-            </select>
+            </AdminSelect>
 
             {lbLoading ? (
               <div className="ul-tpa-lb__skeleton" aria-busy="true" aria-label="Loading leaderboard">

@@ -19,6 +19,7 @@
 // exactly — table/filter/pagination-specific layout lives in
 // EducatorVerification.css.
 
+import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SUBJECT_OPTIONS } from "../data/educatorsMock";
@@ -317,37 +318,37 @@ export default function EducatorVerification() {
           )}
         </label>
 
-        <select className="ul-edu-select" value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)}>
+        <AdminSelect className="ul-edu-select" value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)}>
           <option value="all">Account: All</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="suspended">Suspended</option>
-        </select>
+        </AdminSelect>
 
-        <select className="ul-edu-select" value={verificationFilter} onChange={(e) => setVerificationFilter(e.target.value)}>
+        <AdminSelect className="ul-edu-select" value={verificationFilter} onChange={(e) => setVerificationFilter(e.target.value)}>
           {EDUCATOR_STATUS_FILTERS.map((f) => (
             <option key={f.value} value={f.value}>{f.value === "all" ? "Status: All" : f.label}</option>
           ))}
-        </select>
+        </AdminSelect>
 
-        <select className="ul-edu-select" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>
+        <AdminSelect className="ul-edu-select" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>
           <option value="all">Subject: All</option>
           {SUBJECT_OPTIONS.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
-        </select>
+        </AdminSelect>
 
-        <select className="ul-edu-select" value={experienceFilter} onChange={(e) => setExperienceFilter(e.target.value)}>
+        <AdminSelect className="ul-edu-select" value={experienceFilter} onChange={(e) => setExperienceFilter(e.target.value)}>
           {EXPERIENCE_BANDS.map((b) => (
             <option key={b.key} value={b.key}>{b.label}</option>
           ))}
-        </select>
+        </AdminSelect>
 
-        <select className="ul-edu-select ul-edu-select--sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+        <AdminSelect className="ul-edu-select ul-edu-select--sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           {SORT_OPTIONS.map((o) => (
             <option key={o.key} value={o.key}>{o.label}</option>
           ))}
-        </select>
+        </AdminSelect>
       </div>
 
       <div className="ul-card ul-edu-table-card">

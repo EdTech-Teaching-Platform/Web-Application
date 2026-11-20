@@ -22,6 +22,7 @@
 // EducatorVerification.css) so the look matches exactly — table/toolbar/
 // modal-specific layout lives in UserManagement.css.
 
+import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOnboardedBy } from "../data/regionalOnboardingMock";
 import {
@@ -202,18 +203,18 @@ export default function UserManagement() {
           )}
         </label>
 
-        <select className="ul-usr-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <AdminSelect className="ul-usr-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">Status: All</option>
           <option value={STUDENT_STATUS.ACTIVE}>Active</option>
           <option value={STUDENT_STATUS.BLOCKED}>Blocked</option>
-        </select>
+        </AdminSelect>
 
-        <select className="ul-usr-select" value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}>
+        <AdminSelect className="ul-usr-select" value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}>
           <option value="all">Grade: All</option>
           {GRADE_OPTIONS.map((g) => (
             <option key={g} value={g}>{g}</option>
           ))}
-        </select>
+        </AdminSelect>
       </div>
 
       <div className="ul-card ul-usr-table-card">

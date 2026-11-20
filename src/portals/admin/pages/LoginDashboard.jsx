@@ -19,6 +19,7 @@ import dashboardHeroImg from "../../../assets/illustrations/dashboard-hero.png";
 import dashboardMapImg from "../../../assets/illustrations/dashboard-map.png";
 import "../components/AdminChrome.css";
 import "./AdminDashboard.css";
+import "./LoginDashboard.css";
 
 const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
@@ -73,15 +74,25 @@ function RevenueChart({ points }) {
   }
   const areaPath = `${linePath} L ${coords[coords.length - 1][0]},${height} L 0,${height} Z`;
   const ticks = [0, 0.25, 0.5, 0.75, 1];
+  // Axis labels only: with no revenue yet, show a neutral 0–1k scale instead of "0k 0k 0k".
+  const rawMax = Math.max(...points.map((p) => p.value), 0);
+  const axisMax = rawMax > 0 ? rawMax : 1000;
+  const axisLabel = (v) => {
+    if (v <= 0) return "₹0";
+    if (v >= 100000) return `₹${Number((v / 100000).toFixed(1))}L`;
+    if (v >= 1000) return `₹${Number((v / 1000).toFixed(v >= 10000 ? 0 : 1))}k`;
+    return `₹${Math.round(v)}`;
+  };
 
   return (
     <div className="ul-dash2-chart-wrap">
       <div className="ul-dash2-chart-yaxis">
         {ticks.slice().reverse().map((t) => (
-          <span key={t}>{t === 0 ? "0" : `${Math.round((max * t) / 1000)}k`}</span>
+          <span key={t}>{axisLabel(axisMax * t)}</span>
         ))}
       </div>
       <div className="ul-dash2-chart-plot">
+        <div className="ul-dash2-chart-canvas">
         <svg viewBox={`0 0 ${width} ${height}`} className="ul-dash2-chart" preserveAspectRatio="none" role="img" aria-label="Platform revenue trend">
           <defs>
             <linearGradient id="ulDash2RevenueFill" x1="0" y1="0" x2="0" y2="1">
@@ -105,14 +116,16 @@ function RevenueChart({ points }) {
               onMouseLeave={() => setHover(points.length - 1)}
             />
           ))}
-          {hover !== null && (
-            <g style={{ transform: `translate(${coords[hover][0]}px, ${coords[hover][1] - 16}px)` }}>
-              <foreignObject x="-46" y="-34" width="92" height="30">
-                <div className="ul-dash2-chart-tooltip">{money(points[hover].value)}</div>
-              </foreignObject>
-            </g>
-          )}
         </svg>
+        {hover !== null && coords[hover] && (
+          <div
+            className="ul-dash2-chart-tooltip"
+            style={{ "--x": `${(coords[hover][0] / width) * 100}%`, top: `${(coords[hover][1] / height) * 100}%` }}
+          >
+            {money(points[hover].value)}
+          </div>
+        )}
+        </div>
         <div className="ul-dash2-chart-labels">
           {points.map((p) => <span key={p.label}>{p.label}</span>)}
         </div>

@@ -2,6 +2,7 @@
 // editor, question editor, CSV importer, and the
 // template-based outline builder. Pure UI over data/testSeriesWizard.js.
 
+import AdminSelect from "../components/AdminSelect";
 import QuestionImageField from "../components/QuestionImageField";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -159,9 +160,9 @@ export function QuestionEditor({ initial, defaults, onSave, onClose }) {
             </div>
             <div className="ul-ts-form-row">
               <label>Difficulty</label>
-              <select value={q.difficulty} onChange={(e) => set({ difficulty: e.target.value })}>
+              <AdminSelect value={q.difficulty} onChange={(e) => set({ difficulty: e.target.value })}>
                 {Object.values(DIFFICULTY).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
-              </select>
+              </AdminSelect>
             </div>
             <div className="ul-ts-form-row">
               <label>Subject</label>
@@ -315,14 +316,14 @@ export function CsvImporter({ existingKeys, onImport, onPendingChange }) {
                             <div className="ul-ts-form-row"><label>Correct (A–D, A|C, True / False, or the answer)</label><input value={r.correct} onChange={(e) => patchRow(r._id, { correct: e.target.value })} /></div>
                             <div className="ul-ts-form-row"><label>Type</label>
                               {/* the real question types; subjective ones are listed as coming soon */}
-                              <select value={normalizeQuestionType(r.type) || QTYPE.MCQ_SINGLE} onChange={(e) => patchRow(r._id, { type: e.target.value })}>
+                              <AdminSelect value={normalizeQuestionType(r.type) || QTYPE.MCQ_SINGLE} onChange={(e) => patchRow(r._id, { type: e.target.value })}>
                                 {QUESTION_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value} disabled={!o.available}>{o.label}{o.available ? "" : " (coming soon)"}</option>)}
-                              </select>
+                              </AdminSelect>
                             </div>
                             <div className="ul-ts-form-row"><label>Marks</label><input value={r.marks} onChange={(e) => patchRow(r._id, { marks: e.target.value })} /></div>
                             <div className="ul-ts-form-row"><label>Negative</label><input value={r.negative} onChange={(e) => patchRow(r._id, { negative: e.target.value })} /></div>
                             <div className="ul-ts-form-row"><label>Difficulty</label>
-                              <select value={r.difficulty} onChange={(e) => patchRow(r._id, { difficulty: e.target.value })}><option value="">medium (default)</option><option value="easy">easy</option><option value="medium">medium</option><option value="hard">hard</option></select>
+                              <AdminSelect value={r.difficulty} onChange={(e) => patchRow(r._id, { difficulty: e.target.value })}><option value="">medium (default)</option><option value="easy">easy</option><option value="medium">medium</option><option value="hard">hard</option></AdminSelect>
                             </div>
                             <div className="ul-ts-form-row"><label>Subject</label><input value={r.subject} onChange={(e) => patchRow(r._id, { subject: e.target.value })} /></div>
                             <div className="ul-ts-form-row"><label>Topic</label><input value={r.topic} onChange={(e) => patchRow(r._id, { topic: e.target.value })} /></div>
@@ -375,17 +376,17 @@ export function OutlineBuilder({ initialSubject, initialAudience, audienceOption
       <div className="ul-ts-form-grid-2">
         <div className="ul-ts-form-row">
           <label>Subject</label>
-          <select value={cfg.subject} onChange={(e) => set({ subject: e.target.value, topics: [] })}>
+          <AdminSelect value={cfg.subject} onChange={(e) => set({ subject: e.target.value, topics: [] })}>
             <option value="">Select subject…</option>
             {SUBJECT_OPTIONS.map((s) => <option key={s}>{s}</option>)}
-          </select>
+          </AdminSelect>
         </div>
         <div className="ul-ts-form-row">
           <label>Target audience / class</label>
-          <select value={cfg.audience} onChange={(e) => set({ audience: e.target.value })}>
+          <AdminSelect value={cfg.audience} onChange={(e) => set({ audience: e.target.value })}>
             <option value="">Select audience…</option>
             {audienceOptions.map((s) => <option key={s}>{s}</option>)}
-          </select>
+          </AdminSelect>
         </div>
       </div>
       <div className="ul-ts-form-row">
@@ -406,7 +407,7 @@ export function OutlineBuilder({ initialSubject, initialAudience, audienceOption
         <div className="ul-ts-form-row"><label>Marks per question</label><input type="number" min="1" value={cfg.marksPerQuestion} onChange={(e) => set({ marksPerQuestion: e.target.value })} /></div>
         <div className="ul-ts-form-row"><label>Duration per test (min)</label><input type="number" min="5" value={cfg.duration} onChange={(e) => set({ duration: e.target.value })} /></div>
         <div className="ul-ts-form-row"><label>Difficulty</label>
-          <select value={cfg.difficulty} onChange={(e) => set({ difficulty: e.target.value })}>{OUTLINE_DIFFICULTY.map((d) => <option key={d}>{d}</option>)}</select>
+          <AdminSelect value={cfg.difficulty} onChange={(e) => set({ difficulty: e.target.value })}>{OUTLINE_DIFFICULTY.map((d) => <option key={d}>{d}</option>)}</AdminSelect>
         </div>
         <div className="ul-ts-form-row"><label>Question types</label>
           <div className="ul-tsw-chips">

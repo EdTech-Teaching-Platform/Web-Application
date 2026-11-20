@@ -3511,3 +3511,7 @@ backslash.
 - `AuthCallback` sends a student whose Google account was just created (first sign-in) and who has no profile details (no grade, school, phone or city) and no prior skip to onboarding, then to `?redirect=` or the dashboard.
 - Saves through the existing `profileApi.save` (profiles + student_profiles, own row, existing RLS). No migrations, no new columns. "Skipped" is a localStorage flag (`ul.onboarding.skipped.<userId>`).
 - Not collected (no column): parent phone, learning goal, ID upload.
+
+## Admin UI: AI Test Builder removed, styled dropdowns (2026-11-20)
+- Frontend only, no migrations or DB objects. Removed the "AI Test Builder" button on Test Series and its `testseries/ai-builder` route (`AITestBuilder.jsx` and its mock data stay because the wizard imports them).
+- New `src/portals/admin/components/AdminSelect.{jsx,css}`: drop-in for `<select>` (keeps the real select, styled menu in a portal, keyboard support, native picker on touch). All admin pages use it except the now-unrouted `AITestBuilder.jsx`.

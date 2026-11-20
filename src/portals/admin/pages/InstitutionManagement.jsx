@@ -24,6 +24,7 @@
 // match exactly — layout specific to this screen lives in
 // InstitutionManagement.css.
 
+import AdminSelect from "../components/AdminSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useInstitutions,
@@ -268,26 +269,26 @@ export default function InstitutionManagement() {
           )}
         </label>
 
-        <select className="ul-usr-select" value={schoolFilter} onChange={(e) => setSchoolFilter(e.target.value)}>
+        <AdminSelect className="ul-usr-select" value={schoolFilter} onChange={(e) => setSchoolFilter(e.target.value)}>
           <option value="all">School: All</option>
           {schoolOptions.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
-        </select>
+        </AdminSelect>
 
-        <select className="ul-usr-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+        <AdminSelect className="ul-usr-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
           <option value="all">Type: All</option>
           {INSTITUTION_TYPE_OPTIONS.map((t) => (
             <option key={t} value={t}>{t}</option>
           ))}
-        </select>
+        </AdminSelect>
 
-        <select className="ul-usr-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <AdminSelect className="ul-usr-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">Status: All</option>
           <option value={INSTITUTION_STATUS.ACTIVE}>Active</option>
           <option value={INSTITUTION_STATUS.PENDING}>Pending Setup</option>
           <option value={INSTITUTION_STATUS.SUSPENDED}>Suspended</option>
-        </select>
+        </AdminSelect>
       </div>
 
       <div className="ul-card ul-usr-table-card">
@@ -584,11 +585,11 @@ export default function InstitutionManagement() {
 
                   <label className="ul-inst-field">
                     <span className="ul-inst-field__label">Institution Type</span>
-                    <select value={form.type} onChange={(e) => handleFieldChange("type", e.target.value)}>
+                    <AdminSelect value={form.type} onChange={(e) => handleFieldChange("type", e.target.value)}>
                       {INSTITUTION_TYPE_OPTIONS.map((t) => (
                         <option key={t} value={t}>{t}</option>
                       ))}
-                    </select>
+                    </AdminSelect>
                   </label>
 
                   <label className="ul-inst-field">

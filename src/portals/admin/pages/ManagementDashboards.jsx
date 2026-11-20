@@ -36,6 +36,7 @@
 // neither the LMS doc nor any mock store models those two metrics yet —
 // same as before, unchanged.
 
+import AdminSelect from "../components/AdminSelect";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useInstitutions, ORG_UNIT_TYPE } from "../data/institutionsMock";
@@ -396,7 +397,7 @@ export default function ManagementDashboards() {
 
       {/* ---- scope picker: stands in for a logged-in Head Teacher / Regional Head's own org unit ---- */}
       <div className="ul-usr-toolbar ul-mgmt-scopebar">
-        <select
+        <AdminSelect
           className="ul-usr-select"
           value={currentInstitution.id}
           onChange={(e) => {
@@ -407,14 +408,14 @@ export default function ManagementDashboards() {
           {institutions.map((i) => (
             <option key={i.id} value={i.id}>{i.name}</option>
           ))}
-        </select>
-        <select className="ul-usr-select" value={effectiveUnitId} onChange={(e) => setUnitId(e.target.value)}>
+        </AdminSelect>
+        <AdminSelect className="ul-usr-select" value={effectiveUnitId} onChange={(e) => setUnitId(e.target.value)}>
           {orgUnits.map((u) => (
             <option key={u.id} value={u.id}>
               {u.type === ORG_UNIT_TYPE.REGION ? "Region" : "Branch"} — {u.name}
             </option>
           ))}
-        </select>
+        </AdminSelect>
       </div>
 
       <div className="ul-mgmt-scope-note">
@@ -522,7 +523,7 @@ export default function ManagementDashboards() {
                 <span className="ul-card__eyebrow">Date range</span>
                 <h3>Attendance Trend</h3>
               </div>
-              <select
+              <AdminSelect
                 className="ul-usr-select ul-mgmt-range-select"
                 value={trendDays}
                 onChange={(e) => setTrendDays(Number(e.target.value))}
@@ -530,7 +531,7 @@ export default function ManagementDashboards() {
                 {TREND_RANGE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
-              </select>
+              </AdminSelect>
             </div>
             <div className="ul-bars ul-mgmt-bars">
               {attendanceSeries.map((d) => (

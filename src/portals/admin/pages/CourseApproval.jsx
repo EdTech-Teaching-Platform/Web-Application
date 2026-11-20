@@ -30,6 +30,7 @@
 // EducatorVerification.css) so the look matches exactly — table/toolbar/
 // modal-specific layout lives in CourseApproval.css.
 
+import AdminSelect from "../components/AdminSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -265,19 +266,19 @@ export default function CourseApproval() {
           )}
         </label>
 
-        <select className="ul-crs-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <AdminSelect className="ul-crs-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">Status: All</option>
           <option value={COURSE_STATUS.PENDING}>Pending Review</option>
           <option value={COURSE_STATUS.APPROVED}>Approved</option>
           <option value={COURSE_STATUS.REJECTED}>Rejected</option>
-        </select>
+        </AdminSelect>
 
-        <select className="ul-crs-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+        <AdminSelect className="ul-crs-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="all">Category: All</option>
           {CATEGORY_OPTIONS.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
-        </select>
+        </AdminSelect>
       </div>
 
       <div className="ul-card ul-crs-table-card">

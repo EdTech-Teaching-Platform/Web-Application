@@ -5,6 +5,7 @@
 // the result is an ordinary Test Series that the existing list/detail/edit
 // pages already handle.
 
+import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -43,7 +44,7 @@ const METHOD_CARDS = [
   { key: START_METHOD.SCRATCH, icon: IconPencil, tone: "rose", title: "Build from scratch", text: "Start with an empty series and add tests and questions yourself." },
   { key: START_METHOD.DUPLICATE, hidden: true, icon: IconLayers, tone: "grey", title: "Duplicate an existing series", text: "Copy the tests and questions of a series you already made into a new, independent series." },
   { key: START_METHOD.CSV, icon: IconUpload, tone: "orange", title: "Import questions", text: "Upload a CSV and review a row-by-row validation report before anything is imported." },
-  { key: START_METHOD.AI, icon: IconSparkle, tone: "pink", title: "AI-assisted outline", text: "Get an editable, template-based outline of tests and topics from your requirements.", comingSoon: !AI_ENABLED },
+  { key: START_METHOD.AI, hidden: true, icon: IconSparkle, tone: "pink", title: "AI-assisted outline", text: "Get an editable, template-based outline of tests and topics from your requirements.", comingSoon: !AI_ENABLED },
 ];
 const SOURCE_TITLE = {
   [START_METHOD.DUPLICATE]: ["Duplicate an existing series", "Pick a series to copy. The original stays untouched — you get a new, independent copy to edit."],
@@ -364,7 +365,7 @@ export default function TestSeriesWizard() {
           <>
             <h3>How would you like to start?</h3>
             <p className="ul-tsw-lead">Each option leads to its own setup in the next step.</p>
-            <div className="ul-tsw-grid-3">
+            <div className="ul-tsw-grid-2">
               {METHOD_CARDS.filter((c) => !c.hidden).map(({ hidden, ...c }) => <OptionCard key={c.key} {...c} selected={st.startMethod === c.key} onClick={() => chooseMethod(c.key)} />)}
             </div>
           </>
@@ -436,10 +437,10 @@ export default function TestSeriesWizard() {
               </div>
               <div className="ul-ts-form-row">
                 <label>Target audience / level</label>
-                <select value={st.audience} onChange={(e) => patch({ audience: e.target.value })}>
+                <AdminSelect value={st.audience} onChange={(e) => patch({ audience: e.target.value })}>
                   <option value="">Select audience…</option>
                   {AUDIENCE_OPTIONS.map((a) => <option key={a}>{a}</option>)}
-                </select>
+                </AdminSelect>
               </div>
               <div className="ul-ts-form-row">
                 <label>Syllabus (optional)</label>

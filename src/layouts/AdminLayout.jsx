@@ -21,6 +21,7 @@ import {
 } from "../portals/admin/components/icons";
 import "../portals/admin/adminTheme.css";
 import "../portals/admin/components/AdminChrome.css";
+import "../portals/admin/adminPro.css";
 
 // Faint drifting line icons behind every /admin/* page's content —
 // rendered once here (shared layout) rather than per-page, positioned

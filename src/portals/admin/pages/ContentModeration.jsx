@@ -6,6 +6,7 @@
 // Resolving or dismissing needs a note; the student sees it, and a resolved
 // item also sends the student a notification.
 
+import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IconSearch, IconClose } from "../components/icons";
@@ -73,18 +74,18 @@ function ItemTable({ tab, onOpen, reloadKey }) {
             <button type="button" className="ul-edu-search__clear" onClick={() => setSearchInput("")} aria-label="Clear search"><IconClose size={12} /></button>
           )}
         </label>
-        <select className="ul-edu-select" value={kind} onChange={setFilter(setKind)} aria-label="Kind">
+        <AdminSelect className="ul-edu-select" value={kind} onChange={setFilter(setKind)} aria-label="Kind">
           <option value="all">Kind: All</option>
           {Object.entries(KIND_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <select className="ul-edu-select" value={status} onChange={setFilter(setStatus)} aria-label="Status">
+        </AdminSelect>
+        <AdminSelect className="ul-edu-select" value={status} onChange={setFilter(setStatus)} aria-label="Status">
           <option value="all">Status: All</option>
           {TAB_STATUSES[tab].map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-        </select>
-        <select className="ul-edu-select" value={series} onChange={setFilter(setSeries)} aria-label="Series">
+        </AdminSelect>
+        <AdminSelect className="ul-edu-select" value={series} onChange={setFilter(setSeries)} aria-label="Series">
           <option value="all">Series: All</option>
           {(options.data?.series ?? []).map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
-        </select>
+        </AdminSelect>
         {hasFilters && <button type="button" className="ul-btn ul-btn--ghost ul-rh-btn" onClick={clear}>Clear</button>}
       </div>
 
