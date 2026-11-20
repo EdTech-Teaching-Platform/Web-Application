@@ -1,4 +1,3 @@
-import AdminSelect from "../components/AdminSelect";
 import { useMemo, useState } from "react";
 import { IconSearch } from "../components/icons";
 import "../components/AdminChrome.css";
@@ -201,25 +200,25 @@ export default function GeneralReports() {
       <div className="ul-cm-filterbar">
         <label className="ul-cm-filter-control">
           <span>Status</span>
-          <AdminSelect value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             <option value="All">All</option>
             <option value="Pending">Pending</option>
             <option value="Under review">Pending</option>
             <option value="Resolved">Resolved</option>
             <option value="Dismissed">Dismissed</option>
-          </AdminSelect>
+          </select>
         </label>
 
         <label className="ul-cm-filter-control">
           <span>Priority</span>
-          <AdminSelect value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
+          <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
             <option value="All">All</option>
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
             <option value="High">High</option>
             <option value="Critical">Critical</option>
             <option value="High+">High and Critical</option>
-          </AdminSelect>
+          </select>
         </label>
 
         <button type="button" className="ul-btn ul-btn--ghost" onClick={clearFilters}>
@@ -257,7 +256,7 @@ export default function GeneralReports() {
                       <span className={severityMap[report.severity]}>{report.severity}</span>
                       <label className="ul-cm-priority-select">
                         <span>Priority</span>
-                        <AdminSelect
+                        <select
                           value={report.priority}
                           disabled={report.disabled}
                           onChange={(event) => updateReport(report.id, { priority: event.target.value })}
@@ -266,7 +265,7 @@ export default function GeneralReports() {
                           <option value="Medium">Medium</option>
                           <option value="High">High</option>
                           <option value="Critical">Critical</option>
-                        </AdminSelect>
+                        </select>
                       </label>
                       <span className={priorityMap[report.priority]}>{report.priority} priority</span>
                     </div>

@@ -9,6 +9,7 @@ const Escalations = lazy(() => import("./pages/Escalations"));
 const CourseApproval = lazy(() => import("./pages/CourseApproval"));
 const TestSeries = lazy(() => import("./pages/TestSeries"));
 const TestSeriesWizard = lazy(() => import("./pages/TestSeriesWizard"));
+const AITestBuilder = lazy(() => import("./pages/AITestBuilder"));
 const TestSeriesDetail = lazy(() => import("./pages/TestSeriesDetail"));
 const TestDetail = lazy(() => import("./pages/TestDetail"));
 const AssignEducators = lazy(() => import("./pages/AssignEducators"));
@@ -53,6 +54,7 @@ const adminRoutes = (
       <Route path="courseapproval" element={<CourseApproval />} />
       <Route path="testseries" element={<TestSeries />} />
       <Route path="testseries/new" element={<TestSeriesWizard />} />
+      <Route path="testseries/ai-builder" element={<AITestBuilder />} />
       <Route path="testseries/assign-educators" element={<AssignEducators />} />
       <Route path="testseries/tracker" element={<TestSeriesTracker />} />
       <Route path="testseries/performance-analytics" element={<TestPerformanceAnalytics />} />

@@ -12,7 +12,6 @@
 // (ConfirmModal.css), .ul-mgmt-detail-* (ManagementDashboards.css),
 // .ul-edp-tabs (EducatorProfile.css).
 
-import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ASSIGNMENT_STATUS,
@@ -421,12 +420,12 @@ export default function AssignEducators() {
               )}
             </label>
 
-            <AdminSelect className="ul-edu-select ul-edu-select--sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <select className="ul-edu-select ul-edu-select--sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
               <option value="deadline_asc">Deadline: soonest first</option>
               <option value="deadline_desc">Deadline: latest first</option>
               <option value="assigned_desc">Recently assigned</option>
               <option value="progress_desc">Progress: highest first</option>
-            </AdminSelect>
+            </select>
 
             <div className="ul-asg-filter-popover-wrap" ref={filterRef}>
               <button type="button" className={`ul-btn ul-btn--ghost ul-asg-filters-toggle${filtersOpen ? " is-open" : ""}`} onClick={() => setFiltersOpen((v) => !v)}>
@@ -436,24 +435,24 @@ export default function AssignEducators() {
                 <div className="ul-asg-filter-popover">
                   <label className="ul-asg-filter-field">
                     <span>Subject</span>
-                    <AdminSelect value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setPage(1); }}>
+                    <select value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setPage(1); }}>
                       <option value="all">All subjects</option>
                       {SUBJECT_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </AdminSelect>
+                    </select>
                   </label>
                   <label className="ul-asg-filter-field">
                     <span>Educator</span>
-                    <AdminSelect value={educatorFilter} onChange={(e) => { setEducatorFilter(e.target.value); setPage(1); }}>
+                    <select value={educatorFilter} onChange={(e) => { setEducatorFilter(e.target.value); setPage(1); }}>
                       {educatorOptions.map((e) => <option key={e} value={e}>{e === "all" ? "All educators" : e}</option>)}
-                    </AdminSelect>
+                    </select>
                   </label>
                   <label className="ul-asg-filter-field">
                     <span>Status</span>
-                    <AdminSelect value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
                       <option value="all">All statuses</option>
                       {Object.values(ASSIGNMENT_STATUS).map((st) => <option key={st} value={st}>{ASSIGNMENT_STATUS_LABEL[st]}</option>)}
                       <option value="overdue">{ASSIGNMENT_STATUS_LABEL.overdue}</option>
-                    </AdminSelect>
+                    </select>
                   </label>
                   <label className="ul-asg-filter-field">
                     <span>Deadline on/before</span>
@@ -589,10 +588,10 @@ export default function AssignEducators() {
                 {formMode === "create" && form.seriesMode === "existing" && (
                   <div className="ul-ts-form-row">
                     <label>Select Test Series</label>
-                    <AdminSelect value={form.seriesId} onChange={(e) => setForm({ ...form, seriesId: e.target.value })} {...fieldProps("seriesId")}>
+                    <select value={form.seriesId} onChange={(e) => setForm({ ...form, seriesId: e.target.value })} {...fieldProps("seriesId")}>
                       <option value="">Select a test series…</option>
                       {seriesList.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </AdminSelect>
+                    </select>
                     <FieldMsg name="seriesId" />
                   </div>
                 )}
@@ -607,10 +606,10 @@ export default function AssignEducators() {
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Subject</label>
-                    <AdminSelect value={ASSIGN_SUBJECTS.includes(form.subject) ? form.subject : "__other__"} onChange={(e) => setForm({ ...form, subject: e.target.value === "__other__" ? "" : e.target.value })}>
+                    <select value={ASSIGN_SUBJECTS.includes(form.subject) ? form.subject : "__other__"} onChange={(e) => setForm({ ...form, subject: e.target.value === "__other__" ? "" : e.target.value })}>
                       {ASSIGN_SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
                       <option value="__other__">Other…</option>
-                    </AdminSelect>
+                    </select>
                     {!ASSIGN_SUBJECTS.includes(form.subject) && (
                       <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Type the subject" style={{ marginTop: 6 }} autoFocus {...fieldProps("subject")} />
                     )}
@@ -625,25 +624,25 @@ export default function AssignEducators() {
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Class / Grade</label>
-                    <AdminSelect value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })}>
+                    <select value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })}>
                       <option value="">Select class / grade…</option>
                       {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
-                    </AdminSelect>
+                    </select>
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Exam / Goal</label>
-                    <AdminSelect value={form.exam} onChange={(e) => setForm({ ...form, exam: e.target.value })}>
+                    <select value={form.exam} onChange={(e) => setForm({ ...form, exam: e.target.value })}>
                       <option value="">Select exam / goal…</option>
                       {EXAM_OPTIONS.map((x) => <option key={x} value={x}>{x}</option>)}
-                    </AdminSelect>
+                    </select>
                   </div>
                 </div>
                 <div className="ul-ts-form-row">
                   <label>Target Audience</label>
-                  <AdminSelect value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
+                  <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
                     <option value="">Select audience…</option>
                     {AUDIENCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
-                  </AdminSelect>
+                  </select>
                 </div>
 
                 <div className="ul-ts-form-row">
@@ -701,10 +700,10 @@ export default function AssignEducators() {
                       {allocation.map((educatorId, i) => (
                         <li key={i}>
                           <span>Test {i + 1}</span>
-                          <AdminSelect aria-label={`Educator for test ${i + 1}`} value={educatorId}
+                          <select aria-label={`Educator for test ${i + 1}`} value={educatorId}
                             onChange={(e) => { const next = [...allocation]; next[i] = e.target.value; setForm({ ...form, allocation: next }); }}>
                             {form.educatorIds.map((id) => <option key={id} value={id}>{eligibleEducators.find((x) => x.id === id)?.name || "Educator"}</option>)}
-                          </AdminSelect>
+                          </select>
                         </li>
                       ))}
                     </ol>
@@ -731,17 +730,17 @@ export default function AssignEducators() {
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Question Type</label>
-                    <AdminSelect value={form.questionTypeMix} onChange={(e) => setForm({ ...form, questionTypeMix: e.target.value })}>
+                    <select value={form.questionTypeMix} onChange={(e) => setForm({ ...form, questionTypeMix: e.target.value })}>
                       {Object.values(QUESTION_TYPE_MIX).map((v) => <option key={v} value={v}>{QUESTION_TYPE_MIX_LABEL[v]}</option>)}
-                    </AdminSelect>
+                    </select>
                   </div>
                 </div>
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Difficulty Level</label>
-                    <AdminSelect value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
+                    <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
                       {DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-                    </AdminSelect>
+                    </select>
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Total Marks (all tests)</label>
@@ -795,10 +794,10 @@ export default function AssignEducators() {
       >
         <div className="ul-ts-form-row">
           <label>Educator</label>
-          <AdminSelect value={assignReqEducatorId} onChange={(e) => setAssignReqEducatorId(e.target.value)}>
+          <select value={assignReqEducatorId} onChange={(e) => setAssignReqEducatorId(e.target.value)}>
             <option value="">Select an educator…</option>
             {eligibleEducators.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </AdminSelect>
+          </select>
         </div>
         <div className="ul-ts-form-row">
           <label>Deadline</label>
@@ -848,10 +847,10 @@ export default function AssignEducators() {
       >
         <div className="ul-ts-form-row">
           <label>New Educator</label>
-          <AdminSelect value={reassignEducatorId} onChange={(e) => setReassignEducatorId(e.target.value)}>
+          <select value={reassignEducatorId} onChange={(e) => setReassignEducatorId(e.target.value)}>
             <option value="">Select an educator…</option>
             {eligibleEducators.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </AdminSelect>
+          </select>
         </div>
       </ConfirmModal>
 

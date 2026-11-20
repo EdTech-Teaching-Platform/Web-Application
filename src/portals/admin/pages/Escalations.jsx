@@ -1,6 +1,5 @@
 // Escalations from Regional Heads: Admin sees the reason, replies, and the
 // Regional Head is notified. Full history is kept per escalation.
-import AdminSelect from "../components/AdminSelect";
 import { useMemo, useState } from "react";
 import { Modal, Tabs } from "./discounts/DiscountsShared";
 import {
@@ -61,10 +60,10 @@ export default function Escalations() {
       <Tabs value={tab} onChange={setTab} tabs={TABS} />
       <div style={{ height: 12 }} />
       <div className="ul-rhp-toolbar">
-        <AdminSelect value={region} onChange={(e) => setRegion(e.target.value)}>
+        <select value={region} onChange={(e) => setRegion(e.target.value)}>
           <option value="all">All regions</option>
           {regions.map((r) => <option key={r} value={r}>{r}</option>)}
-        </AdminSelect>
+        </select>
       </div>
 
       <div className="ul-card ul-edu-table-card"><div className="ul-rhp-table-wrap">

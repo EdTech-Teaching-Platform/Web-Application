@@ -8,7 +8,6 @@
 // file's header comment) plus .ul-ts-*/.ul-tsd-* and .ul-td-* from
 // TestDetail.css.
 
-import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 // Constants and pure readiness checks only; data loads and saves through
@@ -404,9 +403,9 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                   <div className="ul-ts-form-grid-2">
                     <div className="ul-ts-form-row">
                       <label>Difficulty</label>
-                      <AdminSelect value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
+                      <select value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
                         {Object.values(DIFFICULTY).map((d) => <option key={d} value={d}>{DIFFICULTY_LABEL[d]}</option>)}
-                      </AdminSelect>
+                      </select>
                     </div>
                     <div className="ul-ts-form-row">
                       <label>Subject / Topic</label>

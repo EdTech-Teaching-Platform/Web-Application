@@ -1,4 +1,3 @@
-import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { IconChart, IconGlobe, IconReport, IconSearch } from "../components/icons";
 import { regionalApi } from "../services/regionalApi";
@@ -33,7 +32,7 @@ export default function RegionalAnalytics() {
   const regions = Array.isArray(bars.data) ? bars.data : [];
   return <div className="ul-reg-page">
     <div className="ul-dash-welcome ul-reg-welcome"><div><h2 className="ul-dash-welcome__title">Regional Growth</h2><p className="ul-dash-welcome__subtitle">State-by-state revenue growth across India.</p></div></div>
-    <div className="ul-reg-toolbar"><label>Date range<AdminSelect value={filters.range} onChange={(e) => set("range", e.target.value)}>{ranges.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</AdminSelect></label><label>State<AdminSelect value={filters.state} onChange={(e) => set("state", e.target.value)}><option value="">All India</option>{regions.map((r) => <option key={r.state_code} value={r.state_code}>{r.region}</option>)}</AdminSelect></label></div>
+    <div className="ul-reg-toolbar"><label>Date range<select value={filters.range} onChange={(e) => set("range", e.target.value)}>{ranges.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label><label>State<select value={filters.state} onChange={(e) => set("state", e.target.value)}><option value="">All India</option>{regions.map((r) => <option key={r.state_code} value={r.state_code}>{r.region}</option>)}</select></label></div>
     {(summary.error || trend.error || bars.error || table.error) && <div className="ul-set-error">Unable to load regional analytics. <button type="button" onClick={retry}>Retry</button></div>}
     <div className="ul-stats ul-reg-stats">
       <div className="ul-stat-card"><span className="ul-stat-card__label">REGIONS TRACKED</span><span className="ul-stat-card__value">{s.regions_tracked ?? "—"}</span><span className="ul-stat-card__trend">{s.institutions ?? 0} institutions</span></div>

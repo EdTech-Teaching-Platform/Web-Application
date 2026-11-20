@@ -1,5 +1,4 @@
 import { Component } from "react";
-import { isStaleChunkError, reloadOnceForNewVersion } from "../../utils/staleChunk";
 
 // Shared error boundary for every portal's outlet (and lazy pages under it):
 // a render crash or a failed lazy chunk shows a readable panel with Reload and
@@ -22,8 +21,6 @@ export default class ErrorBoundary extends Component {
     // Logged for support; the panel only shows a short message.
     console.error(`[${this.props.name || "portal"}] render failure`, error, info?.componentStack || "");
     this.props.onError?.(error, info);
-    // Old tab after a deploy: pick up the new version automatically (once).
-    if (isStaleChunkError(error?.message)) reloadOnceForNewVersion();
   }
 
   goBack = () => {
@@ -34,7 +31,7 @@ export default class ErrorBoundary extends Component {
   render() {
     const { error } = this.state;
     if (!error) return this.props.children;
-    const chunk = isStaleChunkError(error?.message);
+    const chunk = /Loading chunk|dynamically imported module|Importing a module script failed/i.test(String(error?.message));
     return (
       <div className="ul-error-panel">
         <div className="ul-error-panel__card" role="alert">

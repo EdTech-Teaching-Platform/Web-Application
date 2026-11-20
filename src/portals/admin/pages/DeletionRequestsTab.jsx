@@ -1,4 +1,3 @@
-import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useState } from "react";
 import { accountDeletionsApi } from "../services/accountDeletionsApi";
 import { useRpc } from "../hooks/useRpc";
@@ -64,9 +63,9 @@ export default function DeletionRequestsTab({ api = accountDeletionsApi }) {
   return <>
     <div className="ul-set-filters">
       <label className="ul-set-search"><IconSearch size={14} /><input placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
-      <AdminSelect value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Request status">
+      <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Request status">
         {STATUSES.map((v) => <option key={v} value={v}>{v === "all" ? "All statuses" : label(v)}</option>)}
-      </AdminSelect>
+      </select>
     </div>
     {list.error && <div className="ul-set-error">{list.error.message} <button type="button" onClick={() => list.refetch()}>Retry</button></div>}
     <div className="ul-card"><div className="ul-set-table">

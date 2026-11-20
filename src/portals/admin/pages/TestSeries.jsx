@@ -15,7 +15,6 @@
 // .ul-ts-pagination-* classes in TestSeries.css to match the redesigned
 // pagination control. Page-specific layout lives in TestSeries.css.
 
-import AdminSelect from "../components/AdminSelect";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -37,9 +36,11 @@ import {
   IconSearch, IconClose, IconPlus, IconEdit, IconBook, IconLayers,
   IconUsers, IconReport, IconChart, IconAtom, IconCalculator,
   IconGraduationCap, IconInstitution, IconLightbulb, IconMore, IconEye,
-  IconEyeOff, IconCheck, IconChevronLeft, IconChevronRight,
+  IconEyeOff, IconCheck, IconChevronLeft, IconChevronRight, IconSparkle,
 } from "../components/icons";
 import ConfirmModal from "../components/ConfirmModal";
+import ComingSoonBadge from "../components/ComingSoonBadge";
+import { AI_COMING_SOON, AI_ENABLED } from "../utils/featureFlags";
 import TestSeriesDetail from "./TestSeriesDetail";
 import TestDetail from "./TestDetail";
 import "./AdminDashboard.css";
@@ -291,6 +292,19 @@ export default function TestSeries() {
         </div>
         {tab === "series" && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            {/* AI-assisted building is coming soon: the button stays visible but disabled. */}
+            <button
+              type="button"
+              className="ul-btn ul-btn--ghost"
+              disabled={!AI_ENABLED}
+              aria-disabled={!AI_ENABLED || undefined}
+              title={AI_ENABLED ? undefined : AI_COMING_SOON}
+              onClick={AI_ENABLED ? () => navigate("/admin/testseries/ai-builder") : undefined}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <IconSparkle size={14} /> AI Test Builder {!AI_ENABLED && <ComingSoonBadge />}
+              </span>
+            </button>
             <button type="button" className="ul-btn ul-btn--primary" onClick={() => navigate("/admin/testseries/new")}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <IconPlus size={14} /> Create Test Series
@@ -346,20 +360,20 @@ export default function TestSeries() {
                 </button>
               )}
             </label>
-            <AdminSelect className="ul-set-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <select className="ul-set-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="all">Status: All</option>
               {Object.values(SERIES_STATUS).map((s) => <option key={s} value={s}>{SERIES_STATUS_LABEL[s]}</option>)}
-            </AdminSelect>
-            <AdminSelect className="ul-set-select" value={pricingFilter} onChange={(e) => setPricingFilter(e.target.value)}>
+            </select>
+            <select className="ul-set-select" value={pricingFilter} onChange={(e) => setPricingFilter(e.target.value)}>
               <option value="all">Pricing: All</option>
               {Object.values(PRICING_TYPE).map((p) => <option key={p} value={p}>{PRICING_TYPE_LABEL[p]}</option>)}
-            </AdminSelect>
-            <AdminSelect className="ul-set-select" value={timelineFilter} onChange={(e) => setTimelineFilter(e.target.value)}>
+            </select>
+            <select className="ul-set-select" value={timelineFilter} onChange={(e) => setTimelineFilter(e.target.value)}>
               <option value="all">Timeline: All</option>
               <option value="upcoming">Upcoming</option>
               <option value="ongoing">Ongoing</option>
               <option value="ended">Ended</option>
-            </AdminSelect>
+            </select>
             <button type="button" className="ul-btn ul-btn--ghost" onClick={resetFilters}>Reset</button>
           </div>
 
@@ -472,7 +486,7 @@ export default function TestSeries() {
               </p>
               <div className="ul-ts-form-row" style={{ maxWidth: 420 }}>
                 <label>Test Series</label>
-                <AdminSelect
+                <select
                   value=""
                   onChange={(e) => {
                     if (e.target.value) {
@@ -483,7 +497,7 @@ export default function TestSeries() {
                 >
                   <option value="">Select a Test Series…</option>
                   {seriesList.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </AdminSelect>
+                </select>
               </div>
             </>
           ) : selectedTestId ? (
@@ -550,17 +564,17 @@ export default function TestSeries() {
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Subject / Category</label>
-                    <AdminSelect value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })}>
+                    <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })}>
                       <option value="">Select subject…</option>
                       {SUBJECT_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </AdminSelect>
+                    </select>
                   </div>
                   <div className="ul-ts-form-row">
                     <label>Target Audience / Level</label>
-                    <AdminSelect value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
+                    <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })}>
                       <option value="">Select audience…</option>
                       {AUDIENCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
-                    </AdminSelect>
+                    </select>
                   </div>
                 </div>
 

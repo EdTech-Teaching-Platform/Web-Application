@@ -20,7 +20,6 @@
 // (EducatorProfile.jsx) so the look and interaction match exactly —
 // layout specific to this screen lives in RegionBranchHierarchy.css.
 
-import AdminSelect from "../components/AdminSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useInstitutions,
@@ -550,7 +549,7 @@ export default function RegionBranchHierarchy() {
             assignment/transfer requests and the audit history — all scoped strictly to that institution.
           </p>
         </div>
-        <AdminSelect
+        <select
           className="ul-usr-select ul-org-institution-select"
           value={institution.id}
           onChange={(e) => setInstitutionId(e.target.value)}
@@ -558,7 +557,7 @@ export default function RegionBranchHierarchy() {
           {institutions.map((i) => (
             <option key={i.id} value={i.id}>{i.name}</option>
           ))}
-        </AdminSelect>
+        </select>
       </div>
 
       <div className="ul-edp-tabs ul-org-tabs">
@@ -1026,7 +1025,7 @@ export default function RegionBranchHierarchy() {
                   {unitFormMode === "add" && unitForm.type === ORG_UNIT_TYPE.BRANCH && (
                     <label className="ul-inst-field">
                       <span className="ul-inst-field__label">Parent Region</span>
-                      <AdminSelect
+                      <select
                         value={unitForm.parentId}
                         onChange={(e) => setUnitForm((f) => ({ ...f, parentId: e.target.value }))}
                       >
@@ -1034,7 +1033,7 @@ export default function RegionBranchHierarchy() {
                         {regionOptions.map((r) => (
                           <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
-                      </AdminSelect>
+                      </select>
                     </label>
                   )}
 
@@ -1105,17 +1104,17 @@ export default function RegionBranchHierarchy() {
                       autoFocus
                     />
                   </label>
-                  <AdminSelect className="ul-usr-select" value={assignDeptFilter} onChange={(e) => setAssignDeptFilter(e.target.value)}>
+                  <select className="ul-usr-select" value={assignDeptFilter} onChange={(e) => setAssignDeptFilter(e.target.value)}>
                     <option value="">All subjects</option>
                     {DEPARTMENT_OPTIONS.map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
-                  </AdminSelect>
-                  <AdminSelect className="ul-usr-select" value={assignStatusFilter} onChange={(e) => setAssignStatusFilter(e.target.value)}>
+                  </select>
+                  <select className="ul-usr-select" value={assignStatusFilter} onChange={(e) => setAssignStatusFilter(e.target.value)}>
                     <option value="">Any status</option>
                     <option value="unassigned">Unassigned</option>
                     <option value="assigned">Already assigned elsewhere</option>
-                  </AdminSelect>
+                  </select>
                 </div>
               )}
             </div>
@@ -1155,19 +1154,19 @@ export default function RegionBranchHierarchy() {
                   <div className="ul-inst-form-grid" style={{ marginTop: 14 }}>
                     <label className="ul-inst-field">
                       <span className="ul-inst-field__label">Role</span>
-                      <AdminSelect value={assignDetails.role} onChange={(e) => setAssignDetails((d) => ({ ...d, role: e.target.value }))}>
+                      <select value={assignDetails.role} onChange={(e) => setAssignDetails((d) => ({ ...d, role: e.target.value }))}>
                         {ROLE_OPTIONS.map((r) => (
                           <option key={r} value={r}>{r}</option>
                         ))}
-                      </AdminSelect>
+                      </select>
                     </label>
                     <label className="ul-inst-field">
                       <span className="ul-inst-field__label">Department</span>
-                      <AdminSelect value={assignDetails.department} onChange={(e) => setAssignDetails((d) => ({ ...d, department: e.target.value }))}>
+                      <select value={assignDetails.department} onChange={(e) => setAssignDetails((d) => ({ ...d, department: e.target.value }))}>
                         {DEPARTMENT_OPTIONS.map((d) => (
                           <option key={d} value={d}>{d}</option>
                         ))}
-                      </AdminSelect>
+                      </select>
                     </label>
                     <label className="ul-inst-field ul-inst-field--full">
                       <span className="ul-inst-field__label">Subjects</span>
@@ -1280,7 +1279,7 @@ export default function RegionBranchHierarchy() {
                 <div className="ul-inst-form-grid" style={{ marginTop: 14 }}>
                   <label className="ul-inst-field ul-inst-field--full">
                     <span className="ul-inst-field__label">New Branch / Region</span>
-                    <AdminSelect
+                    <select
                       value={transferForm.newOrgUnitId}
                       onChange={(e) => setTransferForm((f) => ({ ...f, newOrgUnitId: e.target.value }))}
                     >
@@ -1288,7 +1287,7 @@ export default function RegionBranchHierarchy() {
                       {orgUnits.filter((u) => u.id !== transferTarget.orgUnitId).map((u) => (
                         <option key={u.id} value={u.id}>{u.name} ({u.type})</option>
                       ))}
-                    </AdminSelect>
+                    </select>
                   </label>
                   <label className="ul-inst-field">
                     <span className="ul-inst-field__label">Effective Date</span>
@@ -1351,11 +1350,11 @@ export default function RegionBranchHierarchy() {
                 <div className="ul-inst-form-grid">
                   <label className="ul-inst-field ul-inst-field--full">
                     <span className="ul-inst-field__label">Staff Member</span>
-                    <AdminSelect value={newRequestForm.educatorId} onChange={(e) => setNewRequestForm((f) => ({ ...f, educatorId: e.target.value }))}>
+                    <select value={newRequestForm.educatorId} onChange={(e) => setNewRequestForm((f) => ({ ...f, educatorId: e.target.value }))}>
                       {educators.filter((e) => e.verificationStatus === "verified").map((e) => (
                         <option key={e.id} value={e.id}>{e.name} ({e.id})</option>
                       ))}
-                    </AdminSelect>
+                    </select>
                   </label>
                   <label className="ul-inst-field">
                     <span className="ul-inst-field__label">Request Type</span>
@@ -1374,30 +1373,30 @@ export default function RegionBranchHierarchy() {
                   </label>
                   <label className="ul-inst-field">
                     <span className="ul-inst-field__label">Role</span>
-                    <AdminSelect value={newRequestForm.role} onChange={(e) => setNewRequestForm((f) => ({ ...f, role: e.target.value }))}>
+                    <select value={newRequestForm.role} onChange={(e) => setNewRequestForm((f) => ({ ...f, role: e.target.value }))}>
                       {ROLE_OPTIONS.map((r) => (
                         <option key={r} value={r}>{r}</option>
                       ))}
-                    </AdminSelect>
+                    </select>
                   </label>
                   {newRequestForm.requestType === REQUEST_TYPE.TRANSFER && (
                     <label className="ul-inst-field">
                       <span className="ul-inst-field__label">Current Branch</span>
-                      <AdminSelect value={newRequestForm.currentOrgUnitId} onChange={(e) => setNewRequestForm((f) => ({ ...f, currentOrgUnitId: e.target.value }))}>
+                      <select value={newRequestForm.currentOrgUnitId} onChange={(e) => setNewRequestForm((f) => ({ ...f, currentOrgUnitId: e.target.value }))}>
                         <option value="">Select…</option>
                         {orgUnits.map((u) => (
                           <option key={u.id} value={u.id}>{u.name}</option>
                         ))}
-                      </AdminSelect>
+                      </select>
                     </label>
                   )}
                   <label className="ul-inst-field">
                     <span className="ul-inst-field__label">Requested Branch</span>
-                    <AdminSelect value={newRequestForm.requestedOrgUnitId} onChange={(e) => setNewRequestForm((f) => ({ ...f, requestedOrgUnitId: e.target.value }))}>
+                    <select value={newRequestForm.requestedOrgUnitId} onChange={(e) => setNewRequestForm((f) => ({ ...f, requestedOrgUnitId: e.target.value }))}>
                       {orgUnits.map((u) => (
                         <option key={u.id} value={u.id}>{u.name}</option>
                       ))}
-                    </AdminSelect>
+                    </select>
                   </label>
                   <label className="ul-inst-field">
                     <span className="ul-inst-field__label">Date</span>

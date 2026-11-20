@@ -4,7 +4,6 @@
 // courses and engagement (teachers). Everything is read live from Student
 // and Educator Management through data/regionalOnboardingMock.js.
 
-import AdminSelect from "../components/AdminSelect";
 import { useMemo, useState } from "react";
 import { IconSearch, IconClose } from "../components/icons";
 import { useStudents, STUDENT_STATUS } from "../data/studentsMock";
@@ -166,15 +165,15 @@ export default function RegionalHeadActivity() {
           <input type="text" placeholder={`Search ${kind === "students" ? "student" : "teacher"} by name, email or ID…`} value={search} onChange={(e) => { setSearch(e.target.value); reset(); }} />
           {search && <button type="button" className="ul-edu-search__clear" onClick={() => setSearch("")} aria-label="Clear search"><IconClose size={12} /></button>}
         </label>
-        <AdminSelect className="ul-edu-select" value={headId} onChange={(e) => { setHeadId(e.target.value); reset(); }}>
+        <select className="ul-edu-select" value={headId} onChange={(e) => { setHeadId(e.target.value); reset(); }}>
           <option value="all">Onboarded by: All</option>
           {heads.map((h) => <option key={h.id} value={h.id}>{h.name} — {h.region}</option>)}
-        </AdminSelect>
-        <AdminSelect className="ul-edu-select" value={status} onChange={(e) => { setStatus(e.target.value); reset(); }}>
+        </select>
+        <select className="ul-edu-select" value={status} onChange={(e) => { setStatus(e.target.value); reset(); }}>
           <option value="all">Activity: All</option>
           <option value="attention">Needs attention</option>
           <option value="ok">Active / on track</option>
-        </AdminSelect>
+        </select>
       </div>
 
       <div className="ul-card ul-edu-table-card">

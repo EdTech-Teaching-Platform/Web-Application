@@ -1,6 +1,5 @@
 // Discount Management — Overview ("Discount Analytics"). Every figure is
 // computed from the live campaign / redemption records in data/discountsMock.js.
-import AdminSelect from "../../components/AdminSelect";
 import { useEffect, useMemo, useState } from "react";
 import { useDiscountState, refreshExpiry, inr } from "../../data/discountsMock";
 import { LineChart } from "./DiscountsShared";
@@ -90,9 +89,9 @@ export default function DiscountOverview() {
           <h3>Performance summary</h3>
           <p>Track the performance of your discounts and offers</p>
         </div>
-        <AdminSelect className="ul-dov-range" value={range} onChange={(e) => setRange(Number(e.target.value))} aria-label="Date range">
+        <select className="ul-dov-range" value={range} onChange={(e) => setRange(Number(e.target.value))} aria-label="Date range">
           {RANGES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
-        </AdminSelect>
+        </select>
       </div>
 
       <div className="ul-dov-kpis">

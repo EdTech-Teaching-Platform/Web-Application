@@ -26,7 +26,6 @@
 // visible on first load; switching to Head Teacher demonstrates how
 // Admin-only controls lock down.
 
-import AdminSelect from "../components/AdminSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ROLE,
@@ -240,10 +239,10 @@ function PermissionsTab({ matrix, customRoles, permissionHistory, isAdmin, onToa
           <input value={permissionSearch} onChange={(e) => setPermissionSearch(e.target.value)} placeholder="Search permissions or roles..." />
           {permissionSearch && <button type="button" className="ul-usr-search__clear" onClick={() => setPermissionSearch("")} aria-label="Clear permission search"><IconClose size={12} /></button>}
         </label>
-        <AdminSelect className="ul-set-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <select className="ul-set-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="all">Role: All</option>
           {allRoles.map((role) => <option key={role} value={role}>{ROLE_LABEL[role]}</option>)}
-        </AdminSelect>
+        </select>
         {isAdmin && <button type="button" className="ul-btn ul-btn--primary" onClick={() => { setEditingRole(null); setRoleForm({ name: "", description: "" }); setShowRoleForm(true); }}><IconPlus size={13} color="#fff" /> Create Custom Role</button>}
       </div>
 
@@ -374,12 +373,12 @@ function AdminUsersTab({ adminUsers, roleOptions, isAdmin, onToast }) {
           )}
         </label>
 
-        <AdminSelect className="ul-set-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <select className="ul-set-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="all">Role: All</option>
           {roleOptions.map((r) => (
             <option key={r} value={r}>{ROLE_LABEL[r]}</option>
           ))}
-        </AdminSelect>
+        </select>
 
         {isAdmin && (
           <button type="button" className="ul-btn ul-btn--primary" onClick={() => setShowAddForm((v) => !v)}>
@@ -414,11 +413,11 @@ function AdminUsersTab({ adminUsers, roleOptions, isAdmin, onToast }) {
             </label>
             <label>
               Role
-              <AdminSelect value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
                 {roleOptions.map((r) => (
                   <option key={r} value={r}>{ROLE_LABEL[r]}</option>
                 ))}
-              </AdminSelect>
+              </select>
             </label>
             <button type="submit" className="ul-btn ul-btn--primary" disabled={!formValid}>
               Add User
@@ -793,18 +792,18 @@ function CertificatesTab({ certificates, currentAccountName, onToast }) {
           )}
         </label>
 
-        <AdminSelect className="ul-set-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select className="ul-set-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="all">Status: All</option>
           <option value={CERT_STATUS.ISSUED}>Issued</option>
           <option value={CERT_STATUS.REVOKED}>Revoked</option>
-        </AdminSelect>
+        </select>
 
-        <AdminSelect className="ul-set-select" value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
+        <select className="ul-set-select" value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
           <option value="all">Course: All</option>
           {courseOptions.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
-        </AdminSelect>
+        </select>
 
         <button type="button" className="ul-btn ul-btn--primary" onClick={() => setShowIssueForm(true)}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
