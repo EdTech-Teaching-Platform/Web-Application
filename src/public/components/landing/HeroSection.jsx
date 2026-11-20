@@ -726,10 +726,8 @@ export default function HeroSection() {
           @keyframes ul-strip { from { transform: translateX(0); } to { transform: translateX(-50%); } }
           @media (prefers-reduced-motion: reduce) { .ul-strip-track { animation: none !important; } }
         `}</style>
-        {/* back tape: yellow, tilted the other way, peeks out at the ends */}
-        <div className="absolute -inset-x-[6%] top-1/2 h-16 -translate-y-1/2 rotate-[1.4deg] bg-(--lp-yellow) sm:h-[4.5rem]" />
-        {/* front tape: ink, words glide through with soft edge fade */}
-        <div className="relative -mx-[6%] -rotate-[1.1deg] overflow-hidden bg-(--lp-ink) text-white shadow-[0_22px_44px_-20px_rgba(15,17,21,0.6)]">
+        {/* ink tape: straight, words glide through with soft edge fade */}
+        <div className="relative overflow-hidden bg-(--lp-ink) text-white shadow-[0_22px_44px_-20px_rgba(15,17,21,0.6)]">
           <span className="absolute inset-x-0 top-0 h-px bg-white/15" />
           <div
             className="py-4 sm:py-5"
