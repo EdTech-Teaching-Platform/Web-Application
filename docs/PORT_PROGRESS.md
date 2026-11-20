@@ -3515,3 +3515,7 @@ backslash.
 ## Admin UI: AI Test Builder removed, styled dropdowns (2026-11-20)
 - Frontend only, no migrations or DB objects. Removed the "AI Test Builder" button on Test Series and its `testseries/ai-builder` route (`AITestBuilder.jsx` and its mock data stay because the wizard imports them).
 - New `src/portals/admin/components/AdminSelect.{jsx,css}`: drop-in for `<select>` (keeps the real select, styled menu in a portal, keyboard support, native picker on touch). All admin pages use it except the now-unrouted `AITestBuilder.jsx`.
+
+## Admin dashboard visual polish (2026-11-20)
+- Frontend only. New `src/portals/admin/pages/LoginDashboard.css` (scoped to the dashboard's `ul-dash2-*` / `ul-stats--dash` hooks; imported by `LoginDashboard.jsx`). Delete the file and its import to revert.
+- `LoginDashboard.jsx`: revenue chart y-axis labels now formatted as ₹ amounts (neutral 0–₹1k scale when there is no revenue yet) and the tooltip is an HTML overlay clamped inside the card. Data, queries and handlers unchanged.

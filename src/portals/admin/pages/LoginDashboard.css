@@ -252,6 +252,7 @@ body.ul-admin .ul-main .ul-dash2-chart-wrap {
 }
 body.ul-admin .ul-main .ul-dash2-chart-yaxis {
   align-self: flex-start;
+  box-sizing: border-box;
   height: 200px;
   padding: 8px 0 15px;
   font-size: 11px;
