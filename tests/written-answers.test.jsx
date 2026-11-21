@@ -152,7 +152,7 @@ describe("test runner: type or upload", () => {
     expect(onChange).toHaveBeenCalledWith("F = ma");
     fireEvent.click(screen.getByRole("tab", { name: "Upload answer sheet" }));
     expect(screen.getByTestId("answer-uploader")).toBeInTheDocument();
-    expect(screen.getByText(/15 minutes after the test ends/)).toBeInTheDocument();
+    expect(screen.getByText(/15 minutes to add more pages/)).toBeInTheDocument();
     expect(screen.queryByText(/evaluated by AI/)).toBeNull();
   });
   it("with uploads and no text it opens on the upload tab", async () => {
@@ -214,7 +214,8 @@ describe("report: teacher marks, late uploads", () => {
   it("within 15 minutes of the test: add answer sheets per written question", async () => {
     rpcHandlers.student_get_report = report({ teacher: undefined, questions: [{ ...report().questions[0], status: "pending", points_earned: null, teacher_evaluation: undefined, student_answer: "" }],
       summary: { ...report().summary, pending_count: 1, pending_marks: 10 } });
-    rpcHandlers.student_list_answer_uploads = { can_upload: true, window_closes_at: "2026-11-20T10:15:00Z", uploads: [] };
+    rpcHandlers.student_list_answer_uploads = { can_upload: true, can_remove: false, grace_minutes: 15, window_closes_at: "2026-11-20T10:15:00Z",
+      server_now: "2026-11-20T10:05:00Z", submitted_at: "2026-11-20T10:00:00Z", uploads: [] };
     await renderReport();
     expect(await screen.findByRole("heading", { name: "Add your answer sheets" })).toBeInTheDocument();
     expect(screen.getByText(/waiting for your teacher's marks/)).toBeInTheDocument();

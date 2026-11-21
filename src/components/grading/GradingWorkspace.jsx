@@ -50,11 +50,34 @@ export function AnswerFile({ file, index, api = answerUploadsApi }) {
         <div className="flex h-40 items-center justify-center text-xs text-slate-500">{error || "Loading page…"}</div>
       )}
       <figcaption className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-slate-500">
-        <span className="truncate">{isPdf ? file.file_name : `Page ${index + 1}`} · {formatFileSize(file.size_bytes)}</span>
-        {!isPdf && <button type="button" onClick={open} className="font-semibold text-slate-700 hover:underline">Full size</button>}
+        <span className="min-w-0 truncate">
+          {isPdf ? file.file_name : `Page ${index + 1}`} · {formatFileSize(file.size_bytes)}
+          {file.created_at && ` · added ${formatWhen(file.created_at)}`}
+        </span>
+        {file.after_submission && <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">After submitting</span>}
+        {!isPdf && <button type="button" onClick={open} className="shrink-0 font-semibold text-slate-700 hover:underline">Full size</button>}
       </figcaption>
     </figure>
   );
+}
+
+// A file the student removed during the test (kept for the teacher, QA 21 Nov).
+function RemovedFileLink({ file, api }) {
+  const [error, setError] = useState("");
+  const open = async () => {
+    const tab = typeof window.open === "function" ? window.open("", "_blank") : null;
+    try {
+      const u = await api.fileUrl(file.id);
+      if (tab) tab.location.href = u;
+      else window.location.assign(u);
+    } catch (e) {
+      tab?.close?.();
+      setError(e.message || "Couldn't open it.");
+    }
+  };
+  return error
+    ? <span className="text-red-600">{error}</span>
+    : <button type="button" onClick={open} className="font-semibold text-slate-700 underline">Open</button>;
 }
 
 function initialMarks(questions) {
@@ -167,6 +190,10 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
             </p>
           </div>
         </div>
+        <p className="mt-3 text-xs text-slate-500">
+          Upload rule for this test: students can add pages (not remove them) for {data.upload_window_minutes ?? 15} minutes after submitting.
+          {a.submitted_at && closes && ` This student submitted at ${new Date(a.submitted_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}, so uploads close at ${closes}.`}
+        </p>
         {windowOpen && (
           <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
             The student can still upload answer sheets until {closes}. Reload after that to see everything before publishing.
@@ -211,6 +238,20 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
                     {q.uploads.map((f, i) => <AnswerFile key={f.id} file={f} index={i} api={filesApi} />)}
                   </div>
                 </div>
+              )}
+              {(q.removed_uploads || []).length > 0 && (
+                <details className="mt-3 rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-700">
+                  <summary className="cursor-pointer font-semibold">Removed by the student during the test ({q.removed_uploads.length})</summary>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {q.removed_uploads.map((f) => (
+                      <li key={f.id} className="flex flex-wrap items-center gap-2">
+                        <span className="truncate">{f.file_name}</span>
+                        <span className="text-slate-500">added {formatWhen(f.created_at)} · removed {formatWhen(f.removed_at)}</span>
+                        <RemovedFileLink file={f} api={filesApi} />
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
 
               <div className="mt-4 grid gap-3 sm:grid-cols-[10rem_1fr]">

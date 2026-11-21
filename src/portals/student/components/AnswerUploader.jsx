@@ -2,18 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import {
   ANSWER_ACCEPT, ANSWER_MAX_FILES, answerUploadsApi, checkAnswerFile, formatFileSize,
 } from "../../../services/answerUploadsApi";
+import AnswerPreview from "./AnswerPreview";
 
 // Handwritten answer sheets for one written question (20261120090000):
 // "Take a photo" (the phone camera) or "Choose files" (photos / PDF), up to 5
-// files of 10 MB. Photos are resized before upload. Each file can be viewed
-// (a 10-minute private link) and removed while uploads are open.
+// files of 10 MB. Photos are resized before upload. "View" previews a file in
+// the page (never a new tab, which would count as leaving the test, QA 21 Nov).
+// Files can be removed only while the test is open (canRemove); after
+// submitting, pages can only be added.
+//   onPreviewOpen / onPreviewClose: the runner relaxes window-focus checks
+//   while a preview is shown.
 //   onPickStart / onPickEnd: the test runner pauses proctoring while the
 //   camera or file picker is open (leaving the page there isn't a violation).
 //   onChange(list): the attempt's new upload list (mapAnswerUploads).
 export default function AnswerUploader({
-  attemptId, questionId, files = [], canUpload = true, onChange, onPickStart, onPickEnd,
-  api = answerUploadsApi, label = "Upload your answer sheet",
+  attemptId, questionId, files = [], canUpload = true, canRemove = true, onChange, onPickStart, onPickEnd,
+  onPreviewOpen, onPreviewClose, api = answerUploadsApi, label = "Upload your answer sheet",
 }) {
+  const [preview, setPreview] = useState(null);
   const [queue, setQueue] = useState([]);   // [{key, name, progress, error}]
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
@@ -80,17 +86,14 @@ export default function AnswerUploader({
     }
   }
 
-  async function view(file) {
+  function view(file) {
     setError("");
-    const tab = typeof window.open === "function" ? window.open("", "_blank") : null;
-    try {
-      const url = await api.fileUrl(file.id);
-      if (tab) tab.location.href = url;
-      else window.location.assign(url);
-    } catch (err) {
-      tab?.close?.();
-      setError(err.message || "Couldn't open the file.");
-    }
+    onPreviewOpen?.();
+    setPreview(file);
+  }
+  function closePreview() {
+    setPreview(null);
+    onPreviewClose?.();
   }
 
   const btn = "inline-flex cursor-pointer items-center justify-center rounded-full px-4 py-2 text-sm font-semibold ring-1 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary";
@@ -151,7 +154,7 @@ export default function AnswerUploader({
                 <span className="text-xs text-text/50">{formatFileSize(f.size)}</span>
               </span>
               <button type="button" onClick={() => view(f)} className="rounded-full px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/10">View</button>
-              {canUpload && (
+              {canUpload && canRemove && (
                 <button type="button" onClick={() => remove(f)} disabled={busyId === f.id}
                   className="rounded-full px-3 py-1 text-xs font-semibold text-danger hover:bg-danger/10 disabled:opacity-50"
                   aria-label={`Remove ${f.fileName}`}>
@@ -162,7 +165,11 @@ export default function AnswerUploader({
           ))}
         </ul>
       )}
+      {canUpload && !canRemove && files.length > 0 && (
+        <p className="mt-2 text-xs text-text/60">Pages you've uploaded can't be removed after submitting. You can still add more.</p>
+      )}
       {error && <p role="alert" className="mt-2 text-xs text-danger">{error}</p>}
+      {preview && <AnswerPreview file={preview} api={api} onClose={closePreview} />}
     </div>
   );
 }

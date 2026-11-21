@@ -73,6 +73,7 @@ const systemNow = () => Date.now();
 export function useProctor({ enabled, onEvent, now = systemNow }) {
   const handler = useRef(onEvent);
   const pausedUntil = useRef(0);
+  const pausedTypes = useRef(PAUSABLE_EVENTS);
   useEffect(() => {
     handler.current = onEvent;
   });
@@ -81,13 +82,19 @@ export function useProctor({ enabled, onEvent, now = systemNow }) {
     if (!enabled) return undefined;
     return attachProctorListeners({
       onEvent: (type, meta) => {
-        if (PAUSABLE_EVENTS.includes(type) && now() < pausedUntil.current) return;
+        if (pausedTypes.current.includes(type) && now() < pausedUntil.current) return;
         handler.current?.(type, meta);
       },
     });
   }, [enabled]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pause = useCallback((ms = PICKER_PAUSE_MS) => { pausedUntil.current = now() + ms; }, [now]);
+  // types: which window changes to ignore (default all three). Previewing an
+  // answer sheet in the page ignores only window_blur (clicking into a PDF
+  // frame blurs the window); switching tabs or leaving full screen still counts.
+  const pause = useCallback((ms = PICKER_PAUSE_MS, types = PAUSABLE_EVENTS) => {
+    pausedTypes.current = types.filter((t) => PAUSABLE_EVENTS.includes(t));
+    pausedUntil.current = now() + ms;
+  }, [now]);
   const resume = useCallback(() => { pausedUntil.current = Math.min(pausedUntil.current, now() + RESUME_GRACE_MS); }, [now]);
   return { enterFullscreen: useCallback(() => enterFullscreen(), []), supported: fullscreenSupported(), pause, resume };
 }

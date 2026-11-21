@@ -89,6 +89,15 @@ export function blockedQuestionCount(tests) {
   return (tests || []).reduce((n, t) => n + (t.questions || []).filter((q) => isBlockedQuestionType(q.type)).length, 0);
 }
 
+// Minutes students get after submitting to add answer-sheet photos / PDFs
+// (written questions; 20261121090000). 0..120, default 15.
+export const DEFAULT_UPLOAD_MINUTES = 15;
+export function uploadMinutes(value) {
+  if (value === "" || value == null) return DEFAULT_UPLOAD_MINUTES;
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) ? Math.min(Math.max(n, 0), 120) : DEFAULT_UPLOAD_MINUTES;
+}
+
 export function emptyTest(name = "") {
   return {
     wid: wid("wt"),
@@ -97,6 +106,7 @@ export function emptyTest(name = "") {
     duration: 60,
     passingPercent: 40,
     attemptLimit: 1,
+    answerUploadMinutes: DEFAULT_UPLOAD_MINUTES,
     window: { mode: "inherit", openAt: "", closeAt: "" },
     plannedQuestions: 0,
     topics: [],
@@ -522,6 +532,7 @@ export function buildSeriesPayload(st, ctx, publish) {
         totalMarks: total,
         passingMarks: Math.round((total * (Number(t.passingPercent) || 0)) / 100),
         attemptLimit: Number(t.attemptLimit) || 1,
+        answerUploadMinutes: uploadMinutes(t.answerUploadMinutes),
         scheduledAt: t.window.mode === "custom" ? t.window.openAt : "",
         window: { ...t.window },
         status: published ? "published" : "draft",
@@ -568,6 +579,7 @@ export function wizardRpcPayload(st, ctx, publish) {
       duration: String(t.duration),
       passingPercent: String(t.passingPercent || 40),
       attemptLimit: String(t.attemptLimit || 1),
+      answerUploadMinutes: String(uploadMinutes(t.answerUploadMinutes)),
       window: t.window,
       plannedQuestions: String(t.plannedQuestions || t.questions.length),
       topics: t.topics || [],

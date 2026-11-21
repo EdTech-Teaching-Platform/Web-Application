@@ -224,6 +224,9 @@ export function QuestionReview({ question, hidden, files = [], api = answerUploa
           {question.correct_answer && (
             <div><dt className="inline font-medium text-text/70">{question.status === "pending" ? "Model answer: " : "Accepted answer: "}</dt><dd className="inline text-text">{question.correct_answer}</dd></div>
           )}
+          {question.model_answer_pending && (
+            <p className="text-xs text-text/60">The model answer is shown after your teacher has marked this answer.</p>
+          )}
         </dl>
       )}
       <UploadedFiles files={files} api={api} />
@@ -279,23 +282,55 @@ function TeacherReport({ teacher }) {
   );
 }
 
-// For 15 minutes after the test: add the handwritten answer sheets.
+const clock = (iso) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+// The test's upload time after submitting (QA 21 Nov: set per test, the same
+// rule for everyone, add-only, closes on its own). Counts down from the
+// server's closing time, corrected for this device's clock.
+function useUploadDeadline(uploads) {
+  const closesAt = uploads?.windowClosesAt ? new Date(uploads.windowClosesAt).getTime() : null;
+  const serverNow = uploads?.serverNow || null;
+  // server clock - device clock, fixed when the server answered
+  const skew = useMemo(() => (serverNow ? new Date(serverNow).getTime() - Date.now() : 0), [serverNow]);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (closesAt == null) return undefined;
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [closesAt]);
+  return closesAt == null ? null : Math.max(0, closesAt - (Date.now() + skew));
+}
+
+// Within the test's upload time after submitting: add the handwritten sheets.
 function LateUploads({ attemptId, questions, uploads, onChange }) {
   const written = questions.filter(isWrittenRow);
-  if (!uploads?.canUpload || written.length === 0) return null;
-  const until = uploads.windowClosesAt ? new Date(uploads.windowClosesAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : null;
+  const msLeft = useUploadDeadline(uploads);
+  if (!uploads?.canUpload || written.length === 0 || msLeft === 0) return null;
+  const until = uploads.windowClosesAt ? clock(uploads.windowClosesAt) : null;
+  const mins = msLeft != null ? Math.floor(msLeft / 60000) : null;
+  const secs = msLeft != null ? Math.floor((msLeft % 60000) / 1000) : null;
   return (
     <section className={CARD} aria-labelledby="ul-late-uploads">
-      <h2 id="ul-late-uploads" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">Add your answer sheets</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="ul-late-uploads" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">Add your answer sheets</h2>
+        {msLeft != null && (
+          <span role="timer" aria-label={`${mins} minutes ${secs} seconds left to upload`}
+            className="rounded-full bg-warning/15 px-3 py-1 font-mono text-sm font-semibold text-text">
+            {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")} left
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-sm text-(--lp-muted)">
-        Wrote answers on paper? Upload photos or a PDF for each written question{until ? ` until ${until}` : ""}. Your typed answers can't be changed any more.
+        {`This test gives you ${uploads.graceMinutes} minutes after submitting to add photos or a PDF of written answers.`}
+        {until && ` Uploads close at ${until}${uploads.submittedAt ? ` (you submitted at ${clock(uploads.submittedAt)})` : ""}.`}
+        {" "}You can add pages but not remove them, and your typed answers can't be changed. Your teacher sees when each page was added.
       </p>
       <ol className="mt-4 space-y-4">
         {written.map((q) => (
           <li key={q.question_id}>
             <p className="mb-2 text-sm font-semibold text-(--lp-ink)">Q{q.position}. <span className="font-normal text-text/80">{String(q.text || "").slice(0, 160)}</span></p>
             <AnswerUploader attemptId={attemptId} questionId={q.question_id} files={uploads.byQuestion[q.question_id] || []}
-              canUpload={uploads.canUpload} onChange={onChange} label="Answer sheet for this question" />
+              canUpload={uploads.canUpload && msLeft !== 0} canRemove={false} onChange={onChange} label="Answer sheet for this question" />
           </li>
         ))}
       </ol>

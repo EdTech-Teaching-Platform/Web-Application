@@ -28,6 +28,9 @@ export function mapAnswerUploads(data) {
     windowClosesAt: data?.window_closes_at || null,
     canUpload: Boolean(data?.can_upload),
     serverNow: data?.server_now || null,
+    graceMinutes: data?.grace_minutes ?? 15,   // the test's upload time after submitting (20261121090000)
+    canRemove: data?.can_remove ?? Boolean(data?.can_upload),   // only while the test is open
+    submittedAt: data?.submitted_at || null,
     uploads,
     byQuestion,
   };

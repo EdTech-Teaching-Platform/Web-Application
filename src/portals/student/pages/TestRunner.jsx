@@ -20,6 +20,8 @@ import { formatClock } from "../utils/format";
 import EmailWatermark from "../components/EmailWatermark";
 import { QuestionFigure, SeriesThumb } from "../components/TestImages";
 
+const PREVIEW_PAUSE_MS = 30 * 60 * 1000;   // until the preview closes (resume)
+
 const EVENT_TEXT = {
   visibility_hidden: "You switched away from the test tab.",
   window_blur: "The test window lost focus.",
@@ -68,13 +70,17 @@ export function WrittenAnswer({ question, value, onChange, upload }) {
       ) : (
         <AnswerUploader
           attemptId={upload.attemptId} questionId={question.id} files={files} canUpload={upload.canUpload}
+          canRemove={upload.canRemove !== false}
           onChange={upload.onChange} onPickStart={upload.onPickStart} onPickEnd={upload.onPickEnd}
+          onPreviewOpen={upload.onPreviewOpen} onPreviewClose={upload.onPreviewClose}
         />
       )}
       <span className="mt-2 block text-xs text-text/50">
         Your teacher marks written answers after you submit.
         {upload && mode === "type" && files.length > 0 && ` You've also uploaded ${files.length} file${files.length === 1 ? "" : "s"} for this answer.`}
-        {upload && " You can still upload answer sheets for 15 minutes after the test ends."}
+        {upload && (Number(upload.graceMinutes ?? 15) > 0
+          ? ` After you submit you'll have ${upload.graceMinutes ?? 15} minutes to add more pages (pages can't be removed then).`
+          : " Upload your answer sheets before you submit.")}
       </span>
     </div>
   );
@@ -188,6 +194,10 @@ export default function TestRunner() {
     proctor.resume();
     setTimeout(() => { if (proctor.supported && !fullscreenElement()) setNeedFullscreen(true); }, 600);
   }, [proctor]);
+  // Previewing a sheet in the page: clicking into a PDF frame blurs the
+  // window, which isn't leaving the test. Tab switches still count.
+  const onPreviewOpen = useCallback(() => proctor.pause(PREVIEW_PAUSE_MS, ["window_blur"]), [proctor]);
+  const onPreviewClose = useCallback(() => proctor.resume(), [proctor]);
 
   // Ask before leaving while the attempt is open (the timer keeps running).
   useEffect(() => {
@@ -315,7 +325,8 @@ export default function TestRunner() {
               question={question} value={answers[question.id]} onChange={(v) => runner.answer(question.id, v)}
               upload={uploads ? {
                 attemptId, files: uploads.byQuestion[question.id] || [], canUpload: uploads.canUpload,
-                onChange: setUploads, onPickStart, onPickEnd,
+                canRemove: uploads.canRemove, graceMinutes: uploads.graceMinutes,
+                onChange: setUploads, onPickStart, onPickEnd, onPreviewOpen, onPreviewClose,
               } : null}
             />
           </div>

@@ -99,7 +99,28 @@ is marked `STUB: needs payments model (F4)` (D1):
    - **`src/components/ui/icons copy.jsx`:** kept, because `icons.jsx`
      re-exports it. Merge the two before deleting it.
 
-## 2026-11-21: server layer (HttpOnly-cookie sessions, server-rendered public pages)
+## 2026-11-21: written answers QA fixes
+
+- **Migration `20261121090000_admin_written_answers_fixes.sql`** (needs 20261120090000; NOT applied).
+  - Rollback: `scripts/rollback_20261121090000_admin_written_answers_fixes.sql` (tested). Trial: `docs/trial_run_20261121090000.sql`. Tests: `supabase/tests/written_answers_fixes.sql`.
+  - Generated from the earlier files: every replaced function is a verbatim copy with edits marked `-- 20261121090000`.
+  - **Model answer before marking:** `adm_report_with_images` (every student report) blanks `correct_answer` / `explanation` of written questions until the marks are published, and sets `model_answer_pending`.
+  - **No removing after submitting:** `student_remove_answer_upload` only works while the test is open. `answer_uploads.removed_at`: removed files are kept and marked, not deleted.
+  - **History for the teacher:** `grading_get_attempt` returns `removed_uploads` and `after_submission` per file.
+  - **Upload time per test:** `quiz_admin.answer_upload_minutes` (default 15, 0..120), saved as `answerUploadMinutes` through `adm_apply_test_fields`, returned by `adm_test_json` and used by `adm_answer_upload_window`.
+    - The rule: N minutes after the student submits (after the deadline while still open); 0 = only during the test.
+    - `student_list_answer_uploads` adds `grace_minutes`, `can_remove` and `submitted_at`.
+- **Frontend:**
+  - "View" previews in the page (`AnswerPreview`: photo as an image, PDF from a blob: URL in a frame), so there's no new tab. While a preview is open, only window_blur is ignored (`useProctor.pause(ms, types)`); tab switches and leaving full screen still count.
+  - Remove only while the test is open.
+  - **Report:** "Add your answer sheets" states the test's rule, counts down and closes by itself; written questions say the model answer comes after marking.
+  - **Marking screen:** the rule, an "After submitting" badge with each file's time, and a "Removed by the student" history.
+  - **Upload time field:** in the test edit form and the wizard.
+  - vercel.json report-only CSP: `frame-src` adds `blob:`.
+- **Tests:** `tests/written-answers-fixes.test.jsx` (9).
+- **Notes:** duplicating a test doesn't copy the upload time (the copy gets 15). The QA's 01:17 vs 01:21 came from two different attempts: both screens read the same server time.
+
+ (HttpOnly-cookie sessions, server-rendered public pages)
 
 Decisions (asked 21 Nov):
 - every Supabase call goes through our own Vercel functions;

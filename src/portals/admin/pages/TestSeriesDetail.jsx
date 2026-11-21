@@ -38,6 +38,7 @@ import "./TestSeries.css";
 import "./TestSeriesDetail.css";
 import PageToast from "../../../components/feedback/Toast";
 import { fromDateTimeLocal, toDateTimeLocal } from "../../../utils/datetimeLocal";
+import { uploadMinutes } from "../data/testSeriesWizard";
 import { scrollToFirstInvalid } from "../../../utils/scrollToFirstInvalid";
 
 const EMPTY_TEST_FORM = {
@@ -47,6 +48,7 @@ const EMPTY_TEST_FORM = {
   totalMarks: "",
   passingMarks: "",
   attemptLimit: "",
+  answerUploadMinutes: "15",
   scheduledAt: "",
   shuffleQuestions: false,
   shuffleOptions: false,
@@ -152,7 +154,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     setForm({
       name: t.name, instructions: t.instructions, duration: String(t.duration || ""),
       totalMarks: String(t.totalMarks || ""), passingMarks: String(t.passingMarks || ""),
-      attemptLimit: String(t.attemptLimit || ""), scheduledAt: toDateTimeLocal(t.scheduledAt),
+      attemptLimit: String(t.attemptLimit || ""), answerUploadMinutes: String(t.answerUploadMinutes ?? 15), scheduledAt: toDateTimeLocal(t.scheduledAt),
       shuffleQuestions: !!t.shuffleQuestions, shuffleOptions: !!t.shuffleOptions,
     });
     setEditingId(t.id);
@@ -175,6 +177,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     totalMarks: Number(form.totalMarks) || 0,
     passingMarks: Number(form.passingMarks) || 0,
     attemptLimit: Number(form.attemptLimit) || 1,
+    answerUploadMinutes: uploadMinutes(form.answerUploadMinutes),
     scheduledAt: fromDateTimeLocal(form.scheduledAt),
     shuffleQuestions: !!form.shuffleQuestions,
     shuffleOptions: !!form.shuffleOptions,
@@ -363,6 +366,13 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                   </div>
                 </div>
 
+                <div className="ul-ts-form-row">
+                  <label htmlFor="ts-upload-minutes">Answer-sheet upload time after submitting (minutes)</label>
+                  <input id="ts-upload-minutes" type="number" min="0" max="120" value={form.answerUploadMinutes}
+                    onChange={(e) => setForm({ ...form, answerUploadMinutes: e.target.value })} aria-describedby="ts-upload-minutes-hint" />
+                  <small id="ts-upload-minutes-hint">For written questions: each student gets this long after they submit to add photos or a PDF (add only, no removing). 0 = only during the test. Up to 120.</small>
+                </div>
+
                 <div className="ul-ts-form-grid-2">
                   <div className="ul-ts-form-row">
                     <label>Total Marks</label>
@@ -429,6 +439,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Total Marks</p><p className="ul-set-kv__value">{viewTarget.totalMarks}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Passing Marks</p><p className="ul-set-kv__value">{viewTarget.passingMarks}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Attempt Limit</p><p className="ul-set-kv__value">{viewTarget.attemptLimit}</p></div>
+                <div className="ul-set-kv__item"><p className="ul-set-kv__label">Upload time after submitting</p><p className="ul-set-kv__value">{viewTarget.answerUploadMinutes ?? 15} min</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Scheduled</p><p className="ul-set-kv__value">{viewTarget.scheduledAt ? new Date(viewTarget.scheduledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Shuffle Questions</p><p className="ul-set-kv__value">{viewTarget.shuffleQuestions ? "On" : "Off"}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Shuffle Options</p><p className="ul-set-kv__value">{viewTarget.shuffleOptions ? "On" : "Off"}</p></div>
