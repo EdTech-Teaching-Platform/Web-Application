@@ -185,21 +185,29 @@ const HEADER_ALIASES = {
   marks: "marks", mark: "marks", negative: "negative", negativemarks: "negative",
   type: "type", questiontype: "type", difficulty: "difficulty", level: "difficulty",
   subject: "subject", topic: "topic", explanation: "explanation", solution: "explanation",
+  // full-series files: which test the question belongs to
+  test: "test", testname: "test",
 };
 
-// Returns { rows, error } — rows are editable plain objects keyed by CSV_COLUMNS.
-export function csvToRows(text) {
-  const table = parseCsv(text);
-  if (table.length === 0) return { rows: [], error: "The file is empty." };
+// A parsed table (header row first; a CSV file or a Word table) -> editable
+// row objects keyed by CSV_COLUMNS (+ `test`). firstLine is the number shown
+// as "Row" for the first data row (2 = spreadsheet row, 1 = question number).
+export function tableToQuestionRows(table, firstLine = 2) {
+  if (!table || table.length === 0) return { rows: [], error: "The file is empty." };
   const header = table[0].map((h) => HEADER_ALIASES[String(h).toLowerCase().replace(/[^a-z]/g, "")] || null);
   if (!header.includes("question")) return { rows: [], error: 'No "question" column found in the header row. Download the template to see the expected columns.' };
   const rows = table.slice(1).map((cells, idx) => {
-    const r = { _id: wid("csv"), line: idx + 2 };
+    const r = { _id: wid("csv"), line: idx + firstLine, test: "" };
     CSV_COLUMNS.forEach((c) => { r[c] = ""; });
     header.forEach((key, i) => { if (key) r[key] = String(cells[i] ?? "").trim(); });
     return r;
   });
   return { rows, error: rows.length === 0 ? "The file has a header but no question rows." : "" };
+}
+
+// Returns { rows, error } — rows are editable plain objects keyed by CSV_COLUMNS.
+export function csvToRows(text) {
+  return tableToQuestionRows(parseCsv(text));
 }
 
 export const ROW_STATUS = { VALID: "valid", INVALID: "invalid", INCOMPLETE: "incomplete", DUPLICATE: "duplicate" };
@@ -367,6 +375,7 @@ function isFuture(dt) {
 }
 
 // Source step, CSV start: valid rows are validated but not imported yet.
+export const CSV_FULL_MESSAGE = 'Your file is ready. Click "Create draft from file" above to fill every step from it.';
 export function csvPendingMessage(n) {
   const rows = `${n} valid row${n === 1 ? "" : "s"}`;
   return `${rows} ready. Click "Import ${rows}" above to add ${n === 1 ? "it" : "them"} to the series, then Continue.`;
@@ -387,7 +396,7 @@ export function stepErrors(step, st, ctx) {
         const ready = Number(ctx?.csvPending) || 0;
         // QA: with valid rows validated but not imported yet, say what to click
         // instead of "import at least one valid row" (which read as if none were valid).
-        if (st.startMethod === START_METHOD.CSV && ready > 0) e.push(csvPendingMessage(ready));
+        if (st.startMethod === START_METHOD.CSV && ready > 0) e.push(ctx?.csvFull ? CSV_FULL_MESSAGE : csvPendingMessage(ready));
         else e.push(st.startMethod === START_METHOD.CSV ? "Import at least one valid row, or go back and choose another method."
           : "Apply an outline to create the tests, or go back and choose another method.");
       }

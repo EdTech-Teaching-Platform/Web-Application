@@ -86,7 +86,7 @@ describe("CSV start: valid rows validated but not imported yet", () => {
     render(<MemoryRouter initialEntries={["/admin/testseries/new"]}><Routes><Route path="/admin/testseries/new" element={<TestSeriesWizard />} /></Routes></MemoryRouter>);
     await screen.findByText("How would you like to start?");
     const pick = (label) => screen.queryAllByRole("button").find((b) => b.textContent.includes(label));
-    await act(async () => { fireEvent.click(pick("Import questions")); });
+    await act(async () => { fireEvent.click(pick("Import from file")); });
     await act(async () => { fireEvent.click(pick("Continue")); });
     fireEvent.change(screen.getByPlaceholderText(/question,optionA/), { target: { value: CSV } });
     fireEvent.click(screen.getByRole("button", { name: "Validate pasted text" }));

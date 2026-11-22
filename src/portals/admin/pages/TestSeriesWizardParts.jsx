@@ -14,6 +14,9 @@ import {
   emptyQuestion, cloneQuestion, csvToRows, validateCsvRows, ROW_STATUS, CSV_TEMPLATE,
   generateOutline, topicSuggestions, OUTLINE_TYPES, OUTLINE_DIFFICULTY, wid,
 } from "../data/testSeriesWizard";
+import {
+  DOCX_MAX_BYTES, buildSeriesCsvTemplate, buildSeriesDocxTemplate, buildSeriesFromImport, csvToImport, docxToImport,
+} from "../data/seriesImport";
 
 // ------------------------------------------------------------------ Modal
 
@@ -193,55 +196,86 @@ const STATUS_CLASS = {
   [ROW_STATUS.INCOMPLETE]: "is-pending", [ROW_STATUS.DUPLICATE]: "is-verified",
 };
 
-// onPendingChange(n): the number of valid rows validated but not imported yet,
-// so the wizard can say "click Import" instead of "import at least one valid row".
-export function CsvImporter({ existingKeys, onImport, onPendingChange }) {
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// onPendingChange(n, full): the number of valid rows validated but not imported
+// yet, so the wizard can say "click Import" instead of "import at least one valid
+// row". `full` is true for a full-series file (see data/seriesImport.js).
+// onImportSeries(patch, warnings): when given, the importer also accepts the
+// full-series CSV / Word template and fills every wizard step from it.
+export function CsvImporter({ existingKeys, onImport, onPendingChange, onImportSeries }) {
   const [text, setText] = useState("");
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState(null);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
   const [flash, setFlash] = useState("");
+  const [imp, setImp] = useState(null);   // a parsed full-series file, or null for a questions-only one
 
-  const report = useMemo(() => (rows ? validateCsvRows(rows, existingKeys) : []), [rows, existingKeys]);
+  const report = useMemo(() => (rows ? validateCsvRows(rows, imp ? new Set() : existingKeys) : []), [rows, existingKeys, imp]);
   const counts = report.reduce((m, r) => ({ ...m, [r.status]: (m[r.status] || 0) + 1 }), {});
   const pendingValid = counts[ROW_STATUS.VALID] || 0;
   const pendingRef = useRef(onPendingChange);
   pendingRef.current = onPendingChange;
-  useEffect(() => { pendingRef.current?.(pendingValid); }, [pendingValid]);
+  const isFull = !!imp;
+  useEffect(() => { pendingRef.current?.(pendingValid, isFull); }, [pendingValid, isFull]);
 
-  const parse = (src) => {
-    const res = csvToRows(src);
-    setError(res.error);
+  const accept = (res) => {
+    setError(res.error || "");
+    setImp(!res.error && res.kind === "series" && onImportSeries ? res : null);
     setRows(res.error ? null : res.rows);
     setEditing(null);
     setFlash("");
+  };
+  const parse = (src) => {
+    const full = csvToImport(src);
+    if (full.kind === "questions") accept({ ...csvToRows(src), kind: "questions" });
+    else if (full.kind === "error") accept({ error: full.error });
+    else accept(full);
   };
   const onFile = (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = "";
     if (!f) return;
-    if (!/\.csv$/i.test(f.name) && !/csv|text\/plain|excel/i.test(f.type || "")) {
-      setError("Choose a .csv file (in Excel or Sheets: File > Save as / Download > CSV).");
+    const isDocx = !!onImportSeries && /\.docx$/i.test(f.name);
+    if (!isDocx && !/\.csv$/i.test(f.name) && !/csv|text\/plain|excel/i.test(f.type || "")) {
+      setError(onImportSeries
+        ? "Choose a .csv or .docx file (in Excel or Sheets: File > Save as / Download > CSV; in Word: File > Save As > Word Document)."
+        : "Choose a .csv file (in Excel or Sheets: File > Save as / Download > CSV).");
       setRows(null);
+      setImp(null);
       return;
     }
-    if (f.size > 2 * 1024 * 1024) { setError("The file is larger than 2 MB. Split it into smaller files."); setRows(null); return; }
+    if (f.size > (isDocx ? DOCX_MAX_BYTES : 2 * 1024 * 1024)) { setError(`The file is larger than ${isDocx ? 5 : 2} MB. Split it into smaller files.`); setRows(null); setImp(null); return; }
     setFileName(f.name);
+    if (isDocx) {
+      const rdb = new FileReader();
+      rdb.onload = () => { setText(""); docxToImport(rdb.result).then(accept); };
+      rdb.onerror = () => { setError("The file could not be read. Try again."); setRows(null); setImp(null); };
+      rdb.readAsArrayBuffer(f);
+      return;
+    }
     const rd = new FileReader();
     rd.onload = () => { setText(String(rd.result || "")); parse(String(rd.result || "")); };
     rd.onerror = () => { setError("The file could not be read. Try again, or paste the CSV text below."); setRows(null); };
     rd.readAsText(f);
   };
   const downloadTemplate = () => {
-    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "test-series-questions-template.csv"; a.click();
-    URL.revokeObjectURL(url);
+    if (onImportSeries) saveBlob(new Blob([buildSeriesCsvTemplate()], { type: "text/csv" }), "test-series-template.csv");
+    else saveBlob(new Blob([CSV_TEMPLATE], { type: "text/csv" }), "test-series-questions-template.csv");
   };
+  const downloadWordTemplate = async () => saveBlob(await buildSeriesDocxTemplate("blob"), "test-series-template.docx");
   const patchRow = (id, patch) => setRows((rs) => rs.map((r) => (r._id === id ? { ...r, ...patch } : r)));
   const removeRow = (id) => setRows((rs) => rs.filter((r) => r._id !== id));
+  const createSeries = () => {
+    const { patch, warnings } = buildSeriesFromImport(imp, report);
+    onImportSeries(patch, warnings);
+  };
   const importValid = () => {
     const good = report.filter((r) => r.status === ROW_STATUS.VALID);
     if (!good.length) return;
@@ -256,15 +290,24 @@ export function CsvImporter({ existingKeys, onImport, onPendingChange }) {
       <div className="ul-tsw-dropzone">
         <IconUpload size={22} />
         <div>
-          <strong>Upload a CSV file</strong>
-          <p>Columns: question, optionA–D, correct, marks, negative, type, difficulty, subject, topic, explanation.</p>
+          <strong>{onImportSeries ? "Upload a CSV or Word file" : "Upload a CSV file"}</strong>
+          {onImportSeries
+            ? <p>Download a template, fill it in (series details, tests and questions) and upload it. Every step of the wizard is filled from the file.</p>
+            : <p>Columns: question, optionA–D, correct, marks, negative, type, difficulty, subject, topic, explanation.</p>}
         </div>
         <div className="ul-tsw-row">
           <label className="ul-btn ul-btn--primary ul-tsw-filebtn">
             Choose file
-            <input type="file" accept=".csv,text/csv" onChange={onFile} hidden />
+            <input type="file" accept={onImportSeries ? ".csv,text/csv,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" : ".csv,text/csv"} onChange={onFile} hidden />
           </label>
-          <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> Template</span></button>
+          {onImportSeries ? (
+            <>
+              <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> CSV template</span></button>
+              <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadWordTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> Word template</span></button>
+            </>
+          ) : (
+            <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> Template</span></button>
+          )}
         </div>
       </div>
       <div className="ul-ts-form-row">
@@ -282,11 +325,29 @@ export function CsvImporter({ existingKeys, onImport, onPendingChange }) {
               <span key={s} className={`ul-status-badge ${STATUS_CLASS[s]}`}>{STATUS_LABEL[s]}: {counts[s] || 0}</span>
             ))}
             <span className="ul-tsw-spacer" />
-            <button type="button" className="ul-btn ul-btn--primary" disabled={!counts[ROW_STATUS.VALID]} onClick={importValid}>
-              Import {counts[ROW_STATUS.VALID] || 0} valid row{(counts[ROW_STATUS.VALID] || 0) === 1 ? "" : "s"}
-            </button>
+            {imp ? (
+              <button type="button" className="ul-btn ul-btn--primary" disabled={!counts[ROW_STATUS.VALID]} onClick={createSeries}>
+                Create draft from file
+              </button>
+            ) : (
+              <button type="button" className="ul-btn ul-btn--primary" disabled={!counts[ROW_STATUS.VALID]} onClick={importValid}>
+                Import {counts[ROW_STATUS.VALID] || 0} valid row{(counts[ROW_STATUS.VALID] || 0) === 1 ? "" : "s"}
+              </button>
+            )}
           </div>
-          <p className="ul-tsw-hint">Only valid rows are imported. Fix or remove the others first — nothing is imported automatically.</p>
+          {imp && (
+            <div className="ul-tsw-note" role="status">
+              <strong>{imp.series.name || "Untitled series"}</strong>: {imp.tests.length} test{imp.tests.length === 1 ? "" : "s"} listed,
+              {" "}{counts[ROW_STATUS.VALID] || 0} valid question{(counts[ROW_STATUS.VALID] || 0) === 1 ? "" : "s"}.
+              {imp.missing.length > 0 && <> Not filled in: {imp.missing.join(", ")}. You can add {imp.missing.length === 1 ? "it" : "them"} in the next steps.</>}
+            </div>
+          )}
+          {imp && imp.warnings.length > 0 && (
+            <div className="ul-ts-errors"><strong>Check these:</strong><ul>{imp.warnings.map((w) => <li key={w}>{w}</li>)}</ul></div>
+          )}
+          <p className="ul-tsw-hint">{imp
+            ? "Only valid questions are added. Fix or remove the others first. The draft opens on the Review step, where you can still edit every step, save it as a draft or publish it."
+            : "Only valid rows are imported. Fix or remove the others first — nothing is imported automatically."}</p>
           <div className="ul-tsw-tablewrap">
             <table className="ul-tsw-table">
               <thead><tr><th>Row</th><th>Question</th><th>Status</th><th>Issues</th><th /></tr></thead>
@@ -308,6 +369,7 @@ export function CsvImporter({ existingKeys, onImport, onPendingChange }) {
                       <tr>
                         <td colSpan={5}>
                           <div className="ul-tsw-fixgrid">
+                            {imp && <div className="ul-ts-form-row" style={{ gridColumn: "1 / -1" }}><label>Test</label><input value={r.test} onChange={(e) => patchRow(r._id, { test: e.target.value })} /></div>}
                             <div className="ul-ts-form-row" style={{ gridColumn: "1 / -1" }}><label>Question</label><input value={r.question} onChange={(e) => patchRow(r._id, { question: e.target.value })} /></div>
                             {["optionA", "optionB", "optionC", "optionD"].map((k) => (
                               <div className="ul-ts-form-row" key={k}><label>{k.replace("option", "Option ")}</label><input value={r[k]} onChange={(e) => patchRow(r._id, { [k]: e.target.value })} /></div>

@@ -122,7 +122,7 @@ describe("CSV importer", () => {
 // -----------------------------------------------------------------------------
 async function startCsvImport() {
   const pick = (label) => screen.queryAllByRole("button").find((b) => b.textContent.includes(label));
-  await act(async () => { fireEvent.click(pick("Import questions")); });
+  await act(async () => { fireEvent.click(pick("Import from file")); });
   await act(async () => { fireEvent.click(pick("Continue")); });
   fireEvent.change(screen.getByPlaceholderText(/question,optionA/), { target: { value: SAMPLE } });
   fireEvent.click(screen.getByRole("button", { name: "Validate pasted text" }));

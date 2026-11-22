@@ -3598,3 +3598,12 @@ backslash.
 - `AuthCallback` sends a student whose Google account was just created (first sign-in) and who has no profile details (no grade, school, phone or city) and no prior skip to onboarding, then to `?redirect=` or the dashboard.
 - Saves through the existing `profileApi.save` (profiles + student_profiles, own row, existing RLS). No migrations, no new columns. "Skipped" is a localStorage flag (`ul.onboarding.skipped.<userId>`).
 - Not collected (no column): parent phone, learning goal, ID upload.
+
+## Import a full test series from CSV or Word (2026-11-22)
+- Create Test Series > "Import from file" (was "Import questions"). One CSV or Word (.docx) template carries every wizard field: series details (name, about, who it's for, audience, syllabus, free/paid + price, grade, subject, exam, level, languages, build deadline, go-live, availability window, monthly limit, access days, late submissions), a Tests table (name, duration, passing %, attempts, answer upload minutes, topics, time window) and a Questions table (test + the existing question columns).
+- Upload shows the row-by-row validation report plus series warnings; "Create draft from file" fills every step and opens Review, where the admin can still edit, save as draft or publish. Nothing is saved until then (same RPCs as before).
+- New: `src/portals/admin/data/seriesImport.js` (templates, CSV + docx parsing, value parsing), `src/portals/admin/utils/zip.js` (tiny zip reader/writer for .docx; no new dependency). Changed: `testSeriesWizard.js` (`tableToQuestionRows`, `test` column, `CSV_FULL_MESSAGE`), `TestSeriesWizard.jsx`, `TestSeriesWizardParts.jsx` (`CsvImporter` takes `onImportSeries`). The per-test "Import CSV" modal stays questions-only.
+- A CSV without [SERIES]/[TESTS]/[QUESTIONS] markers is still the old questions-only import.
+- Not importable (add in the wizard): banner image, question images. Test instructions have no wizard field, so no column.
+- No database, migration or RPC changes. Tests: `tests/series-import.test.jsx`; two existing tests renamed the card label.
+- Open: dates accept YYYY-MM-DD or day-first DD/MM/YYYY; Excel re-saving a CSV can reformat dates, so the template says YYYY-MM-DD.

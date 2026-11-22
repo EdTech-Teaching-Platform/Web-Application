@@ -18,7 +18,7 @@ import {
 import {
   START_METHOD, GRADE_OPTIONS, CLASS_SUBJECT_OPTIONS, EXAM_OPTIONS, LEVEL_OPTIONS, BASE_LANGUAGES,
   initialWizardState, normalizeWizardState, emptyTest, cloneQuestion, questionKey, testTotalMarks, derivedTestType,
-  stepErrors, applicableSteps, validateWizard, wizardRpcPayload, stripHtml, wid,
+  stepErrors, applicableSteps, STEP_ORDER, validateWizard, wizardRpcPayload, stripHtml, wid,
 } from "../data/testSeriesWizard";
 import { useRpc } from "../hooks/useRpc";
 import { testSeriesApi } from "../services/testSeriesApi";
@@ -42,12 +42,12 @@ import "./TestSeriesWizard.css";
 const METHOD_CARDS = [
   { key: START_METHOD.SCRATCH, icon: IconPencil, tone: "rose", title: "Build from scratch", text: "Start with an empty series and add tests and questions yourself." },
   { key: START_METHOD.DUPLICATE, hidden: true, icon: IconLayers, tone: "grey", title: "Duplicate an existing series", text: "Copy the tests and questions of a series you already made into a new, independent series." },
-  { key: START_METHOD.CSV, icon: IconUpload, tone: "orange", title: "Import questions", text: "Upload a CSV and review a row-by-row validation report before anything is imported." },
-  { key: START_METHOD.AI, icon: IconSparkle, tone: "pink", title: "AI-assisted outline", text: "Get an editable, template-based outline of tests and topics from your requirements.", comingSoon: !AI_ENABLED },
+  { key: START_METHOD.CSV, icon: IconUpload, tone: "orange", title: "Import from file", text: "Download a CSV or Word template, fill in the series, tests and questions, and upload it to get a ready draft." },
+  { key: START_METHOD.AI, hidden: true, icon: IconSparkle, tone: "pink", title: "AI-assisted outline", text: "Get an editable, template-based outline of tests and topics from your requirements.", comingSoon: !AI_ENABLED },
 ];
 const SOURCE_TITLE = {
   [START_METHOD.DUPLICATE]: ["Duplicate an existing series", "Pick a series to copy. The original stays untouched — you get a new, independent copy to edit."],
-  [START_METHOD.CSV]: ["Import questions from CSV", "Upload a file, review the validation report, fix or remove problem rows, then import the valid ones."],
+  [START_METHOD.CSV]: ["Import from a CSV or Word file", "Upload the filled template, review the validation report, fix or remove problem rows, then create the draft."],
   [START_METHOD.AI]: ["AI-assisted outline", "Describe what you need and review a suggested outline. You decide what to keep."],
 };
 const STEP_LABEL = { method: "Start", source: "Source", details: "Details", structure: "Structure", classification: "Classification", availability: "Availability", review: "Review" };
@@ -107,6 +107,8 @@ export default function TestSeriesWizard() {
   const [st, setSt] = useState(initialWizardState);
   // valid CSV rows waiting for "Import N valid rows" (Source step)
   const [csvPending, setCsvPending] = useState(0);
+  const [csvFull, setCsvFull] = useState(false);       // the pending file is a full-series template
+  const [importNotes, setImportNotes] = useState([]);  // warnings from the last full-series import
   // Only the duplicate start needs the series list (up to 100 rows with
   // enrolment / attempt counts); the name check is its own RPC below.
   const listRequest = useCallback(() => testSeriesApi.list({ p_page: 1, p_size: 100 }), []);
@@ -152,7 +154,7 @@ export default function TestSeriesWizard() {
     return () => clearTimeout(timer);
   }, [st.name, st.id]);
 
-  const ctx = useMemo(() => ({ existingSeries: seriesList, nameTaken: nameExists, csvPending }), [seriesList, nameExists, csvPending]);
+  const ctx = useMemo(() => ({ existingSeries: seriesList, nameTaken: nameExists, csvPending, csvFull }), [seriesList, nameExists, csvPending, csvFull]);
 
   // Keep the admin on the page while a save is running.
   useEffect(() => {
@@ -232,6 +234,18 @@ export default function TestSeriesWizard() {
   const sourceTest = st.tests.find((t) => t.name === "Imported questions");
   const sourceKeys = new Set((sourceTest ? sourceTest.questions : []).map(questionKey));
 
+  // A full-series file: every step is filled from it, then the admin lands on
+  // Review (save as draft or publish). The banner image and any saved id stay.
+  const applyImportedSeries = (patch, warnings) => {
+    setSt((s) => ({ ...s, ...patch, startMethod: START_METHOD.CSV, coverPath: s.coverPath }));
+    setImportNotes(warnings);
+    setCsvPending(0);
+    setCsvFull(false);
+    setReached(new Set(STEP_ORDER));
+    setStep("review");
+    window.scrollTo?.({ top: 0 });
+  };
+
   const applyOutline = (outline, cfg) => {
     setSt((s) => ({
       ...s,
@@ -309,6 +323,7 @@ export default function TestSeriesWizard() {
       testSeriesApi.discardDraft(st.id).catch((error) => setRequestError(error.message));
     }
     setSt(initialWizardState());
+    setImportNotes([]);
     setStep("method");
     setReached(new Set(["method"]));
     setModal(null);
@@ -399,7 +414,7 @@ export default function TestSeriesWizard() {
 
             {st.startMethod === START_METHOD.CSV && (
               <>
-                <CsvImporter existingKeys={sourceKeys} onImport={(qs) => addToNamedTest("Imported questions", qs)} onPendingChange={setCsvPending} />
+                <CsvImporter existingKeys={sourceKeys} onImport={(qs) => addToNamedTest("Imported questions", qs)} onImportSeries={applyImportedSeries} onPendingChange={(n, full) => { setCsvPending(n); setCsvFull(!!full); }} />
                 {totalQuestions > 0 && <div className="ul-tsw-note is-ok" style={{ marginTop: 14 }}>{totalQuestions} question{totalQuestions === 1 ? "" : "s"} ready in “Imported questions”.</div>}
               </>
             )}
@@ -669,6 +684,9 @@ export default function TestSeriesWizard() {
           <>
             <h3>Review &amp; publish</h3>
             <p className="ul-tsw-lead">Check everything below. Fix problems by stepping back — your entries are kept.</p>
+            {importNotes.length > 0 && (
+              <div className="ul-tsw-note" role="status"><strong>Created from your file. Check these:</strong><ul>{importNotes.map((n) => <li key={n}>{n}</li>)}</ul></div>
+            )}
 
             {review.errors.length > 0 && (
               <div className="ul-ts-errors"><strong>Fix these before publishing:</strong><ul>{review.errors.map((e) => <li key={e}>{e}</li>)}</ul></div>
