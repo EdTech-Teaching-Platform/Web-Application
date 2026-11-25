@@ -12,8 +12,8 @@ describe("landing founders section", () => {
     expect(container.querySelector("#founders")).not.toBeNull();
     expect(screen.getByText("Meet the founders")).toBeInTheDocument();
     expect(screen.getAllByRole("article")).toHaveLength(4);
-    const img = screen.getByAltText(/Aarav Malhotra/);
+    const img = screen.getByAltText(/Salim/);
     img.dispatchEvent(new Event("error"));
-    expect(screen.getAllByText("AM").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("S").length).toBeGreaterThan(0);
   });
 });

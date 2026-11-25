@@ -3618,5 +3618,5 @@ backslash.
 
 ## Landing page: Meet the founders section (2026-11-25)
 - New `src/public/components/landing/FoundersSection.jsx` (id `founders`), added to `LandingPage.jsx` between the educators carousel and testimonials. Four founder cards (colour-block top, portrait, role, bio, quote, focus tags) plus a founding-story band with a 2018-to-today timeline, using only the existing `--lp-*` theme, `Reveal`, `SectionHead`, `Squiggle` and the shared icons.
-- All names, bios, quotes and milestones are dummy copy; portraits are placeholder headshots (i.pravatar.cc) that fall back to initials. Social icons are static marks (no real URLs). Replace `FOUNDERS` / `MILESTONES` before launch.
+- All names, bios, quotes and milestones are dummy copy; portraits are placeholder male portraits (Unsplash) that fall back to initials. Social icons are static marks (no real URLs). Replace `FOUNDERS` / `MILESTONES` before launch.
 - Not added to the header nav (it already has five links). No routes, data or database changes. Test: `tests/founders-section.test.jsx`.
