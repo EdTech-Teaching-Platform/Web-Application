@@ -98,13 +98,13 @@ const QUESTION_SAMPLE = [
   ["Mechanics Test 1", "Which of these are vector quantities?", "Velocity", "Speed", "Force", "Mass", "A|C", "4", "1", "mcq_multi", "medium", "Physics", "Vectors", ""],
   ["Waves and Units Test 2", "Light travels faster than sound.", "", "", "", "", "True", "2", "0", "true_false", "easy", "Physics", "Waves", ""],
   ["Waves and Units Test 2", "The SI unit of force is the ____.", "", "", "", "", "newton", "2", "0", "fill_blank", "easy", "Physics", "Units", ""],
+  ["Waves and Units Test 2", "Explain why sound cannot travel through a vacuum.", "", "", "", "", "Sound is a mechanical wave and needs a medium such as air, water or a solid to carry its vibrations. A vacuum has no particles, so there is nothing to vibrate and the sound cannot propagate.", "5", "0", "subjective", "medium", "Physics", "Waves", "Light is an electromagnetic wave and needs no medium, unlike sound."],
 ];
 export const QUESTION_NOTES = [
   "Test: the Test name from the Tests table. Leave blank to use the first test.",
-  "Type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C), true_false (True or False), fill_blank (the accepted answer goes in Correct).",
-  "Short, long and subjective answers are coming soon and are rejected.",
+  "Type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C), true_false (True or False), fill_blank (the accepted answer goes in Correct), subjective (a written answer; put the model answer in Correct, the AI grades students' answers against it).",
   "Marks default to 4. Negative marks default to 1 for MCQ and 0 otherwise. Difficulty: easy, medium or hard.",
-  "Options A to D are only for MCQ. The banner image and question images are added in the wizard.",
+  "Options A to D are only for MCQ; leave them blank for subjective. The banner image and question images are added in the wizard.",
 ];
 export const SERIES_NOTES = "Fill the Your answer column. Required rows are marked in Notes. Allowed values are listed in Notes.";
 

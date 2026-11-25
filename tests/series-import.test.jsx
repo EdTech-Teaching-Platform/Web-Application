@@ -58,7 +58,7 @@ describe("CSV template", () => {
     expect(report.every((r) => r.status === ROW_STATUS.VALID)).toBe(true);
     expect(patch.name).toMatch(/Sample Physics/);
     expect(patch.classification).toMatchObject({ grade: "Class 12", subject: "Physics", exam: "Board Exams", difficulty: "Intermediate", languages: ["English", "Hindi"] });
-    expect(patch.tests.map((t) => [t.name, t.questions.length, t.duration, t.attemptLimit])).toEqual([["Mechanics Test 1", 2, 30, 1], ["Waves and Units Test 2", 2, 20, 2]]);
+    expect(patch.tests.map((t) => [t.name, t.questions.length, t.duration, t.attemptLimit])).toEqual([["Mechanics Test 1", 2, 30, 1], ["Waves and Units Test 2", 3, 20, 2]]);
     const review = validateWizard({ ...patch, startMethod: "csv" }, {});
     expect(review.errors).toEqual([]);   // ready to publish straight away
   });
@@ -101,6 +101,16 @@ describe("Word template", () => {
     const strip = (p) => JSON.parse(JSON.stringify({ ...p, tests: p.tests.map((t) => ({ ...t, wid: undefined, questions: t.questions.map((q) => ({ ...q, wid: undefined })) })) }));
     expect(strip(a)).toEqual(strip(b));
   });
+  it("carries the subjective sample question into the draft", async () => {
+    const res = await docxToImport(await buildSeriesDocxTemplate("uint8array"));
+    const { patch, report } = filled(res);
+    expect(report.every((r) => r.status === ROW_STATUS.VALID)).toBe(true);
+    const subj = patch.tests.flatMap((t) => t.questions).filter((q) => q.type === "subjective");
+    expect(subj).toHaveLength(1);
+    expect(subj[0].modelAnswer).toMatch(/mechanical wave/i);
+    expect(subj[0].negativeMarks).toBe(0);
+  });
+
   it("reads a deflate-compressed .docx, as Word saves it", async () => {
     const stored = await buildSeriesDocxTemplate("uint8array");
     const xml = await (await import("../src/portals/admin/utils/zip")).unzipText(stored, "word/document.xml");
@@ -117,7 +127,7 @@ describe("Word template", () => {
     const zip = new Uint8Array(Buffer.concat([local, name, data, cen, name, end]));
     const res = await docxToImport(zip);
     expect(res.kind).toBe("series");
-    expect(res.rows).toHaveLength(4);
+    expect(res.rows).toHaveLength(5);
   });
   it("rejects a file that is not a Word document", async () => {
     const res = await docxToImport(new TextEncoder().encode("not a zip").buffer);
