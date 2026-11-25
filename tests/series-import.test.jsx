@@ -56,9 +56,10 @@ describe("CSV template", () => {
     expect(imp.warnings).toEqual([]);
     const { report, patch } = filled(imp);
     expect(report.every((r) => r.status === ROW_STATUS.VALID)).toBe(true);
+    expect(patch.tests.flatMap((t) => t.questions).filter((q) => q.type === "subjective")).toHaveLength(1);
     expect(patch.name).toMatch(/Sample Physics/);
     expect(patch.classification).toMatchObject({ grade: "Class 12", subject: "Physics", exam: "Board Exams", difficulty: "Intermediate", languages: ["English", "Hindi"] });
-    expect(patch.tests.map((t) => [t.name, t.questions.length, t.duration, t.attemptLimit])).toEqual([["Mechanics Test 1", 2, 30, 1], ["Waves and Units Test 2", 2, 20, 2]]);
+    expect(patch.tests.map((t) => [t.name, t.questions.length, t.duration, t.attemptLimit])).toEqual([["Mechanics Test 1", 2, 30, 1], ["Waves and Units Test 2", 3, 20, 2]]);
     const review = validateWizard({ ...patch, startMethod: "csv" }, {});
     expect(review.errors).toEqual([]);   // ready to publish straight away
   });
@@ -117,7 +118,7 @@ describe("Word template", () => {
     const zip = new Uint8Array(Buffer.concat([local, name, data, cen, name, end]));
     const res = await docxToImport(zip);
     expect(res.kind).toBe("series");
-    expect(res.rows).toHaveLength(4);
+    expect(res.rows).toHaveLength(5);
   });
   it("rejects a file that is not a Word document", async () => {
     const res = await docxToImport(new TextEncoder().encode("not a zip").buffer);

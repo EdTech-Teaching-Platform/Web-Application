@@ -3607,3 +3607,7 @@ backslash.
 - Not importable (add in the wizard): banner image, question images. Test instructions have no wizard field, so no column.
 - No database, migration or RPC changes. Tests: `tests/series-import.test.jsx`; two existing tests renamed the card label.
 - Open: dates accept YYYY-MM-DD or day-first DD/MM/YYYY; Excel re-saving a CSV can reformat dates, so the template says YYYY-MM-DD.
+
+## Subjective question in the import templates (2026-11-25)
+- The CSV and Word import templates (full-series and questions-only) now include a `subjective` sample row (model answer in the `correct` column, marks 5, negative 0) and a note explaining it. The old "short, long and subjective are coming soon and are rejected" note is removed (stale: `SUBJECTIVE_ENABLED` is true). Short / long answer are deliberately not shown in the templates; the importer still accepts them.
+- Changed: `testSeriesWizard.js` (`CSV_TEMPLATE`), `seriesImport.js` (`QUESTION_SAMPLE`, `QUESTION_NOTES`), `tests/series-import.test.jsx` (counts + subjective assertion). No database changes.

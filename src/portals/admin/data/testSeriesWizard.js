@@ -144,13 +144,15 @@ export function initialWizardState() {
 export const CSV_COLUMNS = ["question", "optionA", "optionB", "optionC", "optionD", "correct", "marks", "negative", "type", "difficulty", "subject", "topic", "explanation"];
 // type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C),
 // true_false (True / False, or A / B), fill_blank (the accepted answer in
-// "correct"). short_answer / long_answer / subjective rows are rejected (coming soon).
+// "correct"). subjective: a written answer graded by AI; the model answer goes
+// in "correct". (short_answer / long_answer still import but are not in the template.)
 export const CSV_TEMPLATE = [
   CSV_COLUMNS.join(","),
   '"A body moving with uniform velocity has:","Zero acceleration","Uniform acceleration","Increasing acceleration","Decreasing acceleration",A,4,1,mcq,easy,Physics,Kinematics,"Uniform velocity means no change in speed or direction."',
   '"Which of these are vector quantities?","Velocity","Speed","Force","Mass",A|C,4,1,mcq_multi,medium,Physics,Vectors,',
   '"Light travels faster than sound.",,,,,True,2,0,true_false,easy,Physics,Waves,',
   '"The SI unit of force is the ____.",,,,,newton,2,0,fill_blank,easy,Physics,Units,',
+  '"Explain why a body moving with uniform velocity has zero acceleration.",,,,,"Acceleration is the rate of change of velocity. Uniform velocity means speed and direction do not change, so the rate of change is zero.",5,0,subjective,medium,Physics,Kinematics,',
 ].join("\n");
 
 export function parseCsv(text) {
