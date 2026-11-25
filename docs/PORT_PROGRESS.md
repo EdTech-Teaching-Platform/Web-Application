@@ -3615,3 +3615,8 @@ backslash.
 ## Create Test Series import step: Word only (2026-11-25)
 - The "Import from file" step (wizard step 2) now offers only the "Word template" download. The "CSV template" button and the "Or paste CSV text" box are removed from it; the copy and the file picker (`.docx`) say Word. The per-test "Import CSV" modal (questions-only) is unchanged.
 - Changed: `TestSeriesWizardParts.jsx` (`CsvImporter`, full-series mode only), `TestSeriesWizard.jsx` (step copy). A .csv file is still read if one is sent to the importer directly; the UI no longer offers it. Tests updated to upload a file instead of pasting. No database changes.
+
+## Landing page: Meet the founders section (2026-11-25)
+- New `src/public/components/landing/FoundersSection.jsx` (id `founders`), added to `LandingPage.jsx` between the educators carousel and testimonials. Four founder cards (colour-block top, portrait, role, bio, quote, focus tags) plus a founding-story band with a 2018-to-today timeline, using only the existing `--lp-*` theme, `Reveal`, `SectionHead`, `Squiggle` and the shared icons.
+- All names, bios, quotes and milestones are dummy copy; portraits are placeholder headshots (i.pravatar.cc) that fall back to initials. Social icons are static marks (no real URLs). Replace `FOUNDERS` / `MILESTONES` before launch.
+- Not added to the header nav (it already has five links). No routes, data or database changes. Test: `tests/founders-section.test.jsx`.
