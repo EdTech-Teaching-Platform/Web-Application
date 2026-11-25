@@ -245,7 +245,7 @@ export function CsvImporter({ existingKeys, onImport, onPendingChange, onImportS
     const isDocx = !!onImportSeries && /\.docx$/i.test(f.name);
     if (!isDocx && !/\.csv$/i.test(f.name) && !/csv|text\/plain|excel/i.test(f.type || "")) {
       setError(onImportSeries
-        ? "Choose a .csv or .docx file (in Excel or Sheets: File > Save as / Download > CSV; in Word: File > Save As > Word Document)."
+        ? "Choose a .docx file (in Word: File > Save As > Word Document). Download the Word template to see the layout."
         : "Choose a .csv file (in Excel or Sheets: File > Save as / Download > CSV).");
       setRows(null);
       setImp(null);
@@ -262,7 +262,7 @@ export function CsvImporter({ existingKeys, onImport, onPendingChange, onImportS
     }
     const rd = new FileReader();
     rd.onload = () => { setText(String(rd.result || "")); parse(String(rd.result || "")); };
-    rd.onerror = () => { setError("The file could not be read. Try again, or paste the CSV text below."); setRows(null); };
+    rd.onerror = () => { setError("The file could not be read. Try again."); setRows(null); };
     rd.readAsText(f);
   };
   const downloadTemplate = () => {
@@ -290,31 +290,29 @@ export function CsvImporter({ existingKeys, onImport, onPendingChange, onImportS
       <div className="ul-tsw-dropzone">
         <IconUpload size={22} />
         <div>
-          <strong>{onImportSeries ? "Upload a CSV or Word file" : "Upload a CSV file"}</strong>
+          <strong>{onImportSeries ? "Upload a Word file" : "Upload a CSV file"}</strong>
           {onImportSeries
-            ? <p>Download a template, fill it in (series details, tests and questions) and upload it. Every step of the wizard is filled from the file.</p>
+            ? <p>Download the Word template, fill it in (series details, tests and questions) and upload it. Every step of the wizard is filled from the file.</p>
             : <p>Columns: question, optionA–D, correct, marks, negative, type, difficulty, subject, topic, explanation.</p>}
         </div>
         <div className="ul-tsw-row">
           <label className="ul-btn ul-btn--primary ul-tsw-filebtn">
             Choose file
-            <input type="file" accept={onImportSeries ? ".csv,text/csv,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" : ".csv,text/csv"} onChange={onFile} hidden />
+            <input type="file" accept={onImportSeries ? ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" : ".csv,text/csv"} onChange={onFile} hidden />
           </label>
           {onImportSeries ? (
-            <>
-              <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> CSV template</span></button>
-              <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadWordTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> Word template</span></button>
-            </>
+            <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadWordTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> Word template</span></button>
           ) : (
             <button type="button" className="ul-btn ul-btn--ghost" onClick={downloadTemplate}><span className="ul-tsw-inline"><IconDownload size={13} /> Template</span></button>
           )}
         </div>
       </div>
-      <div className="ul-ts-form-row">
+      {fileName && onImportSeries && <p className="ul-tsw-hint">Loaded: {fileName}</p>}
+      {!onImportSeries && <div className="ul-ts-form-row">
         <label>{fileName ? `Loaded: ${fileName} — or paste CSV text` : "Or paste CSV text"}</label>
         <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="question,optionA,optionB,optionC,optionD,correct,marks,..." />
         <div><button type="button" className="ul-btn ul-btn--ghost" disabled={!text.trim()} onClick={() => parse(text)}>Validate pasted text</button></div>
-      </div>
+      </div>}
       {error && <div className="ul-ts-errors"><strong>{error}</strong></div>}
       {flash && <div className="ul-tsw-note is-ok">{flash}</div>}
 

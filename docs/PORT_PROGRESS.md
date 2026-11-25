@@ -3611,3 +3611,7 @@ backslash.
 ## Subjective question in the import templates (2026-11-25)
 - The CSV and Word import templates (full-series and questions-only) now include a `subjective` sample row (model answer in the `correct` column, marks 5, negative 0) and a note explaining it. The old "short, long and subjective are coming soon and are rejected" note is removed (stale: `SUBJECTIVE_ENABLED` is true). Short / long answer are deliberately not shown in the templates; the importer still accepts them.
 - Changed: `testSeriesWizard.js` (`CSV_TEMPLATE`), `seriesImport.js` (`QUESTION_SAMPLE`, `QUESTION_NOTES`), `tests/series-import.test.jsx` (counts + subjective assertion). No database changes.
+
+## Create Test Series import step: Word only (2026-11-25)
+- The "Import from file" step (wizard step 2) now offers only the "Word template" download. The "CSV template" button and the "Or paste CSV text" box are removed from it; the copy and the file picker (`.docx`) say Word. The per-test "Import CSV" modal (questions-only) is unchanged.
+- Changed: `TestSeriesWizardParts.jsx` (`CsvImporter`, full-series mode only), `TestSeriesWizard.jsx` (step copy). A .csv file is still read if one is sent to the importer directly; the UI no longer offers it. Tests updated to upload a file instead of pasting. No database changes.

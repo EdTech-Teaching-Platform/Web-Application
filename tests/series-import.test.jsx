@@ -132,8 +132,11 @@ describe("the wizard", () => {
     const pick = (label) => screen.queryAllByRole("button").find((b) => b.textContent.includes(label));
     await act(async () => { fireEvent.click(pick("Import from file")); });
     await act(async () => { fireEvent.click(pick("Continue")); });
-    fireEvent.change(screen.getByPlaceholderText(/question,optionA/), { target: { value: buildSeriesCsvTemplate() } });
-    fireEvent.click(screen.getByRole("button", { name: "Validate pasted text" }));
+    expect(screen.queryByPlaceholderText(/question,optionA/)).toBeNull();     // no paste box
+    expect(screen.queryByRole("button", { name: /CSV template/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /Word template/ })).toBeInTheDocument();
+    await act(async () => { fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [new File([buildSeriesCsvTemplate()], "series.csv", { type: "text/csv" })] } }); });
+    await wait(30);
     expect(screen.getByText(/Click "Create draft from file"/)).toBeInTheDocument();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Create draft from file" })); });
     await wait();

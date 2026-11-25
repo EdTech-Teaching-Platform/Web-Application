@@ -42,12 +42,12 @@ import "./TestSeriesWizard.css";
 const METHOD_CARDS = [
   { key: START_METHOD.SCRATCH, icon: IconPencil, tone: "rose", title: "Build from scratch", text: "Start with an empty series and add tests and questions yourself." },
   { key: START_METHOD.DUPLICATE, hidden: true, icon: IconLayers, tone: "grey", title: "Duplicate an existing series", text: "Copy the tests and questions of a series you already made into a new, independent series." },
-  { key: START_METHOD.CSV, icon: IconUpload, tone: "orange", title: "Import from file", text: "Download a CSV or Word template, fill in the series, tests and questions, and upload it to get a ready draft." },
+  { key: START_METHOD.CSV, icon: IconUpload, tone: "orange", title: "Import from file", text: "Download the Word template, fill in the series, tests and questions, and upload it to get a ready draft." },
   { key: START_METHOD.AI, hidden: true, icon: IconSparkle, tone: "pink", title: "AI-assisted outline", text: "Get an editable, template-based outline of tests and topics from your requirements.", comingSoon: !AI_ENABLED },
 ];
 const SOURCE_TITLE = {
   [START_METHOD.DUPLICATE]: ["Duplicate an existing series", "Pick a series to copy. The original stays untouched — you get a new, independent copy to edit."],
-  [START_METHOD.CSV]: ["Import from a CSV or Word file", "Upload the filled template, review the validation report, fix or remove problem rows, then create the draft."],
+  [START_METHOD.CSV]: ["Import from a Word file", "Upload the filled template, review the validation report, fix or remove problem rows, then create the draft."],
   [START_METHOD.AI]: ["AI-assisted outline", "Describe what you need and review a suggested outline. You decide what to keep."],
 };
 const STEP_LABEL = { method: "Start", source: "Source", details: "Details", structure: "Structure", classification: "Classification", availability: "Availability", review: "Review" };
