@@ -144,14 +144,13 @@ export function initialWizardState() {
 export const CSV_COLUMNS = ["question", "optionA", "optionB", "optionC", "optionD", "correct", "marks", "negative", "type", "difficulty", "subject", "topic", "explanation"];
 // type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C),
 // true_false (True / False, or A / B), fill_blank (the accepted answer in
-// "correct"); subjective (written answer, the model answer in "correct").
+// "correct"). short_answer / long_answer / subjective rows are rejected (coming soon).
 export const CSV_TEMPLATE = [
   CSV_COLUMNS.join(","),
   '"A body moving with uniform velocity has:","Zero acceleration","Uniform acceleration","Increasing acceleration","Decreasing acceleration",A,4,1,mcq,easy,Physics,Kinematics,"Uniform velocity means no change in speed or direction."',
   '"Which of these are vector quantities?","Velocity","Speed","Force","Mass",A|C,4,1,mcq_multi,medium,Physics,Vectors,',
   '"Light travels faster than sound.",,,,,True,2,0,true_false,easy,Physics,Waves,',
   '"The SI unit of force is the ____.",,,,,newton,2,0,fill_blank,easy,Physics,Units,',
-  '"Explain why sound cannot travel through a vacuum.",,,,,"Sound is a mechanical wave and needs a medium such as air, water or a solid. A vacuum has no particles, so sound cannot propagate.",5,0,subjective,medium,Physics,Waves,',
 ].join("\n");
 
 export function parseCsv(text) {
