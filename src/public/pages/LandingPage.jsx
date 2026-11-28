@@ -33,6 +33,7 @@ import TestJourney from "../components/landing/TestJourney";
 import ExamCountdownBanner from "../components/landing/ExamCountdownBanner";
 import TestSeriesShowcase from "../components/landing/TestSeriesShowcase";
 import EducatorsCarousel from "../components/landing/EducatorsCarousel";
+import FoundersSection from "../components/landing/FoundersSection";
 import FaqSection from "../components/landing/FaqSection";
 import DeviceMockup from "../components/landing/DeviceMockup";
 import { Reveal, PillButton, SectionHead, Squiggle } from "../components/landing/LandingUI";
@@ -199,6 +200,9 @@ export default function LandingPage() {
 
       {/* ───────────── BUILT BY EXPERT EDUCATORS (carousel) ───────────── */}
       <EducatorsCarousel />
+
+      {/* ───────────────────── MEET THE FOUNDERS ───────────────────── */}
+      <FoundersSection />
 
       {/* ──────────────────────── TESTIMONIALS ───────────────────────── */}
       <section id="testimonials" className="scroll-mt-24 bg-(--lp-blue-tint) py-16 md:py-28">

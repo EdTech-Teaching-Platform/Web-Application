@@ -3636,3 +3636,25 @@ backslash.
 - `AuthCallback` sends a student whose Google account was just created (first sign-in) and who has no profile details (no grade, school, phone or city) and no prior skip to onboarding, then to `?redirect=` or the dashboard.
 - Saves through the existing `profileApi.save` (profiles + student_profiles, own row, existing RLS). No migrations, no new columns. "Skipped" is a localStorage flag (`ul.onboarding.skipped.<userId>`).
 - Not collected (no column): parent phone, learning goal, ID upload.
+
+## Import a full test series from CSV or Word (2026-11-22)
+- Create Test Series > "Import from file" (was "Import questions"). One CSV or Word (.docx) template carries every wizard field: series details (name, about, who it's for, audience, syllabus, free/paid + price, grade, subject, exam, level, languages, build deadline, go-live, availability window, monthly limit, access days, late submissions), a Tests table (name, duration, passing %, attempts, answer upload minutes, topics, time window) and a Questions table (test + the existing question columns).
+- Upload shows the row-by-row validation report plus series warnings; "Create draft from file" fills every step and opens Review, where the admin can still edit, save as draft or publish. Nothing is saved until then (same RPCs as before).
+- New: `src/portals/admin/data/seriesImport.js` (templates, CSV + docx parsing, value parsing), `src/portals/admin/utils/zip.js` (tiny zip reader/writer for .docx; no new dependency). Changed: `testSeriesWizard.js` (`tableToQuestionRows`, `test` column, `CSV_FULL_MESSAGE`), `TestSeriesWizard.jsx`, `TestSeriesWizardParts.jsx` (`CsvImporter` takes `onImportSeries`). The per-test "Import CSV" modal stays questions-only.
+- A CSV without [SERIES]/[TESTS]/[QUESTIONS] markers is still the old questions-only import.
+- Not importable (add in the wizard): banner image, question images. Test instructions have no wizard field, so no column.
+- No database, migration or RPC changes. Tests: `tests/series-import.test.jsx`; two existing tests renamed the card label.
+- Open: dates accept YYYY-MM-DD or day-first DD/MM/YYYY; Excel re-saving a CSV can reformat dates, so the template says YYYY-MM-DD.
+
+## Subjective question in the import templates (2026-11-25)
+- The CSV and Word import templates (full-series and questions-only) now include a `subjective` sample row (model answer in the `correct` column, marks 5, negative 0) and a note explaining it. The old "short, long and subjective are coming soon and are rejected" note is removed (stale: `SUBJECTIVE_ENABLED` is true). Short / long answer are deliberately not shown in the templates; the importer still accepts them.
+- Changed: `testSeriesWizard.js` (`CSV_TEMPLATE`), `seriesImport.js` (`QUESTION_SAMPLE`, `QUESTION_NOTES`), `tests/series-import.test.jsx` (counts + subjective assertion). No database changes.
+
+## Create Test Series import step: Word only (2026-11-25)
+- The "Import from file" step (wizard step 2) now offers only the "Word template" download. The "CSV template" button and the "Or paste CSV text" box are removed from it; the copy and the file picker (`.docx`) say Word. The per-test "Import CSV" modal (questions-only) is unchanged.
+- Changed: `TestSeriesWizardParts.jsx` (`CsvImporter`, full-series mode only), `TestSeriesWizard.jsx` (step copy). A .csv file is still read if one is sent to the importer directly; the UI no longer offers it. Tests updated to upload a file instead of pasting. No database changes.
+
+## Landing page: Meet the founders section (2026-11-25)
+- New `src/public/components/landing/FoundersSection.jsx` (id `founders`), added to `LandingPage.jsx` between the educators carousel and testimonials. Four founder cards (colour-block top, portrait, role, bio, quote, focus tags) plus a founding-story band with a 2018-to-today timeline, using only the existing `--lp-*` theme, `Reveal`, `SectionHead`, `Squiggle` and the shared icons.
+- All names, bios, quotes and milestones are dummy copy; portraits are placeholder male portraits (Unsplash) that fall back to initials. Social icons are static marks (no real URLs). Replace `FOUNDERS` / `MILESTONES` before launch.
+- Not added to the header nav (it already has five links). No routes, data or database changes. Test: `tests/founders-section.test.jsx`.
