@@ -1,0 +1,339 @@
+-- =====================================================================
+-- rollback_20261128090000_admin_answer_sheet_flow.sql
+-- Undoes supabase/migrations/20261128090000_admin_answer_sheet_flow.sql:
+-- restores the replaced functions verbatim and drops the new ones. Sheet files
+-- uploaded under the new flow (question_id null) are deleted from
+-- answer_uploads first (rows only; the stored objects stay private).
+-- Run only with "approved:"; take a backup first.
+-- =====================================================================
+set search_path = public, extensions;
+begin;
+
+-- adm_answer_upload_window: verbatim from 20261121090000_admin_written_answers_fixes.sql
+create or replace function public.adm_answer_upload_window(p_attempt uuid) returns timestamptz
+language sql stable security definer set search_path = public, extensions as $$
+  select case
+           when a.status = 'in_progress' then
+             coalesce(public.adm_attempt_deadline(a.started_at, q.time_limit_mins) + make_interval(mins => coalesce(qa.answer_upload_minutes, 15)), 'infinity'::timestamptz)   -- 20261121090000
+           when a.status in ('submitted', 'timed_out') then
+             coalesce(a.submitted_at, a.started_at) + make_interval(mins => coalesce(qa.answer_upload_minutes, 15))   -- 20261121090000: the test's setting
+           else '-infinity'::timestamptz end
+    from public.quiz_attempts a join public.quizzes q on q.id = a.quiz_id
+    left join public.quiz_admin qa on qa.quiz_id = q.id   -- 20261121090000
+   where a.id = p_attempt;
+$$;
+
+-- adm_answer_upload_problem: verbatim from 20261120090000_admin_written_answers.sql
+create or replace function public.adm_answer_upload_problem(p_attempt uuid, p_question uuid, p_student uuid) returns text
+language plpgsql stable security definer set search_path = public, extensions as $$
+declare a record;
+begin
+  select x.id, x.student_id, x.status into a from public.quiz_attempts x where x.id = p_attempt;
+  if a.id is null or a.student_id is distinct from p_student then return 'Attempt not found.'; end if;
+  if not public.adm_written_question(p_attempt, p_question) then
+    return 'Answer sheets can be uploaded only for written questions.';
+  end if;
+  if exists (select 1 from public.written_evaluations e where e.attempt_id = p_attempt and e.status = 'published') then
+    return 'This test has already been evaluated.';
+  end if;
+  if now() > public.adm_answer_upload_window(p_attempt) then
+    return 'The time to upload answer sheets for this test is over.';
+  end if;
+  return null;
+end $$;
+
+-- adm_written_sync_rows: verbatim from 20261121090000_admin_written_answers_fixes.sql
+create or replace function public.adm_written_sync_rows(p_attempt uuid, p_report jsonb) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_rows    jsonb := '[]'::jsonb;
+  r         jsonb;
+  v_qid     uuid;
+  v_text    boolean;
+  v_uploads int;
+  v_want    text;
+  v_changed boolean := false;
+  v_status  boolean := false;
+begin
+  if p_report is null or jsonb_typeof(p_report -> 'questions') <> 'array' then return p_report; end if;
+  for r in select x from jsonb_array_elements(p_report -> 'questions') x loop
+    v_qid := (r ->> 'question_id')::uuid;
+    if v_qid is not null and public.adm_question_is_subjective(v_qid) then
+      select count(*) into v_uploads from public.answer_uploads u where u.attempt_id = p_attempt and u.question_id = v_qid
+         and u.removed_at is null /* 20261121090000: removed files don't count */;
+      if v_uploads > 0 and coalesce((r ->> 'upload_count')::int, -1) <> v_uploads then
+        r := r || jsonb_build_object('upload_count', v_uploads);
+        v_changed := true;
+      elsif v_uploads = 0 and r ? 'upload_count' then
+        r := r - 'upload_count';
+        v_changed := true;
+      end if;
+      if r ->> 'status' in ('pending', 'skipped') and not (r ? 'teacher_evaluation') then
+        select exists (select 1 from public.quiz_answers ans
+                        where ans.attempt_id = p_attempt and ans.question_id = v_qid
+                          and nullif(btrim(coalesce(ans.answer_text, '')), '') is not null) into v_text;
+        v_want := case when v_text or v_uploads > 0 then 'pending' else 'skipped' end;
+        if v_want <> r ->> 'status' then
+          r := r || jsonb_build_object('status', v_want,
+                                       'points_earned', case when v_want = 'pending' then 'null'::jsonb else to_jsonb(0) end);
+          update public.quiz_answers
+             set is_correct = case when v_want = 'pending' then null else false end,
+                 points_earned = case when v_want = 'pending' then null else 0 end
+           where attempt_id = p_attempt and question_id = v_qid;
+          v_changed := true;
+          v_status := true;
+        end if;
+      end if;
+    end if;
+    v_rows := v_rows || jsonb_build_array(r);
+  end loop;
+  if not v_changed then return p_report; end if;
+  if not v_status then return p_report || jsonb_build_object('questions', v_rows); end if;
+  return public.adm_written_recompute(p_attempt, p_report, v_rows);
+end $$;
+
+-- adm_report_with_images: verbatim from 20261121090000_admin_written_answers_fixes.sql
+create or replace function public.adm_report_with_images(p_report jsonb, p_attempt uuid) returns jsonb
+language sql stable security definer set search_path = public, extensions as $$
+  select case when p_report is null or jsonb_typeof(p_report) <> 'object' then p_report else
+    (case when jsonb_typeof(p_report -> 'questions') = 'array' then
+       jsonb_set(p_report, '{questions}', coalesce((
+         select jsonb_agg(case when jsonb_typeof(e.r) = 'object'
+                               then e.r || jsonb_build_object('image_path', qa.image_path, 'image_alt', qa.image_alt)
+                                    || case when hide.v and qa.question_id is not null and public.adm_question_is_subjective(qa.question_id)
+                                                 and not (e.r ? 'teacher_evaluation') and not (e.r ? 'ai_evaluation')
+                                            then jsonb_build_object('correct_answer', null, 'explanation', null, 'model_answer_pending', true)
+                                            else '{}'::jsonb end   -- 20261121090000: no model answer before the teacher's marks
+                               else e.r end order by e.ord)
+           from jsonb_array_elements(p_report -> 'questions') with ordinality as e(r, ord)
+           left join public.quiz_question_admin qa
+             on qa.question_id::text = case when jsonb_typeof(e.r) = 'object' then e.r ->> 'question_id' end
+           cross join (select not exists (select 1 from public.written_evaluations we
+                                           where we.attempt_id = p_attempt and we.status = 'published') as v) hide), '[]'::jsonb))   -- 20261121090000
+     else p_report end)
+    || jsonb_build_object('series_cover_path', (
+         select sa.cover_path from public.quiz_attempts a
+           join public.quizzes q on q.id = a.quiz_id
+           join public.test_series_admin sa on sa.series_id = q.series_id
+          where a.id = p_attempt))
+  end;
+$$;
+
+-- grading_get_attempt: verbatim from 20261121090000_admin_written_answers_fixes.sql
+create or replace function public.grading_get_attempt(p_attempt_id uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, extensions as $$
+declare
+  v_series uuid := public.adm_require_attempt_grader(p_attempt_id);
+  a        record;
+  v_report jsonb;
+  e        public.written_evaluations%rowtype;
+begin
+  select x.*, q.title as test_title, s.title as series_title
+    into a
+    from public.quiz_attempts x join public.quizzes q on q.id = x.quiz_id
+    left join public.test_series s on s.id = q.series_id
+   where x.id = p_attempt_id;
+  select report into v_report from public.attempt_reports where attempt_id = p_attempt_id;
+  select * into e from public.written_evaluations where attempt_id = p_attempt_id;
+  return jsonb_build_object(
+    'attempt', jsonb_build_object('id', a.id, 'test_id', a.quiz_id, 'test_title', a.test_title, 'series_id', v_series,
+                                  'series_title', a.series_title, 'attempt_number', a.attempt_number,
+                                  'submitted_at', a.submitted_at, 'status', a.status,
+                                  'score', a.score, 'max_score', a.max_score, 'percentage', a.percentage,
+                                  'total_marks', v_report #> '{summary,total_marks}')
+               || public.adm_grading_candidate(a.student_id, a.quiz_id),
+    'evaluation', jsonb_build_object('status', coalesce(e.status, 'pending'), 'overall_feedback', e.overall_feedback,
+                                     'published_at', e.published_at, 'updated_at', e.updated_at,
+                                     'graded_by_name', (select p.full_name from public.profiles p where p.id = e.graded_by)),
+    'upload_window_closes_at', public.adm_answer_upload_window(p_attempt_id),
+    'can_publish', now() > public.adm_answer_upload_window(p_attempt_id),
+    'upload_window_minutes', (select coalesce(qa.answer_upload_minutes, 15) from public.quiz_admin qa where qa.quiz_id = a.quiz_id),   -- 20261121090000
+    'server_now', now(),
+    'questions', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'question_id', qq.id,
+               'position', (r ->> 'position')::int,
+               'text', qq.question_text,
+               'image_path', qa.image_path,
+               'image_alt', qa.image_alt,
+               'type', coalesce(qa.admin_type, qq.question_type),
+               'max_marks', qq.points,
+               'status', r ->> 'status',
+               'marking_guide', nullif(btrim(coalesce(qa.answer_instructions, '')), ''),
+               'model_answer', (select string_agg(o.option_text, ' / ' order by o.sort_order, o.id)
+                                  from public.quiz_question_options o
+                                 where o.question_id = qq.id and o.is_correct
+                                   and o.option_text <> 'Manual grading: see rubric'),
+               'typed_answer', (select ans.answer_text from public.quiz_answers ans
+                                 where ans.attempt_id = p_attempt_id and ans.question_id = qq.id
+                                 order by ans.created_at desc limit 1),
+               'uploads', (select coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'file_name', u.file_name,
+                                                                        'content_type', u.content_type, 'size_bytes', u.size_bytes,
+                                                                        'created_at', u.created_at,
+                                                                        'after_submission', a.submitted_at is not null and u.created_at > a.submitted_at)   -- 20261121090000
+                                                     order by u.created_at, u.id), '[]'::jsonb)
+                             from public.answer_uploads u where u.attempt_id = p_attempt_id and u.question_id = qq.id and u.removed_at is null),
+               'removed_uploads', (select coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'file_name', u.file_name,
+                                                                                'content_type', u.content_type, 'size_bytes', u.size_bytes,
+                                                                                'created_at', u.created_at, 'removed_at', u.removed_at)
+                                                             order by u.removed_at, u.id), '[]'::jsonb)
+                                     from public.answer_uploads u
+                                    where u.attempt_id = p_attempt_id and u.question_id = qq.id and u.removed_at is not null),   -- 20261121090000: history
+               'grade', (select jsonb_build_object('marks', g.marks, 'feedback', g.feedback, 'graded_at', g.graded_at)
+                           from public.written_answer_grades g where g.attempt_id = p_attempt_id and g.question_id = qq.id))
+             order by (r ->> 'position')::int)
+        from jsonb_array_elements(v_report -> 'questions') r
+        join public.quiz_questions qq on qq.id = (r ->> 'question_id')::uuid
+        left join public.quiz_question_admin qa on qa.question_id = qq.id
+       where public.adm_question_is_subjective(qq.id)), '[]'::jsonb),
+    'objective', jsonb_build_object(
+      'count', (select count(*) from jsonb_array_elements(v_report -> 'questions') r
+                 where not public.adm_question_is_subjective((r ->> 'question_id')::uuid)),
+      'marks_earned', (select coalesce(sum((r ->> 'points_earned')::numeric), 0) from jsonb_array_elements(v_report -> 'questions') r
+                        where not public.adm_question_is_subjective((r ->> 'question_id')::uuid)),
+      'marks_possible', (select coalesce(sum((r ->> 'points')::numeric), 0) from jsonb_array_elements(v_report -> 'questions') r
+                          where not public.adm_question_is_subjective((r ->> 'question_id')::uuid))));
+end $$;
+
+-- grading_save: verbatim from 20261120090000_admin_written_answers.sql
+create or replace function public.grading_save(
+  p_attempt_id uuid, p_grades jsonb, p_overall_feedback text default null, p_publish boolean default false
+) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_series   uuid := public.adm_require_attempt_grader(p_attempt_id);
+  g          jsonb;
+  v_qid      uuid;
+  v_max      numeric;
+  v_marks    numeric;
+  v_feedback text;
+  v_overall  text := nullif(left(btrim(coalesce(p_overall_feedback, '')), 3000), '');
+  v_report   jsonb;
+  v_rows     jsonb := '[]'::jsonb;
+  r          jsonb;
+  gr         public.written_answer_grades%rowtype;
+  v_state    text;
+  v_missing  int;
+  v_att      record;
+  v_was      text;
+begin
+  select report into v_report from public.attempt_reports where attempt_id = p_attempt_id for update;
+  if v_report is null then raise exception 'No report for this attempt.' using errcode = 'P0002'; end if;
+  if jsonb_typeof(coalesce(p_grades, '[]'::jsonb)) <> 'array' then
+    raise exception 'Send the marks as a list.' using errcode = '22023';
+  end if;
+
+  for g in select x from jsonb_array_elements(coalesce(p_grades, '[]'::jsonb)) x loop
+    v_qid := nullif(g ->> 'question_id', '')::uuid;
+    if v_qid is null or not public.adm_written_question(p_attempt_id, v_qid) then
+      raise exception 'Marks can be given only for this test''s written questions.' using errcode = '22023';
+    end if;
+    select points into v_max from public.quiz_questions where id = v_qid;
+    if g -> 'marks' is null or jsonb_typeof(g -> 'marks') = 'null' or nullif(g ->> 'marks', '') is null then
+      delete from public.written_answer_grades where attempt_id = p_attempt_id and question_id = v_qid;   -- cleared
+      continue;
+    end if;
+    begin
+      v_marks := round((g ->> 'marks')::numeric, 2);
+    exception when others then
+      raise exception 'Marks must be a number.' using errcode = '22023';
+    end;
+    if v_marks < 0 or v_marks > v_max then
+      raise exception 'Marks for a question must be between 0 and %.', v_max using errcode = '22023';
+    end if;
+    v_feedback := nullif(left(btrim(coalesce(g ->> 'feedback', '')), 3000), '');
+    insert into public.written_answer_grades (attempt_id, question_id, marks, feedback, graded_by, graded_at)
+    values (p_attempt_id, v_qid, v_marks, v_feedback, auth.uid(), now())
+    on conflict (attempt_id, question_id) do update
+      set marks = excluded.marks, feedback = excluded.feedback, graded_by = excluded.graded_by, graded_at = now();
+  end loop;
+
+  select status into v_was from public.written_evaluations where attempt_id = p_attempt_id;
+  insert into public.written_evaluations (attempt_id, status, overall_feedback, graded_by, updated_at)
+  values (p_attempt_id, 'draft', v_overall, auth.uid(), now())
+  on conflict (attempt_id) do update
+    set overall_feedback = excluded.overall_feedback, graded_by = excluded.graded_by, updated_at = now();
+
+  if not coalesce(p_publish, false) then
+    perform public.adm_audit('grading.draft', 'quiz_attempt', p_attempt_id, null,
+                             jsonb_build_object('grades', jsonb_array_length(coalesce(p_grades, '[]'::jsonb))), null);
+    return public.grading_get_attempt(p_attempt_id);
+  end if;
+
+  -- publish
+  if now() <= public.adm_answer_upload_window(p_attempt_id) then
+    raise exception 'The student can still upload answer sheets until %. Publish after that.',
+      to_char(public.adm_answer_upload_window(p_attempt_id) at time zone 'Asia/Kolkata', 'HH24:MI "IST"') using errcode = '22023';
+  end if;
+  select count(*) into v_missing
+    from jsonb_array_elements(v_report -> 'questions') x
+   where public.adm_question_is_subjective((x ->> 'question_id')::uuid)
+     and x ->> 'status' = 'pending'
+     and not exists (select 1 from public.written_answer_grades wg
+                      where wg.attempt_id = p_attempt_id and wg.question_id = (x ->> 'question_id')::uuid);
+  if v_missing > 0 then
+    raise exception 'Give marks for every answered question first (% left).', v_missing using errcode = '22023';
+  end if;
+
+  for r in select x from jsonb_array_elements(v_report -> 'questions') x order by (x ->> 'position')::int loop
+    v_qid := (r ->> 'question_id')::uuid;
+    gr := null;
+    if public.adm_question_is_subjective(v_qid) then
+      select * into gr from public.written_answer_grades where attempt_id = p_attempt_id and question_id = v_qid;
+    end if;
+    if gr.attempt_id is not null then
+      v_max   := coalesce((r ->> 'points')::numeric, 0);
+      v_marks := least(gr.marks, v_max);
+      v_state := case when v_marks >= v_max and v_max > 0 then 'correct' when v_marks <= 0 then 'incorrect' else 'partial' end;
+      r := r || jsonb_build_object(
+        'status', v_state,
+        'points_earned', v_marks,
+        'teacher_evaluation', jsonb_build_object('marks_awarded', v_marks, 'feedback', gr.feedback, 'evaluated_at', now()));
+      update public.quiz_answers
+         set points_earned = v_marks, is_correct = (v_marks >= v_max and v_max > 0)
+       where attempt_id = p_attempt_id and question_id = v_qid;
+      if not found then
+        insert into public.quiz_answers (attempt_id, question_id, is_correct, points_earned)
+        values (p_attempt_id, v_qid, (v_marks >= v_max and v_max > 0), v_marks);
+      end if;
+    end if;
+    v_rows := v_rows || jsonb_build_array(r);
+  end loop;
+
+  v_report := public.adm_written_recompute(p_attempt_id, v_report, v_rows)
+              || jsonb_build_object('teacher', jsonb_build_object('status', 'published', 'overall_feedback', v_overall,
+                                                                  'evaluated_at', now()));
+  update public.attempt_reports set report = v_report where attempt_id = p_attempt_id;
+  update public.written_evaluations set status = 'published', published_at = now() where attempt_id = p_attempt_id;
+
+  select a.student_id, q.title into v_att from public.quiz_attempts a join public.quizzes q on q.id = a.quiz_id where a.id = p_attempt_id;
+  insert into public.notifications (user_id, category, title, body, action_url, reference_type, reference_id)
+  values (v_att.student_id, 'assessment_result',
+          case when v_was = 'published' then 'Your marks were updated' else 'Your answers have been evaluated' end,
+          format('Your teacher has marked your written answers for "%s". Open the report to see your score and feedback.', v_att.title),
+          '/student/report/' || p_attempt_id, 'attempt_report', p_attempt_id);
+  perform public.adm_audit('grading.publish', 'quiz_attempt', p_attempt_id, null,
+                           jsonb_build_object('score', v_report #> '{summary,score}', 'max_score', v_report #> '{summary,max_score}'), null);
+  return public.grading_get_attempt(p_attempt_id);
+end $$;
+
+drop function if exists public.student_submit_answer_sheet(uuid);
+drop function if exists public.student_remove_sheet_upload(uuid);
+drop function if exists public.student_register_sheet_upload(uuid, text, text, text, bigint);
+drop function if exists public.student_sheet_upload_slot(uuid, text, bigint);
+drop function if exists public.student_sheet_status(uuid);
+drop function if exists public.adm_sheet_problem(uuid, uuid);
+drop function if exists public.adm_sheet_files_json(uuid, boolean);
+drop table if exists public.answer_sheet_submissions;
+delete from public.answer_uploads where question_id is null;
+alter table public.answer_uploads alter column question_id set not null;
+alter table public.quiz_admin alter column answer_upload_minutes set default 15;
+
+revoke all on function public.adm_answer_upload_window(uuid) from public, anon, authenticated;
+revoke all on function public.adm_answer_upload_problem(uuid, uuid, uuid) from public, anon, authenticated;
+revoke all on function public.adm_written_sync_rows(uuid, jsonb) from public, anon, authenticated;
+revoke all on function public.adm_report_with_images(jsonb, uuid) from public, anon, authenticated;
+revoke all on function public.grading_get_attempt(uuid) from public, anon;
+grant execute on function public.grading_get_attempt(uuid) to authenticated;
+
+commit;

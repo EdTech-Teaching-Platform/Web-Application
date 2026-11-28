@@ -72,7 +72,7 @@ function mapTest(test) {
       : Math.round(totalMarks * Number(test.passing_percent || 0) / 100),
     passingPercent: Number(test.passing_percent || 0),
     attemptLimit: test.attempt_limit,
-    answerUploadMinutes: test.answer_upload_minutes ?? 15,   // 20261121090000
+    answerUploadMinutes: test.answer_upload_minutes ?? 5,   // 20261121090000 / 20261128090000
     scheduledAt: test.scheduled_at || "",
     shuffleQuestions: !!test.shuffle_questions,
     shuffleOptions: !!test.shuffle_options,

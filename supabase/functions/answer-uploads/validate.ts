@@ -23,10 +23,11 @@ export class AnswerUploadError extends Error {
 }
 
 export type AnswerRequest =
-  | { action: "upload"; attemptId: string; questionId: string; fileName: string; contentType: string; size: number }
+  | { action: "upload"; attemptId: string; questionId: string | null; fileName: string; contentType: string; size: number }
   | { action: "view"; uploadId: string; download: boolean };
 
-// Body: { action: "upload", attemptId, questionId, fileName, contentType, size }
+// Body: { action: "upload", attemptId, questionId?, fileName, contentType, size }
+//   no questionId = the attempt's answer sheet (after the test, 20261128090000)
 //    or { action: "view", uploadId, download? }
 export function validateAnswerRequest(body: unknown): AnswerRequest {
   if (!body || typeof body !== "object") throw new AnswerUploadError("Send a JSON body.", 400, "body");
@@ -39,9 +40,10 @@ export function validateAnswerRequest(body: unknown): AnswerRequest {
   }
   if (action !== "upload") throw new AnswerUploadError("Unknown action.", 400, "action");
   const attemptId = String(b.attemptId ?? "").trim().toLowerCase();
-  const questionId = String(b.questionId ?? "").trim().toLowerCase();
+  const rawQuestion = b.questionId == null || b.questionId === "" ? null : String(b.questionId).trim().toLowerCase();
   if (!UUID.test(attemptId)) throw new AnswerUploadError("attemptId must be an attempt id.", 400, "attemptId");
-  if (!UUID.test(questionId)) throw new AnswerUploadError("questionId must be a question id.", 400, "questionId");
+  if (rawQuestion !== null && !UUID.test(rawQuestion)) throw new AnswerUploadError("questionId must be a question id.", 400, "questionId");
+  const questionId = rawQuestion;
   const contentType = String(b.contentType ?? "").trim().toLowerCase();
   if (!(ANSWER_TYPES as readonly string[]).includes(contentType)) {
     throw new AnswerUploadError("Upload a photo (JPG, PNG, WebP) or a PDF.", 400, "contentType");
@@ -53,14 +55,15 @@ export function validateAnswerRequest(body: unknown): AnswerRequest {
   return { action, attemptId, questionId, fileName, contentType, size };
 }
 
-// '<student>/<attempt>/<question>/<uuid>.<ext>': the shape
-// student_register_answer_upload accepts. The extension comes from the
+// '<student>/<attempt>/<question|sheet>/<uuid>.<ext>': the shape
+// student_register_answer_upload / student_register_sheet_upload accept. The extension comes from the
 // validated content type, never from the file name.
-export function buildAnswerPath(studentId: string, attemptId: string, questionId: string, contentType: string, id: string): string {
-  for (const v of [studentId, attemptId, questionId, id]) {
+export function buildAnswerPath(studentId: string, attemptId: string, questionId: string | null, contentType: string, id: string): string {
+  for (const v of [studentId, attemptId, id]) {
     if (!UUID.test(v)) throw new Error("Bad id");
   }
+  if (questionId !== null && !UUID.test(questionId)) throw new Error("Bad id");
   const ext = EXTENSION[contentType];
   if (!ext) throw new Error("Bad content type");
-  return `${studentId}/${attemptId}/${questionId}/${id}.${ext}`.toLowerCase();
+  return `${studentId}/${attemptId}/${questionId ?? "sheet"}/${id}.${ext}`.toLowerCase();
 }

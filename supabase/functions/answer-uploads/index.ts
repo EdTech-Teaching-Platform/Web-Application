@@ -1,6 +1,8 @@
 // Handwritten answer sheets (photos / PDF) for written questions, in the
 // PRIVATE bucket answer-uploads (20261120090000). Body (validate.ts):
-//   { action: "upload", attemptId, questionId, fileName, contentType, size }
+//   { action: "upload", attemptId, questionId?, fileName, contentType, size }
+//       Without questionId (20261128090000): the attempt's answer sheet, only
+//       after the test and before its final Submit (student_sheet_upload_slot).
 //       student_answer_upload_slot (caller's JWT) checks: own attempt, written
 //       question of that test, upload window open (test time + 15 minutes),
 //       < 5 files, rate limit. Returns { path, signedUrl, token, expiresIn };
@@ -37,10 +39,14 @@ Deno.serve(async (req) => {
       return json({ url: data.signedUrl, fileName: file.file_name, contentType: file.content_type, expiresIn: VIEW_SECONDS });
     }
 
-    const { data: slot, error: slotError } = await userClient.rpc("student_answer_upload_slot", {
-      p_attempt_id: request.attemptId, p_question_id: request.questionId,
-      p_content_type: request.contentType, p_size: request.size,
-    });
+    const { data: slot, error: slotError } = request.questionId
+      ? await userClient.rpc("student_answer_upload_slot", {
+        p_attempt_id: request.attemptId, p_question_id: request.questionId,
+        p_content_type: request.contentType, p_size: request.size,
+      })
+      : await userClient.rpc("student_sheet_upload_slot", {
+        p_attempt_id: request.attemptId, p_content_type: request.contentType, p_size: request.size,
+      });
     if (slotError) {
       if (slotError.code === "42501" || slotError.code === "UL403") throw new AnswerUploadError(slotError.message, 403);
       throw new Error(slotError.message);

@@ -89,9 +89,9 @@ export function blockedQuestionCount(tests) {
   return (tests || []).reduce((n, t) => n + (t.questions || []).filter((q) => isBlockedQuestionType(q.type)).length, 0);
 }
 
-// Minutes students get after submitting to add answer-sheet photos / PDFs
-// (written questions; 20261121090000). 0..120, default 15.
-export const DEFAULT_UPLOAD_MINUTES = 15;
+// Minutes students get after FINISHING to upload their answer sheet (PDF or
+// photos) for written questions (20261128090000). 0..120, default 5.
+export const DEFAULT_UPLOAD_MINUTES = 5;
 export function uploadMinutes(value) {
   if (value === "" || value == null) return DEFAULT_UPLOAD_MINUTES;
   const n = Math.round(Number(value));

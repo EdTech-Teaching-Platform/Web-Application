@@ -90,7 +90,12 @@ export default function GradingQueue({ basePath, api = gradingApi, title = "Eval
                     <p className="truncate font-semibold text-slate-900">{r.test_title}</p>
                     <p className="truncate text-xs text-slate-500">{r.series_title}</p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_TONE[st]}`}>{STATUS_TEXT[st]}</span>
+                  <span className="flex shrink-0 flex-col items-end gap-1">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_TONE[st]}`}>{STATUS_TEXT[st]}</span>
+                    {r.upload_window_closes_at && new Date(r.upload_window_closes_at).getTime() > Date.now() && (
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">Student uploading</span>
+                    )}
+                  </span>
                 </div>
                 <p className="text-sm text-slate-700">
                   <strong>{r.student_name || r.candidate}</strong>

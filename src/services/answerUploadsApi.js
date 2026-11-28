@@ -99,4 +99,59 @@ export const answerUploadsApi = {
   fileUrl: answerFileUrl,
 };
 
+// ---- The answer sheet AFTER the test (20261128090000, QA 22 Nov flow):
+// finish the test -> the answer-sheet screen (countdown of the test's
+// minutes, default 5) -> PDF or page photos, up to 10 files -> Submit.
+export const SHEET_MAX_FILES = 10;
+
+export function mapSheetStatus(data) {
+  const base = mapAnswerUploads(data);
+  return {
+    ...base,
+    attemptId: data?.attempt_id || null,
+    testId: data?.test_id || null,
+    status: data?.status || null,
+    hasWritten: Boolean(data?.has_written),
+    graceMinutes: data?.grace_minutes ?? 5,
+    problem: data?.problem || "",
+    autoSubmitReason: data?.auto_submit_reason || null,
+    sheetSubmittedAt: data?.sheet_submitted_at || null,
+    maxFiles: data?.max_files ?? SHEET_MAX_FILES,
+    files: base.uploads,
+  };
+}
+
+export async function sheetStatus(attemptId, rpc = callRpc) {
+  return mapSheetStatus(await rpc("student_sheet_status", { p_attempt_id: attemptId }));
+}
+
+export async function uploadSheetFile({ attemptId, file, onProgress, signal }, deps = {}) {
+  const ready = await prepareAnswerFile(file, deps);
+  const ticket = await (deps.invoke || invokeFunction)("answer-uploads", {
+    action: "upload", attemptId, fileName: ready.name || file.name, contentType: ready.type, size: ready.size,
+  });
+  await (deps.put || putToSignedUrl)(ticket.signedUrl, ready, { onProgress, signal });
+  return mapSheetStatus(await (deps.rpc || callRpc)("student_register_sheet_upload", {
+    p_attempt_id: attemptId, p_path: ticket.path,
+    p_file_name: ready.name || file.name, p_content_type: ready.type, p_size: ready.size,
+  }));
+}
+
+export async function removeSheetFile(uploadId, rpc = callRpc) {
+  return mapSheetStatus(await rpc("student_remove_sheet_upload", { p_upload_id: uploadId }));
+}
+
+export async function submitSheet(attemptId, rpc = callRpc) {
+  return mapSheetStatus(await rpc("student_submit_answer_sheet", { p_attempt_id: attemptId }));
+}
+
+// Same shape as answerUploadsApi, for <AnswerUploader> on the sheet screen.
+export const sheetUploadsApi = {
+  upload: ({ attemptId, file, onProgress, signal }) => uploadSheetFile({ attemptId, file, onProgress, signal }),
+  remove: removeSheetFile,
+  fileUrl: answerFileUrl,
+  status: sheetStatus,
+  submit: submitSheet,
+};
+
 export default answerUploadsApi;

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { XCircleIcon } from "./icons";
 
@@ -8,6 +8,7 @@ import { XCircleIcon } from "./icons";
 // profile"/"Share course" (Day 3), reusable for any future confirmation
 // dialog rather than a one-off inline overlay per screen.
 export default function Modal({ open, onClose, title, children, footer, maxWidth = "max-w-md" }) {
+  const titleId = useId();
   useEffect(() => {
     if (!open) return;
     function onKey(e) {
@@ -27,9 +28,11 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
         aria-hidden="true"
       />
       {/* Capped to the viewport: header and footer stay put, the body scrolls. */}
-      <div className={`relative flex max-h-full w-full ${maxWidth} animate-[fadeScaleIn_200ms_ease-out] flex-col overflow-hidden rounded-2xl bg-white shadow-xl`}>
+      {/* role / aria-modal / name: screen readers announce it as a dialog (QA a11y) */}
+      <div role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined}
+        className={`relative flex max-h-full w-full ${maxWidth} animate-[fadeScaleIn_200ms_ease-out] flex-col overflow-hidden rounded-2xl bg-white shadow-xl`}>
         <div className="flex shrink-0 items-center justify-between gap-4 px-6 pb-4 pt-6">
-          <h2 className="font-display text-lg font-semibold text-text">{title}</h2>
+          <h2 id={titleId} className="font-display text-lg font-semibold text-text">{title}</h2>
           <button
             type="button"
             onClick={onClose}

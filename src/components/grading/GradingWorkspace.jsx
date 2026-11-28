@@ -61,6 +61,44 @@ export function AnswerFile({ file, index, api = answerUploadsApi }) {
   );
 }
 
+// The attempt's answer sheet next to the questions (20261128090000): each file
+// with the time it was added, removed files, and when the student submitted.
+function SheetPanel({ sheet, api }) {
+  const files = sheet.files || [];
+  const removed = sheet.removed || [];
+  return (
+    <aside aria-labelledby="sheet-title" className="rounded-2xl bg-white p-4 ring-1 ring-slate-200 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+      <h2 id="sheet-title" className="text-sm font-bold text-slate-900">Answer sheet ({files.length} file{files.length === 1 ? "" : "s"})</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        {sheet.submitted_at ? `Submitted ${formatWhen(sheet.submitted_at)}.`
+          : sheet.auto_submit_reason === "proctor_limit" ? "Auto-submitted after violations: no upload window."
+          : files.length ? "Not submitted with the button (the time ran out or it's still open)." : ""}
+      </p>
+      {files.length === 0 ? (
+        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">No answer sheet uploaded.</p>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {files.map((f, i) => <AnswerFile key={f.id} file={f} index={i} api={api} />)}
+        </div>
+      )}
+      {removed.length > 0 && (
+        <details className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          <summary className="cursor-pointer font-semibold">Removed before submitting ({removed.length})</summary>
+          <ul className="mt-2 space-y-1">
+            {removed.map((f) => (
+              <li key={f.id} className="flex flex-wrap items-center gap-2">
+                <span className="truncate">{f.file_name}</span>
+                <span className="text-slate-500">added {formatWhen(f.created_at)} · removed {formatWhen(f.removed_at)}</span>
+                <RemovedFileLink file={f} api={api} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </aside>
+  );
+}
+
 // A file the student removed during the test (kept for the teacher, QA 21 Nov).
 function RemovedFileLink({ file, api }) {
   const [error, setError] = useState("");
@@ -122,7 +160,10 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
   const questions = useMemo(() => data?.questions || [], [data]);
   const problems = useMemo(() => Object.fromEntries(questions.map((q) => [q.question_id, markProblem(marks[q.question_id]?.marks, q.max_marks)])), [questions, marks]);
   const anyProblem = Object.values(problems).some(Boolean);
-  const answered = (q) => Boolean((q.typed_answer || "").trim()) || (q.uploads || []).length > 0;
+  // 20261128090000: the answer sheet (uploaded after the test) belongs to the
+  // whole attempt, so it counts for every written question.
+  const sheetFiles = data?.sheet?.files || [];
+  const answered = (q) => Boolean((q.typed_answer || "").trim()) || (q.uploads || []).length > 0 || sheetFiles.length > 0;
   const missing = questions.filter((q) => answered(q) && (marks[q.question_id]?.marks ?? "") === "").length;
   const writtenEarned = questions.reduce((sum, q) => sum + (Number(marks[q.question_id]?.marks) || 0), 0);
   const writtenMax = questions.reduce((sum, q) => sum + Number(q.max_marks || 0), 0);
@@ -162,13 +203,13 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
   const ev = data.evaluation || {};
   const windowOpen = !data.can_publish;
   const closes = data.upload_window_closes_at ? new Date(data.upload_window_closes_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
-  const publishBlock = windowOpen ? `The student can upload answer sheets until ${closes}. Save a draft now and publish after that.`
+  const publishBlock = windowOpen ? `The student is still on the answer-sheet screen (until ${closes} at the latest). Save a draft now; you can publish as soon as they submit.`
     : missing > 0 ? `Give marks for ${missing} more answered question${missing === 1 ? "" : "s"} to publish.`
     : anyProblem ? "Fix the marks shown in red." : "";
   const field = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10";
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-6">
+    <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-6 sm:px-6">
       {backTo && <Link to={backTo} className="text-sm font-semibold text-slate-700 underline">← Back to the list</Link>}
       <header className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -191,18 +232,18 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
           </div>
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          Upload rule for this test: students can add pages (not remove them) for {data.upload_window_minutes ?? 15} minutes after submitting.
-          {a.submitted_at && closes && ` This student submitted at ${new Date(a.submitted_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}, so uploads close at ${closes}.`}
+          Answer sheets for this test: uploaded after finishing, within {data.upload_window_minutes ?? 5} minutes (a PDF or page photos).
         </p>
         {windowOpen && (
           <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            The student can still upload answer sheets until {closes}. Reload after that to see everything before publishing.
+            The student is still uploading their answer sheet (until {closes} at the latest). Reload when they've submitted.
           </p>
         )}
       </header>
 
       {message && <p role="status" className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-800">{message}</p>}
 
+      <div className={sheetFiles.length || data?.sheet ? "grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]" : ""}>
       <ol className="space-y-4">
         {questions.map((q) => {
           const v = marks[q.question_id] || { marks: "", feedback: "" };
@@ -214,6 +255,7 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
                 <span className="rounded-lg bg-slate-900 px-2 py-0.5 text-sm font-bold text-white">Q{q.position}</span>
                 <span className="text-sm text-slate-500">{q.max_marks} marks</span>
                 {!answered(q) && <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">Not answered</span>}
+                {!(q.typed_answer || "").trim() && sheetFiles.length > 0 && <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">See the answer sheet</span>}
               </div>
               <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-slate-900">{q.text}</p>
               {q.image_path && <AssetImage path={q.image_path} alt={q.image_alt || ""} className="mt-3 max-h-64 rounded-xl object-contain" />}
@@ -277,6 +319,8 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
           );
         })}
       </ol>
+      {data?.sheet && <SheetPanel sheet={data.sheet} api={filesApi} />}
+      </div>
 
       <section className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
         <label className="block text-sm font-semibold text-slate-900">

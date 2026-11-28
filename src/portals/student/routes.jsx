@@ -7,6 +7,7 @@ const SeriesDetail = lazy(() => import("./pages/SeriesDetail"));
 const TestIntro = lazy(() => import("./pages/TestIntro"));
 const TestRunner = lazy(() => import("./pages/TestRunner"));
 const TestReport = lazy(() => import("./pages/TestReport"));
+const AnswerSheet = lazy(() => import("./pages/AnswerSheet"));
 const History = lazy(() => import("./pages/History"));
 const MyTests = lazy(() => import("./pages/MyTests"));
 const Account = lazy(() => import("./pages/Account"));
@@ -94,6 +95,8 @@ const studentRoutes = (
     <Route path="test/:testId" element={<TestIntro />} />
     <Route path="test/:testId/take" element={<TestRunner />} />
     <Route path="report/:attemptId" element={<TestReport />} />
+    {/* step 2 of a test with written questions (20261128090000) */}
+    <Route path="answer-sheet/:attemptId" element={<AnswerSheet />} />
     <Route path="history" element={<History />} />
     <Route path="my-tests" element={<MyTests />} />
     <Route path="account" element={<Account />} />

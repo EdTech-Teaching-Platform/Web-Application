@@ -36,3 +36,9 @@ export function hasPasswordIdentity(user: { identities?: { provider?: string }[]
   const providers = user?.app_metadata?.providers || [];
   return identities.some((i) => i?.provider === "email") || providers.includes("email") || user?.app_metadata?.provider === "email";
 }
+
+// The address a deleted account keeps in Supabase Auth, so the real email is free
+// to sign up again (QA 22 Nov). .invalid never receives mail (RFC 2606).
+export function tombstoneEmail(userId: string): string {
+  return `deleted+${String(userId).toLowerCase()}@deleted.invalid`;
+}

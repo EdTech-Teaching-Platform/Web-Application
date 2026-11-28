@@ -3,6 +3,8 @@ import {
   ANSWER_ACCEPT, ANSWER_MAX_FILES, answerUploadsApi, checkAnswerFile, formatFileSize,
 } from "../../../services/answerUploadsApi";
 import AnswerPreview from "./AnswerPreview";
+import CameraCapture from "./CameraCapture";
+import { pickCameraMode } from "../utils/camera";
 
 // Handwritten answer sheets for one written question (20261120090000):
 // "Take a photo" (the phone camera) or "Choose files" (photos / PDF), up to 5
@@ -15,17 +17,22 @@ import AnswerPreview from "./AnswerPreview";
 //   onPickStart / onPickEnd: the test runner pauses proctoring while the
 //   camera or file picker is open (leaving the page there isn't a violation).
 //   onChange(list): the attempt's new upload list (mapAnswerUploads).
+// Since 20261128090000 it also serves the answer-sheet screen after the test
+// (api = sheetUploadsApi, questionId null, maxFiles 10). "Take a photo" uses
+// the phone's camera on phones and an in-page camera on computers (QA 22 Nov).
 export default function AnswerUploader({
   attemptId, questionId, files = [], canUpload = true, canRemove = true, onChange, onPickStart, onPickEnd,
   onPreviewOpen, onPreviewClose, api = answerUploadsApi, label = "Upload your answer sheet",
+  maxFiles = ANSWER_MAX_FILES, hint, cameraMode = pickCameraMode(),
 }) {
   const [preview, setPreview] = useState(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [queue, setQueue] = useState([]);   // [{key, name, progress, error}]
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const pickRef = useRef(false);
   const busy = queue.some((q) => !q.error);
-  const room = Math.max(0, ANSWER_MAX_FILES - files.length - queue.filter((q) => !q.error).length);
+  const room = Math.max(0, maxFiles - files.length - queue.filter((q) => !q.error).length);
 
   // The picker closed without a choice: the window gets focus back.
   useEffect(() => () => window.removeEventListener("focus", onFocusBack), []);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -51,7 +58,7 @@ export default function AnswerUploader({
     setError("");
     const picked = Array.from(list || []);
     if (!picked.length) return;
-    if (picked.length > room) setError(`You can add ${room} more file${room === 1 ? "" : "s"} for this answer (5 at most).`);
+    if (picked.length > room) setError(`You can add ${room} more file${room === 1 ? "" : "s"} (${maxFiles} at most).`);
     const take = picked.slice(0, room);
     for (const file of take) {
       const key = `${file.name}-${file.size}-${Math.random()}`;
@@ -102,25 +109,31 @@ export default function AnswerUploader({
     <div className="rounded-2xl border border-dashed border-text/20 bg-bg/60 p-4" data-testid="answer-uploader">
       <p className="text-sm font-semibold text-text">{label}</p>
       <p className="mt-1 text-xs text-text/60">
-        Write the answer on paper, then take clear photos of each page or upload a PDF. Up to {ANSWER_MAX_FILES} files, 10 MB each.
+        {hint || `Write the answer on paper, then take clear photos of each page or upload a PDF. Up to ${maxFiles} files, 10 MB each.`}
       </p>
 
       {canUpload && room > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <label className={`${btn} bg-primary text-white ring-primary`} htmlFor={`${inputId}-camera`} onPointerDown={startPick} onKeyDown={startPick}>
-            Take a photo
-            <input id={`${inputId}-camera`} type="file" accept="image/*" capture="environment" className="sr-only"
-              onClick={startPick} onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} disabled={busy} />
-          </label>
+          {cameraMode === "inpage" ? (
+            <button type="button" className={`${btn} bg-primary text-white ring-primary`} disabled={busy} onClick={() => setCameraOpen(true)}>
+              Take a photo
+            </button>
+          ) : (
+            <label className={`${btn} bg-primary text-white ring-primary`} htmlFor={`${inputId}-camera`} onPointerDown={startPick} onKeyDown={startPick}>
+              Take a photo
+              <input id={`${inputId}-camera`} type="file" accept="image/*" {...(cameraMode === "native" ? { capture: "environment" } : {})} className="sr-only"
+                onClick={startPick} onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} disabled={busy} />
+            </label>
+          )}
           <label className={`${btn} bg-white text-text ring-text/15 hover:bg-text/5`} htmlFor={`${inputId}-files`} onPointerDown={startPick} onKeyDown={startPick}>
-            Choose photos or PDF
+            Choose PDF or photos
             <input id={`${inputId}-files`} type="file" accept={ANSWER_ACCEPT} multiple className="sr-only"
               onClick={startPick} onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} disabled={busy} />
           </label>
         </div>
       )}
       {!canUpload && <p className="mt-3 text-xs font-medium text-text/60">Uploads are closed for this test.</p>}
-      {canUpload && room === 0 && !busy && <p className="mt-3 text-xs font-medium text-text/60">You've added the maximum of {ANSWER_MAX_FILES} files. Remove one to add another.</p>}
+      {canUpload && room === 0 && !busy && <p className="mt-3 text-xs font-medium text-text/60">You've added the maximum of {maxFiles} files. Remove one to add another.</p>}
 
       {queue.length > 0 && (
         <ul className="mt-3 space-y-2" aria-live="polite">
@@ -170,6 +183,7 @@ export default function AnswerUploader({
       )}
       {error && <p role="alert" className="mt-2 text-xs text-danger">{error}</p>}
       {preview && <AnswerPreview file={preview} api={api} onClose={closePreview} />}
+      {cameraOpen && <CameraCapture onCapture={(file) => addFiles([file])} onClose={() => setCameraOpen(false)} />}
     </div>
   );
 }

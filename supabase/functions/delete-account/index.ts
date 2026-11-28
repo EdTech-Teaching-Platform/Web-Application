@@ -8,7 +8,8 @@
 //      deletion, closes a pending request, blocks a student / suspends an
 //      educator and ends their sessions, so every RPC refuses at once.
 //      Admin accounts are refused there, before anything is deleted.
-//   3. auth.admin.deleteUser(id, true): soft delete in Supabase Auth. The user
+//   3. The Auth email is replaced by deleted+<id>@deleted.invalid (so the address
+//      can be used again), then auth.admin.deleteUser(id, true): soft delete. The user
 //      can't sign in again and the email is released; rows in the lead's
 //      tables are kept for the retention job. If that call fails the account
 //      is banned instead (it is already blocked in SQL).
@@ -16,7 +17,7 @@
 // 400 / 403 / 405 / 500.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { clients, fail, json, options, requireUser } from "../_shared/auth.ts";
-import { BAN_DURATION, DeleteRequestError, hasPasswordIdentity, validateDeleteRequest } from "./validate.ts";
+import { BAN_DURATION, DeleteRequestError, hasPasswordIdentity, tombstoneEmail, validateDeleteRequest } from "./validate.ts";
 
 Deno.serve(async (req) => {
   const preflight = options(req); if (preflight) return preflight;
@@ -45,6 +46,14 @@ Deno.serve(async (req) => {
       if (rpcError.code === "42501") throw new DeleteRequestError(rpcError.message, 403);
       throw new Error(rpcError.message);
     }
+
+    // QA 22 Nov: a soft-deleted user keeps its email, so the person couldn't
+    // sign up again. Release it first: the Auth user gets a tombstone address
+    // (our records keep the request, the profile row is unchanged).
+    const { error: emailError } = await admin.auth.admin.updateUserById(user.id, {
+      email: tombstoneEmail(user.id), email_confirm: true, user_metadata: { ...(user.user_metadata || {}), deleted: true },
+    });
+    if (emailError) console.error("delete-account: could not release the email", emailError.message);
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(user.id, true);
     if (deleteError) {

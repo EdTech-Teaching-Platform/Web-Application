@@ -205,7 +205,7 @@ export default function TestSeriesWizard() {
         duration: t.duration,
         passingPercent: t.totalMarks ? Math.round((t.passingMarks / t.totalMarks) * 100) : 40,
         attemptLimit: t.attemptLimit || 1,
-        answerUploadMinutes: t.answerUploadMinutes ?? 15,
+        answerUploadMinutes: t.answerUploadMinutes ?? 5,
         questions: t.questions.map(cloneQuestion),
       })),
     }));
@@ -495,8 +495,8 @@ export default function TestSeriesWizard() {
                     <div className="ul-ts-form-row"><label>Passing %</label><input type="number" min="0" max="100" value={t.passingPercent} onChange={(e) => patchTest(t.wid, { passingPercent: e.target.value })} /></div>
                     <div className="ul-ts-form-row"><label>Attempts allowed</label><input type="number" min="1" value={t.attemptLimit} onChange={(e) => patchTest(t.wid, { attemptLimit: e.target.value })} /></div>
                     <div className="ul-ts-form-row">
-                      <label htmlFor={`upl-${t.wid}`}>Answer-sheet upload time after submitting (min)</label>
-                      <input id={`upl-${t.wid}`} type="number" min="0" max="120" value={t.answerUploadMinutes ?? 15} onChange={(e) => patchTest(t.wid, { answerUploadMinutes: e.target.value })} />
+                      <label htmlFor={`upl-${t.wid}`}>Answer-sheet upload time after finishing (min)</label>
+                      <input id={`upl-${t.wid}`} type="number" min="0" max="120" value={t.answerUploadMinutes ?? 5} onChange={(e) => patchTest(t.wid, { answerUploadMinutes: e.target.value })} />
                     </div>
                     <div className="ul-ts-form-row"><label>Topics</label><input value={t.topics.join(", ")} onChange={(e) => patchTest(t.wid, { topics: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} placeholder="comma separated" /></div>
                   </div>

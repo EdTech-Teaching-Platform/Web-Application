@@ -2,25 +2,23 @@
 // resumes the attempt; answers autosave (debounced); the timer counts down to
 // the SERVER deadline and submits at zero; window changes are recorded as
 // violations and the server auto-submits over the limit.
-// Written questions (20261120090000): type the answer, or upload photos / a
-// PDF of the handwritten answer (AnswerUploader). Uploads count as answered;
-// proctoring pauses while the camera or file picker is open. The teacher
-// marks written answers after the test.
-import { useCallback, useEffect, useRef, useState } from "react";
+// Written questions: typed here. Handwritten work is uploaded AFTER the test
+// (QA 22 Nov flow, 20261128090000): "Finish test" submits the answers, then
+// the answer-sheet screen (/student/answer-sheet/:attemptId) gives the test's
+// upload time (default 5 minutes) for a PDF or photos. A test auto-submitted
+// for violations goes straight to the report. The teacher marks afterwards.
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { ErrorState, LoadingState, PAGE } from "../components/PageState";
 import { isAnswered, useAttemptRunner } from "../hooks/useAttemptRunner";
-import { fullscreenElement, useProctor } from "../hooks/useProctor";
-import AnswerUploader from "../components/AnswerUploader";
-import { listAnswerUploads } from "../../../services/answerUploadsApi";
+import { useProctor } from "../hooks/useProctor";
+import { sheetStatus } from "../../../services/answerUploadsApi";
 import { formatClock } from "../utils/format";
 import EmailWatermark from "../components/EmailWatermark";
 import { QuestionFigure, SeriesThumb } from "../components/TestImages";
-
-const PREVIEW_PAUSE_MS = 30 * 60 * 1000;   // until the preview closes (resume)
 
 const EVENT_TEXT = {
   visibility_hidden: "You switched away from the test tab.",
@@ -38,55 +36,31 @@ function SaveIndicator({ status }) {
   return <span className={`text-xs ${status === "error" ? "text-danger" : "text-text/50"}`} aria-live="polite">{text}</span>;
 }
 
-// Type the answer, or upload the handwritten sheet. Both stay available: a
-// typed answer is kept when switching, and the teacher sees both.
-export function WrittenAnswer({ question, value, onChange, upload }) {
+// The written answer box. Handwritten pages are uploaded after the test.
+export function WrittenAnswer({ value, onChange, sheet }) {
   const text = typeof value === "string" ? value : "";
-  const files = upload?.files || [];
-  const [mode, setMode] = useState(files.length && !text.trim() ? "upload" : "type");
-  const tab = (key, label) => (
-    <button type="button" role="tab" aria-selected={mode === key} onClick={() => setMode(key)}
-      className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${mode === key ? "bg-text text-white" : "bg-white text-text ring-1 ring-text/15 hover:bg-text/5"}`}>
-      {label}
-    </button>
-  );
+  const minutes = Number(sheet?.graceMinutes ?? 0);
   return (
     <div>
-      {upload && (
-        <div role="tablist" aria-label="How do you want to answer?" className="mb-3 flex flex-wrap gap-2">
-          {tab("type", "Type answer")}
-          {tab("upload", `Upload answer sheet${files.length ? ` (${files.length})` : ""}`)}
-        </div>
-      )}
-      {mode === "type" || !upload ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-text">Your answer</span>
-          <textarea
-            className="min-h-40 w-full rounded-2xl border border-text/15 bg-bg px-4 py-3 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-            value={text}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
-      ) : (
-        <AnswerUploader
-          attemptId={upload.attemptId} questionId={question.id} files={files} canUpload={upload.canUpload}
-          canRemove={upload.canRemove !== false}
-          onChange={upload.onChange} onPickStart={upload.onPickStart} onPickEnd={upload.onPickEnd}
-          onPreviewOpen={upload.onPreviewOpen} onPreviewClose={upload.onPreviewClose}
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-text">Your answer</span>
+        <textarea
+          className="min-h-40 w-full rounded-2xl border border-text/15 bg-bg px-4 py-3 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+          value={text}
+          onChange={(e) => onChange(e.target.value)}
         />
-      )}
+      </label>
       <span className="mt-2 block text-xs text-text/50">
-        Your teacher marks written answers after you submit.
-        {upload && mode === "type" && files.length > 0 && ` You've also uploaded ${files.length} file${files.length === 1 ? "" : "s"} for this answer.`}
-        {upload && (Number(upload.graceMinutes ?? 15) > 0
-          ? ` After you submit you'll have ${upload.graceMinutes ?? 15} minutes to add more pages (pages can't be removed then).`
-          : " Upload your answer sheets before you submit.")}
+        Your teacher marks written answers after the test.
+        {minutes > 0
+          ? ` Writing on paper instead? After you finish the test you'll have ${minutes} minute${minutes === 1 ? "" : "s"} to upload a PDF or photos of your answer sheet.`
+          : ""}
       </span>
     </div>
   );
 }
 
-function QuestionInput({ question, value, onChange, upload }) {
+function QuestionInput({ question, value, onChange, sheet }) {
   const name = `q-${question.id}`;
   if (question.type === "multiple_choice" || question.type === "true_false") {
     const multi = Boolean(question.multi_select);
@@ -130,7 +104,7 @@ function QuestionInput({ question, value, onChange, upload }) {
       </label>
     );
   }
-  return <WrittenAnswer key={question.id} question={question} value={text} onChange={onChange} upload={upload} />;
+  return <WrittenAnswer key={question.id} value={text} onChange={onChange} sheet={sheet} />;
 }
 
 export function Palette({ questions, answers, marked, current, onGoTo, isDone = (q) => isAnswered(answers[q.id]) }) {
@@ -175,40 +149,28 @@ export default function TestRunner() {
   const [confirming, setConfirming] = useState(false);
   const headingRef = useRef(null);
   const runner = useAttemptRunner(testId, {
-    onFinished: (attemptId) => navigate(`/student/report/${attemptId}`, { replace: true }),
+    // Written questions and an open window: the answer-sheet screen; else the report.
+    onFinished: async (attemptId) => {
+      let next = `/student/report/${attemptId}`;
+      try {
+        const s = await sheetStatus(attemptId);
+        if (s.canUpload) next = `/student/answer-sheet/${attemptId}`;
+      } catch { /* the report offers the sheet if it's still open */ }
+      navigate(next, { replace: true });
+    },
   });
   const { state, remaining } = runner;
   const live = state.phase === "running" || state.phase === "warning";
   const proctor = useProctor({ enabled: begun && live, onEvent: (type, meta) => runner.reportViolation(type, meta) });
   const attemptId = state.attempt?.attempt_id;
-  const [uploads, setUploads] = useState(null);
-  const [needFullscreen, setNeedFullscreen] = useState(false);
+  const [sheet, setSheet] = useState(null);   // {hasWritten, graceMinutes} for the messages
   useEffect(() => {
     if (!attemptId) return undefined;
     let alive = true;
-    listAnswerUploads(attemptId).then((u) => { if (alive) setUploads(u); }).catch(() => { if (alive) setUploads(null); });
+    sheetStatus(attemptId).then((s) => { if (alive) setSheet(s); }).catch(() => { if (alive) setSheet(null); });
     return () => { alive = false; };
   }, [attemptId]);
-  const onPickStart = useCallback(() => { proctor.pause(); setNeedFullscreen(false); }, [proctor]);
-  const onPickEnd = useCallback(() => {
-    proctor.resume();
-    setTimeout(() => { if (proctor.supported && !fullscreenElement()) setNeedFullscreen(true); }, 600);
-  }, [proctor]);
-  // Previewing a sheet in the page: clicking into a PDF frame blurs the
-  // window, which isn't leaving the test. Tab switches still count.
-  const onPreviewOpen = useCallback(() => proctor.pause(PREVIEW_PAUSE_MS, ["window_blur"]), [proctor]);
-  const onPreviewClose = useCallback(() => proctor.resume(), [proctor]);
-
-  // Ask before leaving while the attempt is open (the timer keeps running).
-  useEffect(() => {
-    if (!live) return undefined;
-    const onBeforeUnload = (e) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [live]);
+  const sheetNext = Boolean(sheet?.hasWritten && Number(sheet?.graceMinutes) > 0);
 
   // Move focus to the question when it changes (keyboard / screen reader users).
   useEffect(() => {
@@ -234,7 +196,7 @@ export default function TestRunner() {
       </div>
     );
   }
-  const isDone = (q) => isAnswered(answers[q.id]) || (uploads?.byQuestion[q.id]?.length ?? 0) > 0;
+  const isDone = (q) => isAnswered(answers[q.id]);
   const answeredCount = questions.filter(isDone).length;
   const markedCount = questions.filter((q) => marked[q.id]).length;
   const lowTime = remaining !== null && remaining <= 300;
@@ -284,17 +246,10 @@ export default function TestRunner() {
             {formatClock(remaining)}
           </span>
         )}
-        <Button fullWidth={false} disabled={busy} onClick={() => setConfirming(true)}>Submit</Button>
+        <Button fullWidth={false} disabled={busy} onClick={() => setConfirming(true)}>{sheetNext ? "Finish test" : "Submit"}</Button>
       </header>
       {lowTime && remaining > 0 && remaining % 60 === 0 && (
         <p className="sr-only" aria-live="assertive">{Math.round(remaining / 60)} minutes left</p>
-      )}
-
-      {needFullscreen && live && (
-        <div role="status" className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-primary/10 px-4 py-3 text-sm text-text">
-          <span>Uploading took you out of full screen. This wasn't counted as a violation.</span>
-          <Button fullWidth={false} onClick={async () => { await proctor.enterFullscreen(); setNeedFullscreen(false); }}>Return to full screen</Button>
-        </div>
       )}
 
       {state.error && state.phase === "running" && (
@@ -323,11 +278,7 @@ export default function TestRunner() {
           <div className="mt-5">
             <QuestionInput
               question={question} value={answers[question.id]} onChange={(v) => runner.answer(question.id, v)}
-              upload={uploads ? {
-                attemptId, files: uploads.byQuestion[question.id] || [], canUpload: uploads.canUpload,
-                canRemove: uploads.canRemove, graceMinutes: uploads.graceMinutes,
-                onChange: setUploads, onPickStart, onPickEnd, onPreviewOpen, onPreviewClose,
-              } : null}
+              sheet={sheet}
             />
           </div>
 
@@ -359,10 +310,10 @@ export default function TestRunner() {
       <Modal
         open={confirming && !busy}
         onClose={() => setConfirming(false)}
-        title="Submit your test?"
+        title={sheetNext ? "Finish your test?" : "Submit your test?"}
         footer={
           <>
-            <Button onClick={() => { setConfirming(false); runner.submit(); }}>Submit now</Button>
+            <Button onClick={() => { setConfirming(false); runner.submit(); }}>{sheetNext ? "Finish and continue" : "Submit now"}</Button>
             <Button variant="secondary" onClick={() => setConfirming(false)}>Keep working</Button>
           </>
         }
@@ -371,7 +322,8 @@ export default function TestRunner() {
           You answered {answeredCount} of {questions.length} questions
           {questions.length - answeredCount > 0 && <> ({questions.length - answeredCount} unanswered)</>}
           {markedCount > 0 && <>, and {markedCount} {markedCount === 1 ? "is" : "are"} marked for review</>}.
-          You can't change answers after submitting.
+          You can't change answers after {sheetNext ? "finishing" : "submitting"}.
+          {sheetNext && ` Next you'll have ${sheet.graceMinutes} minute${Number(sheet.graceMinutes) === 1 ? "" : "s"} to upload a PDF or photos of anything you wrote on paper.`}
         </p>
       </Modal>
 

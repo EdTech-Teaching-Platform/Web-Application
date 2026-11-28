@@ -48,7 +48,7 @@ const EMPTY_TEST_FORM = {
   totalMarks: "",
   passingMarks: "",
   attemptLimit: "",
-  answerUploadMinutes: "15",
+  answerUploadMinutes: "5",
   scheduledAt: "",
   shuffleQuestions: false,
   shuffleOptions: false,
@@ -154,7 +154,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
     setForm({
       name: t.name, instructions: t.instructions, duration: String(t.duration || ""),
       totalMarks: String(t.totalMarks || ""), passingMarks: String(t.passingMarks || ""),
-      attemptLimit: String(t.attemptLimit || ""), answerUploadMinutes: String(t.answerUploadMinutes ?? 15), scheduledAt: toDateTimeLocal(t.scheduledAt),
+      attemptLimit: String(t.attemptLimit || ""), answerUploadMinutes: String(t.answerUploadMinutes ?? 5), scheduledAt: toDateTimeLocal(t.scheduledAt),
       shuffleQuestions: !!t.shuffleQuestions, shuffleOptions: !!t.shuffleOptions,
     });
     setEditingId(t.id);
@@ -367,10 +367,10 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                 </div>
 
                 <div className="ul-ts-form-row">
-                  <label htmlFor="ts-upload-minutes">Answer-sheet upload time after submitting (minutes)</label>
+                  <label htmlFor="ts-upload-minutes">Answer-sheet upload time after finishing (minutes)</label>
                   <input id="ts-upload-minutes" type="number" min="0" max="120" value={form.answerUploadMinutes}
                     onChange={(e) => setForm({ ...form, answerUploadMinutes: e.target.value })} aria-describedby="ts-upload-minutes-hint" />
-                  <small id="ts-upload-minutes-hint">For written questions: each student gets this long after they submit to add photos or a PDF (add only, no removing). 0 = only during the test. Up to 120.</small>
+                  <small id="ts-upload-minutes-hint">For written questions: after finishing the test, each student gets this long to upload a PDF or photos of their handwritten answers, then submits. 0 = no answer sheet. Up to 120. Tests auto-submitted for violations get no time.</small>
                 </div>
 
                 <div className="ul-ts-form-grid-2">
@@ -439,7 +439,7 @@ export default function TestSeriesDetail({ seriesId: seriesIdProp, onBack, onMan
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Total Marks</p><p className="ul-set-kv__value">{viewTarget.totalMarks}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Passing Marks</p><p className="ul-set-kv__value">{viewTarget.passingMarks}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Attempt Limit</p><p className="ul-set-kv__value">{viewTarget.attemptLimit}</p></div>
-                <div className="ul-set-kv__item"><p className="ul-set-kv__label">Upload time after submitting</p><p className="ul-set-kv__value">{viewTarget.answerUploadMinutes ?? 15} min</p></div>
+                <div className="ul-set-kv__item"><p className="ul-set-kv__label">Answer-sheet time after finishing</p><p className="ul-set-kv__value">{viewTarget.answerUploadMinutes ?? 5} min</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Scheduled</p><p className="ul-set-kv__value">{viewTarget.scheduledAt ? new Date(viewTarget.scheduledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Shuffle Questions</p><p className="ul-set-kv__value">{viewTarget.shuffleQuestions ? "On" : "Off"}</p></div>
                 <div className="ul-set-kv__item"><p className="ul-set-kv__label">Shuffle Options</p><p className="ul-set-kv__value">{viewTarget.shuffleOptions ? "On" : "Off"}</p></div>

@@ -114,7 +114,8 @@ describe("SEC-02 security headers (vercel.json)", () => {
     expect(all["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
     expect(all["Strict-Transport-Security"]).toMatch(/max-age=\d{7,}/);
     expect(all["Content-Security-Policy"]).toMatch(/frame-ancestors 'none'/);
-    expect(all["Permissions-Policy"]).toMatch(/camera=\(\)/);
+    expect(all["Permissions-Policy"]).toContain("camera=(self)");   // the answer-sheet camera, this site only (QA 22 Nov)
+    expect(all["Permissions-Policy"]).toContain("microphone=()");
     expect(all["Content-Security-Policy-Report-Only"]).toMatch(/default-src 'self'/);
   });
   it("routes: the auth / proxy functions, server-rendered public pages, then the SPA shell for the rest", () => {

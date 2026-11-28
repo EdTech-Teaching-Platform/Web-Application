@@ -8,7 +8,7 @@
 // then shows the teacher's marks and feedback, and for 15 minutes after the
 // test the student can still add answer sheets here.
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Chip from "../../../components/ui/Chip";
 import DonutChart from "../../../components/ui/DonutChart";
 import StatCard from "../../../components/ui/StatCard";
@@ -22,8 +22,9 @@ import { formatDate, formatMinutes, formatPercent, formatScore, formatSeconds } 
 import { FeedbackForm } from "../components/FeedbackForm";
 import { useAiEvaluation } from "../hooks/useAiEvaluation";
 import { QuestionFigure, SeriesBanner } from "../components/TestImages";
-import AnswerUploader from "../components/AnswerUploader";
-import { answerUploadsApi, formatFileSize } from "../../../services/answerUploadsApi";
+import AnswerPreview from "../components/AnswerPreview";
+import { answerUploadsApi, formatFileSize, sheetStatus } from "../../../services/answerUploadsApi";
+import { formatCountdown, useServerCountdown } from "../hooks/useServerCountdown";
 import { isWrittenType } from "../../admin/data/questionTypes";
 
 const isWrittenRow = (q) => q?.type === "short_answer" || isWrittenType(q?.ui_type);
@@ -186,7 +187,7 @@ function UploadedFiles({ files, api }) {
   );
 }
 
-export function QuestionReview({ question, hidden, files = [], api = answerUploadsApi }) {
+export function QuestionReview({ question, hidden, files = [], api = answerUploadsApi, onSheet = false }) {
   const s = STATUS[question.status] ?? STATUS.skipped;
   return (
     <li className={CARD}>
@@ -220,9 +221,9 @@ export function QuestionReview({ question, hidden, files = [], api = answerUploa
         </ul>
       ) : (
         <dl className="mt-4 space-y-2 rounded-xl bg-(--lp-grey) px-4 py-3 text-sm">
-          <div><dt className="inline font-medium text-text/70">Your answer: </dt><dd className="inline whitespace-pre-line text-text">{question.student_answer || (files.length ? "Uploaded as answer sheets (below)" : "Not answered")}</dd></div>
+          <div><dt className="inline font-medium text-text/70">Your answer: </dt><dd className="inline whitespace-pre-line text-text">{question.student_answer || (files.length ? "Uploaded as answer sheets (below)" : onSheet ? "On your answer sheet" : "Not answered")}</dd></div>
           {question.correct_answer && (
-            <div><dt className="inline font-medium text-text/70">{question.status === "pending" ? "Model answer: " : "Accepted answer: "}</dt><dd className="inline text-text">{question.correct_answer}</dd></div>
+            <div><dt className="inline font-medium text-text/70">{isWrittenRow(question) || question.status === "pending" ? "Model answer: " : "Accepted answer: "}</dt><dd className="inline text-text">{question.correct_answer}</dd></div>
           )}
           {question.model_answer_pending && (
             <p className="text-xs text-text/60">The model answer is shown after your teacher has marked this answer.</p>
@@ -284,56 +285,48 @@ function TeacherReport({ teacher }) {
 
 const clock = (iso) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
-// The test's upload time after submitting (QA 21 Nov: set per test, the same
-// rule for everyone, add-only, closes on its own). Counts down from the
-// server's closing time, corrected for this device's clock.
-function useUploadDeadline(uploads) {
-  const closesAt = uploads?.windowClosesAt ? new Date(uploads.windowClosesAt).getTime() : null;
-  const serverNow = uploads?.serverNow || null;
-  // server clock - device clock, fixed when the server answered
-  const skew = useMemo(() => (serverNow ? new Date(serverNow).getTime() - Date.now() : 0), [serverNow]);
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (closesAt == null) return undefined;
-    const t = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(t);
-  }, [closesAt]);
-  return closesAt == null ? null : Math.max(0, closesAt - (Date.now() + skew));
-}
-
-// Within the test's upload time after submitting: add the handwritten sheets.
-function LateUploads({ attemptId, questions, uploads, onChange }) {
-  const written = questions.filter(isWrittenRow);
-  const msLeft = useUploadDeadline(uploads);
-  if (!uploads?.canUpload || written.length === 0 || msLeft === 0) return null;
-  const until = uploads.windowClosesAt ? clock(uploads.windowClosesAt) : null;
-  const mins = msLeft != null ? Math.floor(msLeft / 60000) : null;
-  const secs = msLeft != null ? Math.floor((msLeft % 60000) / 1000) : null;
+// The answer sheet uploaded after the test (20261128090000): a banner back to
+// the upload screen while it's still open, then the files (in-page preview).
+function AnswerSheetCard({ attemptId, sheet }) {
+  const msLeft = useServerCountdown(sheet?.canUpload ? sheet.windowClosesAt : null, sheet?.serverNow);
+  const [preview, setPreview] = useState(null);
+  if (!sheet?.hasWritten) return null;
+  const files = sheet.files || [];
+  const open = sheet.canUpload && msLeft !== 0;
+  if (!open && files.length === 0 && sheet.autoSubmitReason !== "proctor_limit") return null;
   return (
-    <section className={CARD} aria-labelledby="ul-late-uploads">
+    <section className={CARD} aria-labelledby="ul-answer-sheet">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="ul-late-uploads" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">Add your answer sheets</h2>
-        {msLeft != null && (
-          <span role="timer" aria-label={`${mins} minutes ${secs} seconds left to upload`}
-            className="rounded-full bg-warning/15 px-3 py-1 font-mono text-sm font-semibold text-text">
-            {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")} left
-          </span>
+        <h2 id="ul-answer-sheet" className="font-display text-lg font-semibold tracking-tight text-(--lp-ink)">Your answer sheet</h2>
+        {open && msLeft != null && (
+          <span role="timer" className="rounded-full bg-warning/15 px-3 py-1 font-mono text-sm font-semibold text-text">{formatCountdown(msLeft)} left</span>
         )}
       </div>
-      <p className="mt-1 text-sm text-(--lp-muted)">
-        {`This test gives you ${uploads.graceMinutes} minutes after submitting to add photos or a PDF of written answers.`}
-        {until && ` Uploads close at ${until}${uploads.submittedAt ? ` (you submitted at ${clock(uploads.submittedAt)})` : ""}.`}
-        {" "}You can add pages but not remove them, and your typed answers can't be changed. Your teacher sees when each page was added.
-      </p>
-      <ol className="mt-4 space-y-4">
-        {written.map((q) => (
-          <li key={q.question_id}>
-            <p className="mb-2 text-sm font-semibold text-(--lp-ink)">Q{q.position}. <span className="font-normal text-text/80">{String(q.text || "").slice(0, 160)}</span></p>
-            <AnswerUploader attemptId={attemptId} questionId={q.question_id} files={uploads.byQuestion[q.question_id] || []}
-              canUpload={uploads.canUpload && msLeft !== 0} canRemove={false} onChange={onChange} label="Answer sheet for this question" />
-          </li>
-        ))}
-      </ol>
+      {open ? (
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <p className="text-sm text-(--lp-muted)">Your answer-sheet upload is still open. Upload a PDF or photos of what you wrote on paper, then press Submit.</p>
+          <Link to={`/student/answer-sheet/${attemptId}`} className={BTN_DARK}>Continue to upload</Link>
+        </div>
+      ) : sheet.autoSubmitReason === "proctor_limit" && files.length === 0 ? (
+        <p className="mt-2 text-sm text-(--lp-muted)">This test was submitted automatically after too many violations, so no answer sheet could be added.</p>
+      ) : (
+        <p className="mt-1 text-sm text-(--lp-muted)">
+          {files.length} file{files.length === 1 ? "" : "s"} submitted{sheet.sheetSubmittedAt ? ` at ${clock(sheet.sheetSubmittedAt)}` : ""}. Your teacher marks your written answers from these and what you typed.
+        </p>
+      )}
+      {files.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {files.map((f, i) => (
+            <li key={f.id}>
+              <button type="button" onClick={() => setPreview(f)}
+                className={`inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-(--lp-blue-deep) ring-1 ring-(--lp-line) hover:bg-(--lp-blue-tint) ${FOCUS}`}>
+                {f.contentType === "application/pdf" ? f.fileName : `Page ${i + 1}`} · {formatFileSize(f.size)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {preview && <AnswerPreview file={preview} onClose={() => setPreview(null)} />}
     </section>
   );
 }
@@ -372,15 +365,18 @@ export default function TestReport() {
 
   const ai = useAiEvaluation(report, attemptId, { onDone: reload });
   const questions = useMemo(() => report?.questions ?? [], [report]);
-  const [uploads, setUploads] = useState(null);
+  const location = useLocation();
+  const [uploads, setUploads] = useState(null);   // per-question files from the 20 Nov design (older attempts)
+  const [sheet, setSheet] = useState(null);       // the answer sheet uploaded after the test
   const hasWritten = questions.some(isWrittenRow);
   useEffect(() => {
     if (!attemptId || !hasWritten) return undefined;
     let alive = true;
     answerUploadsApi.list(attemptId).then((u) => { if (alive) setUploads(u); }).catch(() => {});
+    sheetStatus(attemptId).then((v) => { if (alive) setSheet(v); }).catch(() => {});
     return () => { alive = false; };
   }, [attemptId, hasWritten]);
-  const onUploadsChange = (next) => { setUploads(next); Promise.resolve(reload()).catch(() => {}); };
+  const sheetFiles = sheet?.files?.length || 0;
   const shown = useMemo(() => (filter === "all" ? questions : questions.filter((q) => q.status === filter)), [questions, filter]);
 
   if (loading) return <div className={WIDE}><LoadingState label="Loading your report" /></div>;
@@ -456,7 +452,10 @@ export default function TestReport() {
           Your score below leaves them out for now. You'll get a notification when they're marked.
         </Notice>
       )}
-      <LateUploads attemptId={attemptId} questions={questions} uploads={uploads} onChange={onUploadsChange} />
+      {location.state?.sheet === "auto" && (
+        <Notice>The time to upload ended, so your answer sheet was submitted automatically with what you'd uploaded.</Notice>
+      )}
+      <AnswerSheetCard attemptId={attemptId} sheet={sheet} />
       {report.teacher?.status === "published" && <TeacherReport teacher={report.teacher} />}
       {report.ai?.status === "done" && !report.teacher && <AiReport ai={report.ai} />}
 
@@ -570,7 +569,7 @@ export default function TestReport() {
         </div>
         {s.answers_hidden && <p className="text-sm text-(--lp-muted)">Correct answers and explanations are hidden for this test.</p>}
         <ol className="space-y-4">
-          {shown.map((q) => <QuestionReview key={q.question_id} question={q} hidden={s.answers_hidden} files={uploads?.byQuestion[q.question_id] || []} />)}
+          {shown.map((q) => <QuestionReview key={q.question_id} question={q} hidden={s.answers_hidden} files={uploads?.byQuestion[q.question_id] || []} onSheet={sheetFiles > 0 && isWrittenRow(q)} />)}
         </ol>
       </section>
     </div>

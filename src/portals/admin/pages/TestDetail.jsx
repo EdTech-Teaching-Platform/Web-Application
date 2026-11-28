@@ -464,7 +464,7 @@ export default function TestDetail({ seriesId: seriesIdProp, testId: testIdProp,
                       ) : q.type === QTYPE.FILL_BLANK ? (
                         <p className="ul-td-preview-answer-box">Typed answer. Accepted: {q.acceptedAnswer || "—"}</p>
                       ) : (
-                        <p className="ul-td-preview-answer-box">Answer box shown to the student, graded by AI after submission.{q.modelAnswer ? ` Model answer: ${q.modelAnswer}` : ""}</p>
+                        <p className="ul-td-preview-answer-box">Answer box shown to the student; marked by the teacher after the test (handwritten work is uploaded as an answer sheet).{q.modelAnswer ? ` Model answer: ${q.modelAnswer}` : ""}</p>
                       )}
                       <span className="ul-td-preview-marks">{q.marks} marks{q.negativeMarks ? ` · −${q.negativeMarks} negative` : ""}</span>
                     </div>
