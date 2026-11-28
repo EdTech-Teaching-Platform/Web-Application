@@ -76,6 +76,9 @@ export default function UserManagement() {
   const [blockTarget, setBlockTarget] = useState(null); // student pending a Block confirmation (independent of detailsStudent)
   const [blockReason, setBlockReason] = useState("");
   const [unblockTarget, setUnblockTarget] = useState(null); // student pending an Unblock confirmation
+  const [deleteTarget, setDeleteTarget] = useState(null); // student pending a Delete account confirmation (QA 28 Nov)
+  const [deleteWord, setDeleteWord] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState("");
   const debouncedSearch = useDebounced(search);
   const listRequest = useCallback(() => studentsApi.list({ search: debouncedSearch, status: statusFilter, grade: gradeFilter, page, size: PAGE_SIZE }), [debouncedSearch, statusFilter, gradeFilter, page]);
@@ -157,6 +160,23 @@ export default function UserManagement() {
       setUnblockTarget(null); refreshAfterStatus();
       syncBan(student, false);
     }).catch((error) => setToast(error));
+  };
+
+  // QA 28 Nov (Bug 4): delete a student's account after a typed confirmation
+  // (admin-delete-student: blocked at once, sign-in removed, email released).
+  const openDelete = (student) => { setDeleteTarget(student); setDeleteWord(""); };
+  const cancelDelete = () => { if (!deleting) { setDeleteTarget(null); setDeleteWord(""); } };
+  const confirmDelete = () => {
+    if (!deleteTarget || deleteWord.trim().toUpperCase() !== "DELETE" || deleting) return;
+    const student = deleteTarget;
+    setDeleting(true);
+    studentsApi.deleteAccount(student.id).then(() => {
+      setToast({ tone: "success", message: `"${student.name}"'s account has been deleted.` });
+      setDeleteTarget(null); setDeleteWord("");
+      if (detailsId === student.id) setDetailsStudent(null);
+      studentsState.refetch();
+      statsState.refetch().catch(() => {});
+    }).catch((error) => setToast(error)).finally(() => setDeleting(false));
   };
 
   return (
@@ -278,6 +298,14 @@ export default function UserManagement() {
                             Unblock
                           </button>
                         )}
+                        <button
+                          type="button"
+                          className="ul-btn ul-btn--ghost ul-usr-btn-sm"
+                          onClick={() => openDelete(s)}
+                          aria-label={`Delete ${s.name}'s account`}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -458,6 +486,13 @@ export default function UserManagement() {
                   Unblock Account
                 </button>
               )}
+              <button
+                type="button"
+                className="ul-btn ul-btn--ghost"
+                onClick={() => openDelete(detailsStudent)}
+              >
+                Delete Account
+              </button>
             </div>
           </div>
         </div>
@@ -496,6 +531,32 @@ export default function UserManagement() {
         onConfirm={confirmUnblock}
         onCancel={() => setUnblockTarget(null)}
       />
+
+      {/* ---------- delete account confirm (QA 28 Nov) ---------- */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete this student account?"
+        description={
+          deleteTarget
+            ? `"${deleteTarget.name}" (${deleteTarget.email}) will lose access at once and can't sign in again. Their sign-in is removed and the email can be used to register again. This can't be undone.`
+            : ""
+        }
+        confirmLabel={deleting ? "Deleting…" : "Delete Account"}
+        tone="danger"
+        confirmDisabled={deleting || deleteWord.trim().toUpperCase() !== "DELETE"}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      >
+        <label className="ul-usr-review-meta__label" htmlFor="ul-usr-delete-word">Type DELETE to confirm</label>
+        <input
+          id="ul-usr-delete-word"
+          className="ul-usr-reason"
+          style={{ minHeight: 0 }}
+          autoComplete="off"
+          value={deleteWord}
+          onChange={(e) => setDeleteWord(e.target.value)}
+        />
+      </ConfirmModal>
 
       <PageToast message={toast} onDone={() => setToast("")} />
     </div>

@@ -98,11 +98,11 @@ const QUESTION_SAMPLE = [
   ["Mechanics Test 1", "Which of these are vector quantities?", "Velocity", "Speed", "Force", "Mass", "A|C", "4", "1", "mcq_multi", "medium", "Physics", "Vectors", ""],
   ["Waves and Units Test 2", "Light travels faster than sound.", "", "", "", "", "True", "2", "0", "true_false", "easy", "Physics", "Waves", ""],
   ["Waves and Units Test 2", "The SI unit of force is the ____.", "", "", "", "", "newton", "2", "0", "fill_blank", "easy", "Physics", "Units", ""],
-  ["Waves and Units Test 2", "Explain why a body moving with uniform velocity has zero acceleration.", "", "", "", "", "Acceleration is the rate of change of velocity. Uniform velocity means speed and direction do not change, so the rate of change is zero.", "5", "0", "subjective", "medium", "Physics", "Kinematics", ""],
+  ["Waves and Units Test 2", "Explain why a body moving with uniform velocity has zero acceleration.", "", "", "", "", "", "5", "0", "subjective", "medium", "Physics", "Kinematics", ""],
 ];
 export const QUESTION_NOTES = [
   "Test: the Test name from the Tests table. Leave blank to use the first test.",
-  "Type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C), true_false (True or False), fill_blank (the accepted answer goes in Correct), subjective (a written answer; put the model answer in Correct and the AI grades students against it).",
+  "Type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C), true_false (True or False), fill_blank (the accepted answer goes in Correct), subjective (a written answer marked by the teacher; leave Correct empty).",
   "Marks default to 4. Negative marks default to 1 for MCQ and 0 otherwise (always 0 for subjective). Difficulty: easy, medium or hard.",
   "Options A to D are only for MCQ. The banner image and question images are added in the wizard.",
 ];

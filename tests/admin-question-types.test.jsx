@@ -51,12 +51,11 @@ describe("question type picker", () => {
     });
   }
 
-  it("a written question asks for a model answer and an optional marking guide", () => {
+  it("a written question asks only for an optional marking guide, no model answer (QA 28 Nov)", () => {
     const onChange = vi.fn();
-    render(<QuestionAnswerFields q={{ type: "subjective", modelAnswer: "", answerInstructions: "" }} onChange={onChange} />);
-    fireEvent.change(screen.getByLabelText("Model answer"), { target: { value: "Charge is conserved." } });
+    render(<QuestionAnswerFields q={{ type: "subjective", answerInstructions: "" }} onChange={onChange} />);
+    expect(screen.queryByText(/model answer/i)).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Marking guide (optional)"), { target: { value: "2 + 3" } });
-    expect(onChange).toHaveBeenCalledWith({ modelAnswer: "Charge is conserved." });
     expect(onChange).toHaveBeenCalledWith({ answerInstructions: "2 + 3" });
   });
 
@@ -87,10 +86,10 @@ describe("question rules", () => {
     expect(normalizeQuestionType("numerical")).toBe(QTYPE.FILL_BLANK);
   });
 
-  it("validates each type; a written question needs a model answer", () => {
+  it("validates each type; a written question needs no model answer (QA 28 Nov)", () => {
     const base = { text: "Q?", marks: 2, negativeMarks: 0 };
-    expect(validateQuestionDraft({ ...base, type: "subjective" })).toContain("Add a model answer: the AI grades students' answers against it.");
-    expect(validateQuestionDraft({ ...base, type: "long_answer", modelAnswer: "Because." })).toEqual([]);
+    expect(validateQuestionDraft({ ...base, type: "subjective" })).toEqual([]);
+    expect(validateQuestionDraft({ ...base, type: "long_answer" })).toEqual([]);
     expect(validateQuestionDraft({ ...base, type: "fill_blank", acceptedAnswer: " " })).toContain("Enter the accepted answer.");
     expect(validateQuestionDraft({ ...base, type: "true_false", correctAnswer: "" })).toContain("Choose True or False as the correct answer.");
     expect(validateQuestionDraft({ ...base, type: "mcq_multi", optionA: "a", optionB: "b", optionC: "c", optionD: "d", correctAnswers: [] }))
@@ -111,9 +110,9 @@ describe("question rules", () => {
       type: "fill_blank", options: [], correctAnswer: "Paris",
     });
     expect(questionPayload({ ...q, type: "mcq_single", correctAnswer: "A" })).not.toHaveProperty("modelAnswer");
-    expect(questionPayload({ ...q, type: "subjective", modelAnswer: " Because. ", answerInstructions: " 2 + 3 " })).toMatchObject({
-      type: "subjective", options: [], modelAnswer: "Because.", answerInstructions: "2 + 3",
-    });
+    const written = questionPayload({ ...q, type: "subjective", modelAnswer: " Because. ", answerInstructions: " 2 + 3 " });
+    expect(written).toMatchObject({ type: "subjective", options: [], correctAnswer: "", answerInstructions: "2 + 3" });
+    expect(written).not.toHaveProperty("modelAnswer");   // an old model answer is cleared on save
   });
 
   it("imports keep written questions now", () => {
@@ -132,15 +131,15 @@ describe("CSV import", () => {
     return validateCsvRows(rows, new Set());
   }
 
-  it("imports written rows with their model answer (correct column); without one they're incomplete", () => {
+  it("imports written rows without a model answer; any text in the correct column is ignored (QA 28 Nov)", () => {
     const r = report([
       '"Explain gravity",,,,,"Mass attracts mass.",5,0,subjective,medium,Physics,,',
-      '"Define force",,,,,"A push or a pull.",2,0,short_answer,easy,Physics,,',
+      '"Define force",,,,,,2,0,short_answer,easy,Physics,,',
       '"Describe the water cycle",,,,,,8,0,long_answer,hard,Geography,,',
     ]);
-    expect(r.map((row) => row.status)).toEqual([ROW_STATUS.VALID, ROW_STATUS.VALID, ROW_STATUS.INCOMPLETE]);
-    expect(r[0].parsed).toMatchObject({ type: "subjective", modelAnswer: "Mass attracts mass.", negativeMarks: 0 });
-    expect(r[2].issues.join(" ")).toMatch(/Model answer is missing/);
+    expect(r.map((row) => row.status)).toEqual([ROW_STATUS.VALID, ROW_STATUS.VALID, ROW_STATUS.VALID]);
+    expect(r[0].parsed).toMatchObject({ type: "subjective", negativeMarks: 0 });
+    expect(r[0].parsed.modelAnswer || "").toBe("");
     expect(r[2].question).toBe("Describe the water cycle");   // the row keeps its text
   });
 
@@ -187,7 +186,7 @@ describe("AI / paste import", () => {
 
 // -----------------------------------------------------------------------------
 describe("wizard drafts", () => {
-  it("moves legacy objective questions to MCQ; a written question needs its model answer", () => {
+  it("moves legacy objective questions to MCQ; a written question needs no model answer", () => {
     const state = normalizeWizardState({
       ...initialWizardState(),
       name: "Series",
@@ -199,15 +198,13 @@ describe("wizard drafts", () => {
     expect(state.tests[0].questions[0]).toMatchObject({ type: "mcq_single", correctAnswers: ["A"] });
     const v = validateWizard(state, { existingSeries: [] });
     expect(v.draftErrors.find((e) => e.includes("Remove the"))).toBeUndefined();
-    expect(v.errors.join(" ")).toMatch(/1 question is missing options, a correct answer or a model answer/);
-    const fixed = { ...state, tests: [{ ...state.tests[0], questions: state.tests[0].questions.map((q) => (q.wid === "q2" ? { ...q, modelAnswer: "Because." } : q)) }] };
-    expect(validateWizard(fixed, { existingSeries: [] }).errors.join(" ")).not.toMatch(/missing options/);
+    expect(v.errors.join(" ")).not.toMatch(/missing options/);
   });
 });
 
 // -----------------------------------------------------------------------------
 describe("loading questions from the server", () => {
-  it("keeps the real type, multi answers, the accepted answer and a written question's model answer", () => {
+  it("keeps the real type, multi answers, the accepted answer and a written question's marking guide", () => {
     const opts = (labels, correct) => labels.map((label, i) => ({ id: `o${i}`, option_key: "ABCD"[i], label, is_correct: correct.includes(i), position: i }));
     expect(mapQuestion({ id: "1", type: "mcq", options: opts(["a", "b", "c", "d"], [0, 2]) })).toMatchObject({
       type: "mcq_multi", kind: "objective", correctAnswers: ["A", "C"],
@@ -216,8 +213,9 @@ describe("loading questions from the server", () => {
       type: "fill_blank", acceptedAnswer: "Paris",
     });
     const subj = mapQuestion({ id: "3", type: "subjective", options: opts(["Manual grading: see rubric"], [0]) });
-    expect(subj).toMatchObject({ type: "subjective", kind: "subjective", modelAnswer: "" });
-    expect(mapQuestion({ id: "4", type: "long_answer", answer_instructions: "2 + 3", options: opts(["Because."], [0]) }))
-      .toMatchObject({ kind: "subjective", modelAnswer: "Because.", answerInstructions: "2 + 3" });
+    expect(subj).toMatchObject({ type: "subjective", kind: "subjective" });
+    const old = mapQuestion({ id: "4", type: "long_answer", answer_instructions: "2 + 3", options: opts(["Because."], [0]) });
+    expect(old).toMatchObject({ kind: "subjective", answerInstructions: "2 + 3" });
+    expect(old).not.toHaveProperty("modelAnswer");   // an old stored model answer isn't shown (QA 28 Nov)
   });
 });

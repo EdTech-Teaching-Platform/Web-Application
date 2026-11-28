@@ -22,12 +22,9 @@ export function mapQuestion(question) {
   return {
     id: question.id,
     type,
-    kind: isWrittenType(type) ? "subjective" : "objective",   // written answers are graded by AI
+    kind: isWrittenType(type) ? "subjective" : "objective",   // written answers are marked by the teacher
     storedType: question.type,
     acceptedAnswer: type === QTYPE.FILL_BLANK && answerLabel !== MANUAL_GRADING_PLACEHOLDER ? answerLabel : "",
-    // written (AI-graded) questions: the model answer is the stored answer
-    modelAnswer: [QTYPE.SHORT_ANSWER, QTYPE.LONG_ANSWER, QTYPE.SUBJECTIVE].includes(type) && answerLabel !== MANUAL_GRADING_PLACEHOLDER
-      ? answerLabel : "",
     text: question.body || "",
     optionA: options.find((o) => o.option_key === "A")?.label || "",
     optionB: options.find((o) => o.option_key === "B")?.label || "",

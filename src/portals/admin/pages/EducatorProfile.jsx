@@ -47,19 +47,6 @@ const TABS = [
 
 const SHOW_CONTACT_BUTTON = false; // header "Contact" button hidden for now — set true to show
 
-// Display-only: the student table shows test series names in place of course titles.
-const SERIES_NAMES = [
-  "JEE Main Physics Test Series 2026",
-  "Class 10 Mathematics Weekly Series",
-  "NEET Biology Crash Course Series",
-  "Banking & SSC Reasoning Practice Series",
-  "English Proficiency Test Series",
-];
-function seriesForCourse(title) {
-  let h = 0;
-  for (const ch of String(title || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return SERIES_NAMES[h % SERIES_NAMES.length];
-}
 
 // One primary badge (the effective state) plus, for an approved educator
 // only, the account badge (statusMaps educatorDisplay). QA triage P3 (#3).
@@ -130,6 +117,11 @@ export default function EducatorProfile() {
   const detailRequest = useCallback(() => educatorsApi.detail(educatorId), [educatorId]);
   const detailState = useRpc(detailRequest, { immediate: !!educatorId });
   const educator = detailState.data;
+  // QA 28 Nov (Bug 3): the students of this educator's test series (real data,
+  // was an empty list with made-up series names).
+  const studentsRequest = useCallback(() => educatorsApi.students(educatorId), [educatorId]);
+  const studentsState = useRpc(studentsRequest, { immediate: !!educatorId });
+  const seriesStudents = studentsState.data;
   // Documents open through sign-educator-document (authorized + audited by
   // adm_authorize_document_access): images in a lightbox, PDFs in a new tab.
   const loadDocument = useCallback((doc, download) => educatorsApi.documentUrl({ documentId: doc.id, path: doc.path, download }), []);
@@ -153,14 +145,13 @@ export default function EducatorProfile() {
 
 
   const filteredStudents = useMemo(() => {
-    if (!educator) return [];
     const q = studentSearch.trim().toLowerCase();
-    return educator.students.filter((s) => {
-      if (q && !`${s.name} ${s.email} ${seriesForCourse(s.course)}`.toLowerCase().includes(q)) return false;
+    return (seriesStudents?.rows || []).filter((s) => {
+      if (q && !`${s.name} ${s.email} ${s.series.map((x) => x.title).join(" ")}`.toLowerCase().includes(q)) return false;
       if (studentStatusFilter !== "all" && s.status !== studentStatusFilter) return false;
       return true;
     });
-  }, [educator, studentSearch, studentStatusFilter]);
+  }, [seriesStudents, studentSearch, studentStatusFilter]);
 
   if (detailState.loading && !detailState.data) return <div className="ul-edp-notfound">Loading educator…</div>;
   if (detailState.error) return <div className="ul-edp-notfound"><p role="alert">{detailState.error.message}</p><button type="button" className="ul-btn ul-btn--primary" onClick={() => detailState.refetch()}>Retry</button></div>;
@@ -292,7 +283,7 @@ export default function EducatorProfile() {
           <div className="ul-edp-col">
             <Section title="Snapshot">
               <div className="ul-edp-stats">
-                <StatBlock label="Total students" value={isVerificationPending ? "—" : educator.studentsCount} />
+                <StatBlock label="Total students" value={isVerificationPending ? "—" : seriesStudents ? seriesStudents.summary.total : educator.studentsCount} />
                 <StatBlock label="Total courses" value={educator.coursesCount} />
                 <StatBlock label="Avg. rating" value={educator.rating > 0 ? educator.rating.toFixed(1) : "—"} />
                 <StatBlock label="Completion rate" value={p.avgCompletionRate ? `${p.avgCompletionRate}%` : "—"} />
@@ -400,10 +391,10 @@ export default function EducatorProfile() {
       {activeTab === "students" && !isVerificationPending && (
         <>
           <div className="ul-edp-stats ul-edp-stats--4col">
-            <StatBlock label="Total students" value={educator.performance.totalStudents} />
-            <StatBlock label="Active" value={educator.performance.activeStudents} />
-            <StatBlock label="Completed" value={educator.performance.completedStudents} />
-            <StatBlock label="At risk / inactive" value={educator.performance.atRiskStudents} />
+            <StatBlock label="Total students" value={seriesStudents ? seriesStudents.summary.total : "—"} />
+            <StatBlock label="Active" value={seriesStudents ? seriesStudents.summary.active : "—"} />
+            <StatBlock label="Completed" value={seriesStudents ? seriesStudents.summary.completed : "—"} />
+            <StatBlock label="At risk / inactive" value={seriesStudents ? seriesStudents.summary.atRisk + seriesStudents.summary.inactive : "—"} />
           </div>
           <div className="ul-edu-toolbar">
             <label className="ul-edu-search">
@@ -419,8 +410,17 @@ export default function EducatorProfile() {
             </select>
           </div>
           <div className="ul-card ul-edu-table-card">
-            {filteredStudents.length === 0 ? (
-              <div className="ul-edu-empty">No students match these filters.</div>
+            {studentsState.error ? (
+              <div className="ul-edu-empty" role="alert">
+                <p>{studentsState.error.message || "Couldn't load the students."}</p>
+                <button type="button" className="ul-btn ul-btn--ghost" onClick={() => studentsState.refetch()}>Retry</button>
+              </div>
+            ) : studentsState.loading && !seriesStudents ? (
+              <div className="ul-edu-empty" role="status">Loading students…</div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="ul-edu-empty">
+                {(seriesStudents?.rows || []).length === 0 ? "No students have enrolled in this educator's test series yet." : "No students match these filters."}
+              </div>
             ) : (
               <div className="ul-edu-table-scroll">
                 <table className="ul-edu-table">
@@ -441,12 +441,12 @@ export default function EducatorProfile() {
                             </div>
                           </div>
                         </td>
-                        <td>{seriesForCourse(s.course)}</td>
+                        <td>{s.series.length ? s.series.map((x) => x.title).join(", ") : "—"}</td>
                         <td>{s.enrolledDate}</td>
                         <td>
                           <div className="ul-edp-progress">
                             <div className="ul-edp-progress__track"><div className="ul-edp-progress__fill" style={{ width: `${s.progress}%` }} /></div>
-                            <span>{s.progress}%</span>
+                            <span title={`${s.testsDone} of ${s.testsTotal} tests attempted`}>{s.progress}%</span>
                           </div>
                         </td>
                         <td>{s.lastActive}</td>

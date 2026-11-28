@@ -103,7 +103,7 @@ describe("Educator profile: one decision per click", () => {
       </MemoryRouter>,
     );
   }
-  const writes = () => rpc.mock.calls.map((c) => c[0]).filter((n) => n !== "get_educator_detail");
+  const writes = () => rpc.mock.calls.map((c) => c[0]).filter((n) => n !== "get_educator_detail" && n !== "adm_educator_students");   // reads
 
   it("Approve runs ONLY set_educator_verification('approved'), then shows the new status", async () => {
     renderProfile(["pending", "approved"]);

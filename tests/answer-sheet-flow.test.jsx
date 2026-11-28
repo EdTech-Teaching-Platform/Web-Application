@@ -168,10 +168,23 @@ describe("the answer-sheet screen", () => {
     expect(await screen.findByText("Report page")).toBeInTheDocument();
     expect(api.submit).toHaveBeenCalledWith(A);
   });
-  it("nothing uploaded: the confirmation warns", async () => {
-    await renderSheet(null, apiFor(sheet()));
-    fireEvent.click(await screen.findByRole("button", { name: "Submit" }));
-    expect(screen.getByRole("dialog", { name: "Submit without an answer sheet?" })).toBeInTheDocument();
+  it("nothing uploaded: Submit stays disabled until a file has finished uploading (QA 28 Nov)", async () => {
+    let finish;
+    const api = apiFor(sheet());
+    api.upload = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+    await renderSheet(null, api);
+    const submit = await screen.findByRole("button", { name: "Submit" });
+    expect(submit).toBeDisabled();
+    expect(screen.getByText("Upload your answer sheet to submit.")).toBeInTheDocument();
+    const input = document.querySelector('input[type="file"][multiple]');
+    fireEvent.change(input, { target: { files: [new File(["%PDF"], "sheet.pdf", { type: "application/pdf" })] } });
+    expect(await screen.findByText("Wait for the upload to finish.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+    await act(async () => {
+      finish(mapSheetStatus(sheet({ uploads: [{ id: U, question_id: null, file_name: "sheet.pdf", content_type: "application/pdf", size_bytes: 4 }] })));
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Submit" })).toBeEnabled());
+    expect(screen.getByText("1 file ready.")).toBeInTheDocument();
   });
   it("when the time is up it submits by itself", async () => {
     const api = apiFor(sheet({ server_now: "2026-11-28T10:05:00Z" }));
@@ -207,7 +220,7 @@ describe("the report", () => {
     rpcHandlers.student_sheet_status = sheet();
     await renderReport();
     expect(await screen.findByRole("link", { name: "Continue to upload" })).toHaveAttribute("href", `/student/answer-sheet/${A}`);
-    expect(screen.getByText("The model answer is shown after your teacher has marked this answer.")).toBeInTheDocument();
+    expect(screen.queryByText(/model answer/i)).toBeNull();
   });
   it("after Submit: the sheet files (in-page preview) and 'On your answer sheet'", async () => {
     rpcHandlers.student_get_report = report();
@@ -220,13 +233,14 @@ describe("the report", () => {
     expect(screen.getByRole("dialog", { name: "Preview of sheet.pdf" })).toBeInTheDocument();
     expect(window.open).not.toHaveBeenCalled();
   });
-  it("after the marks: the model answer is labelled as such", async () => {
+  it("after the marks: no model answer is shown, even an old stored one (QA 28 Nov)", async () => {
     rpcHandlers.student_get_report = report({ status: "partial", points_earned: 7, correct_answer: "a = (v - u) / t", model_answer_pending: undefined,
       teacher_evaluation: { marks_awarded: 7, feedback: "Good." } }, { teacher: { status: "published", overall_feedback: "Well done." } });
     rpcHandlers.student_sheet_status = sheet({ can_upload: false });
     await renderReport();
-    expect(await screen.findByText("Model answer:")).toBeInTheDocument();
-    expect(screen.getByText("a = (v - u) / t")).toBeInTheDocument();
+    expect(await screen.findByText("Good.")).toBeInTheDocument();
+    expect(screen.queryByText(/Model answer/)).toBeNull();
+    expect(screen.queryByText("a = (v - u) / t")).toBeNull();
   });
 });
 

@@ -269,7 +269,9 @@ describe("educator: missing profile details after approval", () => {
 
   it("lists what is missing", () => {
     expect(missingEducatorDetails(FULL)).toEqual([]);
-    expect(missingEducatorDetails({ ...FULL, phone: "", bio: "short", subjects: [] }).map((m) => m.key)).toEqual(["phone", "subjects", "bio"]);
+    // QA 28 Nov: only the basic details are required; the rest is optional for now
+    expect(missingEducatorDetails({ ...FULL, phone: "", bio: "short", subjects: [] }).map((m) => m.key)).toEqual(["phone"]);
+    expect(missingEducatorDetails({ ...FULL, qualifications: "", bio: "", subjects: [], languages: [], experience_years: "" })).toEqual([]);
     expect(missingEducatorDetails(null)).toEqual([]);
   });
 
@@ -294,7 +296,7 @@ describe("educator: missing profile details after approval", () => {
   it("an approved educator with missing details is taken to the profile page, which lists them", async () => {
     await renderTeacher({ ...FULL, phone: "", qualifications: "", bio: "" });
     expect(await screen.findByText("Welcome! Complete your profile to continue")).toBeInTheDocument();
-    expect(screen.getByText(/Please add your phone number, qualifications, bio\./)).toBeInTheDocument();
+    expect(screen.getByText(/Please add your phone number\./)).toBeInTheDocument();
   });
 
   it("a complete profile stays on the dashboard", async () => {

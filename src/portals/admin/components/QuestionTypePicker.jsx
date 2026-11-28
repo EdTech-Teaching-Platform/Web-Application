@@ -67,16 +67,9 @@ export default function QuestionTypePicker({ value, onChange, variant = "cards",
 export function QuestionAnswerFields({ q, onChange }) {
   const type = normalizeQuestionType(q.type);
   if (type === QTYPE.SHORT_ANSWER || type === QTYPE.LONG_ANSWER || type === QTYPE.SUBJECTIVE) {
-    // Marked by the teacher (20261120090000) against these; the model answer is shown to the student after the marks are published
+    // Marked by the teacher (20261120090000). No model answer (QA 28 Nov): only an optional marking guide.
     return (
       <>
-        <div className="ul-ts-form-row">
-          <label htmlFor="q-model-answer">Model answer</label>
-          <textarea id="q-model-answer" rows={type === QTYPE.SHORT_ANSWER ? 2 : 4} value={q.modelAnswer || ""}
-            onChange={(e) => onChange({ modelAnswer: e.target.value })}
-            placeholder="What a full-marks answer says" />
-          <span className="ul-tsw-hint">Your reference for marking. Students see it in their report after you publish their marks (when the test's "show answers" setting allows it).</span>
-        </div>
         <div className="ul-ts-form-row">
           <label htmlFor="q-marking-guide">Marking guide (optional)</label>
           <textarea id="q-marking-guide" rows={3} value={q.answerInstructions || ""}

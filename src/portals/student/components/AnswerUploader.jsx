@@ -23,7 +23,7 @@ import { pickCameraMode } from "../utils/camera";
 export default function AnswerUploader({
   attemptId, questionId, files = [], canUpload = true, canRemove = true, onChange, onPickStart, onPickEnd,
   onPreviewOpen, onPreviewClose, api = answerUploadsApi, label = "Upload your answer sheet",
-  maxFiles = ANSWER_MAX_FILES, hint, cameraMode = pickCameraMode(),
+  maxFiles = ANSWER_MAX_FILES, hint, cameraMode = pickCameraMode(), onBusyChange,
 }) {
   const [preview, setPreview] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -33,6 +33,10 @@ export default function AnswerUploader({
   const pickRef = useRef(false);
   const busy = queue.some((q) => !q.error);
   const room = Math.max(0, maxFiles - files.length - queue.filter((q) => !q.error).length);
+  // The answer-sheet page keeps Submit disabled while a file is still uploading
+  // or being removed (QA 28 Nov).
+  const working = busy || busyId != null;
+  useEffect(() => { onBusyChange?.(working); }, [working, onBusyChange]);
 
   // The picker closed without a choice: the window gets focus back.
   useEffect(() => () => window.removeEventListener("focus", onFocusBack), []);   // eslint-disable-line react-hooks/exhaustive-deps

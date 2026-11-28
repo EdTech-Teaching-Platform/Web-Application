@@ -377,7 +377,8 @@ begin
   v := public.educator_get_profile();
   perform pg_temp.ok(v ->> 'verification_status' = 'verified' and v ->> 'location' = 'Pune', 'profile: read');
   perform pg_temp.expect_error('select public.educator_update_profile(''{"verification_status":"verified"}'')', '42501', 'can''t be changed');
-  perform pg_temp.expect_error('select public.educator_update_profile(''{"bio":"too short"}'')', '22023');
+  -- 20261129090000: a short bio is fine now (optional); over 1000 characters is refused
+  perform pg_temp.expect_error(format('select public.educator_update_profile(%L)', jsonb_build_object('bio', repeat('x', 1001))), '22023');
   begin
     perform public.educator_update_profile('{"experience_years":99,"phone":"12"}');
   exception when sqlstate '22023' then

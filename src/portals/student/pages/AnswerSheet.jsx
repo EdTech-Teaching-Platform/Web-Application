@@ -19,6 +19,7 @@ export default function AnswerSheet({ api = sheetUploadsApi }) {
   const [error, setError] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const autoSent = useRef(false);
 
   useEffect(() => {
@@ -85,22 +86,25 @@ export default function AnswerSheet({ api = sheetUploadsApi }) {
 
         <AnswerUploader
           attemptId={attemptId} questionId={null} files={files} canUpload={!submitting} canRemove={!submitting}
-          maxFiles={status.maxFiles} api={api} onChange={setStatus} label="Your answer sheet"
+          maxFiles={status.maxFiles} api={api} onChange={setStatus} label="Your answer sheet" onBusyChange={setUploading}
           hint="Upload one PDF of all your written answers, or photos of each page. Write the question number next to each answer."
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-white p-5 ring-1 ring-text/10">
-          <p className="text-sm text-text/70">{files.length ? `${files.length} file${files.length === 1 ? "" : "s"} ready.` : "Nothing uploaded yet."}</p>
-          <Button fullWidth={false} disabled={submitting} onClick={() => setConfirming(true)}>
+          <p id="sheet-submit-note" className="text-sm text-text/70">
+            {uploading ? "Wait for the upload to finish." : files.length ? `${files.length} file${files.length === 1 ? "" : "s"} ready.` : "Upload your answer sheet to submit."}
+          </p>
+          {/* QA 28 Nov: Submit stays disabled until at least one file has finished uploading. */}
+          <Button fullWidth={false} disabled={submitting || uploading || files.length === 0} aria-describedby="sheet-submit-note" onClick={() => setConfirming(true)}>
             {submitting ? "Submitting…" : "Submit"}
           </Button>
         </div>
       </div>
 
       <Modal
-        open={confirming && !submitting}
+        open={confirming && !submitting && files.length > 0 && !uploading}
         onClose={() => setConfirming(false)}
-        title={files.length ? "Submit your answer sheet?" : "Submit without an answer sheet?"}
+        title="Submit your answer sheet?"
         footer={
           <>
             <Button onClick={() => { setConfirming(false); submit(false); }}>Submit</Button>
@@ -109,9 +113,7 @@ export default function AnswerSheet({ api = sheetUploadsApi }) {
         }
       >
         <p className="text-sm text-text/70">
-          {files.length
-            ? `You're submitting ${files.length} file${files.length === 1 ? "" : "s"}. After this you can't add or remove anything.`
-            : "You haven't uploaded anything. Your written answers will be marked only from what you typed during the test."}
+          {`You're submitting ${files.length} file${files.length === 1 ? "" : "s"}. After this you can't add or remove anything.`}
         </p>
       </Modal>
     </div>

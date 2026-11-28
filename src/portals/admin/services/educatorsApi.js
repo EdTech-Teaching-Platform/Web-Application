@@ -93,6 +93,31 @@ export const educatorsApi = {
   }),
   setAccountStatus: (id, status, reason) => callRpc("set_educator_account_status", { p_id: id, p_status: status, p_reason: reason || null }),
   delete: (id) => callRpc("delete_educator", { p_id: id }),
+  // QA 28 Nov (Bug 3): the students of the educator's test series (own and
+  // assigned), adm_educator_students (20261129090000).
+  students: async (id) => {
+    const data = await callRpc("adm_educator_students", { p_educator: id });
+    const sum = data?.summary || {};
+    return {
+      summary: {
+        total: Number(sum.total || 0), active: Number(sum.active || 0), completed: Number(sum.completed || 0),
+        atRisk: Number(sum.at_risk || 0), inactive: Number(sum.inactive || 0),
+      },
+      rows: (data?.students || []).map((s) => ({
+        id: s.id,
+        name: s.name || "Student",
+        email: s.email || "",
+        initials: s.initials || "",
+        series: (s.series || []).map((x) => ({ id: x.id, title: x.title || "Untitled series" })),
+        enrolledDate: s.enrolled_at ? new Date(s.enrolled_at).toLocaleDateString("en-IN") : "—",
+        testsDone: Number(s.tests_done || 0),
+        testsTotal: Number(s.tests_total || 0),
+        progress: Number(s.progress || 0),
+        lastActive: s.last_active_at ? new Date(s.last_active_at).toLocaleString("en-IN") : "—",
+        status: s.status || "inactive",
+      })),
+    };
+  },
   // One entry point for the action matrix (statusMaps EDUCATOR_ACTIONS).
   perform: (id, action, reason) => {
     switch (action) {

@@ -144,15 +144,16 @@ export function initialWizardState() {
 export const CSV_COLUMNS = ["question", "optionA", "optionB", "optionC", "optionD", "correct", "marks", "negative", "type", "difficulty", "subject", "topic", "explanation"];
 // type: mcq (one correct letter), mcq_multi (letters joined with | e.g. A|C),
 // true_false (True / False, or A / B), fill_blank (the accepted answer in
-// "correct"). subjective: a written answer graded by AI; the model answer goes
-// in "correct". (short_answer / long_answer still import but are not in the template.)
+// "correct"). subjective: a written answer marked by the teacher; "correct" is
+// left empty (no model answer, QA 28 Nov). (short_answer / long_answer still
+// import but are not in the template.)
 export const CSV_TEMPLATE = [
   CSV_COLUMNS.join(","),
   '"A body moving with uniform velocity has:","Zero acceleration","Uniform acceleration","Increasing acceleration","Decreasing acceleration",A,4,1,mcq,easy,Physics,Kinematics,"Uniform velocity means no change in speed or direction."',
   '"Which of these are vector quantities?","Velocity","Speed","Force","Mass",A|C,4,1,mcq_multi,medium,Physics,Vectors,',
   '"Light travels faster than sound.",,,,,True,2,0,true_false,easy,Physics,Waves,',
   '"The SI unit of force is the ____.",,,,,newton,2,0,fill_blank,easy,Physics,Units,',
-  '"Explain why a body moving with uniform velocity has zero acceleration.",,,,,"Acceleration is the rate of change of velocity. Uniform velocity means speed and direction do not change, so the rate of change is zero.",5,0,subjective,medium,Physics,Kinematics,',
+  '"Explain why a body moving with uniform velocity has zero acceleration.",,,,,,5,0,subjective,medium,Physics,Kinematics,',
 ].join("\n");
 
 export function parseCsv(text) {
@@ -258,9 +259,8 @@ export function validateCsvRows(rows, existingKeys) {
       else if (!trueFalseKey(r.correct)) invalid.push(`Correct answer "${r.correct}" must be True or False.`);
     }
     if (type === QTYPE.FILL_BLANK && !r.correct) incomplete.push("Accepted answer is missing (put it in the correct column).");
-    // written questions are graded by AI against the model answer (20261115090000)
+    // written questions are marked by the teacher; any "correct" text is ignored (no model answer, QA 28 Nov)
     const written = !blocked && [QTYPE.SHORT_ANSWER, QTYPE.LONG_ANSWER, QTYPE.SUBJECTIVE].includes(type);
-    if (written && !r.correct) incomplete.push("Model answer is missing (put it in the correct column; the AI grades against it).");
     if (r.marks !== "" && !(Number(r.marks) > 0)) invalid.push(`Marks "${r.marks}" must be a positive number.`);
     if (r.negative !== "" && !(Number(r.negative) >= 0)) invalid.push(`Negative marks "${r.negative}" must be 0 or more.`);
     if (toDifficulty(r.difficulty) === null) invalid.push(`Difficulty "${r.difficulty}" must be easy, medium or hard.`);
@@ -287,7 +287,6 @@ export function validateCsvRows(rows, existingKeys) {
         correctAnswer: keys[0] || "",
         correctAnswers: keys,
         acceptedAnswer: type === QTYPE.FILL_BLANK ? r.correct : "",
-        modelAnswer: written ? r.correct : "",
         marks: r.marks !== "" ? Number(r.marks) : 4,
         negativeMarks: written ? 0 : r.negative !== "" ? Number(r.negative) : isMcq ? 1 : 0,
         difficulty: toDifficulty(r.difficulty),
@@ -477,7 +476,7 @@ export function validateWizard(st, ctx) {
       if (missingAnswer(q)) missing += 1;
     });
   });
-  if (missing) errors.push(`${missing} question${missing === 1 ? " is" : "s are"} missing options, a correct answer or a model answer.`);
+  if (missing) errors.push(`${missing} question${missing === 1 ? " is" : "s are"} missing options or a correct answer.`);
   const blocked = blockedQuestionCount(st.tests);
   if (blocked) {
     const msg = `Remove the ${blocked} short / long / subjective question${blocked === 1 ? "" : "s"}: ${SUBJECTIVE_BLOCKED_MESSAGE}`;

@@ -153,8 +153,13 @@ begin
   perform pg_temp.ok(errs ?& array['full_name', 'phone', 'location'], 'step 1: field errors for name, phone, location');
   errs := pg_temp.field_errors('select public.educator_save_onboarding_step(2, ''{"qualifications":"MSc","experience_years":61}'')');
   perform pg_temp.ok(errs ? 'experience_years' and not errs ? 'qualifications', 'step 2: experience 0..60');
-  errs := pg_temp.field_errors('select public.educator_save_onboarding_step(3, ''{"subjects":[],"languages":["English"],"bio":"short"}'')');
-  perform pg_temp.ok(errs ?& array['subjects', 'bio'] and not errs ? 'languages', 'step 3: subjects required, bio length');
+  -- 20261129090000: steps 2 and 3 are optional, but what is given is checked
+  errs := pg_temp.field_errors(format('select public.educator_save_onboarding_step(3, %L)',
+            jsonb_build_object('subjects', jsonb_build_array(''), 'languages', jsonb_build_array('English'), 'bio', repeat('x', 1001))));
+  perform pg_temp.ok(errs ?& array['subjects', 'bio'] and not errs ? 'languages', 'step 3: a blank subject and a bio over 1000 characters are refused');
+  v := public.educator_save_onboarding_step(2, '{"qualifications":"","experience_years":""}');
+  perform pg_temp.ok(v -> 'data' -> 'experience_years' = 'null' and v -> 'data' -> 'qualifications' = 'null',
+                     'step 2: empty optional fields are saved as null (20261129090000)');
   perform pg_temp.expect_error('select public.educator_save_onboarding_step(9, ''{}'')', '22023');
 
   perform public.educator_save_onboarding_step(1, '{"full_name":" Asha  Rao ","phone":"+91 98765 43210","location":"Pune","role":"admin"}');
@@ -200,8 +205,7 @@ begin
                      'documents: front registered with the storage path as doc_url');
   perform public.educator_register_document('other', e || '/other-selfie-1.jpg', 'Selfie');
 
-  errs := pg_temp.field_errors('select public.educator_submit_onboarding()');
-  perform pg_temp.ok(errs ? 'documents' and not errs ? 'bio', 'submit: refused without the back of the ID');
+  -- 20261129090000: the ID pictures are optional now (submitting without the back is in qa_nov28.sql)
 
   d := public.educator_register_document('government_id', e || '/government_id-front-2.jpg', 'front');
   perform pg_temp.ok((select count(*) from public.educator_verification_docs where educator_id = e and doc_type = 'government_id'

@@ -19,13 +19,13 @@ import TestSeriesWizard from "../src/portals/admin/pages/TestSeriesWizard";
 import { EducatorGate } from "../src/layouts/TeacherLayout";
 
 const HEADER = "question,optionA,optionB,optionC,optionD,correct,marks,negative,type,difficulty,subject,topic,explanation";
-// commas and quotes inside fields, an escaped quote, an invalid answer, a subjective row without a model answer
+// commas and quotes inside fields, an escaped quote, an invalid answer, a fill in the blank row without its answer
 const SAMPLE = [
   HEADER,
   '"What is 2, plus 2?","3","4","5, maybe","6",B,4,1,mcq,easy,Maths,"Addition, basics","Count: 2 + 2 = 4"',
   '"He said ""hello"" — which word is quoted?",hello,said,He,which,A,2,0,mcq,medium,English,Quotes,',
   '"Bad answer row",a,b,c,d,E,4,1,mcq,easy,,,',
-  '"Explain gravity",,,,,,5,0,subjective,medium,Physics,,',
+  '"Explain gravity",,,,,,5,0,fill_blank,medium,Physics,,',
 ].join("\r\n");
 
 const wait = (ms = 30) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
@@ -44,7 +44,7 @@ describe("CSV parsing", () => {
     expect(rows[2][0]).toBe('He said "hello" — which word is quoted?');
   });
 
-  it("validates each row with a reason; a subjective row needs its model answer; the row keeps its text", () => {
+  it("validates each row with a reason; a fill in the blank row needs its answer; the row keeps its text", () => {
     const { rows, error } = csvToRows(SAMPLE);
     expect(error).toBe("");
     const report = validateCsvRows(rows, new Set());
@@ -52,7 +52,7 @@ describe("CSV parsing", () => {
     expect(report[0].question).toBe("What is 2, plus 2?");
     expect(report[0].parsed).toMatchObject({ text: "What is 2, plus 2?", correctAnswer: "B", optionC: "5, maybe", topic: "Addition, basics" });
     expect(report[2].issues.join(" ")).toMatch(/must be A, B, C or D/);
-    expect(report[3].issues.join(" ")).toMatch(/Model answer is missing/);
+    expect(report[3].issues.join(" ")).toMatch(/Accepted answer is missing/);
     expect(report[3].question).toBe("Explain gravity");
   });
 
@@ -75,7 +75,7 @@ describe("CSV importer", () => {
     paste(SAMPLE);
     expect(screen.getByText("What is 2, plus 2?")).toBeInTheDocument();
     expect(screen.getByText(/must be A, B, C or D/)).toBeInTheDocument();
-    expect(screen.getByText(/Model answer is missing/)).toBeInTheDocument();
+    expect(screen.getByText(/Accepted answer is missing/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Import 2 valid rows" }));
     expect(onImport).toHaveBeenCalledTimes(1);
     expect(onImport.mock.calls[0][0].map((q) => q.text)).toEqual(["What is 2, plus 2?", 'He said "hello" — which word is quoted?']);

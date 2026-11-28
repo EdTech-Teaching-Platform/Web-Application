@@ -61,4 +61,7 @@ export const studentsApi = {
     : callRpc("unblock_student", { p_id: id })),
   // Auth-level ban that follows the SQL block / unblock (set-user-ban, QA triage P2).
   setBan: (id, ban, reason) => invokeFunction("set-user-ban", { userId: id, ban, reason: reason || null }),
+  // Deletes the student's account (admin-delete-student, QA 28 Nov): blocked at once,
+  // the sign-in removed and the email released. Can't be undone.
+  deleteAccount: (id, reason) => invokeFunction("admin-delete-student", { userId: id, confirm: "DELETE", reason: reason || null }),
 };

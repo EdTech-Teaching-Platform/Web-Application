@@ -14,10 +14,11 @@ export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const CERTIFICATE_TYPES = ["degree_certificate", "teaching_license", "experience_letter", "subject_certificate"];
 
-// The documents the ID step asks for.
+// The documents the ID step asks for. Optional for now (28 Nov): only the
+// basic details (name, phone, location) are required (20261129090000).
 export const REQUIRED_DOCUMENTS = [
-  { docType: "government_id", docName: "front", label: "Government ID: front", required: true },
-  { docType: "government_id", docName: "back", label: "Government ID: back", required: true },
+  { docType: "government_id", docName: "front", label: "Government ID: front", required: false },
+  { docType: "government_id", docName: "back", label: "Government ID: back", required: false },
   { docType: "other", docName: "selfie", label: "A selfie holding the ID", required: false },
 ];
 
@@ -25,7 +26,8 @@ const trimmed = (v) => String(v ?? "").trim();
 const list = (v) => (Array.isArray(v) ? v.map(trimmed) : []);
 
 // {field: message} for one step (1-3) or every step (0); same rules and
-// messages as the server.
+// messages as the server. Step 1 (name, phone, location) is required; the
+// rest is optional for now (28 Nov, 20261129090000) and checked only when filled in.
 export function validateOnboarding(data, step = 0) {
   const d = data || {};
   const e = {};
@@ -42,21 +44,21 @@ export function validateOnboarding(data, step = 0) {
   }
   if (step === 0 || step === 2) {
     const q = trimmed(d.qualifications);
-    if (q.length < 2 || q.length > 500) e.qualifications = "Enter your qualifications (2 to 500 characters).";
+    if (q && (q.length < 2 || q.length > 500)) e.qualifications = "Qualifications must be 2 to 500 characters.";
     const years = trimmed(d.experience_years);
-    if (!/^\d{1,2}$/.test(years) || Number(years) > 60) e.experience_years = "Years of experience must be a whole number from 0 to 60.";
+    if (years && (!/^\d{1,2}$/.test(years) || Number(years) > 60)) e.experience_years = "Years of experience must be a whole number from 0 to 60.";
   }
   if (step === 0 || step === 3) {
     const subjects = list(d.subjects);
-    if (subjects.length === 0 || subjects.length > 20 || subjects.some((s) => !s || s.length > 60)) {
-      e.subjects = "Add 1 to 20 subjects (each up to 60 characters).";
+    if (subjects.length > 20 || subjects.some((s) => !s || s.length > 60)) {
+      e.subjects = "Add up to 20 subjects (each up to 60 characters).";
     }
     const languages = list(d.languages);
-    if (languages.length === 0 || languages.length > 10 || languages.some((s) => !s || s.length > 40)) {
-      e.languages = "Add 1 to 10 teaching languages (each up to 40 characters).";
+    if (languages.length > 10 || languages.some((s) => !s || s.length > 40)) {
+      e.languages = "Add up to 10 teaching languages (each up to 40 characters).";
     }
     const bio = trimmed(d.bio);
-    if (bio.length < 50 || bio.length > 1000) e.bio = "Write a short bio of 50 to 1000 characters.";
+    if (bio.length > 1000) e.bio = "Keep the bio to 1000 characters or fewer.";
   }
   return e;
 }

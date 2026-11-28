@@ -222,11 +222,9 @@ export function QuestionReview({ question, hidden, files = [], api = answerUploa
       ) : (
         <dl className="mt-4 space-y-2 rounded-xl bg-(--lp-grey) px-4 py-3 text-sm">
           <div><dt className="inline font-medium text-text/70">Your answer: </dt><dd className="inline whitespace-pre-line text-text">{question.student_answer || (files.length ? "Uploaded as answer sheets (below)" : onSheet ? "On your answer sheet" : "Not answered")}</dd></div>
-          {question.correct_answer && (
-            <div><dt className="inline font-medium text-text/70">{isWrittenRow(question) || question.status === "pending" ? "Model answer: " : "Accepted answer: "}</dt><dd className="inline text-text">{question.correct_answer}</dd></div>
-          )}
-          {question.model_answer_pending && (
-            <p className="text-xs text-text/60">The model answer is shown after your teacher has marked this answer.</p>
+          {/* Written answers have no model answer (QA 28 Nov): only fill in the blank shows its accepted answer. */}
+          {question.correct_answer && !isWrittenRow(question) && question.status !== "pending" && (
+            <div><dt className="inline font-medium text-text/70">Accepted answer: </dt><dd className="inline text-text">{question.correct_answer}</dd></div>
           )}
         </dl>
       )}

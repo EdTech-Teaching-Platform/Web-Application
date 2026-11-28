@@ -148,11 +148,14 @@ describe("onboarding validation and resume", () => {
     expect(validateOnboarding(valid)).toEqual({});
     expect(Object.keys(validateOnboarding({ ...valid, phone: "12", location: "Not provided" }, 1))).toEqual(["phone", "location"]);
     expect(validateOnboarding({ ...valid, experience_years: 61 }, 2)).toHaveProperty("experience_years");
-    expect(validateOnboarding({ ...valid, experience_years: "" }, 2)).toHaveProperty("experience_years");
-    expect(validateOnboarding({ ...valid, subjects: [], bio: "short" }, 3)).toEqual({
-      subjects: "Add 1 to 20 subjects (each up to 60 characters).", bio: "Write a short bio of 50 to 1000 characters.",
+    // QA 28 Nov: only step 1 is required; the rest is checked when filled in
+    expect(validateOnboarding({ ...valid, experience_years: "" }, 2)).toEqual({});
+    expect(validateOnboarding({ ...valid, qualifications: "", subjects: [], languages: [], bio: "short" }, 0)).toEqual({});
+    expect(validateOnboarding({ ...valid, bio: "x".repeat(1001), subjects: Array(21).fill("Maths") }, 3)).toEqual({
+      subjects: "Add up to 20 subjects (each up to 60 characters).", bio: "Keep the bio to 1000 characters or fewer.",
     });
-    expect(validateOnboarding({}, 2)).not.toHaveProperty("full_name");
+    expect(validateOnboarding({}, 2)).toEqual({});
+    expect(Object.keys(validateOnboarding({}, 0))).toEqual(["full_name", "phone", "location"]);
   });
 
   it("resumes after the last saved step and reads server field errors", () => {
@@ -161,7 +164,7 @@ describe("onboarding validation and resume", () => {
     expect(resumeStep({ step: 5 })).toBe(5);
     expect(fieldErrorsFrom({ details: "{\"phone\":\"Bad\"}" })).toEqual({ phone: "Bad" });
     expect(fieldErrorsFrom({ details: "not json" })).toEqual({});
-    expect(missingRequiredDocuments([{ doc_type: "government_id", doc_name: "front" }]).map((d) => d.docName)).toEqual(["back"]);
+    expect(missingRequiredDocuments([{ doc_type: "government_id", doc_name: "front" }])).toEqual([]);   // ID pictures optional (QA 28 Nov)
   });
 
   function onboardingApi(overrides = {}) {
@@ -189,13 +192,14 @@ describe("onboarding validation and resume", () => {
     );
   }
 
-  it("resumes at step 3 after a refresh and blocks an invalid step without a request", async () => {
-    const api = onboardingApi();
+  it("resumes at step 3 after a refresh; the optional fields can stay empty (QA 28 Nov)", async () => {
+    const api = onboardingApi({ saveStep: vi.fn().mockResolvedValue({ step: 3, data: valid, documents: [], status: { status: "draft", can_edit: true } }) });
     renderOnboarding(api);
     expect(await screen.findByRole("heading", { level: 1, name: "Subjects, languages and bio" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    expect(api.saveStep).not.toHaveBeenCalled();
-    expect(screen.getByText("Write a short bio of 50 to 1000 characters.")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Short bio/)).toBeInTheDocument();
+    expect(screen.getByText("Subjects you teach (optional)")).toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save and continue" })); });
+    expect(api.saveStep).toHaveBeenCalledWith(3, { subjects: [], languages: [], bio: "" });
   });
 
   it("shows the server's field errors when a save is refused", async () => {
@@ -218,7 +222,7 @@ describe("onboarding validation and resume", () => {
     expect(await screen.findByText("Teacher home")).toBeInTheDocument();
   });
 
-  it("shows an upload error on the document and keeps Continue blocked", async () => {
+  it("shows an upload error on the document; the ID pictures are optional, so Continue still works", async () => {
     const api = onboardingApi({
       getOnboarding: vi.fn().mockResolvedValue({ step: 3, data: valid, documents: [], status: { status: "draft", can_edit: true } }),
       uploadDocument: vi.fn().mockRejectedValue(Object.assign(new Error("The upload failed. Check your connection and try again."), { stage: "upload" })),
@@ -230,9 +234,9 @@ describe("onboarding validation and resume", () => {
     await act(async () => { fireEvent.change(input, { target: { files: [file] } }); });
     expect(api.uploadDocument).toHaveBeenCalledWith(expect.objectContaining({ docType: "government_id", docName: "front", file }));
     expect(await screen.findByText("The upload failed. Check your connection and try again.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    expect(api.saveStep).not.toHaveBeenCalled();
-    expect(screen.getByText("Upload: Government ID: front, Government ID: back.")).toBeInTheDocument();
+    expect(screen.getByText("Government ID: front")).toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save and continue" })); });
+    expect(api.saveStep).toHaveBeenCalledWith(4, {});
   });
 });
 

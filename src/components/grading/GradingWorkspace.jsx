@@ -6,7 +6,7 @@ import AssetImage from "../common/AssetImage";
 import { formatWhen, markProblem } from "./gradingUtils";
 
 // Marking one attempt's written answers (20261120090000): each question with
-// the marking guide / model answer, the typed answer and the uploaded answer
+// the marking guide, the typed answer and the uploaded answer
 // sheets (photos inline, PDFs in a new tab), marks (0..max) and feedback per
 // question, and overall feedback. "Save draft" keeps it private; "Publish
 // marks" updates the student's score and report and notifies them. Publishing
@@ -259,11 +259,10 @@ export default function GradingWorkspace({ attemptId, backTo, api = gradingApi, 
               </div>
               <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-slate-900">{q.text}</p>
               {q.image_path && <AssetImage path={q.image_path} alt={q.image_alt || ""} className="mt-3 max-h-64 rounded-xl object-contain" />}
-              {(q.marking_guide || q.model_answer) && (
+              {q.marking_guide && (
                 <details className="mt-3 rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-700">
-                  <summary className="cursor-pointer font-semibold">Marking guide and model answer</summary>
-                  {q.marking_guide && <p className="mt-2 whitespace-pre-line"><strong>Guide:</strong> {q.marking_guide}</p>}
-                  {q.model_answer && <p className="mt-2 whitespace-pre-line"><strong>Model answer:</strong> {q.model_answer}</p>}
+                  <summary className="cursor-pointer font-semibold">Marking guide</summary>
+                  <p className="mt-2 whitespace-pre-line">{q.marking_guide}</p>
                 </details>
               )}
 

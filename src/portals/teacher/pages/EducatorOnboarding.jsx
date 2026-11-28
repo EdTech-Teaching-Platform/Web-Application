@@ -249,13 +249,13 @@ export default function EducatorOnboarding({ api = educatorApi }) {
           {step === 2 && (
             <>
               <div>
-                <label htmlFor="ob-qualifications" className="mb-1.5 block text-sm font-medium">Qualifications</label>
+                <label htmlFor="ob-qualifications" className="mb-1.5 block text-sm font-medium">Qualifications <span className="text-xs font-normal text-text/50">(optional)</span></label>
                 <textarea id="ob-qualifications" rows={3} maxLength={500} className="w-full rounded-2xl border border-text/15 bg-bg px-4 py-3 text-sm"
                   value={form.qualifications || ""} onChange={(e) => patch({ qualifications: e.target.value })} onBlur={() => touch("qualifications")}
                   aria-invalid={Boolean(errorFor("qualifications"))} aria-describedby="ob-qualifications-error" placeholder="e.g. MSc Physics, B.Ed" />
                 <FieldError id="ob-qualifications-error" message={errorFor("qualifications")} />
               </div>
-              <Input label="Years of teaching experience" type="number" min="0" max="60" value={form.experience_years ?? ""}
+              <Input label="Years of teaching experience (optional)" type="number" min="0" max="60" value={form.experience_years ?? ""}
                 onChange={(e) => patch({ experience_years: e.target.value })} onBlur={() => touch("experience_years")} error={errorFor("experience_years")} />
             </>
           )}
@@ -263,19 +263,19 @@ export default function EducatorOnboarding({ api = educatorApi }) {
           {step === 3 && (
             <>
               <div>
-                <ChipInput label="Subjects you teach" values={form.subjects || []} onChange={(subjects) => { patch({ subjects }); touch("subjects"); }} max={20} placeholder="Type a subject and press Enter" />
+                <ChipInput label="Subjects you teach (optional)" values={form.subjects || []} onChange={(subjects) => { patch({ subjects }); touch("subjects"); }} max={20} placeholder="Type a subject and press Enter" />
                 <FieldError id="ob-subjects-error" message={errorFor("subjects")} />
               </div>
               <div>
-                <ChipInput label="Teaching languages" values={form.languages || []} onChange={(languages) => { patch({ languages }); touch("languages"); }} max={10} placeholder="Type a language and press Enter" />
+                <ChipInput label="Teaching languages (optional)" values={form.languages || []} onChange={(languages) => { patch({ languages }); touch("languages"); }} max={10} placeholder="Type a language and press Enter" />
                 <FieldError id="ob-languages-error" message={errorFor("languages")} />
               </div>
               <div>
-                <label htmlFor="ob-bio" className="mb-1.5 block text-sm font-medium">Short bio</label>
+                <label htmlFor="ob-bio" className="mb-1.5 block text-sm font-medium">Short bio <span className="text-xs font-normal text-text/50">(optional)</span></label>
                 <textarea id="ob-bio" rows={5} maxLength={1000} className="w-full rounded-2xl border border-text/15 bg-bg px-4 py-3 text-sm"
                   value={form.bio || ""} onChange={(e) => patch({ bio: e.target.value })} onBlur={() => touch("bio")}
                   aria-invalid={Boolean(errorFor("bio"))} aria-describedby="ob-bio-count ob-bio-error" />
-                <span id="ob-bio-count" className="mt-1 block text-right text-xs text-text/50">{String(form.bio || "").trim().length} / 1000 (at least 50)</span>
+                <span id="ob-bio-count" className="mt-1 block text-right text-xs text-text/50">{String(form.bio || "").trim().length} / 1000</span>
                 <FieldError id="ob-bio-error" message={errorFor("bio")} />
               </div>
             </>
@@ -334,7 +334,7 @@ export default function EducatorOnboarding({ api = educatorApi }) {
             <div className="space-y-4 text-sm">
               <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
                 {[["Name", form.full_name], ["Phone", form.phone], ["Location", form.location], ["Qualifications", form.qualifications],
-                  ["Experience", `${form.experience_years ?? "—"} years`], ["Subjects", (form.subjects || []).join(", ")],
+                  ["Experience", form.experience_years !== "" && form.experience_years != null ? `${form.experience_years} years` : ""], ["Subjects", (form.subjects || []).join(", ")],
                   ["Languages", (form.languages || []).join(", ")]].map(([k, v]) => (
                   <div key={k}><dt className="text-xs text-text/50">{k}</dt><dd className="font-medium">{v || "—"}</dd></div>
                 ))}
